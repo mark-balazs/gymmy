@@ -10,7 +10,8 @@ export function Card({ className, children }: { className?: string; children: Re
   return (
     <div
       className={cn(
-        'rounded-[14px] border border-[var(--color-line)] bg-[var(--color-surface)] p-3.5',
+        'rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4',
+        'shadow-[var(--shadow-card)]',
         className,
       )}
     >
@@ -32,13 +33,15 @@ export function Button({
       {...rest}
       className={cn(
         'inline-flex min-h-[var(--spacing-tap)] cursor-pointer items-center justify-center gap-2',
-        'rounded-[11px] border px-4 font-semibold transition-transform active:scale-[0.985]',
-        'disabled:cursor-not-allowed disabled:opacity-45',
+        'rounded-[12px] border px-4 font-semibold',
+        'transition-[transform,background-color,box-shadow,opacity] duration-150 ease-[var(--ease-out-soft)]',
+        'active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100',
         variant === 'primary' &&
-          'border-transparent bg-[var(--color-accent)] text-[var(--color-accent-ink)]',
+          'border-transparent bg-[image:var(--gradient-accent)] text-[var(--color-accent-ink)] shadow-[var(--shadow-accent)]',
         variant === 'default' &&
-          'border-[var(--color-line)] bg-[var(--color-surface-2)] text-[var(--color-ink)]',
-        variant === 'ghost' && 'border-transparent bg-transparent text-[var(--color-ink)]',
+          'border-[var(--color-line)] bg-[var(--color-surface-2)] text-[var(--color-ink)] hover:bg-[var(--color-surface-3)]',
+        variant === 'ghost' &&
+          'border-transparent bg-transparent text-[var(--color-ink)] hover:bg-[var(--color-surface-2)]',
         variant === 'danger' && 'border-transparent bg-transparent text-[var(--color-bad)]',
         className,
       )}
@@ -98,10 +101,12 @@ export function Segmented<T extends string | number>({
           aria-pressed={o.value === value}
           onClick={() => onChange(o.value)}
           className={cn(
-            'min-h-[38px] flex-1 cursor-pointer rounded-[9px] text-sm font-semibold',
+            'min-h-[38px] flex-1 cursor-pointer rounded-[10px] text-sm font-semibold',
+            'transition-[background-color,color,box-shadow,transform] duration-200 ease-[var(--ease-out-soft)]',
+            'active:scale-[0.97]',
             o.value === value
-              ? 'bg-[var(--color-accent)] text-[var(--color-accent-ink)]'
-              : 'text-[var(--color-muted)]',
+              ? 'bg-[var(--color-surface)] text-[var(--color-accent)] shadow-[var(--shadow-card)]'
+              : 'text-[var(--color-muted)] hover:text-[var(--color-ink)]',
           )}
         >
           {o.label}
@@ -182,7 +187,7 @@ export function Sheet({
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end bg-black/55"
+      className="animate-fade fixed inset-0 z-50 flex items-end bg-black/60 backdrop-blur-[2px]"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"

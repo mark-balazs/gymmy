@@ -72,16 +72,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="pb-[calc(62px+env(safe-area-inset-bottom))]">
-      <header className="safe-top sticky top-0 z-20 border-b border-[var(--color-line)] bg-[var(--color-bg)]/90 px-4 pt-3 pb-3 backdrop-blur-md">
+      <header className="safe-top sticky top-0 z-20 border-b border-[var(--color-line)]/70 bg-[var(--color-bg)]/75 px-4 pt-3 pb-3 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[760px] items-center justify-between">
-          <h1 className="text-[22px] font-bold tracking-tight">{t(titleKey)}</h1>
+          <h1 className="text-[22px] font-bold tracking-[-0.02em]">{t(titleKey)}</h1>
           <SyncBadge />
         </div>
       </header>
 
       <main className="mx-auto flex max-w-[760px] flex-col gap-3.5 p-4">{children}</main>
 
-      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-[var(--color-line)] bg-[var(--color-surface)]/95 backdrop-blur-md">
+      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-[var(--color-line)]/70 bg-[var(--color-surface)]/80 backdrop-blur-xl">
         {TABS.map((tab) => {
           const on = pathname.startsWith(tab.href);
           return (
@@ -90,7 +90,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               href={tab.href}
               aria-current={on ? 'page' : undefined}
               className={cn(
-                'flex h-[62px] flex-col items-center justify-center gap-0.5 text-[10.5px] font-semibold',
+                'relative flex h-[62px] flex-col items-center justify-center gap-0.5 text-[10.5px] font-semibold',
+                'transition-colors duration-200',
                 on ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]',
               )}
             >
@@ -107,6 +108,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <path d={tab.icon} />
               </svg>
               {t(tab.key)}
+              {on && (
+                <span
+                  aria-hidden
+                  className="absolute top-0 h-0.5 w-8 rounded-full bg-[image:var(--gradient-accent)]"
+                />
+              )}
             </Link>
           );
         })}

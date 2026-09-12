@@ -212,7 +212,12 @@ function ExerciseCard({
   };
 
   return (
-    <Card className={cn('flex flex-col gap-2.5', complete && 'opacity-75')}>
+    <Card
+      className={cn(
+        'flex flex-col gap-2.5 transition-opacity duration-300',
+        complete && 'opacity-70',
+      )}
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-[17px] font-semibold">{exercise.name}</h2>
@@ -259,8 +264,10 @@ function ExerciseCard({
             <span
               key={i}
               className={cn(
-                'h-2.5 w-2.5 rounded-full',
-                i < row.done ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-line)]',
+                'h-2.5 w-2.5 rounded-full transition-all duration-300 ease-[var(--ease-spring)]',
+                i < row.done
+                  ? 'scale-110 bg-[var(--color-accent)] shadow-[0_0_10px_-1px_var(--color-accent)]'
+                  : 'bg-[var(--color-line)]',
               )}
             />
           ))}
@@ -272,7 +279,7 @@ function ExerciseCard({
           {row.logs.map((l) => (
             <div
               key={l.id}
-              className="flex items-center justify-between border-t border-[var(--color-line)] py-1.5 text-[13px] first:border-t-0"
+              className="animate-pop flex items-center justify-between border-t border-[var(--color-line)] py-1.5 text-[13px] first:border-t-0"
             >
               <span className="num text-[var(--color-muted)]">
                 {l.weight ?? 0} {unit} × {l.reps ?? 0}
