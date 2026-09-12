@@ -1,0 +1,113 @@
+/**
+ * Per-table row validation for incoming mutations.
+ *
+ * The client is not trusted. `userId` and `seq` are never accepted from the
+ * wire — the server sets both — so a client cannot write into another account
+ * or forge its position in the change order.
+ */
+
+import { z } from 'zod';
+import {
+  BIASES,
+  DAY_KEYS,
+  PATTERN_KEYS,
+  ROLES,
+  SLOT_KEYS,
+  SLOT_ROLES,
+  SPLIT_KEYS,
+} from '@athletic/domain';
+
+const base = {
+  id: z.string().min(1).max(64),
+  updatedAt: z.string().datetime(),
+  deletedAt: z.string().datetime().nullable().default(null),
+};
+
+const isoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'expected yyyy-mm-dd');
+
+export const rowSchemas = {
+  patterns: z.object({
+    ...base,
+    key: z.enum(PATTERN_KEYS).nullable().default(null),
+    name: z.string().min(1).max(60),
+    role: z.enum(ROLES),
+    counts: z.boolean(),
+    position: z.number().int().min(0).max(999),
+  }),
+
+  exercises: z.object({
+    ...base,
+    name: z.string().min(1).max(80),
+    patternId: z.string().min(1).max(64),
+    where: z.enum(['gym', 'home']),
+    tags: z.array(z.string().max(30)).max(10),
+  }),
+
+  slots: z.object({
+    ...base,
+    key: z.enum(SLOT_KEYS).nullable().default(null),
+    name: z.string().min(1).max(60),
+    requiredRole: z.enum(SLOT_ROLES),
+    position: z.number().int().min(0).max(999),
+    sessionIndex: z.number().int().min(0).max(13).nullable().default(null),
+    patternKeys: z.array(z.enum(PATTERN_KEYS)).max(8).nullable().default(null),
+    dayKey: z.enum(DAY_KEYS).nullable().default(null),
+  }),
+
+  splitPeriods: z.object({
+    ...base,
+    split: z.enum(SPLIT_KEYS),
+    days: z.number().int().min(1).max(7),
+    startWeek: isoDay,
+    // At least one: a period covering nothing would score every week complete.
+    patternKeys: z.array(z.enum(PATTERN_KEYS)).min(1).max(8),
+  }),
+
+  entries: z.object({
+    ...base,
+    sessionIndex: z.number().int().min(0).max(13),
+    slotId: z.string().min(1).max(64),
+    exerciseId: z.string().min(1).max(64).nullable().default(null),
+    sets: z.number().int().min(0).max(50),
+    repRange: z.string().max(40),
+    startWeight: z.number().min(0).max(2000).nullable().default(null),
+    note: z.string().max(500),
+  }),
+
+  logs: z.object({
+    ...base,
+    date: isoDay,
+    session: z.string().min(1).max(4),
+    exerciseId: z.string().min(1).max(64),
+    setNo: z.number().int().min(1).max(100),
+    weight: z.number().min(0).max(2000).nullable().default(null),
+    reps: z.number().int().min(0).max(1000).nullable().default(null),
+    rir: z.number().int().min(0).max(20).nullable().default(null),
+    note: z.string().max(500),
+  }),
+
+  refSets: z.object({
+    ...base,
+    date: isoDay,
+    exerciseId: z.string().min(1).max(64),
+    weight: z.number().min(0).max(2000).nullable().default(null),
+    reps: z.number().int().min(0).max(1000).nullable().default(null),
+    note: z.string().max(2000),
+  }),
+
+  profile: z.object({
+    ...base,
+    onboarded: z.boolean(),
+    split: z.enum(SPLIT_KEYS).default('sevenPattern'),
+    days: z.number().int().min(1).max(7),
+    where: z.enum(['gym', 'home']),
+    bias: z.enum(BIASES),
+    blockStart: isoDay,
+    blockWeeks: z.number().int().min(1).max(52),
+    unit: z.enum(['kg', 'lb']),
+    lang: z.enum(['en', 'hu']),
+  }),
+} as const;
+
+export type RowSchemas = typeof rowSchemas;
+export type TableKey = keyof RowSchemas;

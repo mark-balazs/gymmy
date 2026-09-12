@@ -1,0 +1,32 @@
+{
+  "name": "athletic-tracker",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "e2e"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "npm run dev -w @athletic/web",
+    "build": "npm run build -w @athletic/web",
+    "start": "npm run start -w @athletic/web",
+    "lint": "npm run lint -w @athletic/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "npm run db:generate -w @athletic/web",
+    "db:migrate": "npm run db:migrate -w @athletic/web",
+    "docker:up": "docker compose up -d db",
+    "docker:all": "docker compose --profile full up --build",
+    "test:e2e": "npm run test -w @athletic/e2e"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.6",
+    "prettier-plugin-tailwindcss": "^0.8.1"
+  }
+}

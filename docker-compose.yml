@@ -1,0 +1,67 @@
+# Local development.
+#
+#   docker compose up -d db              Postgres only — then `npm run dev` on the
+#                                        host. This is the fast loop: hot reload
+#                                        stays native instead of crossing a
+#                                        bind mount, which is painfully slow on
+#                                        Windows and macOS.
+#
+#   docker compose --profile full up --build
+#                                        Everything containerised, including a
+#                                        one-shot migration. Closest to what a
+#                                        self-hosted deploy actually runs.
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: athletic
+      POSTGRES_PASSWORD: athletic
+      POSTGRES_DB: athletic
+    ports:
+      # Overridable, because 5432 is very often already taken by a local
+      # Postgres install. Set DB_PORT in .env to move it.
+      - '${DB_PORT:-5432}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Other services wait on this rather than racing the database's startup.
+      test: ['CMD-SHELL', 'pg_isready -U athletic -d athletic']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    profiles: ['full']
+    build:
+      context: .
+      target: build
+    command: npm run db:migrate -w @athletic/web
+    environment:
+      DATABASE_URL: postgres://athletic:athletic@db:5432/athletic
+      SKIP_ENV_VALIDATION: '1'
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    profiles: ['full']
+    build:
+      context: .
+    ports:
+      - '3000:3000'
+    environment:
+      DATABASE_URL: postgres://athletic:athletic@db:5432/athletic
+      AUTH_URL: http://localhost:3000
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env — run `openssl rand -base64 32`}
+      AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:?set AUTH_GOOGLE_ID in .env}
+      AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET:?set AUTH_GOOGLE_SECRET in .env}
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:

@@ -1,0 +1,423 @@
+/**
+ * Pure derived values. No IO, no DOM, no framework — which is why these are the
+ * functions the test suite leans on hardest, and why they can run identically on
+ * the client and the server.
+ *
+ * Soft-deleted records are filtered out here, once, so no caller has to remember.
+ */
+
+import type {
+  CheckResult,
+  CoverageCell,
+  Exercise,
+  Pattern,
+  PatternKey,
+  ProgramEntry,
+  ProgramRow,
+  RefSet,
+  SetLog,
+  Slot,
+  Snapshot,
+  SplitPeriod,
+  Suggestion,
+  Trend,
+  WeekCoverage,
+} from './types';
+
+/* --------------------------------------------------------------- helpers */
+
+export const live = <T extends { deletedAt: string | null }>(rows: T[]): T[] =>
+  rows.filter((r) => r.deletedAt === null);
+
+export const sessionLabel = (i: number): string => String.fromCharCode(65 + i);
+
+export function num(v: unknown): number {
+  if (v === '' || v === null || v === undefined) return 0;
+  const n = Number(String(v).replace(',', '.'));
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** yyyy-mm-dd in local time. Deliberately not toISOString(), which is UTC and
+ *  silently shifts the date for anyone east or west of Greenwich at the edges. */
+export function isoDate(d: Date | string): string {
+  const x = typeof d === 'string' ? new Date(d) : d;
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${x.getFullYear()}-${p(x.getMonth() + 1)}-${p(x.getDate())}`;
+}
+
+/** The Monday of the week containing `d`. Weeks are the unit of coverage. */
+export function mondayOf(d: Date | string): string {
+  const x = typeof d === 'string' ? new Date(`${d}T12:00:00`) : new Date(d);
+  x.setHours(12, 0, 0, 0);
+  const day = (x.getDay() + 6) % 7; // Monday = 0
+  x.setDate(x.getDate() - day);
+  return isoDate(x);
+}
+
+export function addDays(isoStr: string, n: number): string {
+  const d = new Date(`${isoStr}T12:00:00`);
+  d.setDate(d.getDate() + n);
+  return isoDate(d);
+}
+
+/**
+ * Epley, adjusted for reps in reserve.
+ *
+ * Without the RIR term a set taken to failure and a set left with three in the
+ * tank look identical, which makes the whole progress view lie. This is the one
+ * number that lets sessions of different intensity be compared.
+ */
+export function est1RM(
+  weight: number | null,
+  reps: number | null,
+  rir: number | null,
+): number | null {
+  const w = num(weight);
+  const r = num(reps);
+  if (!w || !r) return null;
+  return Math.round(w * (1 + (r + num(rir)) / 30) * 10) / 10;
+}
+
+export const volume = (weight: number | null, reps: number | null): number | null =>
+  num(weight) && num(reps) ? num(weight) * num(reps) : null;
+
+/* --------------------------------------------------------------- indexes */
+
+export interface Indexed {
+  patterns: Pattern[];
+  exercises: Exercise[];
+  slots: Slot[];
+  /** Oldest first. */
+  splitPeriods: SplitPeriod[];
+  entries: ProgramEntry[];
+  logs: SetLog[];
+  refSets: RefSet[];
+  patternById: Map<string, Pattern>;
+  exerciseById: Map<string, Exercise>;
+  slotById: Map<string, Slot>;
+}
+
+export function index(snap: Snapshot): Indexed {
+  const patterns = live(snap.patterns).sort((a, b) => a.position - b.position);
+  const exercises = live(snap.exercises);
+  const slots = live(snap.slots).sort((a, b) => a.position - b.position);
+  return {
+    patterns,
+    exercises,
+    slots,
+    splitPeriods: live(snap.splitPeriods ?? []).sort((a, b) =>
+      a.startWeek < b.startWeek ? -1 : a.startWeek > b.startWeek ? 1 : 0,
+    ),
+    entries: live(snap.entries),
+    logs: live(snap.logs),
+    refSets: live(snap.refSets),
+    patternById: new Map(patterns.map((p) => [p.id, p])),
+    exerciseById: new Map(exercises.map((e) => [e.id, e])),
+    slotById: new Map(slots.map((s) => [s.id, s])),
+  };
+}
+
+/* ------------------------------------------------------------- coverage */
+
+/**
+ * The split in effect during a given week.
+ *
+ * The latest period that started on or before it. A week earlier than every
+ * period — history logged before this device knew about periods at all — gets
+ * the earliest one, which is the closest honest answer available.
+ */
+export function periodFor(ix: Indexed, weekOf: string): SplitPeriod | null {
+  if (!ix.splitPeriods.length) return null;
+  let found: SplitPeriod | null = null;
+  for (const p of ix.splitPeriods) {
+    if (p.startWeek <= weekOf) found = p;
+  }
+  return found ?? ix.splitPeriods[0]!;
+}
+
+/** The period currently in effect. */
+export const currentPeriod = (ix: Indexed): SplitPeriod | null =>
+  ix.splitPeriods.length ? ix.splitPeriods[ix.splitPeriods.length - 1]! : null;
+
+/**
+ * What a complete week meant at a given point in time.
+ *
+ * This is the function the whole historisation rests on. Coverage is a property
+ * of the split you were training at the time, so a week is always scored
+ * against the goal that was in force *that* week — switching split in March
+ * cannot retroactively fail your January.
+ *
+ * With no periods recorded (an account from before splits existed) it falls
+ * back to every counted pattern, which is exactly how those weeks were scored
+ * when they were logged.
+ */
+export function coveragePatterns(ix: Indexed, weekOf?: string): Pattern[] {
+  const counted = ix.patterns.filter((p) => p.counts);
+  const period = weekOf ? periodFor(ix, weekOf) : currentPeriod(ix);
+  if (!period) return counted;
+
+  const wanted = new Set<PatternKey>(period.patternKeys);
+  const out = counted.filter((p) => p.key && wanted.has(p.key));
+  // A period naming only patterns the user has since deleted would otherwise
+  // leave a week with nothing to cover, which reads as permanently complete.
+  return out.length ? out : counted;
+}
+
+/* --------------------------------------------------------------- program */
+
+/**
+ * Which slots a given exercise may legally occupy.
+ *
+ * The slot itself cannot be derived from the exercise — the same pattern
+ * legitimately fills different slots depending on the day. What *is* derivable
+ * is whether a choice is legal, which is what this checks.
+ */
+export function checkRow(
+  slot: Slot,
+  pattern: Pattern | null,
+  exercise: Exercise | null,
+): CheckResult {
+  if (!exercise) return { ok: null, reason: null };
+  if (!pattern) return { ok: false, reason: 'no-pattern' };
+
+  // A pattern constraint is narrower than a role one and wins where present:
+  // a push/pull/legs day needs a push, not merely something upper-body.
+  if (slot.patternKeys?.length) {
+    return pattern.key && slot.patternKeys.includes(pattern.key)
+      ? { ok: true, reason: 'ok' }
+      : { ok: false, reason: 'wrong-role', want: slot.requiredRole, got: pattern.role };
+  }
+
+  const want = slot.requiredRole ?? 'Any';
+  if (want === 'Any' || pattern.role === want) return { ok: true, reason: 'ok' };
+  return { ok: false, reason: 'wrong-role', want, got: pattern.role };
+}
+
+/**
+ * Slots belonging to one session.
+ *
+ * A split pins slots to a day. Slots with no `sessionIndex` apply to every
+ * session, which is how a full-body week works and how anything seeded before
+ * splits existed continues to behave.
+ */
+export function slotsForSession(ix: Indexed, session: number): Slot[] {
+  const pinned = ix.slots.filter((s) => s.sessionIndex === session);
+  const shared = ix.slots.filter((s) => s.sessionIndex === null);
+  return (pinned.length ? pinned : shared).slice().sort((a, b) => a.position - b.position);
+}
+
+export function programRows(ix: Indexed, sessions: number): ProgramRow[] {
+  const byKey = new Map(ix.entries.map((e) => [`${e.sessionIndex}:${e.slotId}`, e]));
+  const rows: ProgramRow[] = [];
+
+  for (let session = 0; session < sessions; session++) {
+    for (const slot of slotsForSession(ix, session)) {
+      const key = `${session}:${slot.id}`;
+      const entry = byKey.get(key) ?? null;
+      const exercise = entry?.exerciseId ? (ix.exerciseById.get(entry.exerciseId) ?? null) : null;
+      const pattern = exercise ? (ix.patternById.get(exercise.patternId) ?? null) : null;
+      rows.push({
+        key,
+        session,
+        sessionLabel: sessionLabel(session),
+        slot,
+        entry,
+        exercise,
+        pattern,
+        check: checkRow(slot, pattern, exercise),
+      });
+    }
+  }
+  return rows;
+}
+
+/** Does the configured plan touch every coverage pattern at least once? */
+export function programCoverage(ix: Indexed, sessions: number): CoverageCell[] {
+  const rows = programRows(ix, sessions);
+  return coveragePatterns(ix).map((pattern) => ({
+    pattern,
+    sets: rows.filter((r) => r.pattern?.id === pattern.id).length,
+  }));
+}
+
+/** Distinct exercises in the plan, in plan order. */
+export function programExercises(ix: Indexed, sessions: number): Exercise[] {
+  const seen = new Set<string>();
+  const out: Exercise[] = [];
+  for (const r of programRows(ix, sessions)) {
+    if (r.exercise && !seen.has(r.exercise.id)) {
+      seen.add(r.exercise.id);
+      out.push(r.exercise);
+    }
+  }
+  return out;
+}
+
+/* ------------------------------------------------------------------ logs */
+
+export interface DecoratedLog extends SetLog {
+  exercise: Exercise | null;
+  pattern: Pattern | null;
+  weekOf: string;
+  e1rm: number | null;
+  vol: number | null;
+}
+
+export function decorate(ix: Indexed, log: SetLog): DecoratedLog {
+  const exercise = ix.exerciseById.get(log.exerciseId) ?? null;
+  const pattern = exercise ? (ix.patternById.get(exercise.patternId) ?? null) : null;
+  return {
+    ...log,
+    exercise,
+    pattern,
+    weekOf: mondayOf(log.date),
+    e1rm: est1RM(log.weight, log.reps, log.rir),
+    vol: volume(log.weight, log.reps),
+  };
+}
+
+export const allLogs = (ix: Indexed): DecoratedLog[] => ix.logs.map((l) => decorate(ix, l));
+
+export function blockWeeks(blockStart: string, weeks: number): string[] {
+  const start = mondayOf(blockStart);
+  return Array.from({ length: weeks }, (_, i) => addDays(start, i * 7));
+}
+
+export function weekCoverage(ix: Indexed, weekOf: string): WeekCoverage {
+  const logs = allLogs(ix).filter((l) => l.weekOf === weekOf);
+  // Scored against the goal that was in force that week, not today's.
+  const pats = coveragePatterns(ix, weekOf);
+  const cells: CoverageCell[] = pats.map((pattern) => ({
+    pattern,
+    sets: logs.filter((l) => l.pattern?.id === pattern.id).length,
+  }));
+  const hit = cells.filter((c) => c.sets > 0).length;
+  const sessions = new Set(logs.map((l) => `${l.date}|${l.session}`)).size;
+  return {
+    weekOf,
+    cells,
+    hit,
+    total: pats.length,
+    sessions,
+    complete: pats.length > 0 && hit === pats.length,
+    split: periodFor(ix, weekOf)?.split ?? null,
+  };
+}
+
+/* -------------------------------------------------------------- progress */
+
+export interface SeriesPoint {
+  weekOf: string;
+  value: number | null;
+}
+
+export interface Progress {
+  series: SeriesPoint[];
+  bestE1rm: number | null;
+  heaviest: number | null;
+  totalSets: number;
+  lastDate: string | null;
+  bestSet: DecoratedLog | null;
+}
+
+export function progressFor(
+  ix: Indexed,
+  exerciseId: string,
+  blockStart: string,
+  weeks: number,
+): Progress {
+  const all = blockWeeks(blockStart, weeks);
+  const logs = allLogs(ix).filter((l) => l.exerciseId === exerciseId);
+
+  const series: SeriesPoint[] = all.map((weekOf) => {
+    const inWeek = logs.filter((l) => l.weekOf === weekOf && l.e1rm !== null);
+    return {
+      weekOf,
+      value: inWeek.length ? Math.max(...inWeek.map((l) => l.e1rm as number)) : null,
+    };
+  });
+
+  const e1rms = logs.map((l) => l.e1rm).filter((v): v is number => v !== null);
+  const weights = logs.map((l) => num(l.weight)).filter((v) => v > 0);
+  const bestSet = logs.reduce<DecoratedLog | null>(
+    (best, l) => (!best || (l.e1rm ?? 0) > (best.e1rm ?? 0) ? l : best),
+    null,
+  );
+
+  return {
+    series,
+    bestE1rm: e1rms.length ? Math.max(...e1rms) : null,
+    heaviest: weights.length ? Math.max(...weights) : null,
+    totalSets: logs.length,
+    lastDate: logs.length
+      ? (logs
+          .map((l) => l.date)
+          .sort()
+          .at(-1) ?? null)
+      : null,
+    bestSet,
+  };
+}
+
+export function trend(ix: Indexed, exerciseId: string, blockStart: string, weeks: number): Trend {
+  const { series } = progressFor(ix, exerciseId, blockStart, weeks);
+  const pts = series.filter((p): p is { weekOf: string; value: number } => p.value !== null);
+
+  if (pts.length === 0) return { dir: 'none', pct: 0, stalledWeeks: 0, points: 0 };
+  if (pts.length === 1) return { dir: 'none', pct: 0, stalledWeeks: 0, points: 1 };
+
+  const first = pts[0]!.value;
+  const latest = pts.at(-1)!.value;
+  const delta = latest - first;
+  const pct = first ? Math.round((delta / first) * 100) : 0;
+  const best = Math.max(...pts.map((p) => p.value));
+  const stalledWeeks = pts.length - 1 - pts.findIndex((p) => p.value === best);
+
+  if (delta > 0.5) return { dir: 'up', pct, stalledWeeks, points: pts.length };
+  if (delta < -0.5) return { dir: 'down', pct, stalledWeeks, points: pts.length };
+  return { dir: 'flat', pct, stalledWeeks, points: pts.length };
+}
+
+/* ----------------------------------------------------- planned vs actual */
+
+export interface PlanRow extends ProgramRow {
+  done: number;
+  target: number;
+  logs: DecoratedLog[];
+}
+
+export function sessionPlan(
+  ix: Indexed,
+  sessions: number,
+  date: string,
+  sessionIndex: number,
+): PlanRow[] {
+  const rows = programRows(ix, sessions).filter((r) => r.session === sessionIndex);
+  const label = sessionLabel(sessionIndex);
+  const dayLogs = allLogs(ix).filter((l) => l.date === date && l.session === label);
+
+  return rows.map((r) => {
+    const logs = dayLogs.filter((l) => l.exerciseId === r.exercise?.id);
+    return { ...r, done: logs.length, target: num(r.entry?.sets), logs };
+  });
+}
+
+export interface DecoratedRef extends RefSet {
+  exercise: Exercise | null;
+  pattern: Pattern | null;
+  e1rm: number | null;
+}
+
+export function refSetRows(ix: Indexed): DecoratedRef[] {
+  return ix.refSets
+    .map((r) => {
+      const exercise = ix.exerciseById.get(r.exerciseId) ?? null;
+      return {
+        ...r,
+        exercise,
+        pattern: exercise ? (ix.patternById.get(exercise.patternId) ?? null) : null,
+        e1rm: est1RM(r.weight, r.reps, 0),
+      };
+    })
+    .sort((a, b) => (a.date < b.date ? 1 : -1));
+}

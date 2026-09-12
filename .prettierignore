@@ -1,0 +1,9 @@
+node_modules
+.next
+dist
+build
+coverage
+legacy
+drizzle/**/*.sql
+package-lock.json
+*.md
