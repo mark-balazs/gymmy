@@ -11,6 +11,10 @@ npm run db:migrate
 npm run dev                           # http://localhost:3000
 ```
 
+Working on it? Start with [`docs/`](./docs) — the architecture map, the
+invariants that must not be broken, and the traps that have already cost
+somebody a day.
+
 ## Stack
 
 | Layer | Choice | Why |
