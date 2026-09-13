@@ -72,6 +72,38 @@ not need a Confluence change — say so rather than guessing.
 same voice as the rest. Do not append "as of March we also…"; rewrite the
 sentence that is now wrong.
 
+### Diagrams in Confluence
+
+Mermaid renders through **Macro Pack**, which is a Forge extension rather than a
+classic macro — so searching the macro browser for "mermaid" finds nothing and
+looks like the app is missing. It is not. Author it as HTML:
+
+```html
+<div data-type="extension"
+     data-extension-key="1ef074bf-c90d-4af8-9ea9-32d2e6ae9a90/2256cafd-362d-4b27-a796-139875a465b5/static/macro-pack"
+     data-extension-type="com.atlassian.ecosystem"
+     data-layout="default"
+     data-parameters="…">Macro Pack</div>
+```
+
+`data-parameters` is
+`{"layout":"extension","guestParams":{"input":"mermaid","source":{"text":"…","type":"text"},"version":1},"forgeEnvironment":"PRODUCTION","extensionId":"ari:cloud:ecosystem::extension/<the key above>","extensionTitle":"Macro Pack"}`,
+JSON-stringified and then HTML-escaped whole.
+
+Two traps, both silent:
+
+- **Escape it programmatically.** A bare `"` inside the mermaid source ends the
+  JSON string, Confluence drops the whole attribute, and the macro saves as an
+  empty box with no error. Build the JSON, escape it, and assert it decodes back
+  to the same source before publishing.
+- **Line breaks in node labels are `\n`, not `<br/>`.** The renderer may have
+  HTML labels disabled, in which case `<br/>` appears literally.
+
+Mermaid has no syntax check in CI on either side, so render the source before
+publishing — serve a page that loads mermaid from cdnjs and call `mermaid.parse`
+on each diagram. A diagram that fails to parse is an error box in Confluence and
+on GitHub alike.
+
 ## Before you say it works
 
 `npm run format && npm run lint && npm run typecheck && npm run build && npm test`
