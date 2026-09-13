@@ -208,6 +208,9 @@ export async function patchProfile(patch: Partial<Omit<Profile, 'id'>>): Promise
     theme: existing?.theme ?? 'system',
     heightCm: existing?.heightCm ?? null,
     sex: existing?.sex ?? 'unspecified',
+    name: existing?.name ?? '',
+    birthYear: existing?.birthYear ?? null,
+    avatar: existing?.avatar ?? null,
     ...patch,
   };
   return put('profile', next);

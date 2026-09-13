@@ -124,6 +124,23 @@ export const rowSchemas = {
     theme: z.enum(THEMES).default('system'),
     heightCm: z.number().int().min(80).max(260).nullable().default(null),
     sex: z.enum(SEXES).default('unspecified'),
+    name: z.string().max(60).default(''),
+    // A plausible living person. Out of range is a typo, and a typo here shifts
+    // the age allowance on every week of the strength score.
+    birthYear: z.number().int().min(1900).max(new Date().getUTCFullYear()).nullable().default(null),
+    /**
+     * Capped hard, and required to be an image.
+     *
+     * This row travels on every pull, so an un-capped field here would make
+     * every sync carry a photograph. The client downscales to a small square
+     * before encoding; this is the backstop that stops a client which does not.
+     */
+    avatar: z
+      .string()
+      .max(64_000)
+      .refine((v) => v.startsWith('data:image/'), 'expected an image data URL')
+      .nullable()
+      .default(null),
   }),
 } as const;
 

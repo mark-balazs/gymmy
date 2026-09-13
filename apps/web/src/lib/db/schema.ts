@@ -274,6 +274,11 @@ export const profiles = pgTable(
     theme: text('theme').notNull().default('system'),
     heightCm: integer('height_cm'),
     sex: text('sex').notNull().default('unspecified'),
+    name: text('name').notNull().default(''),
+    birthYear: integer('birth_year'),
+    /** A small square image inline as a data URL — see the note on the domain
+     *  type for why it lives in the row rather than in object storage. */
+    avatar: text('avatar'),
   },
   (t) => [primaryKey({ columns: [t.userId, t.id] }), index('profiles_seq').on(t.userId, t.seq)],
 );

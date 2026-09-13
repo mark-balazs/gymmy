@@ -21,6 +21,8 @@ export interface Prefs {
   blockWeeks: number;
   sex: Sex;
   heightCm: number | null;
+  birthYear: number | null;
+  name: string;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -34,6 +36,8 @@ export const DEFAULT_PREFS: Prefs = {
   blockWeeks: 8,
   sex: 'unspecified',
   heightCm: null,
+  birthYear: null,
+  name: '',
 };
 
 /** The profile's settings, with the defaults filled in for anything absent. */
@@ -50,5 +54,7 @@ export const prefs = (profile: Profile | null | undefined): Prefs =>
         blockWeeks: profile.blockWeeks ?? DEFAULT_PREFS.blockWeeks,
         sex: profile.sex ?? DEFAULT_PREFS.sex,
         heightCm: profile.heightCm ?? DEFAULT_PREFS.heightCm,
+        birthYear: profile.birthYear ?? DEFAULT_PREFS.birthYear,
+        name: profile.name ?? DEFAULT_PREFS.name,
       }
     : DEFAULT_PREFS;

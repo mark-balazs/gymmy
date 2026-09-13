@@ -92,6 +92,9 @@ export function seedSnapshot(
       theme: 'system',
       heightCm: null,
       sex: 'unspecified',
+      name: '',
+      birthYear: null,
+      avatar: null,
     },
   };
 }

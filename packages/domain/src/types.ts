@@ -187,6 +187,26 @@ export interface BodyLog extends Synced {
 
 /** Singleton per user; `id` equals the user id. */
 export interface Profile extends Synced {
+  /** What to call you. Empty until asked — the app never invents a name. */
+  name: string;
+  /**
+   * The year you were born, not your age.
+   *
+   * An age is a fact with an expiry date: stored once it is wrong within a
+   * year and wrong by a decade eventually, and every past week would then be
+   * rescored against an age you were not. A birth year is stable, and the age
+   * at any given week can be derived from it.
+   */
+  birthYear: number | null;
+  /**
+   * A small square image, inline as a data URL.
+   *
+   * Kept in the profile row rather than in object storage: it syncs with
+   * everything else, works offline, and needs no bucket, no signed URLs and no
+   * second thing to back up. It is downscaled hard before it gets here — see
+   * the cap in the sync row schema — because this row travels on every pull.
+   */
+  avatar: string | null;
   onboarded: boolean;
   split: SplitKey;
   days: number;

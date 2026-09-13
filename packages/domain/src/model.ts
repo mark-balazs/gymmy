@@ -481,6 +481,59 @@ const dotsFor = (c: readonly number[], range: readonly number[], bw: number): nu
 };
 
 /**
+ * Masters age allowance.
+ *
+ * Strength declines with age, and a score that ignores that tells a 62-year-old
+ * they are getting weaker for doing something remarkable. Competitive lifting
+ * handles this with an age factor applied on top of the bodyweight coefficient
+ * — the McCulloch/Foster family of tables — which multiplies the score upward
+ * from about 40.
+ *
+ * **This is an interpolation, not the federation table.** The published tables
+ * give a coefficient per single year of age; these are anchor points across the
+ * same curve with straight lines between them, which tracks it closely enough
+ * for a training app and is honest about being an approximation. If an exact
+ * table is ever wanted, it drops straight in here and nothing else changes.
+ *
+ * Below 40 there is no adjustment. Junior factors exist but are far less
+ * settled between federations, and inventing one would be worse than treating
+ * a 25-year-old as the baseline they already are.
+ */
+const AGE_ANCHORS: [age: number, factor: number][] = [
+  [40, 1.0],
+  [50, 1.13],
+  [60, 1.34],
+  [70, 1.65],
+  [80, 2.05],
+  [90, 2.6],
+];
+
+export function ageFactor(age: number | null): number {
+  if (age === null || age < 40) return 1;
+  const last = AGE_ANCHORS[AGE_ANCHORS.length - 1]!;
+  if (age >= last[0]) return last[1];
+
+  for (let i = 0; i < AGE_ANCHORS.length - 1; i++) {
+    const [a0, f0] = AGE_ANCHORS[i]!;
+    const [a1, f1] = AGE_ANCHORS[i + 1]!;
+    if (age <= a1) return f0 + ((age - a0) / (a1 - a0)) * (f1 - f0);
+  }
+  return 1;
+}
+
+/**
+ * How old you were in a given week — not how old you are now.
+ *
+ * Scoring January at today's age would quietly restate the past every birthday,
+ * which is the same mistake the split periods exist to prevent.
+ */
+export function ageInWeek(birthYear: number | null | undefined, weekOf: string): number | null {
+  if (!birthYear) return null;
+  const year = Number(weekOf.slice(0, 4));
+  return Number.isFinite(year) ? year - birthYear : null;
+}
+
+/**
  * The multiplier a total is scaled by.
  *
  * 'unspecified' takes the midpoint of the two curves rather than defaulting to
@@ -522,6 +575,7 @@ function scoreFrom(
   weekOf: string,
   unit: Unit,
   sex: Sex,
+  birthYear: number | null | undefined,
 ): StrengthPoint {
   const from = addDays(weekOf, -7 * STRENGTH_WINDOW_WEEKS);
   const until = addDays(weekOf, 6);
@@ -546,7 +600,11 @@ function scoreFrom(
     parts,
     score:
       bodyWeight && total
-        ? Math.round(toKg(total, unit) * dotsCoefficient(toKg(bodyWeight, unit), sex))
+        ? Math.round(
+            toKg(total, unit) *
+              dotsCoefficient(toKg(bodyWeight, unit), sex) *
+              ageFactor(ageInWeek(birthYear, weekOf)),
+          )
         : null,
   };
 }
@@ -584,6 +642,7 @@ export const strengthAt = (ix: Indexed, weekOf: string, who: StrengthOf): Streng
     weekOf,
     who.unit,
     who.sex,
+    who.birthYear,
   );
 
 /** Unit and sex come from the profile, which the index deliberately does not
@@ -591,6 +650,9 @@ export const strengthAt = (ix: Indexed, weekOf: string, who: StrengthOf): Streng
 export interface StrengthOf {
   unit: Unit;
   sex: Sex;
+  /** Optional. Without it there is no age allowance, which is the right
+   *  behaviour for somebody who has not said. */
+  birthYear?: number | null;
 }
 
 /** The score week by week across a block. Decorates the logs once rather than
@@ -604,7 +666,15 @@ export function strengthSeries(
   const logs = allLogs(ix);
   const patterns = patternOfExercise(ix);
   return blockWeeks(blockStart, weeks).map((weekOf) =>
-    scoreFrom(logs, patterns, bodyWeightOn(ix, addDays(weekOf, 6)), weekOf, who.unit, who.sex),
+    scoreFrom(
+      logs,
+      patterns,
+      bodyWeightOn(ix, addDays(weekOf, 6)),
+      weekOf,
+      who.unit,
+      who.sex,
+      who.birthYear,
+    ),
   );
 }
 
