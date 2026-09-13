@@ -271,6 +271,7 @@ export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser
         entries: [],
         logs: [],
         refSets: [],
+        bodyLogs: [],
         profile: null,
       };
       const draft = buildProgram(index(snapshot), { days, where: 'gym', bias: 'none' });
@@ -330,6 +331,19 @@ export async function seedSignInCode(email: string, code: string): Promise<void>
     'INSERT INTO "verificationToken" (identifier, token, expires) VALUES ($1, $2, $3)',
     [email, token, new Date(Date.now() + 10 * 60 * 1000)],
   );
+}
+
+/**
+ * Clears the sign-in rate limiter.
+ *
+ * The per-client limit buckets by `x-forwarded-for`, and every test in this
+ * suite arrives with none — so they all share one bucket, and enough sign-in
+ * traffic in fifteen minutes makes the *next* test see a 429 it did nothing to
+ * earn. Any test that asserts on the un-throttled response has to start from a
+ * known state rather than inherit whatever the run before it left behind.
+ */
+export async function resetSignInThrottle(): Promise<void> {
+  await db().query('DELETE FROM sign_in_attempts');
 }
 
 /** Cookie shape Auth.js looks for over plain HTTP. */

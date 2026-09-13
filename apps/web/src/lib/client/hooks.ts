@@ -45,6 +45,7 @@ const EMPTY: Snapshot = {
   entries: [],
   logs: [],
   refSets: [],
+  bodyLogs: [],
   profile: null,
 };
 

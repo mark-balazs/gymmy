@@ -10,6 +10,7 @@ import { local } from './db';
 import { enqueue, reportStorageFailure } from './sync';
 import type {
   Bias,
+  BodyLog,
   Exercise,
   Pattern,
   ProgramEntry,
@@ -99,6 +100,31 @@ export async function addRefSet(input: {
   });
 }
 
+/* ----------------------------------------------------------- bodyweight */
+
+/**
+ * One reading per day, replaced rather than appended.
+ *
+ * Weighing yourself twice on a Tuesday is not two facts, and a second row would
+ * make the strength score depend on which one happened to be read last.
+ */
+export async function logBodyWeight(date: string, weight: number): Promise<void> {
+  const existing = (await local.bodyLogs.toArray()).find(
+    (b) => b.date === date && b.deletedAt === null,
+  );
+  await put<BodyLog>('bodyLogs', {
+    id: existing?.id ?? id(),
+    updatedAt: now(),
+    deletedAt: null,
+    date,
+    weight,
+    note: existing?.note ?? '',
+  });
+}
+
+export const setSex = (sex: Profile['sex']) => patchProfile({ sex });
+export const setHeight = (heightCm: number | null) => patchProfile({ heightCm });
+
 export async function removeRefSet(refId: string): Promise<void> {
   const row = await local.refSets.get(refId);
   if (!row) return;
@@ -180,6 +206,8 @@ export async function patchProfile(patch: Partial<Omit<Profile, 'id'>>): Promise
     unit: existing?.unit ?? 'kg',
     lang: existing?.lang ?? 'en',
     theme: existing?.theme ?? 'system',
+    heightCm: existing?.heightCm ?? null,
+    sex: existing?.sex ?? 'unspecified',
     ...patch,
   };
   return put('profile', next);

@@ -8,6 +8,7 @@
 
 import Dexie, { type EntityTable } from 'dexie';
 import type {
+  BodyLog,
   Exercise,
   Pattern,
   ProgramEntry,
@@ -43,6 +44,7 @@ class AppDb extends Dexie {
   entries!: EntityTable<ProgramEntry, 'id'>;
   logs!: EntityTable<SetLog, 'id'>;
   refSets!: EntityTable<RefSet, 'id'>;
+  bodyLogs!: EntityTable<BodyLog, 'id'>;
   profile!: EntityTable<Profile, 'id'>;
   outbox!: EntityTable<Outbox, 'seq'>;
   meta!: EntityTable<Meta, 'key'>;
@@ -69,6 +71,10 @@ class AppDb extends Dexie {
     this.version(2).stores({
       splitPeriods: 'id, startWeek',
     });
+
+    this.version(3).stores({
+      bodyLogs: 'id, date',
+    });
   }
 }
 
@@ -82,6 +88,7 @@ export const DOMAIN_TABLES: TableName[] = [
   'entries',
   'logs',
   'refSets',
+  'bodyLogs',
   'profile',
 ];
 
@@ -98,7 +105,7 @@ export async function setMeta(key: string, value: unknown): Promise<void> {
 
 /** Everything the domain layer needs, read in one pass. */
 export async function snapshot(): Promise<Snapshot> {
-  const [patterns, exercises, slots, splitPeriods, entries, logs, refSets, profiles] =
+  const [patterns, exercises, slots, splitPeriods, entries, logs, refSets, bodyLogs, profiles] =
     await Promise.all([
       local.patterns.toArray(),
       local.exercises.toArray(),
@@ -107,6 +114,7 @@ export async function snapshot(): Promise<Snapshot> {
       local.entries.toArray(),
       local.logs.toArray(),
       local.refSets.toArray(),
+      local.bodyLogs.toArray(),
       local.profile.toArray(),
     ]);
   return {
@@ -117,6 +125,7 @@ export async function snapshot(): Promise<Snapshot> {
     entries,
     logs,
     refSets,
+    bodyLogs,
     profile: profiles[0] ?? null,
   };
 }

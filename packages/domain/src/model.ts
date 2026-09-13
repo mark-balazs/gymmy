@@ -7,6 +7,7 @@
  */
 
 import type {
+  BodyLog,
   CheckResult,
   CoverageCell,
   Exercise,
@@ -19,8 +20,10 @@ import type {
   Slot,
   Snapshot,
   SplitPeriod,
+  Sex,
   Suggestion,
   Trend,
+  Unit,
   WeekCoverage,
 } from './types';
 
@@ -88,6 +91,8 @@ export interface Indexed {
   exercises: Exercise[];
   slots: Slot[];
   /** Oldest first. */
+  bodyLogs: BodyLog[];
+  /** Oldest first. */
   splitPeriods: SplitPeriod[];
   entries: ProgramEntry[];
   logs: SetLog[];
@@ -120,6 +125,9 @@ export function index(snap: Snapshot): Indexed {
     entries: live(snap.entries),
     logs: live(snap.logs),
     refSets: live(snap.refSets),
+    bodyLogs: live(snap.bodyLogs ?? []).sort((a, b) =>
+      a.date < b.date ? -1 : a.date > b.date ? 1 : 0,
+    ),
     patternById: new Map(patterns.map((p) => [p.id, p])),
     exerciseById: new Map(exercises.map((e) => [e.id, e])),
     slotById: new Map(slots.map((s) => [s.id, s])),
@@ -414,6 +422,185 @@ export function trend(ix: Indexed, exerciseId: string, blockStart: string, weeks
   if (delta > 0.5) return { dir: 'up', pct, stalledWeeks, points: pts.length };
   if (delta < -0.5) return { dir: 'down', pct, stalledWeeks, points: pts.length };
   return { dir: 'flat', pct, stalledWeeks, points: pts.length };
+}
+
+/* -------------------------------------------------------- strength score */
+
+/**
+ * The patterns a strength score is computed from.
+ *
+ * The five loaded ones, and deliberately not all seven. A carry is logged by
+ * distance, so its "reps" are metres and a one-rep max estimated from them is
+ * not a number about strength at all; rotation is trained light and
+ * anti-rotational by design. Including either would move the score for reasons
+ * that have nothing to do with getting stronger.
+ */
+export const SCORED_PATTERNS: PatternKey[] = ['squat', 'hinge', 'lunge', 'push', 'pull'];
+
+/** How far back a lift still counts. Long enough that a deload or a holiday
+ *  does not register; short enough that the score describes you now. */
+const STRENGTH_WINDOW_WEEKS = 8;
+
+const LB_PER_KG = 2.2046226218;
+
+/** Everything here is computed in kilos, because the formula below is. */
+export const toKg = (weight: number, unit: Unit): number =>
+  unit === 'lb' ? weight / LB_PER_KG : weight;
+
+/**
+ * DOTS — the bodyweight-and-sex normalisation used across competitive
+ * powerlifting, and the reason this score is not just "total divided by
+ * bodyweight".
+ *
+ * A plain bodyweight multiple is badly unfair at the ends: strength scales with
+ * roughly the two-thirds power of mass, so dividing by bodyweight flatters a
+ * light lifter and punishes a heavy one for existing. DOTS is a fitted curve
+ * that corrects for both bodyweight and sex, and it is published, stable and
+ * checkable — which beats anything invented here.
+ *
+ * Coefficients are the published fourth-order polynomials, evaluated as
+ * `500 / (Ax⁴ + Bx³ + Cx² + Dx + E)` with x in kilos.
+ */
+const DOTS = {
+  male: [-0.000001093, 0.0007391293, -0.1918759221, 24.0900756, -307.75076],
+  /** Official clamp: the curve is fitted within this range and misbehaves
+   *  outside it, so an implausible bodyweight cannot produce an absurd score. */
+  maleRange: [40, 210],
+  female: [-0.0000010706, 0.0005158568, -0.1126655495, 13.6175032, -57.96288],
+  femaleRange: [40, 150],
+} as const;
+
+const dotsFor = (c: readonly number[], range: readonly number[], bw: number): number => {
+  const x = Math.min(Math.max(bw, range[0]!), range[1]!);
+  return 500 / (c[0]! * x ** 4 + c[1]! * x ** 3 + c[2]! * x ** 2 + c[3]! * x + c[4]!);
+};
+
+/**
+ * The multiplier a total is scaled by.
+ *
+ * 'unspecified' takes the midpoint of the two curves rather than defaulting to
+ * one of them. Saying nothing has to stay a usable answer — the alternative is
+ * an app that quietly assumes, and gets it wrong half the time.
+ */
+export function dotsCoefficient(bodyWeightKg: number, sex: Sex): number {
+  const male = dotsFor(DOTS.male, DOTS.maleRange, bodyWeightKg);
+  const female = dotsFor(DOTS.female, DOTS.femaleRange, bodyWeightKg);
+  if (sex === 'male') return male;
+  if (sex === 'female') return female;
+  return (male + female) / 2;
+}
+
+export interface StrengthPoint {
+  weekOf: string;
+  /** Null where bodyweight for that week is unknown: the score is a ratio, and
+   *  inventing the denominator would invent the answer. */
+  score: number | null;
+  bodyWeight: number | null;
+  /** Best estimated one-rep max per scored pattern, in `SCORED_PATTERNS` order. */
+  parts: { key: PatternKey; best: number }[];
+}
+
+/** The most recent bodyweight recorded on or before `date`. */
+export function bodyWeightOn(ix: Indexed, date: string): number | null {
+  let found: number | null = null;
+  // `ix.bodyLogs` is sorted oldest first, so the last match is the latest one.
+  for (const b of ix.bodyLogs) {
+    if (b.date <= date && b.weight > 0) found = b.weight;
+  }
+  return found;
+}
+
+function scoreFrom(
+  logs: DecoratedLog[],
+  patternOfExercise: Map<string, PatternKey>,
+  bodyWeight: number | null,
+  weekOf: string,
+  unit: Unit,
+  sex: Sex,
+): StrengthPoint {
+  const from = addDays(weekOf, -7 * STRENGTH_WINDOW_WEEKS);
+  const until = addDays(weekOf, 6);
+
+  const best = new Map<PatternKey, number>();
+  for (const log of logs) {
+    if (log.date < from || log.date > until) continue;
+    if (log.e1rm === null || !log.exercise) continue;
+    const key = patternOfExercise.get(log.exercise.patternId);
+    if (!key || !SCORED_PATTERNS.includes(key)) continue;
+    if (log.e1rm > (best.get(key) ?? 0)) best.set(key, log.e1rm);
+  }
+
+  const parts = SCORED_PATTERNS.map((key) => ({ key, best: best.get(key) ?? 0 }));
+  // A pattern never trained contributes zero rather than being skipped, so the
+  // score reflects coverage as well as load — which is the whole method.
+  const total = parts.reduce((sum, p) => sum + p.best, 0);
+
+  return {
+    weekOf,
+    bodyWeight,
+    parts,
+    score:
+      bodyWeight && total
+        ? Math.round(toKg(total, unit) * dotsCoefficient(toKg(bodyWeight, unit), sex))
+        : null,
+  };
+}
+
+const patternOfExercise = (ix: Indexed): Map<string, PatternKey> => {
+  const byId = new Map<string, PatternKey>();
+  for (const p of ix.patterns) if (p.key) byId.set(p.id, p.key);
+  const out = new Map<string, PatternKey>();
+  for (const e of ix.exercises) {
+    const key = byId.get(e.patternId);
+    if (key) out.set(e.patternId, key);
+  }
+  return out;
+};
+
+/**
+ * How much you move, relative to you.
+ *
+ * The sum of your best estimated one-rep max across the five loaded patterns,
+ * divided by what you weigh — "three and a half times my own bodyweight, across
+ * five movements".
+ *
+ * Two decisions worth stating plainly. It is **not a percentile**: there is no
+ * table of other people in here, because this app is about your own performance
+ * and a number telling you where you rank against strangers is a different
+ * product. And it looks back over a window rather than taking your best ever,
+ * so it describes what you can do *now* — a squat from last spring should not
+ * still be counted as strength you have today.
+ */
+export const strengthAt = (ix: Indexed, weekOf: string, who: StrengthOf): StrengthPoint =>
+  scoreFrom(
+    allLogs(ix),
+    patternOfExercise(ix),
+    bodyWeightOn(ix, addDays(weekOf, 6)),
+    weekOf,
+    who.unit,
+    who.sex,
+  );
+
+/** Unit and sex come from the profile, which the index deliberately does not
+ *  carry — every other function here is a pure read over synced rows. */
+export interface StrengthOf {
+  unit: Unit;
+  sex: Sex;
+}
+
+/** The score week by week across a block. Decorates the logs once rather than
+ *  once per week, which is the difference between instant and noticeable. */
+export function strengthSeries(
+  ix: Indexed,
+  blockStart: string,
+  weeks: number,
+  who: StrengthOf,
+): StrengthPoint[] {
+  const logs = allLogs(ix);
+  const patterns = patternOfExercise(ix);
+  return blockWeeks(blockStart, weeks).map((weekOf) =>
+    scoreFrom(logs, patterns, bodyWeightOn(ix, addDays(weekOf, 6)), weekOf, who.unit, who.sex),
+  );
 }
 
 /* ----------------------------------------------------- planned vs actual */

@@ -238,6 +238,25 @@ export const refSets = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.id] }), index('refsets_seq').on(t.userId, t.seq)],
 );
 
+/**
+ * Bodyweight over time.
+ *
+ * A record with a date rather than a field on the profile: the strength score
+ * divides by what you weighed *that week*, and a single current value would
+ * silently rewrite what every past week meant every time you stepped on a
+ * scale.
+ */
+export const bodyLogs = pgTable(
+  'body_logs',
+  {
+    ...synced,
+    date: text('date').notNull(),
+    weight: doublePrecision('weight').notNull(),
+    note: text('note').notNull().default(''),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.id] }), index('bodylogs_seq').on(t.userId, t.seq)],
+);
+
 /** One row per user; `id` equals `userId`. */
 export const profiles = pgTable(
   'profiles',
@@ -253,6 +272,8 @@ export const profiles = pgTable(
     unit: text('unit').notNull().default('kg'),
     lang: text('lang').notNull().default('en'),
     theme: text('theme').notNull().default('system'),
+    heightCm: integer('height_cm'),
+    sex: text('sex').notNull().default('unspecified'),
   },
   (t) => [primaryKey({ columns: [t.userId, t.id] }), index('profiles_seq').on(t.userId, t.seq)],
 );
@@ -265,6 +286,7 @@ export const SYNC_TABLES = {
   entries: programEntries,
   logs: setLogs,
   refSets,
+  bodyLogs,
   profile: profiles,
 } as const;
 

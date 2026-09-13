@@ -57,6 +57,13 @@
       "when": 1789300722937,
       "tag": "0007_lively_vance_astro",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789307729061,
+      "tag": "0008_shiny_ser_duncan",
+      "breakpoints": true
     }
   ]
 }

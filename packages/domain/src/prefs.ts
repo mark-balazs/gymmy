@@ -8,7 +8,7 @@
  * should just not be re-invented each time.
  */
 
-import type { Bias, Lang, Profile, SplitKey, Theme, Unit, Where } from './types';
+import type { Bias, Lang, Profile, Sex, SplitKey, Theme, Unit, Where } from './types';
 
 export interface Prefs {
   split: SplitKey;
@@ -19,6 +19,8 @@ export interface Prefs {
   lang: Lang;
   theme: Theme;
   blockWeeks: number;
+  sex: Sex;
+  heightCm: number | null;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -30,6 +32,8 @@ export const DEFAULT_PREFS: Prefs = {
   lang: 'en',
   theme: 'system',
   blockWeeks: 8,
+  sex: 'unspecified',
+  heightCm: null,
 };
 
 /** The profile's settings, with the defaults filled in for anything absent. */
@@ -44,5 +48,7 @@ export const prefs = (profile: Profile | null | undefined): Prefs =>
         lang: profile.lang ?? DEFAULT_PREFS.lang,
         theme: profile.theme ?? DEFAULT_PREFS.theme,
         blockWeeks: profile.blockWeeks ?? DEFAULT_PREFS.blockWeeks,
+        sex: profile.sex ?? DEFAULT_PREFS.sex,
+        heightCm: profile.heightCm ?? DEFAULT_PREFS.heightCm,
       }
     : DEFAULT_PREFS;

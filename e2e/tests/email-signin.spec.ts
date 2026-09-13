@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { seedSignInCode } from '../fixtures/auth';
+import { resetSignInThrottle, seedSignInCode } from '../fixtures/auth';
 import { expect, test } from '../fixtures/test';
 
 /**
@@ -14,6 +14,8 @@ test.describe('Requesting a sign-in code', () => {
     page.request.post('/api/auth/email-code', { data: { email } });
 
   test('answers the same for a known and an unknown address', async ({ page, baseURL }) => {
+    // Every test here shares one rate-limit bucket, so start from a clean one.
+    await resetSignInThrottle();
     await page.goto(`${baseURL}/sign-in`);
 
     const unknown = await post(page, `nobody-${Date.now()}@example.test`);
@@ -27,6 +29,7 @@ test.describe('Requesting a sign-in code', () => {
   });
 
   test('says nothing useful in the body', async ({ page, baseURL }) => {
+    await resetSignInThrottle();
     await page.goto(`${baseURL}/sign-in`);
     const res = await post(page, 'someone@example.test');
     const body = await res.text();

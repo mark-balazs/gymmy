@@ -71,6 +71,33 @@ and removed, and the editor shows what the arrangement will make a complete week
 and `coversFor` will then stop asking for it rather than leave a box that can
 never be ticked.
 
+## The strength score
+
+One number for "how much do I move, relative to me", tracked week by week on the
+Progress tab beside a chart per exercise.
+
+It is the sum of your best estimated one-rep max in each of the five **loaded**
+patterns — squat, hinge, lunge, push, pull — scaled by **DOTS**, the published
+bodyweight-and-sex curve competitive powerlifting uses. Three deliberate choices
+sit in that sentence:
+
+- **DOTS rather than a bodyweight multiple.** Strength does not scale linearly
+  with mass, so dividing by bodyweight flatters a light lifter and punishes a
+  heavy one for existing. The curve is published, stable and checkable, which
+  beats anything invented here. `sex` is asked for this and only this;
+  "prefer not to say" takes the midpoint of the two curves and stays a
+  first-class answer.
+- **Five patterns, not seven.** A carry is logged by distance, so its "reps" are
+  metres and a one-rep max estimated from them is not a number about strength.
+  Rotation is trained light and anti-rotational by design.
+- **A trailing window, not your best ever.** It describes what you can do *now*;
+  a squat from last spring is not strength you still have. A pattern you have
+  not trained counts as zero, so coverage moves the score too.
+
+Bodyweight is its own dated record rather than a profile field — the score
+divides by what you weighed *that week*, and one current value would silently
+rewrite what every past week meant every time you stepped on a scale.
+
 ### Coverage is historised
 
 Changing split must not rewrite the past. Three months of seven-pattern weeks

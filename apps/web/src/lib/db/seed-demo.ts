@@ -1,20 +1,31 @@
 /**
- * Six weeks of plausible training, for showing the app to someone.
+ * Five months of plausible training, for showing the app to someone.
  *
  * An empty account demonstrates nothing: the coverage grid has no ticks, the
- * progress charts have no line, and "ready for more weight" — the thing that
- * makes the app worth using — cannot appear at all, because it needs history to
- * derive a verdict from. So the demo account arrives having already trained.
+ * progress charts have no line, the strength score has nothing to divide, and
+ * "ready for more weight" — the thing that makes the app worth using — cannot
+ * appear at all, because it needs history to derive a verdict from. So the demo
+ * account arrives having already trained.
  *
  * The history is generated rather than fixed, so it always ends *last week* and
- * the demo never looks abandoned. It is also deliberately imperfect: one week
- * has a missed session and the carries are patchy, because a demo where every
- * box is green never shows what the app is actually for.
+ * the demo never looks abandoned. It is also deliberately imperfect: a missed
+ * session, a week off entirely, a deload every sixth week and progress that
+ * slows down after the first couple of months, because a demo where every line
+ * goes straight up never shows what the app is actually for.
+ *
+ * Nothing here is random. The same account seeded twice produces byte-identical
+ * history, which is what lets the whole seed be safely re-run — see seed-user.
  */
 
 import { sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { exercises as exercisesTable, patterns, programEntries, setLogs } from '@/lib/db/schema';
+import {
+  bodyLogs,
+  exercises as exercisesTable,
+  patterns,
+  programEntries,
+  setLogs,
+} from '@/lib/db/schema';
 import { mondayOf, sessionLabel } from '@athletic/domain';
 import { nextSeq, seedId } from './seed-user';
 
@@ -32,7 +43,9 @@ export const demoEmail = (): string =>
 export const isDemoEmail = (email?: string | null): boolean =>
   (email ?? '').trim().toLowerCase() === demoEmail();
 
-const WEEKS = 6;
+/** Roughly five months. Long enough for the progress charts to have a shape
+ *  and for the strength score to have moved. */
+export const DEMO_WEEKS = 22;
 
 /** Roughly where a healthy intermediate starts, per movement. */
 const START: Record<string, { weight: number; reps: number; step: number }> = {
@@ -51,6 +64,32 @@ const addDays = (iso: string, n: number): string => {
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
 };
+
+/**
+ * How many increments have been earned by week `w`, counting from the start.
+ *
+ * Quick at first and slower later, which is what actually happens: a step every
+ * fortnight for the first couple of months, every third week after that. A
+ * straight line would be the one shape no real training log has.
+ */
+const stepsEarned = (w: number): number => Math.floor(Math.min(w, 8) / 2 + Math.max(0, w - 8) / 3);
+
+/** Every sixth week is lighter. Nobody adds weight for five months straight. */
+const isDeload = (w: number): boolean => w > 0 && w % 6 === 5;
+
+/** A whole week missed, two months in. Life happens, and the coverage view
+ *  should have something to say about it. */
+const isOff = (w: number): boolean => w === 11;
+
+/**
+ * Bodyweight, drifting down and then settling — with a wobble that repeats
+ * exactly, because this has to be reproducible.
+ */
+function bodyWeightFor(w: number): number {
+  const drift = 82 - Math.min(w, 14) * 0.2;
+  const wobble = [0, 0.4, -0.3, 0.2, -0.5, 0.3][w % 6]!;
+  return Math.round((drift + wobble) * 10) / 10;
+}
 
 /**
  * Fills an account that already has the default library with training history.
@@ -87,17 +126,32 @@ export async function seedDemoHistory(userId: string): Promise<void> {
   const now = new Date();
   const thisMonday = mondayOf(now);
   const rows: (typeof setLogs.$inferInsert)[] = [];
+  const weights: (typeof bodyLogs.$inferInsert)[] = [];
 
-  for (let w = WEEKS; w >= 1; w--) {
-    const weekStart = addDays(thisMonday, -7 * w);
+  const sessions = [...new Set(plan.map((p) => p.sessionIndex))].sort((a, b) => a - b);
 
-    // One week off, so the coverage view has something to say.
-    const skipWeek = w === 3;
+  for (let w = 0; w < DEMO_WEEKS; w++) {
+    // w counts forward from the oldest week, so the progression reads the way
+    // it was lived rather than backwards from today.
+    const weekStart = addDays(thisMonday, -7 * (DEMO_WEEKS - w));
 
-    const sessions = [...new Set(plan.map((p) => p.sessionIndex))].sort((a, b) => a - b);
+    weights.push({
+      id: seedId(userId, 'demoWeight', weekStart),
+      userId,
+      updatedAt: new Date(`${weekStart}T07:00:00Z`),
+      deletedAt: null,
+      seq: 0,
+      date: weekStart,
+      weight: bodyWeightFor(w),
+      note: '',
+    });
+
+    if (isOff(w)) continue;
+
     for (const session of sessions) {
       // A missed session here and there — nobody trains every planned day.
-      if (skipWeek && session === 2) continue;
+      if (w === 3 && session === 2) continue;
+      if (w === 16 && session === 1) continue;
 
       const date = addDays(weekStart, session * 2);
       if (date >= thisMonday) continue;
@@ -108,10 +162,9 @@ export async function seedDemoHistory(userId: string): Promise<void> {
         const pattern = patternOfExercise.get(entry.exerciseId) ?? 'isolation';
         const base = START[pattern] ?? START.isolation!;
 
-        // Progress week on week, held back slightly so it looks like training
-        // rather than a straight line.
-        const gained = Math.floor((WEEKS - w) / 2) * base.step;
-        const weight = base.weight + gained;
+        const earned = base.weight + stepsEarned(w) * base.step;
+        // A deload drops the bar back a couple of steps rather than stopping.
+        const weight = isDeload(w) ? Math.max(base.weight, earned - base.step * 2) : earned;
 
         for (let setNo = 1; setNo <= (entry.sets || 3); setNo++) {
           rows.push({
@@ -129,7 +182,8 @@ export async function seedDemoHistory(userId: string): Promise<void> {
             weight,
             // The last set is always the hard one.
             reps: Math.max(1, base.reps - (setNo - 1)),
-            rir: setNo === (entry.sets || 3) ? 0 : 2,
+            // Easy on a deload; everything left in the tank on the last set.
+            rir: isDeload(w) ? 4 : setNo === (entry.sets || 3) ? 0 : 2,
             note: '',
           });
         }
@@ -143,4 +197,8 @@ export async function seedDemoHistory(userId: string): Promise<void> {
     const chunk = rows.slice(i, i + 200).map((r) => ({ ...r, seq: nextSeq }));
     await db.insert(setLogs).values(chunk).onConflictDoNothing();
   }
+  await db
+    .insert(bodyLogs)
+    .values(weights.map((r) => ({ ...r, seq: nextSeq })))
+    .onConflictDoNothing();
 }

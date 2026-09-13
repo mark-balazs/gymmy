@@ -22,6 +22,18 @@ export type Lang = 'en' | 'hu';
 export const THEMES = ['system', 'dark', 'light'] as const;
 export type Theme = (typeof THEMES)[number];
 
+/**
+ * Used for one thing only: the reference standards the strength score is
+ * measured against, which differ enough by sex that a single set of them would
+ * mean two different things to two people.
+ *
+ * 'unspecified' is the default and stays a first-class answer — it takes the
+ * midpoint of the two, so the score still works and nobody is required to
+ * declare anything to use the app.
+ */
+export const SEXES = ['unspecified', 'female', 'male'] as const;
+export type Sex = (typeof SEXES)[number];
+
 export const BIASES = ['none', 'shoulders', 'arms', 'glutes', 'back', 'chest'] as const;
 export type Bias = (typeof BIASES)[number];
 
@@ -159,6 +171,20 @@ export interface RefSet extends Synced {
   note: string;
 }
 
+/**
+ * What you weighed on a given day.
+ *
+ * Its own record rather than a field on the profile, because bodyweight is a
+ * measurement with a date and not a setting — a strength score computed against
+ * whatever you weigh *today* would silently rewrite what last spring meant.
+ */
+export interface BodyLog extends Synced {
+  date: string;
+  /** In the profile's unit, like every other weight in the app. */
+  weight: number;
+  note: string;
+}
+
 /** Singleton per user; `id` equals the user id. */
 export interface Profile extends Synced {
   onboarded: boolean;
@@ -171,6 +197,10 @@ export interface Profile extends Synced {
   unit: Unit;
   lang: Lang;
   theme: Theme;
+  /** Centimetres. Null until someone says — nothing in the app requires it,
+   *  and guessing it would be worse than not having it. */
+  heightCm: number | null;
+  sex: Sex;
 }
 
 /** Everything the client holds. Also the shape of an export file. */
@@ -182,6 +212,7 @@ export interface Snapshot {
   entries: ProgramEntry[];
   logs: SetLog[];
   refSets: RefSet[];
+  bodyLogs: BodyLog[];
   profile: Profile | null;
 }
 
@@ -193,6 +224,7 @@ export const TABLES = [
   'entries',
   'logs',
   'refSets',
+  'bodyLogs',
   'profile',
 ] as const;
 export type TableName = (typeof TABLES)[number];

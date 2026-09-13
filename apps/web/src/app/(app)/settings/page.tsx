@@ -9,7 +9,9 @@ import {
   applyCustomSplit,
   applySplit,
   fireAndForget,
+  setHeight,
   setLang,
+  setSex,
   setTheme,
   setUnit,
 } from '@/lib/client/mutations';
@@ -23,6 +25,7 @@ import {
   currentSlotDrafts,
   DEFAULT_PREFS,
   findSplit,
+  SEXES,
   SPLITS,
   type Bias,
   type Profile,
@@ -132,6 +135,39 @@ export default function SettingsPage() {
             { value: 'lb' as const, label: 'lb' },
           ]}
         />
+      </Card>
+
+      <Card className="flex flex-col gap-3">
+        <h2 className="text-[17px] font-semibold">{tr.t('set.aboutYou')}</h2>
+
+        <Field label={tr.t('set.sex')}>
+          <select
+            value={profile?.sex ?? DEFAULT_PREFS.sex}
+            onChange={(e) => fireAndForget(setSex(e.target.value as Profile['sex']))}
+            className="min-h-[var(--spacing-tap)] rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
+          >
+            {SEXES.map((s) => (
+              <option key={s} value={s}>
+                {tr.t(`sex.${s}` as Key)}
+              </option>
+            ))}
+          </select>
+        </Field>
+        {/* Said plainly, because being asked this in a training app without a
+            reason is a fair thing to be wary of. */}
+        <p className="text-xs text-[var(--color-muted)]">{tr.t('set.sexWhy')}</p>
+
+        <Field label={tr.t('set.height')}>
+          <input
+            type="number"
+            inputMode="numeric"
+            value={profile?.heightCm ?? ''}
+            onChange={(e) =>
+              fireAndForget(setHeight(e.target.value === '' ? null : Number(e.target.value)))
+            }
+            className="num min-h-[var(--spacing-tap)] w-full min-w-0 rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
+          />
+        </Field>
       </Card>
 
       <Card className="flex flex-col gap-3">

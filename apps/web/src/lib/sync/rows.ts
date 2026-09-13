@@ -13,6 +13,7 @@ import {
   PATTERN_KEYS,
   ROLES,
   SLOT_KEYS,
+  SEXES,
   SLOT_ROLES,
   SPLIT_KEYS,
   THEMES,
@@ -100,6 +101,15 @@ export const rowSchemas = {
     note: z.string().max(2000),
   }),
 
+  bodyLogs: z.object({
+    ...base,
+    date: isoDay,
+    // A plausible human, in either unit. Out of range is a typo, and a typo in
+    // the denominator of the strength score is worse than a rejected write.
+    weight: z.number().min(20).max(700),
+    note: z.string().max(500).default(''),
+  }),
+
   profile: z.object({
     ...base,
     onboarded: z.boolean(),
@@ -112,6 +122,8 @@ export const rowSchemas = {
     unit: z.enum(['kg', 'lb']),
     lang: z.enum(['en', 'hu']),
     theme: z.enum(THEMES).default('system'),
+    heightCm: z.number().int().min(80).max(260).nullable().default(null),
+    sex: z.enum(SEXES).default('unspecified'),
   }),
 } as const;
 

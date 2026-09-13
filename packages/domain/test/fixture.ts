@@ -75,6 +75,7 @@ export function seedSnapshot(
     entries: [],
     logs: [],
     refSets: [],
+    bodyLogs: [],
     profile: {
       id: 'profile-1',
       updatedAt: now,
@@ -89,6 +90,8 @@ export function seedSnapshot(
       unit: 'kg',
       lang: 'en',
       theme: 'system',
+      heightCm: null,
+      sex: 'unspecified',
     },
   };
 }
