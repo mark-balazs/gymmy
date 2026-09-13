@@ -71,6 +71,18 @@ is not a slide, and a page that tells you it is stops being believed.
 deadline, a boot watchdog that runs without React, and a sync-time repair for an
 account that was never seeded. Each exists because a real person got stuck.
 
+## The other half of the documentation
+
+This directory is for whoever is about to change the code. The product,
+architecture (C4), infrastructure, runbooks and decision log live in Confluence,
+for the people who will never open this repository:
+[gymmy — documentation](https://dextra.atlassian.net/wiki/spaces/~712020296b34b54b84454489d16860c808e925/pages/934445059).
+
+Neither is a summary of the other, and when they disagree this one is right
+about code and that one is right about intent. `CLAUDE.md` carries the routing
+table for which Confluence page a given change belongs to — a Confluence page
+goes stale silently, because nothing in CI can check it.
+
 ## Why this is Markdown and not a graph
 
 It was worth asking, and the answer is that a graph would make the documentation
