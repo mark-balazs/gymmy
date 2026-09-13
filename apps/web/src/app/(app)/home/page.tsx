@@ -16,6 +16,7 @@
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { Card, Summary, buttonClass, cn } from '@/components/ui';
+import { Page } from '@/components/page';
 import { useProfile, useSnapshot, useT, useToday } from '@/lib/client/hooks';
 import { fmtDay } from '@/lib/client/format';
 import {
@@ -48,7 +49,7 @@ export default function HomePage() {
   const exercises = plan.filter((p) => p.exercise);
 
   return (
-    <>
+    <Page>
       <Card className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between gap-2">
           <h2 className="text-[17px] font-semibold">
@@ -142,6 +143,6 @@ export default function HomePage() {
           ))}
         </div>
       </Card>
-    </>
+    </Page>
   );
 }

@@ -84,8 +84,11 @@ function useSwipeTabs(pathname: string): void {
 
       // Left drags the next tab into view, which is the direction every phone
       // has taught people to expect.
-      const next = TABS[dx < 0 ? index + 1 : index - 1];
-      if (next) router.push(next.href);
+      const forward = dx < 0;
+      const next = TABS[forward ? index + 1 : index - 1];
+      // The type is what the slide direction is read from; without it the
+      // navigation happens with no animation at all.
+      if (next) router.push(next.href, { transitionTypes: [forward ? 'nav-forward' : 'nav-back'] });
     };
 
     document.addEventListener('touchstart', start, { passive: true });
@@ -148,22 +151,39 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="pb-[calc(62px+env(safe-area-inset-bottom))]">
-      <header className="safe-top sticky top-0 z-20 border-b border-[var(--color-line)]/70 bg-[var(--color-bg)]/75 px-4 pt-3 pb-3 backdrop-blur-xl">
+      {/* Named so it can be pinned during a slide. A header that travels with
+          the content leaves the reader without a fixed point, and the whole
+          viewport appears to move rather than the page inside it. */}
+      <header
+        style={{ viewTransitionName: 'app-header' }}
+        className="safe-top sticky top-0 z-20 border-b border-[var(--color-line)]/70 bg-[var(--color-bg)]/75 px-4 pt-3 pb-3 backdrop-blur-xl"
+      >
         <div className="mx-auto flex max-w-[760px] items-center justify-between">
           <h1 className="text-[22px] font-bold tracking-[-0.02em]">{t(titleKey)}</h1>
           <SyncBadge />
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-[760px] flex-col gap-3.5 p-4">{children}</main>
+      {/* The flex column moved into `Page`: that is the element which slides,
+          and spacing applied outside it would leave the cards travelling
+          independently of the box carrying them. */}
+      <main className="mx-auto max-w-[760px] p-4">{children}</main>
 
-      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-[var(--color-line)]/70 bg-[var(--color-surface)]/80 backdrop-blur-xl">
-        {TABS.map((tab) => {
+      <nav
+        style={{ viewTransitionName: 'app-nav' }}
+        className="safe-bottom fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-[var(--color-line)]/70 bg-[var(--color-surface)]/80 backdrop-blur-xl"
+      >
+        {TABS.map((tab, i) => {
           const on = pathname.startsWith(tab.href);
+          // Tapping a tab is the same movement as swiping to it, so it gets
+          // the same direction rather than a different animation for the same
+          // journey.
+          const forward = i > TABS.indexOf(active);
           return (
             <Link
               key={tab.href}
               href={tab.href}
+              transitionTypes={[forward ? 'nav-forward' : 'nav-back']}
               aria-current={on ? 'page' : undefined}
               className={cn(
                 'relative flex h-[62px] flex-col items-center justify-center gap-0.5 text-[10.5px] font-semibold',

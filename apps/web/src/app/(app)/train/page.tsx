@@ -13,6 +13,7 @@
 
 import { useMemo, useState } from 'react';
 import { Button, Card, Chip, Segmented, Stepper, cn } from '@/components/ui';
+import { Page } from '@/components/page';
 import { ExerciseSheet } from '@/components/exercise-sheet';
 import { useProfile, useSnapshot, useT, useToday, type Translator } from '@/lib/client/hooks';
 import { fireAndForget, logSet, removeSet } from '@/lib/client/mutations';
@@ -78,7 +79,7 @@ export default function TrainPage() {
   const total = plan.reduce((a, p) => a + p.target, 0);
 
   return (
-    <>
+    <Page>
       <Card className="flex flex-col gap-3">
         <Segmented
           value={day}
@@ -139,7 +140,7 @@ export default function TrainPage() {
           />
         ) : null,
       )}
-    </>
+    </Page>
   );
 }
 

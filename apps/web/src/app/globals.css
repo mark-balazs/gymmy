@@ -244,27 +244,101 @@ input[type='number']::-webkit-inner-spin-button {
  * card, and this way nothing has to know its own index.
  */
 @media (prefers-reduced-motion: no-preference) {
-  main > * {
+  [data-page] > * {
     animation: rise 0.4s var(--ease-out-soft) both;
   }
-  main > *:nth-child(1) {
+  /* During a slide the page arrives as one moving object. Letting the cards
+     also rise on top of that is two animations describing the same event, and
+     it reads as jitter rather than as polish. */
+  html:active-view-transition [data-page] > * {
+    animation: none;
+  }
+  [data-page] > *:nth-child(1) {
     animation-delay: 0.02s;
   }
-  main > *:nth-child(2) {
+  [data-page] > *:nth-child(2) {
     animation-delay: 0.06s;
   }
-  main > *:nth-child(3) {
+  [data-page] > *:nth-child(3) {
     animation-delay: 0.1s;
   }
-  main > *:nth-child(4) {
+  [data-page] > *:nth-child(4) {
     animation-delay: 0.14s;
   }
-  main > *:nth-child(5) {
+  [data-page] > *:nth-child(5) {
     animation-delay: 0.18s;
   }
-  main > *:nth-child(n + 6) {
+  [data-page] > *:nth-child(n + 6) {
     animation-delay: 0.22s;
   }
+}
+
+/* ------------------------------------------------- moving between tabs -- */
+
+/*
+ * Tabs slide, and the direction carries meaning: left is forward, right is
+ * back. That convention is deep enough that breaking it feels like the app
+ * made a mistake.
+ *
+ * The offset is small on purpose. Far enough to say which way you went,
+ * not so far that you are asked to track something across the screen — and
+ * the fade does most of the work, with the movement underneath it.
+ */
+@keyframes slide {
+  from {
+    translate: var(--slide);
+  }
+  to {
+    translate: 0;
+  }
+}
+
+::view-transition-old(.nav-forward) {
+  --slide: -56px;
+  animation:
+    140ms ease-in both fade reverse,
+    320ms var(--ease-out-soft) both slide reverse;
+}
+::view-transition-new(.nav-forward) {
+  --slide: 56px;
+  animation:
+    200ms ease-out 110ms both fade,
+    320ms var(--ease-out-soft) both slide;
+}
+::view-transition-old(.nav-back) {
+  --slide: 56px;
+  animation:
+    140ms ease-in both fade reverse,
+    320ms var(--ease-out-soft) both slide reverse;
+}
+::view-transition-new(.nav-back) {
+  --slide: -56px;
+  animation:
+    200ms ease-out 110ms both fade,
+    320ms var(--ease-out-soft) both slide;
+}
+
+/* The header and the tab bar are the fixed points the movement is read
+   against. If they travel too, nothing appears to have moved except the whole
+   viewport. `display: none` on the old copy stops both being briefly visible. */
+::view-transition-group(app-header),
+::view-transition-group(app-nav) {
+  animation: none;
+  z-index: 100;
+}
+::view-transition-old(app-header),
+::view-transition-old(app-nav) {
+  display: none;
+}
+::view-transition-new(app-header),
+::view-transition-new(app-nav) {
+  animation: none;
+}
+
+/* The transition overlay swallows taps while it runs. Two tabs in quick
+   succession is a normal thing to do, and the second one should not be lost. */
+::view-transition {
+  pointer-events: none;
 }
 
 /* Motion here is decoration, never information — so removing it costs nothing. */
@@ -275,5 +349,16 @@ input[type='number']::-webkit-inner-spin-button {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  /* A slide across the viewport is the most common trigger for motion
+     sensitivity, and these pseudo-elements are outside the `*` selector
+     above. Without motion the content simply swaps, which is the browser's
+     own default. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
   }
 }

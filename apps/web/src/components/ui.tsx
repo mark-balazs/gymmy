@@ -230,21 +230,40 @@ export function Sheet({
   if (!open) return null;
   return (
     <div
-      className="animate-fade fixed inset-0 z-50 flex items-end bg-black/60 backdrop-blur-[2px]"
+      /* `100dvh`, not `inset-0`. A fixed overlay sized to the *layout* viewport
+         runs underneath a phone's address bar, which is exactly how the last
+         line of a sheet ends up cut in half by the bottom of the screen. */
+      className="animate-fade fixed inset-0 z-50 flex h-[100dvh] items-end justify-center bg-black/60 backdrop-blur-[2px]"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
       aria-label={title}
     >
-      <div className="animate-sheet safe-bottom max-h-[92vh] w-full overflow-auto rounded-t-[18px] border-t border-[var(--color-line)] bg-[var(--color-surface)] px-4 pt-4 pb-5">
-        <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-[var(--color-line)]" />
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-[17px] font-semibold">{title}</h2>
-          <Button variant="ghost" className="min-h-9 px-2" aria-label="Close" onClick={onClose}>
-            ✕
-          </Button>
+      {/* A column rather than one scrolling box: the handle and the title stay
+          put while the content moves under them, so a long sheet still shows
+          what it is and how to close it. Capped short of the full height so
+          there is always a strip of the page behind it — a sheet that fills
+          the screen is a page, and people stop expecting it to dismiss. */}
+      <div className="animate-sheet flex max-h-[86dvh] w-full max-w-[560px] flex-col rounded-t-[20px] border border-b-0 border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)]">
+        <div className="shrink-0 px-4 pt-3">
+          <div className="mx-auto mb-2.5 h-1 w-9 rounded-full bg-[var(--color-line)]" />
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="min-w-0 flex-1 text-[17px] font-semibold">{title}</h2>
+            <Button
+              variant="ghost"
+              className="-mr-1 min-h-9 shrink-0 px-2"
+              aria-label="Close"
+              onClick={onClose}
+            >
+              ✕
+            </Button>
+          </div>
         </div>
-        <div className="flex flex-col gap-3">{children}</div>
+        {/* The padding at the end is what stops the last row sitting flush
+            against the screen edge with no air under it. */}
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+1.75rem)]">
+          {children}
+        </div>
       </div>
     </div>
   );

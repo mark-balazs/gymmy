@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Card, Sheet, Summary, cn } from '@/components/ui';
+import { Page } from '@/components/page';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import { setEntryExercise } from '@/lib/client/mutations';
 import { DEFAULT_PREFS, swapOptions, type Exercise } from '@athletic/domain';
@@ -53,7 +54,7 @@ export default function WeekPage() {
             };
 
   return (
-    <>
+    <Page>
       <Card className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <Button
@@ -207,6 +208,6 @@ export default function WeekPage() {
           ))}
         </Sheet>
       )}
-    </>
+    </Page>
   );
 }

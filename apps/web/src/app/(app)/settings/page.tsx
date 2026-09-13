@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Button, Card, Field, InfoButton, Segmented, Sheet, cn } from '@/components/ui';
+import { Page } from '@/components/page';
 import { SplitSheet } from '@/components/split-sheet';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import {
@@ -102,7 +103,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <>
+    <Page>
       <Card className="flex flex-col gap-3">
         <h2 className="text-[17px] font-semibold">{tr.t('set.language')}</h2>
         <Segmented
@@ -397,6 +398,6 @@ export default function SettingsPage() {
       </Sheet>
 
       {info && <SplitSheet split={info} onClose={() => setInfo(null)} />}
-    </>
+    </Page>
   );
 }

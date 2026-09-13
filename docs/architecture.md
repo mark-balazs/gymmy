@@ -73,6 +73,33 @@ something got somebody stuck:
 - **Seed repair in `/api/sync`** — an account with no rows gets seeded on the
   spot. See [data.md](./data.md#seeding).
 
+## Moving between tabs
+
+Tabs slide, and the direction carries meaning: left is forward, right is back.
+Both the tab bar and a swipe produce the same movement, because they are the
+same journey.
+
+- `components/page.tsx` wraps each tab's content in React's `<ViewTransition>`.
+  **It lives in the page, not the layout** — a layout persists across
+  navigation, so its enter and exit animations never fire. Only something that
+  genuinely unmounts can be animated out.
+- The direction is a *transition type*: `transitionTypes` on the tab `<Link>`,
+  and the same on `router.push` for a swipe. `default: 'none'` means a
+  navigation carrying no type — the browser's back button, `router.refresh()`,
+  a Suspense reveal — does not slide, because it was not a move.
+- The header and the tab bar carry their own `viewTransitionName` and are
+  pinned. Without a fixed reference the whole viewport appears to move rather
+  than the page inside it.
+- The flex column that spaces the cards lives on `[data-page]`, not on `<main>`.
+  `<main>` persists; spacing applied there would leave the cards travelling
+  independently of the box supposed to be carrying them.
+- The per-card stagger is suppressed during a transition
+  (`html:active-view-transition`) — two animations describing one event read as
+  jitter.
+
+`prefers-reduced-motion` zeroes the view-transition pseudo-elements explicitly:
+they sit outside the `*` selector that handles everything else.
+
 ## Things that will surprise you
 
 - **React Compiler is on.** It rejects a `useMemo` whose dependency comes through

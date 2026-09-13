@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Button, Card, InfoButton, Sheet, Summary, cn } from '@/components/ui';
+import { Page } from '@/components/page';
 import { LineChart, type ChartPoint } from '@/components/chart';
 import { useProfile, useSnapshot, useT, useToday } from '@/lib/client/hooks';
 import { fireAndForget, logBodyWeight } from '@/lib/client/mutations';
@@ -117,7 +118,7 @@ export default function ProgressPage() {
   }
 
   return (
-    <>
+    <Page>
       <Card className="flex flex-col gap-3">
         <div className="flex items-center gap-1">
           <h2 className="flex-1 text-[17px] font-semibold">{tr.t('prog.strength')}</h2>
@@ -269,6 +270,6 @@ export default function ProgressPage() {
           </div>
         )}
       </Sheet>
-    </>
+    </Page>
   );
 }

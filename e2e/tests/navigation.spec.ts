@@ -45,6 +45,36 @@ test.describe('Swiping between tabs', () => {
     await app.waitForURL('**/train');
   });
 
+  test('the move is animated, and the direction comes from the gesture', async ({
+    onboardedApp: app,
+  }) => {
+    await app.goto('/train');
+    await expect(app.getByRole('heading', { name: 'Train', exact: true })).toBeVisible();
+
+    /* `:active-view-transition` matches the document only while one is running,
+     * so this is the browser confirming a transition started rather than a
+     * check that we called something. Armed before the swipe, because a 320ms
+     * animation is easy to miss if you go looking for it afterwards. */
+    const running = app.waitForFunction(
+      () => document.documentElement.matches(':active-view-transition'),
+      null,
+      { timeout: 3000 },
+    );
+    await swipe(app, [300, 300], [60, 310]);
+    await running;
+    await app.waitForURL('**/week');
+  });
+
+  test('still navigates with motion turned off', async ({ onboardedApp: app }) => {
+    // A slide across the viewport is the most common trigger for motion
+    // sensitivity. Removing the animation must not remove the navigation.
+    await app.emulateMedia({ reducedMotion: 'reduce' });
+    await app.goto('/train');
+    await swipe(app, [300, 300], [60, 310]);
+    await app.waitForURL('**/week');
+    await expect(app.getByRole('list', { name: 'Movement coverage' })).toBeVisible();
+  });
+
   test('a scroll that wandered sideways is not a swipe', async ({ onboardedApp: app }) => {
     await app.goto('/train');
     // Mostly vertical: this is someone scrolling, and taking it as a swipe
