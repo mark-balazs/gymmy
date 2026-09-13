@@ -199,13 +199,6 @@ input[type='number']::-webkit-inner-spin-button {
 
 /* ----------------------------------------------------------------- motion */
 
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-}
-
 @keyframes pop {
   from {
     opacity: 0;
@@ -237,41 +230,19 @@ input[type='number']::-webkit-inner-spin-button {
 }
 
 /*
- * Cards arrive in sequence rather than all at once.
+ * There is deliberately no per-card entry animation here any more.
  *
- * Done with nth-child on the scroll container instead of a prop threaded
- * through every card: the stagger is a property of the page, not of any one
- * card, and this way nothing has to know its own index.
+ * There used to be a staggered "rise" on every card, suppressed while a view
+ * transition was running so it would not fight the slide. Suppressing it was
+ * the bug: the moment the transition ended the selector stopped matching, the
+ * animation applied fresh, and every card re-animated from zero — a visible
+ * jolt after every single swipe that read as the page reloading.
+ *
+ * A CSS animation cannot be paused by swapping "animation: none" in and out;
+ * taking the name away and giving it back is how you restart one. The page
+ * slide is the arrival animation now, and one animation per event is the
+ * correct number.
  */
-@media (prefers-reduced-motion: no-preference) {
-  [data-page] > * {
-    animation: rise 0.4s var(--ease-out-soft) both;
-  }
-  /* During a slide the page arrives as one moving object. Letting the cards
-     also rise on top of that is two animations describing the same event, and
-     it reads as jitter rather than as polish. */
-  html:active-view-transition [data-page] > * {
-    animation: none;
-  }
-  [data-page] > *:nth-child(1) {
-    animation-delay: 0.02s;
-  }
-  [data-page] > *:nth-child(2) {
-    animation-delay: 0.06s;
-  }
-  [data-page] > *:nth-child(3) {
-    animation-delay: 0.1s;
-  }
-  [data-page] > *:nth-child(4) {
-    animation-delay: 0.14s;
-  }
-  [data-page] > *:nth-child(5) {
-    animation-delay: 0.18s;
-  }
-  [data-page] > *:nth-child(n + 6) {
-    animation-delay: 0.22s;
-  }
-}
 
 /* ------------------------------------------------- moving between tabs -- */
 

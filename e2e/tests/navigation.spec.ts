@@ -65,6 +65,39 @@ test.describe('Swiping between tabs', () => {
     await app.waitForURL('**/week');
   });
 
+  test('nothing moves once the slide has landed', async ({ onboardedApp: app }) => {
+    /*
+     * The regression this exists for: the per-card entry animation was
+     * suppressed *during* the transition, so the instant it ended the rule
+     * stopped matching, the animation applied fresh, and every card re-animated
+     * from zero. It read as the page reloading after every swipe.
+     */
+    await app.goto('/train');
+    await swipe(app, [300, 300], [60, 310]);
+    await app.waitForURL('**/week');
+    await app.waitForFunction(
+      () => !document.documentElement.matches(':active-view-transition'),
+      null,
+      { timeout: 5000 },
+    );
+
+    const stillMoving = await app.evaluate(() => {
+      const page = document.querySelector('[data-page]');
+      if (!page) return -1;
+      // Scoped to the page's own content: the sync badge pulses on its own
+      // schedule and has nothing to do with navigating.
+      return document
+        .getAnimations()
+        .filter((a) => a.playState === 'running')
+        .filter((a) => {
+          const target = (a as unknown as { effect?: { target?: Element | null } }).effect?.target;
+          return !!target && page.contains(target);
+        }).length;
+    });
+
+    expect(stillMoving).toBe(0);
+  });
+
   test('still navigates with motion turned off', async ({ onboardedApp: app }) => {
     // A slide across the viewport is the most common trigger for motion
     // sensitivity. Removing the animation must not remove the navigation.

@@ -405,8 +405,13 @@ export function progressFor(
   };
 }
 
-export function trend(ix: Indexed, exerciseId: string, blockStart: string, weeks: number): Trend {
-  const { series } = progressFor(ix, exerciseId, blockStart, weeks);
+export const trend = (ix: Indexed, exerciseId: string, blockStart: string, weeks: number): Trend =>
+  trendOf(progressFor(ix, exerciseId, blockStart, weeks).series);
+
+/** The verdict, from a series that has already been built. Separated so the
+ *  summary pass can reuse it rather than rebuilding every series a second
+ *  time — which is what reading `trend()` per exercise used to cost. */
+export function trendOf(series: SeriesPoint[]): Trend {
   const pts = series.filter((p): p is { weekOf: string; value: number } => p.value !== null);
 
   if (pts.length === 0) return { dir: 'none', pct: 0, stalledWeeks: 0, points: 0 };
