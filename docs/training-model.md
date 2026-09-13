@@ -52,6 +52,19 @@ the pattern, so the repair cannot create the violation it exists to prevent.
 **The one invariant that matters most.** Three months of seven-pattern weeks
 still read as seven-pattern weeks after you move to push/pull.
 
+```mermaid
+flowchart LR
+    subgraph p1["Period 1 — seven patterns"]
+        w1["Jan"] --- w2["Feb"]
+    end
+    subgraph p2["Period 2 — push / pull / legs"]
+        w3["Mar"] --- w4["Apr"]
+    end
+    p1 --> p2
+    s1["Scored against<br/>all seven"] -.-> p1
+    s2["Scored against<br/>push, pull, squat,<br/>hinge, lunge"] -.-> p2
+```
+
 A switch **appends a `SplitPeriod`**; it never edits one. Each period records the
 split, the day count, and a *frozen copy* of the coverage goal — frozen so that
 history survives us changing what a preset means in a later release, and
@@ -101,6 +114,18 @@ taken to failure and a set with three left look identical, which makes the whole
 progress view lie.
 
 ## Double progression
+
+```mermaid
+flowchart TD
+    last["Your last session on this lift"] --> q{"How did the last set feel?"}
+    q -->|"Nothing left"| hold["Repeat this weight<br/>before adding"]
+    q -->|"1 more"| rep["Same weight,<br/>go for one more rep"]
+    q -->|"2 more"| mid{"At the top of<br/>the rep range?"}
+    q -->|"Easy"| up["Add weight"]
+    mid -->|"no"| climb["Same weight,<br/>work up the range"]
+    mid -->|"yes"| up
+    up --> reset["Back to the bottom<br/>of the rep range"]
+```
 
 `suggest()` is the rule, and it is never shown to the user — the *target* is.
 Reach the top of the rep range on every set with something left in the tank and

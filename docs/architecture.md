@@ -1,5 +1,47 @@
 # Architecture
 
+## The system, and what it talks to
+
+```mermaid
+flowchart TB
+    person["A person who trains<br/>two to four times a week, on a phone"]
+    gymmy["<b>gymmy</b><br/>Builds the week, suggests the next load,<br/>reports what has stalled.<br/>Holds a full copy on the device."]
+    google["Google<br/>OAuth identity"]
+    resend["Resend<br/>sign-in code email (optional)"]
+
+    person -->|"uses, often with no signal"| gymmy
+    gymmy -->|"sign in with a Google account"| google
+    gymmy -->|"send a six-digit code"| resend
+```
+
+Both external systems are on the **sign-in path only**. Once somebody is signed
+in, gymmy depends on nobody: a total Google outage cannot stop an existing user
+from training.
+
+## The pieces that run
+
+```mermaid
+flowchart TB
+    subgraph phone["The person's phone"]
+        pwa["Web app (PWA)<br/>Next.js 16 · React 19"]
+        idb[("IndexedDB<br/>full replica + outbox")]
+        sw["Service worker<br/>network-first pages,<br/>cache-first assets"]
+    end
+    subgraph vercel["Vercel"]
+        server["Next.js server<br/>route handlers · auth · seeding<br/>validates everything"]
+    end
+    db[("Neon Postgres<br/>one shared change sequence")]
+
+    pwa <-->|"every read is local"| idb
+    pwa -.->|registers| sw
+    pwa -->|"HTTPS · POST /api/sync"| server
+    server -->|"SQL over HTTP"| db
+```
+
+Two databases on purpose. The local one is what makes the app work in a
+basement; the remote one is what makes it survive a lost phone. Neither is
+redundant.
+
 ## The layers, and what may import what
 
 ```
@@ -30,6 +72,29 @@ second implementation to disagree with the first.
 | `apps/web/src/components/` | The UI kit, the charts, the calendar, the sheets, the lightbox, the profile card, the recovery screens |
 
 ## How a set gets saved
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor P as Person
+    participant UI as Screen
+    participant M as mutations.put
+    participant L as IndexedDB
+    participant S as sync engine
+    participant API as POST /api/sync
+
+    P->>UI: taps "Log set"
+    UI->>M: one write path, always
+    M->>L: stamp updatedAt, write row, queue outbox
+    L-->>UI: live query fires
+    UI-->>P: the set is there (no network involved)
+    Note over S: ~800ms debounce
+    S->>API: outbox + highest seq seen
+    API-->>S: rows newer than that, all tables
+    S->>L: apply server rows
+    S->>L: re-apply outbox on top
+    Note over S,L: without that last step, a pull in flight<br/>overwrites a set logged while it travelled
+```
 
 1. A tap calls a function in `lib/client/mutations.ts`. **Every** write goes
    through `put()` there — it stamps `updatedAt`, writes to IndexedDB, and

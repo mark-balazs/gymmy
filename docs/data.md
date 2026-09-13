@@ -1,5 +1,28 @@
 # Data
 
+## What is stored
+
+```mermaid
+erDiagram
+    user ||--o| profile : "has exactly one"
+    user ||--o{ patterns : owns
+    user ||--o{ exercises : owns
+    user ||--o{ slots : owns
+    user ||--o{ split_periods : owns
+    user ||--o{ program_entries : owns
+    user ||--o{ set_logs : owns
+    user ||--o{ body_logs : owns
+    user ||--o{ ref_sets : owns
+    patterns ||--o{ exercises : classifies
+    exercises ||--o{ set_logs : "is logged as"
+    slots ||--o{ program_entries : "is filled by"
+```
+
+Every arrow out of `user` is `ON DELETE CASCADE`, which is why erasing an account
+is one statement. Note what does **not** point at `program_entries`: a set log
+references the *exercise*, never the plan — which is what lets the week be
+rebuilt without touching a single thing you lifted.
+
 ## Two stores, one shape
 
 Every synced record carries `id`, `updatedAt` and a soft `deletedAt`, declared
