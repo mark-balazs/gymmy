@@ -16,7 +16,7 @@ export const LANGS: { id: Lang; label: string }[] = [
 
 export const en = {
   'app.name': 'gymmy',
-  'app.tagline': 'Train every way your body moves, and actually get stronger.',
+  'app.tagline': 'Do it for you',
   'app.signIn': 'Continue with Google',
   'app.signInWhy': 'Your training syncs across your devices. Nothing is shared.',
   'app.signOut': 'Sign out',
@@ -69,6 +69,7 @@ export const en = {
   'common.cancel': 'Cancel',
   'common.confirm': 'Confirm',
   'common.save': 'Save',
+  'common.done': 'Done',
   'common.add': 'Add',
   'common.delete': 'Delete',
   'common.day': 'Day {n}',
@@ -220,8 +221,58 @@ export const en = {
   'split.upperLower': 'Upper / Lower',
   'split.upperLowerH': 'Alternating days. Works well from two to four a week.',
   'split.custom': 'Custom',
-  'split.customH': 'Your own arrangement, as you edited it.',
+  'split.customH': 'Set up each day yourself, starting from the week you train now.',
   'split.minDays': 'Needs at least {n} days a week',
+
+  'split.info': 'What is {split}?',
+  'split.about': 'About {split}',
+  'split.shape': 'How the week is shaped',
+  'split.everyDay': 'Every session',
+  'split.repeats': 'Train more days than this and the days come round again.',
+  'split.range': 'Works from {min} to {max} days a week.',
+  'split.complete': 'What counts as a complete week',
+  'split.completeBody':
+    'Cover these and the week is done. Anything else you train is a bonus, not a box you are marked down for leaving empty.',
+  'split.sevenPatternWhy':
+    'Every session works the whole body, which is why this is the only split that asks for all seven movements — including the two almost nobody trains, carries and rotation. The fewest days for the most complete week.',
+  'split.pushPullLegsWhy':
+    'Pushing, pulling and legs each get a day to themselves, so each gets more attention than one full-body session can give it. A complete week here is push, pull and the three leg movements; carries and rotation still turn up as finishers.',
+  'split.upperLowerWhy':
+    'Upper and lower alternate, so on four days a week everything is trained twice without any one session running long. A complete week is push, pull and the three leg movements.',
+
+  'split.buildOwn': 'Build your own',
+  'split.editTitle': 'Your own split',
+  'split.editIntro':
+    'This is the week you train now. Change what any slot holds, add or remove slots and days, then save. Your log is untouched, and past weeks keep the goal they were trained under.',
+  'split.dayType': 'Day type',
+  'split.slotName': 'Name',
+  'split.slotHolds': 'What goes here',
+  'split.addSlot': 'Add a slot',
+  'split.addDay': 'Add a day',
+  'split.removeDay': 'Remove last day',
+  'split.lastSlot': 'A day needs at least one slot.',
+  'split.moveUp': 'Move {name} up',
+  'split.moveDown': 'Move {name} down',
+  'split.editSlot': 'Edit {name}',
+  'split.removeSlot': 'Remove this slot',
+  'split.pinTitle': 'Or pin it to movements',
+  'split.pinNote': 'Pinned movements win over the role above. Pin nothing and the role decides.',
+  'split.reach': 'A complete week will be',
+  'split.drops': 'No slot can hold these any more: {list}. Your week will stop asking for them.',
+  'split.save': 'Save my split',
+  'split.saveQ': 'Save your split?',
+  'split.saveBody':
+    'New exercises will be chosen to fit the slots you set up. Your log stays exactly as it is.',
+  'split.backToSettings': 'Settings',
+
+  'role.Any': 'Anything',
+  'role.Lower': 'Lower body',
+  'role.Upper': 'Upper body',
+  'role.Midline': 'Midline',
+  'role.Accessory': 'Isolation',
+
+  'set.daysCustom': 'Your own split decides this.',
+  'set.editSplit': 'Edit my split',
 
   'day.full': 'Full body',
   'day.push': 'Push',
@@ -235,7 +286,7 @@ export type Key = keyof typeof en;
 
 export const hu: Record<Key, string> = {
   'app.name': 'gymmy',
-  'app.tagline': 'Edzd minden mozgásformádat, és tényleg legyél erősebb.',
+  'app.tagline': 'Csináld magadért',
   'app.signIn': 'Belépés Google-fiókkal',
   'app.signInWhy': 'Az edzéseid szinkronizálódnak az eszközeid között. Semmit nem osztunk meg.',
   'app.signOut': 'Kijelentkezés',
@@ -287,6 +338,7 @@ export const hu: Record<Key, string> = {
   'common.cancel': 'Mégse',
   'common.confirm': 'Rendben',
   'common.save': 'Mentés',
+  'common.done': 'Kész',
   'common.add': 'Hozzáadás',
   'common.delete': 'Törlés',
   'common.day': '{n}. nap',
@@ -441,8 +493,59 @@ export const hu: Record<Key, string> = {
   'split.upperLower': 'Felsőtest / Alsótest',
   'split.upperLowerH': 'Váltakozó napok. Heti kettőtől négyig jól működik.',
   'split.custom': 'Egyedi',
-  'split.customH': 'A saját beosztásod, ahogy átszerkesztetted.',
+  'split.customH': 'Állítsd össze magad a napjaidat, a mostani hetedből kiindulva.',
   'split.minDays': 'Legalább heti {n} nap kell hozzá',
+
+  'split.info': 'Mi az a(z) {split}?',
+  'split.about': '{split} – mi ez?',
+  'split.shape': 'Hogyan épül fel a hét',
+  'split.everyDay': 'Minden edzés',
+  'split.repeats': 'Ha ennél több napot edzel, a napok körbeérnek.',
+  'split.range': 'Heti {min}–{max} nappal működik.',
+  'split.complete': 'Mitől teljes egy hét',
+  'split.completeBody':
+    'Ha ezek megvannak, kész a hét. Minden más ráadás, nem pedig hiány, amiért levonás járna.',
+  'split.sevenPatternWhy':
+    'Minden edzés az egész testet megmozgatja, ezért ez az egyetlen felosztás, amelyik mind a hét mozgásformát kéri – köztük azt a kettőt is, amit szinte senki nem edz: a cipelést és a forgatást. A legkevesebb napból a legteljesebb hét.',
+  'split.pushPullLegsWhy':
+    'A nyomás, a húzás és a láb külön napot kap, így mindegyikre több jut, mint egy teljes testes edzésen. Itt a teljes hét: nyomás, húzás és a három lábmozgás; a cipelés és a forgatás levezetésként így is előkerül.',
+  'split.upperLowerWhy':
+    'A felsőtest és az alsótest váltja egymást, így heti négy napon minden kétszer sorra kerül, és egyik edzés sem nyúlik el. A teljes hét: nyomás, húzás és a három lábmozgás.',
+
+  'split.buildOwn': 'Állítsd össze magad',
+  'split.editTitle': 'A saját felosztásod',
+  'split.editIntro':
+    'Ez a heted, ahogy most edzed. Módosítsd, mi kerüljön az egyes helyekre, vegyél fel vagy törölj helyeket és napokat, majd mentsd el. A naplód érintetlen marad, a korábbi hetek pedig megtartják a saját céljukat.',
+  'split.dayType': 'Nap típusa',
+  'split.slotName': 'Megnevezés',
+  'split.slotHolds': 'Mi kerüljön ide',
+  'split.addSlot': 'Új hely',
+  'split.addDay': 'Új nap',
+  'split.removeDay': 'Utolsó nap törlése',
+  'split.lastSlot': 'Egy naphoz legalább egy hely kell.',
+  'split.moveUp': '{name} feljebb',
+  'split.moveDown': '{name} lejjebb',
+  'split.editSlot': '{name} szerkesztése',
+  'split.removeSlot': 'Hely törlése',
+  'split.pinTitle': 'Vagy kösd konkrét mozgásokhoz',
+  'split.pinNote':
+    'A kiválasztott mozgások felülírják a fenti szerepkört. Ha egyet sem választasz, a szerepkör dönt.',
+  'split.reach': 'Így néz majd ki egy teljes hét',
+  'split.drops': 'Ezekhez már egyik hely sem passzol: {list}. A heted nem fogja őket többé kérni.',
+  'split.save': 'Felosztás mentése',
+  'split.saveQ': 'Mented a felosztásodat?',
+  'split.saveBody':
+    'A helyekhez új gyakorlatokat választunk. A naplód pontosan úgy marad, ahogy van.',
+  'split.backToSettings': 'Beállítások',
+
+  'role.Any': 'Bármi',
+  'role.Lower': 'Alsótest',
+  'role.Upper': 'Felsőtest',
+  'role.Midline': 'Törzs',
+  'role.Accessory': 'Izoláció',
+
+  'set.daysCustom': 'Ezt a saját felosztásod határozza meg.',
+  'set.editSplit': 'Felosztás szerkesztése',
 
   'day.full': 'Teljes test',
   'day.push': 'Nyomás',

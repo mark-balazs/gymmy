@@ -15,6 +15,7 @@
  * split "custom" — there is no separate mode.
  */
 
+import { slotsForSession, type Indexed } from './model';
 import type { DayKey, PatternKey, Role, SlotKey, SlotRole, SplitKey } from './types';
 
 export interface SlotTemplate {
@@ -211,13 +212,16 @@ export const splitDays = (preset: SplitPreset, days: number): SplitDayTemplate[]
   Array.from({ length: days }, (_, i) => preset.days[i % preset.days.length]!);
 
 export interface SlotDraft {
-  key: SlotKey;
+  /** Null only for a slot the user renamed by hand; `name` carries it then. */
+  key: SlotKey | null;
   name: string;
   requiredRole: SlotRole;
   position: number;
   sessionIndex: number;
   patternKeys: PatternKey[] | null;
-  dayKey: DayKey;
+  /** Null for anything seeded before days were labelled; the day still exists,
+   *  it just has no name to show beside it. */
+  dayKey: DayKey | null;
 }
 
 /**
@@ -241,6 +245,34 @@ export function buildSlots(preset: SplitPreset, days: number): SlotDraft[] {
       });
     });
   });
+  return out;
+}
+
+/**
+ * The arrangement currently in force, as editable drafts.
+ *
+ * The custom split editor starts from what you already train rather than a
+ * blank page, and hands the same shape back to be applied. That symmetry is the
+ * point: a week you arranged by hand and a week materialised from a preset are
+ * the same rows, so nothing downstream can tell them apart or needs to.
+ */
+export function currentSlotDrafts(ix: Indexed, days: number): SlotDraft[] {
+  const out: SlotDraft[] = [];
+  for (let sessionIndex = 0; sessionIndex < days; sessionIndex++) {
+    slotsForSession(ix, sessionIndex).forEach((slot, position) => {
+      out.push({
+        key: slot.key,
+        name: slot.name,
+        requiredRole: slot.requiredRole ?? 'Any',
+        position,
+        sessionIndex,
+        // Copied rather than shared: the editor mutates drafts freely, and an
+        // array still pointed at by IndexedDB is not ours to touch.
+        patternKeys: slot.patternKeys?.length ? [...slot.patternKeys] : null,
+        dayKey: slot.dayKey,
+      });
+    });
+  }
   return out;
 }
 

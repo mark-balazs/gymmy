@@ -62,6 +62,15 @@ Each preset materialises into ordinary `Slot` rows, so nothing downstream knows
 a preset was involved — which is what lets a hand-edited split behave exactly
 like a built-in one.
 
+Settings → **Build your own** opens the slot editor, which is the only way to
+produce a custom split. It starts from the week you already train, because
+arranging one from nothing is a much harder question than adjusting one. Each
+slot is pinned to specific movements or constrained to a role, days can be added
+and removed, and the editor shows what the arrangement will make a complete week
+*before* it is saved: editing slots can genuinely put a movement out of reach,
+and `coversFor` will then stop asking for it rather than leave a box that can
+never be ticked.
+
 ### Coverage is historised
 
 Changing split must not rewrite the past. Three months of seven-pattern weeks
@@ -131,6 +140,19 @@ Both are gitignored; `.env.example` documents every variable.
 variable named, rather than surfacing later as an undefined connection string
 mid-request. `SKIP_ENV_VALIDATION=1` bypasses it for builds that only typecheck.
 
+### The demo account
+
+Signing in as `demo-gymmy@yopmail.com` (override with `DEMO_EMAIL`) creates an
+account that arrives already onboarded, on the seven-movement-pattern split,
+with six weeks of history behind it. An empty account demonstrates nothing: no
+coverage ticks, no progress line, and "ready for more weight" cannot appear at
+all without history to derive it from.
+
+Seeding happens at account creation, through the same `seedNewUser` path as
+everyone else — a demo running on code you do not ship is a demo of the wrong
+thing. It also means resetting the demo is `DELETE FROM "user"` for that address,
+followed by signing in again.
+
 ## Deploying to Vercel
 
 1. Push to GitHub and import the repository. Vercel detects the monorepo; set
@@ -159,11 +181,9 @@ so no test-only code path exists in the production build.
 
 ## Known gaps
 
-- **No editor for a custom split.** The mechanism is all there — `upsertSlot`
-  marks the profile custom, opens a period and re-derives the coverage goal, and
-  the Settings picker shows Custom once you have one — but nothing in the UI
-  writes a slot by hand yet, so in practice Custom is unreachable. The slot
-  editor from the pre-Next build was never ported.
+- **No drag-and-drop in the split editor.** Slots reorder with ↑/↓ buttons.
+  That is deliberate for now — dragging inside a scrolling column on a phone is
+  its own engineering problem — but it is the obvious next improvement.
 - **Single user.** Multi-tenancy is enforced at the query level (`userId` on
   every row and index), but there is no signup funnel, billing, rate limiting or
   account deletion yet.

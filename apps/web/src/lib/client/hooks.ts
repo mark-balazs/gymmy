@@ -18,13 +18,24 @@ import {
   detectLang,
   patternName,
   pluralise,
+  slotHolds,
   slotName,
   splitName,
   translate,
   type Key,
   type Params,
 } from '@/lib/i18n';
-import type { DayKey, Lang, Pattern, Profile, Slot, Snapshot, SplitKey } from '@athletic/domain';
+import type {
+  DayKey,
+  Lang,
+  Pattern,
+  PatternKey,
+  Profile,
+  Slot,
+  SlotRole,
+  Snapshot,
+  SplitKey,
+} from '@athletic/domain';
 
 const EMPTY: Snapshot = {
   patterns: [],
@@ -75,6 +86,7 @@ export interface Translator {
   plural: (n: number, noun: 'set' | 'session') => string;
   pattern: (p: Pattern | null | undefined) => string;
   slot: (s: Slot | null | undefined) => string;
+  holds: (s: { requiredRole: SlotRole | null; patternKeys: PatternKey[] | null }) => string;
   day: (k: DayKey | null | undefined) => string;
   split: (k: SplitKey) => string;
   lang: Lang;
@@ -89,6 +101,8 @@ export function useT(): Translator {
       plural: (n: number, noun: 'set' | 'session') => pluralise(lang, n, noun),
       pattern: (p: Pattern | null | undefined) => patternName(lang, p),
       slot: (s: Slot | null | undefined) => slotName(lang, s),
+      holds: (s: { requiredRole: SlotRole | null; patternKeys: PatternKey[] | null }) =>
+        slotHolds(lang, s),
       day: (k: DayKey | null | undefined) => dayName(lang, k),
       split: (k: SplitKey) => splitName(lang, k),
     }),

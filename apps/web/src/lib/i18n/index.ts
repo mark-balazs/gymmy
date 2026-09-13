@@ -6,7 +6,16 @@
  * is correct and "3 sorozatok" is not.
  */
 
-import type { DayKey, Lang, Pattern, PatternKey, Slot, SlotKey, SplitKey } from '@athletic/domain';
+import type {
+  DayKey,
+  Lang,
+  Pattern,
+  PatternKey,
+  Slot,
+  SlotKey,
+  SlotRole,
+  SplitKey,
+} from '@athletic/domain';
 import { dicts, type Key } from './dict';
 
 export { LANGS } from './dict';
@@ -39,6 +48,24 @@ export function patternName(lang: Lang, p: Pattern | null | undefined): string {
 export function slotName(lang: Lang, s: Slot | null | undefined): string {
   if (!s) return '';
   return s.key ? translate(lang, `slot.${s.key as SlotKey}` as Key) : s.name;
+}
+
+/**
+ * What a slot will accept, in words.
+ *
+ * Mirrors the precedence the generator itself applies — a pattern list is
+ * narrower than a role and wins wherever both are set — so the label a user
+ * reads while arranging their week is the rule that will actually be enforced
+ * when it is generated.
+ */
+export function slotHolds(
+  lang: Lang,
+  slot: { requiredRole: SlotRole | null; patternKeys: PatternKey[] | null },
+): string {
+  if (slot.patternKeys?.length) {
+    return slot.patternKeys.map((k) => translate(lang, `pattern.${k}` as Key)).join(' · ');
+  }
+  return translate(lang, `role.${slot.requiredRole ?? 'Any'}` as Key);
 }
 
 /** "Push", "Legs", "Full body" — what a day is called in a given split. */

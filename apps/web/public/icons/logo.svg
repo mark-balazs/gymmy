@@ -1,0 +1,12 @@
+<svg viewBox="0 0 26.5 14" xmlns="http://www.w3.org/2000/svg">
+  <!-- Three ascending strides, leaning into the run.
+       The viewBox is cropped to the mark's own bounds, so `height: 2rem` puts a
+       2rem mark on the screen rather than a smaller one floating in padding.
+       This file is the source of truth: components/logo.tsx draws the same
+       geometry, and scripts/build-icons.mjs rasterises the PWA icons from it. -->
+  <g transform="skewX(-28)" fill="#34d399">
+    <rect x="7.44" y="9.26" width="4.6" height="4.74" rx="1.3" />
+    <rect x="14.64" y="5.38" width="4.6" height="8.62" rx="1.3" />
+    <rect x="21.84" y="0" width="4.6" height="14" rx="1.3" />
+  </g>
+</svg>

@@ -4,7 +4,7 @@ import { expect, logSet, test } from '../fixtures/test';
 
 test.describe('Weekly coverage', () => {
   test('an empty week reports gaps, not silence', async ({ onboardedApp: app }) => {
-    await app.getByRole('link', { name: 'Week' }).click();
+    await app.getByRole('link', { name: 'Week', exact: true }).click();
     await expect(app.getByText('Nothing logged this week yet.')).toBeVisible();
   });
 
@@ -12,7 +12,7 @@ test.describe('Weekly coverage', () => {
     // Day 1 slot 1 is always a lower-body pattern, so this fills exactly one tile.
     await logSet(app, 0, 60, 8);
 
-    await app.getByRole('link', { name: 'Week' }).click();
+    await app.getByRole('link', { name: 'Week', exact: true }).click();
     await app.waitForURL('**/week');
 
     // Six of seven still missing — the summary must say so rather than
@@ -27,7 +27,7 @@ test.describe('Weekly coverage', () => {
   test('isolation work never fills a coverage box', async ({ onboardedApp: app }) => {
     // The rule the method rests on: accessories sit on top of the patterns,
     // never instead of them. A week of curls is not a covered week.
-    await app.getByRole('link', { name: 'Week' }).click();
+    await app.getByRole('link', { name: 'Week', exact: true }).click();
     await app.waitForURL('**/week');
 
     const isolationRow = app.getByText(

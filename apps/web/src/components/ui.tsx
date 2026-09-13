@@ -54,6 +54,46 @@ export function Button({
   );
 }
 
+/**
+ * The "i" affordance.
+ *
+ * A separate control rather than something folded into the card it explains:
+ * the card already does something when you tap it — picks a split, opens a day —
+ * and a button inside a button is neither valid markup nor operable with a
+ * keyboard or a screen reader.
+ */
+export function InfoButton({
+  label,
+  onClick,
+  className,
+}: {
+  label: string;
+  onClick: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className={cn(
+        'grid w-[var(--spacing-tap)] shrink-0 cursor-pointer place-items-center self-stretch',
+        'rounded-[11px] text-[13px] font-bold',
+        'text-[var(--color-muted)] hover:text-[var(--color-ink)]',
+        'transition-colors duration-150 active:scale-[0.94]',
+        className,
+      )}
+    >
+      <span
+        aria-hidden
+        className="grid h-[19px] w-[19px] place-items-center rounded-full border border-current"
+      >
+        i
+      </span>
+    </button>
+  );
+}
+
 export function Chip({
   tone = 'default',
   children,

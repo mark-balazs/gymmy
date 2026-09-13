@@ -27,7 +27,7 @@ import { nextSeq } from './seed-user';
  * happened to be pointed at.
  */
 export const demoEmail = (): string =>
-  (process.env.DEMO_EMAIL ?? 'demo@dextra.dev').trim().toLowerCase();
+  (process.env.DEMO_EMAIL ?? 'demo-gymmy@yopmail.com').trim().toLowerCase();
 
 export const isDemoEmail = (email?: string | null): boolean =>
   (email ?? '').trim().toLowerCase() === demoEmail();

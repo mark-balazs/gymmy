@@ -27,7 +27,7 @@ async function expectTiles(page: Page, names: string[]): Promise<void> {
 }
 
 const openWeek = async (page: Page): Promise<void> => {
-  await page.getByRole('link', { name: 'Week' }).click();
+  await page.getByRole('link', { name: 'Week', exact: true }).click();
   await page.waitForURL('**/week');
 };
 
@@ -120,7 +120,7 @@ test.describe('Choosing a split', () => {
     await openWeek(app);
     await expectTiles(app, SEVEN);
 
-    await app.getByRole('link', { name: 'Settings' }).click();
+    await app.getByRole('link', { name: 'Settings', exact: true }).click();
     await app.waitForURL('**/settings');
     await app.getByRole('button').filter({ hasText: 'Upper / Lower' }).first().click();
     await app.getByRole('button', { name: 'Rebuild my week' }).click();
@@ -141,13 +141,13 @@ test.describe('Choosing a split', () => {
     await completeOnboarding(app, { days: '3 days' });
     await logSet(app, 0, 60, 8);
 
-    await app.getByRole('link', { name: 'Settings' }).click();
+    await app.getByRole('link', { name: 'Settings', exact: true }).click();
     await app.waitForURL('**/settings');
     await app.getByRole('button').filter({ hasText: 'Upper / Lower' }).first().click();
     await app.getByRole('button', { name: 'Rebuild my week' }).click();
     await confirmSheet(app);
 
-    await app.getByRole('link', { name: 'Progress' }).click();
+    await app.getByRole('link', { name: 'Progress', exact: true }).click();
     await app.waitForURL('**/progress');
     await expect(app.getByText('60', { exact: false }).first()).toBeVisible();
   });

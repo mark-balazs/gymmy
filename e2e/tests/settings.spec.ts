@@ -19,7 +19,7 @@ test.describe('Settings', () => {
       split: 'upperLower',
       days: 5,
     });
-    await page.getByRole('link', { name: 'Settings' }).click();
+    await page.getByRole('link', { name: 'Settings', exact: true }).click();
     await page.waitForURL('**/settings');
 
     // Selected, and marked as the one in use rather than merely highlighted.
@@ -36,7 +36,7 @@ test.describe('Settings', () => {
 
   test('an edit is held until it is applied, then sticks', async ({ page, context, baseURL }) => {
     await signInAs(page, context, baseURL!, { onboarded: true, split: 'upperLower', days: 5 });
-    await page.getByRole('link', { name: 'Settings' }).click();
+    await page.getByRole('link', { name: 'Settings', exact: true }).click();
     await page.waitForURL('**/settings');
 
     await page.getByRole('button', { name: '4', exact: true }).click();

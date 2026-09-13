@@ -4,7 +4,7 @@ test.describe('Exercise detail', () => {
   test('is reachable while planning the week, not just while training', async ({
     onboardedApp: app,
   }) => {
-    await app.getByRole('link', { name: 'Week' }).click();
+    await app.getByRole('link', { name: 'Week', exact: true }).click();
     await app.waitForURL('**/week');
 
     await app

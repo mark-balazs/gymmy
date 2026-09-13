@@ -10,7 +10,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Card, Segmented, cn } from '@/components/ui';
+import { Button, Card, InfoButton, Segmented, cn } from '@/components/ui';
+import { SplitSheet } from '@/components/split-sheet';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import { applySplit, fireAndForget, patchProfile, setLang } from '@/lib/client/mutations';
 import { startSync } from '@/lib/client/sync';
@@ -92,6 +93,7 @@ export default function Onboarding() {
   const [days, setDays] = useState(3);
   const [where, setWhere] = useState<Where>('gym');
   const [bias, setBias] = useState<Bias>('none');
+  const [info, setInfo] = useState<SplitKey | null>(null);
 
   // A brand-new account arrives before its first sync, so this page starts the
   // engine itself rather than relying on the app shell below it.
@@ -191,19 +193,31 @@ export default function Onboarding() {
             <h1 className="text-[26px] leading-tight font-bold">{tr.t('onboard.q0.title')}</h1>
             <p className="mt-1.5 text-[var(--color-muted)]">{tr.t('onboard.q0.sub')}</p>
           </div>
+          {/* The info button is a sibling rather than something inside the
+              option: nesting a button in a button is neither valid markup nor
+              reachable with a keyboard, and this is the first screen where
+              somebody has to choose a split having never seen one. */}
           {SPLITS.map((s) => (
-            <Option
-              key={s.key}
-              label={tr.split(s.key)}
-              hint={tr.t(`split.${s.key}H` as Key)}
-              selected={split === s.key}
-              onClick={() => {
-                setSplit(s.key);
-                // Clamp the day count into what this split can cover.
-                setDays((d) => (allowedDays(s.key).includes(d) ? d : s.defaultDays));
-                setStep(1);
-              }}
-            />
+            <div key={s.key} className="flex items-stretch gap-1.5">
+              <div className="min-w-0 flex-1">
+                <Option
+                  label={tr.split(s.key)}
+                  hint={tr.t(`split.${s.key}H` as Key)}
+                  selected={split === s.key}
+                  onClick={() => {
+                    setSplit(s.key);
+                    // Clamp the day count into what this split can cover.
+                    setDays((d) => (allowedDays(s.key).includes(d) ? d : s.defaultDays));
+                    setStep(1);
+                  }}
+                />
+              </div>
+              <InfoButton
+                label={tr.t('split.info', { split: tr.split(s.key) })}
+                onClick={() => setInfo(s.key)}
+                className="rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)]"
+              />
+            </div>
           ))}
         </>
       )}
@@ -319,6 +333,8 @@ export default function Onboarding() {
           </Button>
         </>
       )}
+
+      {info && <SplitSheet split={info} onClose={() => setInfo(null)} />}
     </main>
   );
 }

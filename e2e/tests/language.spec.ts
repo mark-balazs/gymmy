@@ -4,7 +4,7 @@ import { expect, test } from '../fixtures/test';
 
 test.describe('Language', () => {
   test('switches to Hungarian across the whole interface', async ({ onboardedApp: app }) => {
-    await app.getByRole('link', { name: 'Settings' }).click();
+    await app.getByRole('link', { name: 'Settings', exact: true }).click();
     await app.getByRole('button', { name: 'Magyar' }).click();
 
     await expect(app.getByRole('link', { name: 'Edzés' })).toBeVisible();
@@ -13,7 +13,7 @@ test.describe('Language', () => {
   });
 
   test('translates the coverage tiles', async ({ onboardedApp: app }) => {
-    await app.getByRole('link', { name: 'Settings' }).click();
+    await app.getByRole('link', { name: 'Settings', exact: true }).click();
     await app.getByRole('button', { name: 'Magyar' }).click();
     await app.getByRole('link', { name: 'Hét' }).click();
 
@@ -31,7 +31,7 @@ test.describe('Language', () => {
   });
 
   test('uses Hungarian ordinals and no plural after a numeral', async ({ onboardedApp: app }) => {
-    await app.getByRole('link', { name: 'Settings' }).click();
+    await app.getByRole('link', { name: 'Settings', exact: true }).click();
     await app.getByRole('button', { name: 'Magyar' }).click();
     await app.getByRole('link', { name: 'Edzés' }).click();
 
@@ -45,7 +45,7 @@ test.describe('Language', () => {
   });
 
   test('persists across a reload and sets the document language', async ({ onboardedApp: app }) => {
-    await app.getByRole('link', { name: 'Settings' }).click();
+    await app.getByRole('link', { name: 'Settings', exact: true }).click();
     await app.getByRole('button', { name: 'Magyar' }).click();
     await expect(app.getByRole('link', { name: 'Edzés' })).toBeVisible();
 
@@ -70,7 +70,7 @@ test.describe('Language', () => {
       if (m.type() === 'error') errors.push(m.text());
     });
 
-    await app.getByRole('link', { name: 'Settings' }).click();
+    await app.getByRole('link', { name: 'Settings', exact: true }).click();
     await app.getByRole('button', { name: 'Magyar' }).click();
     await expect(app.getByRole('link', { name: 'Edzés' })).toBeVisible();
     await app.reload();
@@ -80,11 +80,11 @@ test.describe('Language', () => {
   });
 
   test('switches back to English', async ({ onboardedApp: app }) => {
-    await app.getByRole('link', { name: 'Settings' }).click();
+    await app.getByRole('link', { name: 'Settings', exact: true }).click();
     await app.getByRole('button', { name: 'Magyar' }).click();
     await expect(app.getByRole('link', { name: 'Edzés' })).toBeVisible();
 
     await app.getByRole('button', { name: 'English' }).click();
-    await expect(app.getByRole('link', { name: 'Train' })).toBeVisible();
+    await expect(app.getByRole('link', { name: 'Train', exact: true })).toBeVisible();
   });
 });

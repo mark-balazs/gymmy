@@ -24,7 +24,7 @@ import type {
   SplitPeriod,
   PatternKey,
 } from '@athletic/domain';
-import type { DraftEntry } from '@athletic/domain';
+import type { DraftEntry, SlotDraft } from '@athletic/domain';
 import { buildProgram, buildSlots, coversFor, findSplit, index, mondayOf } from '@athletic/domain';
 
 const now = (): string => new Date().toISOString();
@@ -256,21 +256,23 @@ async function openPeriod(
 }
 
 /**
- * Switches split: replaces the slot skeleton, regenerates the plan and records
- * the switch so past weeks keep their own meaning.
+ * Installs a slot skeleton: replaces the old one, regenerates the plan and
+ * records the switch so past weeks keep their own meaning.
  *
  * Old slots are retired rather than deleted, and their program entries with
  * them, because entries reference slot ids — leaving them behind would strand
  * exercises against slots that no longer exist. Logged sets are untouched: they
  * reference exercises, not slots, so history survives a split change intact.
+ *
+ * Presets and hand-built splits both come through here, with nothing but the
+ * drafts differing. That is deliberate — the moment a custom split took a
+ * second code path it would start behaving differently from a preset in ways
+ * nobody would think to test.
  */
-export async function applySplit(
+async function installSkeleton(
   snap: Snapshot,
-  opts: { split: SplitKey; days: number; where: Where; bias: Bias },
+  opts: { split: SplitKey; days: number; where: Where; bias: Bias; drafts: SlotDraft[] },
 ): Promise<void> {
-  const preset = findSplit(opts.split);
-  if (!preset) return;
-
   const existingSlots = await local.slots.toArray();
   for (const s of existingSlots) {
     if (s.deletedAt === null)
@@ -283,7 +285,7 @@ export async function applySplit(
     }
   }
 
-  const slots: Slot[] = buildSlots(preset, opts.days).map((s) => ({
+  const slots: Slot[] = opts.drafts.map((s) => ({
     ...s,
     id: id(),
     updatedAt: now(),
@@ -310,6 +312,37 @@ export async function applySplit(
   await patchProfile({ split: opts.split, days: opts.days, where: opts.where, bias: opts.bias });
 }
 
+/** Switches to one of the built-in splits. */
+export async function applySplit(
+  snap: Snapshot,
+  opts: { split: SplitKey; days: number; where: Where; bias: Bias },
+): Promise<void> {
+  const preset = findSplit(opts.split);
+  if (!preset) return;
+  await installSkeleton(snap, { ...opts, drafts: buildSlots(preset, opts.days) });
+}
+
+/**
+ * Puts a hand-built week into effect.
+ *
+ * Editing the skeleton is what makes a split "custom" — there is no separate
+ * mode to enter, and `installSkeleton` records a period from this week on, so a
+ * custom split inherits the coverage goal it already had rather than inventing
+ * a new one. Rearranging your week is not the same as changing what you are
+ * training for; `coversFor` narrows that inherited goal only where the new
+ * arrangement genuinely cannot reach a pattern any more.
+ *
+ * An empty skeleton is refused rather than applied: a week with no slots
+ * generates no plan, and the screen it leaves behind looks like data loss.
+ */
+export async function applyCustomSplit(
+  snap: Snapshot,
+  opts: { drafts: SlotDraft[]; days: number; where: Where; bias: Bias },
+): Promise<void> {
+  if (!opts.drafts.length) return;
+  await installSkeleton(snap, { ...opts, split: 'custom' });
+}
+
 export const setLang = (lang: Profile['lang']) => patchProfile({ lang });
 export const setUnit = (unit: Profile['unit']) => patchProfile({ unit });
 export const setTheme = (theme: Profile['theme']) => patchProfile({ theme });
@@ -323,22 +356,4 @@ export async function upsertExercise(row: Exercise): Promise<void> {
 
 export async function upsertPattern(row: Pattern): Promise<void> {
   await put('patterns', { ...row, updatedAt: now() });
-}
-
-/**
- * Editing the skeleton by hand is what creates a custom split — there is no
- * separate mode to enter. Once marked, the preset selector stops claiming the
- * plan is still one of the built-in splits, because it no longer is.
- */
-export async function upsertSlot(snap: Snapshot, row: Slot): Promise<void> {
-  await put('slots', { ...row, updatedAt: now() });
-
-  // Editing the skeleton changes what the week can reach, so the coverage goal
-  // is re-recorded from this week on. A custom split inherits the goal it
-  // already had — rearranging your week is not the same as changing what you
-  // are training for — narrowed to what the new slots can actually deliver.
-  const slots = (await local.slots.toArray()).filter((s) => s.deletedAt === null);
-  const days = snap.profile?.days ?? 3;
-  await openPeriod(snap, { split: 'custom', days, slots });
-  await patchProfile({ split: 'custom' });
 }

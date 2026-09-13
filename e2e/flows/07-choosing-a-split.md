@@ -38,6 +38,28 @@ Push/pull/legs starts at three days on purpose. At two, a whole day type never
 happens and the week cannot be covered, so the option is withheld rather than
 offered and then quietly under-delivered.
 
+## Understanding one before choosing it
+
+A one-line hint is not enough to choose on. The thing worth explaining is not
+what a split is called, it is **what it will then hold you to** — so every
+preset carries an "i" beside it, in onboarding and in Settings alike, opening a
+sheet that states the days it makes, what goes in each slot, the day counts it
+works at, and the coverage set it will call a complete week.
+
+Everything in that sheet is read off the preset itself rather than written out a
+second time in prose, so the explanation cannot drift from the split it is
+explaining.
+
+The button is a **sibling** of the option, never nested inside it: a button
+within a button is neither valid markup nor operable with a keyboard. Reading
+about a split must not select it.
+
+### Expected
+
+- Push / Pull / Legs never mentions rotation or carry as part of a complete week.
+- The seven-pattern split does — that is what it is for.
+- Closing the sheet leaves the question unanswered and nothing selected.
+
 ## Steps — at first run
 
 1. Land on `/onboarding`. The **first** question is "How should your week be
@@ -110,6 +132,36 @@ subtractive — if an edit leaves no slot capable of holding a pattern, that
 pattern stops being demanded, because a box that can never be ticked is worse
 than no box.
 
-The Settings picker shows **Custom** once the user has one, but does not offer
-it as something to switch *to*: a custom split is the arrangement you already
-have, so there is nothing to apply.
+## Building your own
+
+**Custom** is not an option you tick, because there is nothing to apply until
+the week has actually been arranged. It is a place you go: Settings → **Build
+your own** → `/settings/split`.
+
+1. The editor opens on **the week you already train**, not a blank page.
+   Arranging a week from nothing is a far harder question than adjusting one,
+   and a preset is a perfectly good first draft of one.
+2. Tapping a slot opens a sheet: what it is called, the role it falls back on,
+   and the specific movements it can be pinned to. Pins win over the role,
+   exactly as the generator itself decides it.
+3. Slots reorder with ↑/↓ and are added or removed per day; days are added and
+   removed at the bottom. A day always keeps at least one slot.
+4. Before saving, the editor states **what this arrangement will make a complete
+   week** — and names anything that has dropped out of reach.
+5. Saving regenerates the plan against the new skeleton and lands on the Week
+   tab, which is the whole point of having saved.
+
+### Expected
+
+- The editor opens showing the day count and slots actually in force.
+- A slot pinned to a movement says so on its row before anything is committed.
+- Saving marks the split **Custom** in Settings and syncs — a skeleton that
+  never reaches the server would leave every other device generating against
+  the old one.
+- The coverage goal is **inherited**, not reset: a custom split grown out of the
+  seven-pattern method still asks for all seven.
+- Equipment and bias remain changeable afterwards. Rebuilding a custom week
+  keeps the arrangement and regenerates against it; anything else would leave
+  somebody who arranged their own week unable to say "I train at home now".
+- Weeks trained before the switch keep their own goal, exactly as for a preset
+  switch. This is the same `SplitPeriod` append, reached a different way.

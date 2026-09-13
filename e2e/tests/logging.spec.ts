@@ -79,7 +79,7 @@ test.describe('Fits the phone', () => {
    * this was found: a stepper that could not shrink pushed the layout sideways
    * and the bottom nav stopped being clickable.
    */
-  for (const path of ['/train', '/week', '/progress', '/settings']) {
+  for (const path of ['/train', '/week', '/progress', '/settings', '/settings/split']) {
     test(`${path} never scrolls sideways`, async ({ onboardedApp: app }) => {
       await app.goto(path);
       await expect(app.getByRole('navigation')).toBeVisible();

@@ -5,12 +5,14 @@ import {
   allowedDays,
   buildSlots,
   coversFor,
+  currentSlotDrafts,
   findSplit,
   reachablePatterns,
   SPLITS,
   splitDays,
+  type SlotDraft,
 } from '../src/splits';
-import { BIASES } from '../src/types';
+import { BIASES, type Snapshot } from '../src/types';
 import { seedSnapshot, withEntries } from './fixture';
 
 describe('split presets', () => {
@@ -142,6 +144,75 @@ describe('a split defines what a complete week means', () => {
       const reach = new Set(reachablePatterns(snap.slots, counted));
       expect(preset.covers.filter((k) => !reach.has(k))).toEqual([]);
     }
+  });
+});
+
+describe('a hand-built split', () => {
+  /** Ids and timestamps are not part of an arrangement; everything else is. */
+  const shape = (s: SlotDraft) => ({
+    key: s.key,
+    requiredRole: s.requiredRole,
+    position: s.position,
+    sessionIndex: s.sessionIndex,
+    patternKeys: s.patternKeys,
+    dayKey: s.dayKey,
+  });
+
+  it('reads the week back exactly as it was materialised', () => {
+    // The editor opens on the week you already train. If this drifts even
+    // slightly it opens on something you are *not* training — and the first
+    // save would then apply that instead of what you meant to change.
+    for (const preset of SPLITS) {
+      const days = preset.defaultDays;
+      const snap = seedSnapshot(preset.key, days);
+      expect(currentSlotDrafts(index(snap), days).map(shape), preset.key).toEqual(
+        buildSlots(preset, days).map(shape),
+      );
+    }
+  });
+
+  it('still delivers a covered week after the slots are rearranged', () => {
+    /*
+     * Pin every unconstrained slot of a seven-pattern week to push. Rotation
+     * and carry then have nowhere left to go, so the goal has to narrow to what
+     * the week can still reach — and the generator has to cover all of *that*.
+     *
+     * This is the guarantee a hand-built split could most plausibly lose: the
+     * presets are proven covered by construction, an arrangement somebody typed
+     * in is not.
+     */
+    const snap = seedSnapshot('sevenPattern', 3);
+    const counted = snap.patterns.filter((p) => p.counts);
+
+    const drafts: SlotDraft[] = currentSlotDrafts(index(snap), 3).map((s) =>
+      s.requiredRole === 'Lower' || s.requiredRole === 'Upper'
+        ? s
+        : { ...s, requiredRole: 'Any', patternKeys: ['push'] },
+    );
+
+    const covers = coversFor('custom', drafts, counted, [...findSplit('sevenPattern')!.covers]);
+    expect(covers).not.toContain('rotate');
+    expect(covers).not.toContain('carry');
+    expect(covers).toContain('push');
+
+    const custom: Snapshot = {
+      ...snap,
+      slots: drafts.map((s, i) => ({
+        ...s,
+        id: `custom-slot-${i}`,
+        updatedAt: new Date().toISOString(),
+        deletedAt: null,
+      })),
+      splitPeriods: [{ ...snap.splitPeriods[0]!, split: 'custom', patternKeys: covers }],
+    };
+
+    const draft = buildProgram(index(custom), { days: 3, where: 'gym', bias: 'none' });
+    const built = withEntries(custom, draft);
+
+    // Nothing the week still asks for is missing…
+    expect(programCoverage(built, 3).filter((c) => c.sets === 0)).toEqual([]);
+    // …and the pins are honoured rather than papered over to achieve it.
+    expect(programRows(built, 3).filter((r) => r.check.ok === false)).toEqual([]);
   });
 });
 

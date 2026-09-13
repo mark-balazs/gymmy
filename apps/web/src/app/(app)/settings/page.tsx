@@ -1,9 +1,18 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
-import { Button, Card, Field, Segmented, Sheet, cn } from '@/components/ui';
+import { Button, Card, Field, InfoButton, Segmented, Sheet, cn } from '@/components/ui';
+import { SplitSheet } from '@/components/split-sheet';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
-import { applySplit, fireAndForget, setLang, setTheme, setUnit } from '@/lib/client/mutations';
+import {
+  applyCustomSplit,
+  applySplit,
+  fireAndForget,
+  setLang,
+  setTheme,
+  setUnit,
+} from '@/lib/client/mutations';
 import { sync, wipeLocal } from '@/lib/client/sync';
 import { signOutAction } from './actions';
 import { LANGS } from '@/lib/i18n';
@@ -11,6 +20,7 @@ import type { Key } from '@/lib/i18n';
 import {
   allowedDays,
   BIASES,
+  currentSlotDrafts,
   DEFAULT_PREFS,
   findSplit,
   SPLITS,
@@ -42,7 +52,7 @@ const SPLIT_OPTIONS: SplitKey[] = SPLITS.map((s) => s.key);
 const signatureOf = (d: Draft): string => `${d.split}|${d.days}|${d.where}|${d.bias}`;
 
 export default function SettingsPage() {
-  const { snap } = useSnapshot();
+  const { snap, ix } = useSnapshot();
   const profile = useProfile();
   const tr = useT();
 
@@ -67,6 +77,7 @@ export default function SettingsPage() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [confirm, setConfirm] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [info, setInfo] = useState<SplitKey | null>(null);
 
   const saved = draftOf(profile);
   const { split, days, where, bias } = draft ?? saved;
@@ -74,9 +85,6 @@ export default function SettingsPage() {
   const dirty = !!draft && signatureOf(draft) !== signatureOf(saved);
 
   const dayOptions = allowedDays(split);
-
-  /** A custom split is only offered once the user actually has one. */
-  const options: SplitKey[] = current === 'custom' ? [...SPLIT_OPTIONS, 'custom'] : SPLIT_OPTIONS;
 
   // Settings you cannot see yet are not settings. Showing the form before the
   // profile lands invites an edit against the defaults, which would then be
@@ -129,62 +137,90 @@ export default function SettingsPage() {
       <Card className="flex flex-col gap-3">
         <h2 className="text-[17px] font-semibold">{tr.t('set.split')}</h2>
         <div className="flex flex-col gap-2">
-          {options.map((key) => {
+          {SPLIT_OPTIONS.map((key) => {
             const preset = findSplit(key);
             const selected = split === key;
+            const sub = cn('text-xs', selected ? 'opacity-75' : 'text-[var(--color-muted)]');
             return (
-              <button
+              <div
                 key={key}
-                type="button"
-                aria-pressed={selected}
-                // A custom split is the arrangement you already have; there is
-                // nothing to re-apply, so it is shown but not selectable.
-                disabled={key === 'custom'}
-                onClick={() =>
-                  patch({
-                    split: key,
-                    // Clamp the day count into what this split can cover.
-                    days: allowedDays(key).includes(days) ? days : (preset?.defaultDays ?? 3),
-                  })
-                }
                 className={cn(
-                  'flex w-full flex-col items-start gap-0.5 rounded-[11px] border px-3.5 py-3 text-left',
-                  key === 'custom' ? 'cursor-default opacity-70' : 'cursor-pointer',
+                  'flex items-stretch gap-1 rounded-[11px] border pr-1',
                   selected
                     ? 'border-transparent bg-[var(--color-accent)] text-[var(--color-accent-ink)]'
                     : 'border-[var(--color-line)] bg-[var(--color-surface-2)]',
                 )}
               >
-                <span className="flex items-baseline gap-2 font-semibold">
-                  {tr.split(key)}
-                  {key === current && (
-                    <span
-                      className={cn(
-                        'rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase',
-                        selected
-                          ? 'bg-[var(--color-accent-ink)]/20'
-                          : 'bg-[var(--color-surface)] text-[var(--color-muted)]',
-                      )}
-                    >
-                      {tr.t('set.inUse')}
-                    </span>
-                  )}
-                </span>
-                <span
-                  className={cn('text-xs', selected ? 'opacity-75' : 'text-[var(--color-muted)]')}
+                <button
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() =>
+                    patch({
+                      split: key,
+                      // Clamp the day count into what this split can cover.
+                      days: allowedDays(key).includes(days) ? days : (preset?.defaultDays ?? 3),
+                    })
+                  }
+                  className="flex min-w-0 flex-1 cursor-pointer flex-col items-start gap-0.5 px-3.5 py-3 text-left"
                 >
-                  {tr.t(`split.${key}H` as Key)}
-                </span>
-                {preset && preset.minDays > 2 && (
-                  <span
-                    className={cn('text-xs', selected ? 'opacity-75' : 'text-[var(--color-muted)]')}
-                  >
-                    {tr.t('split.minDays', { n: preset.minDays })}
+                  <span className="flex items-baseline gap-2 font-semibold">
+                    {tr.split(key)}
+                    {key === current && (
+                      <span
+                        className={cn(
+                          'rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase',
+                          selected
+                            ? 'bg-[var(--color-accent-ink)]/20'
+                            : 'bg-[var(--color-surface)] text-[var(--color-muted)]',
+                        )}
+                      >
+                        {tr.t('set.inUse')}
+                      </span>
+                    )}
                   </span>
-                )}
-              </button>
+                  <span className={sub}>{tr.t(`split.${key}H` as Key)}</span>
+                  {preset && preset.minDays > 2 && (
+                    <span className={sub}>{tr.t('split.minDays', { n: preset.minDays })}</span>
+                  )}
+                </button>
+                {/* A one-line hint is not enough to choose on: which days it
+                    makes, and what it will then call a complete week, is the
+                    whole of the decision being made here. */}
+                <InfoButton
+                  label={tr.t('split.info', { split: tr.split(key) })}
+                  onClick={() => setInfo(key)}
+                  className={selected ? 'text-[var(--color-accent-ink)]/75' : undefined}
+                />
+              </div>
             );
           })}
+
+          {/* Custom is somewhere you go, not an option you tick — there is
+              nothing to apply until the week has actually been arranged. It is
+              always offered now; the old picker revealed it only once you had a
+              custom split already, which no screen could give you. */}
+          <Link
+            href="/settings/split"
+            className={cn(
+              'flex items-center gap-3 rounded-[11px] border bg-[var(--color-surface-2)] px-3.5 py-3',
+              current === 'custom' ? 'border-[var(--color-accent)]' : 'border-[var(--color-line)]',
+            )}
+          >
+            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="flex items-baseline gap-2 font-semibold">
+                {tr.t('split.buildOwn')}
+                {current === 'custom' && (
+                  <span className="rounded-full bg-[var(--color-surface)] px-2 py-0.5 text-[10px] font-bold tracking-wide text-[var(--color-muted)] uppercase">
+                    {tr.t('set.inUse')}
+                  </span>
+                )}
+              </span>
+              <span className="text-xs text-[var(--color-muted)]">{tr.t('split.customH')}</span>
+            </span>
+            <span aria-hidden className="text-[var(--color-muted)]">
+              ›
+            </span>
+          </Link>
         </div>
       </Card>
 
@@ -192,13 +228,34 @@ export default function SettingsPage() {
         <h2 className="text-[17px] font-semibold">{tr.t('set.myTraining')}</h2>
         <p className="text-sm text-[var(--color-muted)]">{tr.t('set.rebuildBody')}</p>
 
-        <Field label={tr.t('set.days')}>
-          <Segmented
-            value={days}
-            onChange={(n) => patch({ days: n })}
-            options={dayOptions.map((n) => ({ value: n, label: String(n) }))}
-          />
-        </Field>
+        {/* A hand-built week pins every slot to its own day, so how many days it
+            has is part of the arrangement rather than a dial beside it —
+            turning it here would leave the new day with nothing in it. */}
+        {split === 'custom' ? (
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--color-muted)]">
+              {tr.t('set.days')}
+            </span>
+            <p className="text-sm">
+              {tr.t('sub.daysPerWeek', { n: days })}{' '}
+              <span className="text-[var(--color-muted)]">{tr.t('set.daysCustom')}</span>
+            </p>
+            <Link
+              href="/settings/split"
+              className="text-xs font-semibold text-[var(--color-accent)]"
+            >
+              {tr.t('set.editSplit')}
+            </Link>
+          </div>
+        ) : (
+          <Field label={tr.t('set.days')}>
+            <Segmented
+              value={days}
+              onChange={(n) => patch({ days: n })}
+              options={dayOptions.map((n) => ({ value: n, label: String(n) }))}
+            />
+          </Field>
+        )}
 
         <Field label={tr.t('set.where')}>
           <Segmented
@@ -225,11 +282,7 @@ export default function SettingsPage() {
           </select>
         </Field>
 
-        <Button
-          variant="primary"
-          onClick={() => setConfirm(true)}
-          disabled={split === 'custom' || !dirty}
-        >
+        <Button variant="primary" onClick={() => setConfirm(true)} disabled={!dirty}>
           {tr.t('set.rebuild')}
         </Button>
         {/* Nothing here saves on its own: every one of these settings changes
@@ -284,8 +337,19 @@ export default function SettingsPage() {
             variant="primary"
             className="flex-1"
             onClick={async () => {
-              if (split === 'custom') return;
-              await applySplit(snap, { split, days, where, bias });
+              // A custom week keeps its arrangement and is regenerated against
+              // it. Without this branch "I train at home now" would be
+              // unanswerable for anyone who had built their own split.
+              if (split === 'custom') {
+                await applyCustomSplit(snap, {
+                  drafts: currentSlotDrafts(ix, days),
+                  days,
+                  where,
+                  bias,
+                });
+              } else {
+                await applySplit(snap, { split, days, where, bias });
+              }
               // Applied — let the form follow the profile again.
               setDraft(null);
               setConfirm(false);
@@ -295,6 +359,8 @@ export default function SettingsPage() {
           </Button>
         </div>
       </Sheet>
+
+      {info && <SplitSheet split={info} onClose={() => setInfo(null)} />}
     </>
   );
 }

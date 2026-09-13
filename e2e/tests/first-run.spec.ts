@@ -42,7 +42,7 @@ test.describe('First run', () => {
 
   test('the generated week covers every pattern', async ({ app }) => {
     await completeOnboarding(app);
-    await app.getByRole('link', { name: 'Week' }).click();
+    await app.getByRole('link', { name: 'Week', exact: true }).click();
     await app.waitForURL('**/week');
 
     // The seven coverage boxes are the point of the method; all must be present.
