@@ -24,6 +24,14 @@ const schema = z.object({
   /** Local-only sign-in without Google. Inert outside development — the guard
    *  lives in lib/dev-auth.ts, which explains why it cannot ship. */
   AUTH_DEV_BYPASS: z.enum(['0', '1']).optional(),
+
+  /* Optional on purpose. Email sign-in is one way in, not the only one, so a
+   * deployment without a key should lose that button rather than fail to
+   * build — which is exactly what a required variable would do to any preview
+   * the key is not scoped to. */
+  RESEND_API_KEY: z.string().min(1).optional(),
+  /** Must be on a domain verified in Resend, or sending is rejected. */
+  EMAIL_FROM: z.string().min(3).default('gymmy <no-reply@dextra.dev>'),
 });
 
 export type Env = z.infer<typeof schema>;

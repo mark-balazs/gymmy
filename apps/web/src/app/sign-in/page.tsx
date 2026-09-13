@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
 import { auth, signIn } from '@/lib/auth';
 import { DEV_AUTH, devSignIn } from '@/lib/dev-auth';
+import { env } from '@/env';
+import { EmailSignIn } from './email-form';
 
 export default async function SignIn() {
   const session = await auth();
@@ -39,6 +41,17 @@ export default async function SignIn() {
             Continue with Google
           </button>
         </form>
+
+        {env.RESEND_API_KEY && (
+          <>
+            <div className="flex w-full items-center gap-3 py-1">
+              <span className="h-px flex-1 bg-[var(--color-line)]" />
+              <span className="text-xs text-[var(--color-muted)]">or</span>
+              <span className="h-px flex-1 bg-[var(--color-line)]" />
+            </div>
+            <EmailSignIn callbackUrl="/train" />
+          </>
+        )}
 
         <p className="text-xs text-[var(--color-muted)]">
           Your training syncs across your devices. Nothing is shared.

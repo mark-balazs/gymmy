@@ -66,6 +66,33 @@ export const sessions = pgTable('session', {
   expires: timestamp('expires', { mode: 'date' }).notNull(),
 });
 
+/**
+ * One row per sign-in code request, kept just long enough to rate limit.
+ *
+ * In Postgres rather than memory because the app runs on serverless functions:
+ * an in-process counter is per-instance, so it caps nothing once there is more
+ * than one instance — which there always is under the load that would matter.
+ *
+ * Both an email and a client key are recorded. The email alone would let one
+ * attacker spray thousands of different addresses; the client alone would let a
+ * distributed one bury a single victim's inbox.
+ */
+export const signInAttempts = pgTable(
+  'sign_in_attempts',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    email: text('email').notNull(),
+    client: text('client').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('sign_in_attempts_email').on(t.email, t.createdAt),
+    index('sign_in_attempts_client').on(t.client, t.createdAt),
+  ],
+);
+
 export const verificationTokens = pgTable(
   'verificationToken',
   {

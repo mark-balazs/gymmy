@@ -8,11 +8,13 @@
 
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
+import Resend from 'next-auth/providers/resend';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import { db } from '@/lib/db';
 import { accounts, sessions, users, verificationTokens } from '@/lib/db/schema';
 import { env } from '@/env';
 import { seedNewUser } from '@/lib/db/seed-user';
+import { CODE_TTL_SECONDS, generateCode, normaliseEmail, sendCode } from '@/lib/email-otp';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: DrizzleAdapter(db, {
@@ -22,6 +24,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     verificationTokensTable: verificationTokens,
   }),
   providers: [
+    /**
+     * Email sign-in, as a six-digit code rather than the magic link this
+     * provider sends by default. See lib/email-otp.ts for why.
+     *
+     * Registered only when a key is present: without one the button is not
+     * offered, which is a better failure than a sign-in route that always
+     * errors. Auth.js stores the code in `verificationToken` and deletes it on
+     * use, so it is single-use and expiring without any extra machinery.
+     */
+    ...(env.RESEND_API_KEY
+      ? [
+          Resend({
+            apiKey: env.RESEND_API_KEY,
+            from: env.EMAIL_FROM,
+            maxAge: CODE_TTL_SECONDS,
+            generateVerificationToken: generateCode,
+            normalizeIdentifier: normaliseEmail,
+            async sendVerificationRequest({ identifier, token }) {
+              await sendCode({
+                apiKey: env.RESEND_API_KEY!,
+                from: env.EMAIL_FROM,
+                to: identifier,
+                code: token,
+              });
+            },
+          }),
+        ]
+      : []),
     Google({
       clientId: env.AUTH_GOOGLE_ID,
       clientSecret: env.AUTH_GOOGLE_SECRET,

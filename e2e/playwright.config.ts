@@ -58,6 +58,10 @@ export default defineConfig({
       AUTH_GOOGLE_ID: process.env.AUTH_GOOGLE_ID ?? 'e2e-client-id',
       AUTH_GOOGLE_SECRET: process.env.AUTH_GOOGLE_SECRET ?? 'e2e-client-secret',
       AUTH_URL: baseURL,
+      // Switches the email sign-in UI on. Sending genuinely fails with this
+      // key, which is the point: the flow is specified to look identical
+      // whether or not the mail went out.
+      RESEND_API_KEY: 'test-key-not-real',
     },
   },
 });
