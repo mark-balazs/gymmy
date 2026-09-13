@@ -179,6 +179,11 @@ export const fr: Record<Key, string> = {
   'week.swapTitle': 'Remplacer {name}',
   'week.swapBody': 'Ils jouent le même rôle dans ta semaine, ta couverture reste intacte.',
 
+  'cal.title': 'Les huit dernières semaines',
+  'cal.sets': 'Séries',
+  'cal.nothing': 'Rien d’enregistré ce jour-là.',
+  'cal.dayTrained': '{day} – {n} séries',
+  'cal.dayEmpty': '{day} – rien d’enregistré',
   'prog.needsLook': 'À regarder de près',
   'prog.allClear': 'Rien à signaler. Tout ce que tu travailles progresse.',
   'prog.kregressed': 'En baisse',

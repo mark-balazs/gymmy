@@ -169,6 +169,11 @@ export const en = {
   'week.swapTitle': 'Swap {name}',
   'week.swapBody': 'These work the same way in your week, so your coverage stays intact.',
 
+  'cal.title': 'The last eight weeks',
+  'cal.sets': 'Sets',
+  'cal.nothing': 'Nothing logged on this day.',
+  'cal.dayTrained': '{day} — {n} sets',
+  'cal.dayEmpty': '{day} — nothing logged',
   'prog.needsLook': 'Needs a look',
   'prog.allClear': 'Nothing needs a look. Everything you train is moving.',
   'prog.kregressed': 'Down',

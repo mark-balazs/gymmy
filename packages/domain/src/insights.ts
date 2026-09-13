@@ -393,3 +393,84 @@ export function patternWeeks(
 /** The last `n` weeks, oldest first, ending with the week containing `asOf`. */
 export const recentWeeks = (asOf: string, n: number): string[] =>
   Array.from({ length: n }, (_, i) => mondayOf(addDays(mondayOf(asOf), -7 * (n - 1 - i))));
+
+/* --------------------------------------------------------------- the days */
+
+/** How many sets were logged on each date in a range. The calendar's fill. */
+export function setsPerDay(ix: Indexed, from: string, to: string): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const log of ix.logs) {
+    if (log.date < from || log.date > to) continue;
+    out.set(log.date, (out.get(log.date) ?? 0) + 1);
+  }
+  return out;
+}
+
+export interface TrainedDay {
+  date: string;
+  /** Which day of the week's plan this was — 'A', 'B', 'C'. Null if the sets
+   *  disagree, which happens when two sessions were logged on one date. */
+  session: string | null;
+  sets: number;
+  /** In the order they were started. See the note on ordering below. */
+  exercises: { exercise: Exercise; pattern: Pattern | null; logs: DecoratedLog[] }[];
+}
+
+/**
+ * What was actually trained on one date.
+ *
+ * Built from the logs rather than from the plan, and that is the whole point:
+ * the plan says what you were *meant* to do, and it is rebuilt whenever you
+ * change split. A day in September must still show what happened in September,
+ * including an exercise that has since left your week entirely.
+ *
+ * **Ordering needs saying.** The index sorts logs by date, then session, then
+ * set number — so every first set comes before every second set, and the order
+ * exercises appear in is whatever the underlying store happened to give back.
+ * Taking first-appearance from that reads as a shuffle. `updatedAt` is the
+ * moment a set was logged, which for a real account *is* the order it was
+ * performed in, so that is what decides it. Where those tie — a seeded history
+ * that stamps a whole day at once — the plan's own order is the tiebreak: it is
+ * display order only, and the alternative is arbitrary.
+ */
+export function dayDetail(ix: Indexed, date: string): TrainedDay | null {
+  const logs = ix.logs.filter((l) => l.date === date);
+  if (!logs.length) return null;
+
+  const byExercise = new Map<string, DecoratedLog[]>();
+  const startedAt = new Map<string, string>();
+  for (const log of logs) {
+    const list = byExercise.get(log.exerciseId);
+    if (list) list.push(decorate(ix, log));
+    else byExercise.set(log.exerciseId, [decorate(ix, log)]);
+
+    const seen = startedAt.get(log.exerciseId);
+    if (!seen || log.updatedAt < seen) startedAt.set(log.exerciseId, log.updatedAt);
+  }
+
+  const planned = new Map(ix.entries.map((e, i) => [e.exerciseId ?? '', i]));
+  const order = [...byExercise.keys()].sort(
+    (a, b) =>
+      (startedAt.get(a) ?? '').localeCompare(startedAt.get(b) ?? '') ||
+      (planned.get(a) ?? Infinity) - (planned.get(b) ?? Infinity),
+  );
+
+  const sessions = new Set(logs.map((l) => l.session));
+
+  return {
+    date,
+    session: sessions.size === 1 ? [...sessions][0]! : null,
+    sets: logs.length,
+    exercises: order.flatMap((id) => {
+      const exercise = ix.exerciseById.get(id);
+      if (!exercise) return [];
+      return [
+        {
+          exercise,
+          pattern: ix.patternById.get(exercise.patternId) ?? null,
+          logs: byExercise.get(id) ?? [],
+        },
+      ];
+    }),
+  };
+}

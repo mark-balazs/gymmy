@@ -17,6 +17,7 @@ import Link from 'next/link';
 import { useMemo } from 'react';
 import { Card, Chip, Summary, buttonClass, cn } from '@/components/ui';
 import { Page } from '@/components/page';
+import { Calendar } from '@/components/calendar';
 import { useProfile, useSnapshot, useT, useToday } from '@/lib/client/hooks';
 import { fmtDay } from '@/lib/client/format';
 import {
@@ -143,6 +144,14 @@ export default function HomePage() {
             />
           ))}
         </div>
+      </Card>
+
+      {/* Home answers "what now?"; this answers "how has it been going?" without
+          making anybody open a chart. A run of empty Mondays is legible here
+          and invisible everywhere else in the app. */}
+      <Card className="flex flex-col gap-3">
+        <h2 className="text-[17px] font-semibold">{tr.t('cal.title')}</h2>
+        <Calendar />
       </Card>
     </Page>
   );

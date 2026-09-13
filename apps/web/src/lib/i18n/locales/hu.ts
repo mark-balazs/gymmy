@@ -170,6 +170,11 @@ export const hu: Record<Key, string> = {
   'week.swapTitle': '{name} cseréje',
   'week.swapBody': 'Ezek ugyanúgy működnek a hetedben, így a lefedettség megmarad.',
 
+  'cal.title': 'Az elmúlt nyolc hét',
+  'cal.sets': 'Sorozat',
+  'cal.nothing': 'Ezen a napon nincs rögzítve semmi.',
+  'cal.dayTrained': '{day} – {n} sorozat',
+  'cal.dayEmpty': '{day} – nincs rögzítve semmi',
   'prog.needsLook': 'Érdemes ránézni',
   'prog.allClear': 'Most nincs mire ránézni. Minden gyakorlatod halad.',
   'prog.kregressed': 'Vissza',

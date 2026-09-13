@@ -19,7 +19,7 @@ second implementation to disagree with the first.
 | `packages/domain/src/types.ts` | Every record shape, and the `TABLES` list the sync layer is generated from |
 | `packages/domain/src/model.ts` | Pure derived values — coverage, progress, the strength score, `index()` |
 | `packages/domain/src/coach.ts` | Program generation and double progression |
-| `packages/domain/src/insights.ts` | What the Progress tab *says* — session series, drawdowns, the triage |
+| `packages/domain/src/insights.ts` | What Progress and the calendar *say* — session series, drawdowns, the triage, a day |
 | `packages/domain/src/splits.ts` | Split presets, slot materialisation, coverage sets |
 | `packages/domain/src/seed.ts` `details.ts` | The default library: 7 patterns, 70 exercises, their photos and descriptions |
 | `apps/web/src/lib/client/` | IndexedDB, the sync engine, every mutation |
@@ -27,7 +27,7 @@ second implementation to disagree with the first.
 | `apps/web/src/lib/db/demo-history.ts` | Pure: the demo account's training, as data points |
 | `apps/web/src/lib/sync/` | The wire contract and per-table row validation |
 | `apps/web/src/app/(app)/` | The five tabs |
-| `apps/web/src/components/` | The UI kit, the charts, the sheets, the lightbox, the profile card, the recovery screens |
+| `apps/web/src/components/` | The UI kit, the charts, the calendar, the sheets, the lightbox, the profile card, the recovery screens |
 
 ## How a set gets saved
 
