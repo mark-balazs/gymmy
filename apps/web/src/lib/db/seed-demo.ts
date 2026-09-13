@@ -7,11 +7,19 @@
  * appear at all, because it needs history to derive a verdict from. So the demo
  * account arrives having already trained.
  *
- * The history is generated rather than fixed, so it always ends *last week* and
- * the demo never looks abandoned. It is also deliberately imperfect: a missed
- * session, a week off entirely, a deload every sixth week and progress that
- * slows down after the first couple of months, because a demo where every line
- * goes straight up never shows what the app is actually for.
+ * Realism is the whole job here, and it is easy to get wrong in ways that are
+ * obvious to anyone who lifts. The first version assigned loads per *movement
+ * pattern*, which logged a goblet squat at 90 kg and drew the identical
+ * staircase on all seventy charts. Loads now come from `demo-loads.ts`, one
+ * entry per exercise, and the shape of the progress is:
+ *
+ *  - **quick early, flattening later**, because that is what five months looks
+ *    like — not a straight line, and not the 100%+ gains the old version
+ *    produced on light movements;
+ *  - **rounded to real plate jumps**, which produces plateaus of uneven length
+ *    on its own: you sit at the same weight for three weeks and then move;
+ *  - **interrupted** — a deload every sixth week, a bad session about one in
+ *    ten, a missed session, and a week off entirely.
  *
  * Nothing here is random. The same account seeded twice produces byte-identical
  * history, which is what lets the whole seed be safely re-run — see seed-user.
@@ -27,6 +35,7 @@ import {
   setLogs,
 } from '@/lib/db/schema';
 import { mondayOf, sessionLabel } from '@athletic/domain';
+import { BY_PATTERN, DEMO_LOADS, type DemoLoad } from './demo-loads';
 import { nextSeq, seedId } from './seed-user';
 
 /**
@@ -47,17 +56,10 @@ export const isDemoEmail = (email?: string | null): boolean =>
  *  and for the strength score to have moved. */
 export const DEMO_WEEKS = 22;
 
-/** Roughly where a healthy intermediate starts, per movement. */
-const START: Record<string, { weight: number; reps: number; step: number }> = {
-  squat: { weight: 70, reps: 6, step: 2.5 },
-  hinge: { weight: 90, reps: 6, step: 5 },
-  lunge: { weight: 20, reps: 8, step: 2.5 },
-  push: { weight: 50, reps: 6, step: 2.5 },
-  pull: { weight: 45, reps: 8, step: 2.5 },
-  rotate: { weight: 15, reps: 12, step: 2.5 },
-  carry: { weight: 24, reps: 30, step: 4 },
-  isolation: { weight: 12, reps: 12, step: 1 },
-};
+/** The person the demo is. Their sex and height are set for the same reason
+ *  their weight is: the strength score cannot be shown without them. */
+export const DEMO_SEX = 'male';
+export const DEMO_HEIGHT_CM = 181;
 
 const addDays = (iso: string, n: number): string => {
   const d = new Date(`${iso}T12:00:00Z`);
@@ -65,14 +67,28 @@ const addDays = (iso: string, n: number): string => {
   return d.toISOString().slice(0, 10);
 };
 
+const roundTo = (value: number, inc: number): number =>
+  Math.round(Math.round(value / inc) * inc * 100) / 100;
+
 /**
- * How many increments have been earned by week `w`, counting from the start.
+ * How far through the block's total gain you are by week `w`.
  *
- * Quick at first and slower later, which is what actually happens: a step every
- * fortnight for the first couple of months, every third week after that. A
- * straight line would be the one shape no real training log has.
+ * Rises quickly and flattens, which is the shape of real training and the one
+ * thing a linear ramp gets most obviously wrong.
  */
-const stepsEarned = (w: number): number => Math.floor(Math.min(w, 8) / 2 + Math.max(0, w - 8) / 3);
+const curve = (w: number): number => 1 - (1 - w / (DEMO_WEEKS - 1)) ** 1.8;
+
+/**
+ * A repeatable wobble in [-1, 1].
+ *
+ * Deterministic on purpose: the seed has to be safe to run twice, and a
+ * `Math.random()` here would make the second run disagree with the first about
+ * what happened in March.
+ */
+function jitter(a: number, b: number, c: number): number {
+  const n = Math.sin(a * 12.9898 + b * 78.233 + c * 37.719) * 43758.5453;
+  return (n - Math.floor(n)) * 2 - 1;
+}
 
 /** Every sixth week is lighter. Nobody adds weight for five months straight. */
 const isDeload = (w: number): boolean => w > 0 && w % 6 === 5;
@@ -85,10 +101,52 @@ const isOff = (w: number): boolean => w === 11;
  * Bodyweight, drifting down and then settling — with a wobble that repeats
  * exactly, because this has to be reproducible.
  */
-function bodyWeightFor(w: number): number {
+export function bodyWeightFor(w: number): number {
   const drift = 82 - Math.min(w, 14) * 0.2;
   const wobble = [0, 0.4, -0.3, 0.2, -0.5, 0.3][w % 6]!;
   return Math.round((drift + wobble) * 10) / 10;
+}
+
+/** The working weight and rep target for one exercise in one session. */
+function setFor(
+  load: DemoLoad,
+  w: number,
+  session: number,
+  setNo: number,
+  sets: number,
+): { weight: number; reps: number; rir: number } {
+  const t = curve(w);
+  const deload = isDeload(w);
+  // Roughly one session in ten goes badly — you slept poorly, the gym was
+  // full, the bar felt heavy. Charts without one of these look synthetic.
+  const bad = !deload && jitter(w, session, 7) < -0.8;
+
+  let weight: number;
+  let reps: number;
+
+  if (load.bw) {
+    /* The load is you, so it tracks bodyweight and the progress shows up in
+     * reps — which is how these actually go. A little extra hangs off a belt
+     * later on. */
+    const added = load.inc * Math.floor(t * 2.5);
+    weight = roundTo(load.bw * bodyWeightFor(w) + added, 0.5);
+    reps = load.reps + Math.round((load.repGain ?? 0) * t);
+  } else {
+    const earned = roundTo(load.start * (1 + load.gain * t), load.inc);
+    weight = deload
+      ? Math.max(load.start, roundTo(earned * 0.9, load.inc))
+      : bad
+        ? Math.max(load.start, earned - load.inc)
+        : earned;
+    reps = load.reps + Math.round(jitter(w, session, 3));
+  }
+
+  // Straight sets with the last one hardest, which is what the app's own
+  // suggestion engine expects to read back.
+  reps = Math.max(1, reps - (setNo - 1) - (bad ? 1 : 0));
+
+  const rir = deload ? 4 : setNo === sets ? (jitter(w, session, setNo) > 0 ? 0 : 1) : 2;
+  return { weight, reps, rir };
 }
 
 /**
@@ -116,15 +174,19 @@ export async function seedDemoHistory(userId: string): Promise<void> {
   ]);
   if (!plan.length) return;
 
-  /** Exercise → its movement pattern, which is what decides a sane weight: a
-   *  deadlift and a lateral raise have nothing in common numerically. */
   const keyByPattern = new Map(patternRows.map((p) => [p.id, p.key]));
-  const patternOfExercise = new Map(
-    library.map((e) => [e.id, keyByPattern.get(e.patternId) ?? 'isolation']),
+  /** Exercise → what it is called and what it trains, which is what decides a
+   *  sane weight. A deadlift and a lateral raise have nothing in common. */
+  const loadOf = new Map<string, DemoLoad>(
+    library.map((e) => [
+      e.id,
+      DEMO_LOADS[e.name] ??
+        BY_PATTERN[keyByPattern.get(e.patternId) ?? 'isolation'] ??
+        BY_PATTERN.isolation!,
+    ]),
   );
 
-  const now = new Date();
-  const thisMonday = mondayOf(now);
+  const thisMonday = mondayOf(new Date());
   const rows: (typeof setLogs.$inferInsert)[] = [];
   const weights: (typeof bodyLogs.$inferInsert)[] = [];
 
@@ -158,15 +220,11 @@ export async function seedDemoHistory(userId: string): Promise<void> {
 
       for (const entry of plan.filter((p) => p.sessionIndex === session)) {
         if (!entry.exerciseId) continue;
+        const load = loadOf.get(entry.exerciseId) ?? BY_PATTERN.isolation!;
+        const sets = entry.sets || 3;
 
-        const pattern = patternOfExercise.get(entry.exerciseId) ?? 'isolation';
-        const base = START[pattern] ?? START.isolation!;
-
-        const earned = base.weight + stepsEarned(w) * base.step;
-        // A deload drops the bar back a couple of steps rather than stopping.
-        const weight = isDeload(w) ? Math.max(base.weight, earned - base.step * 2) : earned;
-
-        for (let setNo = 1; setNo <= (entry.sets || 3); setNo++) {
+        for (let setNo = 1; setNo <= sets; setNo++) {
+          const { weight, reps, rir } = setFor(load, w, session, setNo, sets);
           rows.push({
             // Derived, not random, for the same reason the rest of the seed is:
             // this has to be safe to run again over a history it half wrote.
@@ -180,10 +238,8 @@ export async function seedDemoHistory(userId: string): Promise<void> {
             exerciseId: entry.exerciseId,
             setNo,
             weight,
-            // The last set is always the hard one.
-            reps: Math.max(1, base.reps - (setNo - 1)),
-            // Easy on a deload; everything left in the tank on the last set.
-            rir: isDeload(w) ? 4 : setNo === (entry.sets || 3) ? 0 : 2,
+            reps,
+            rir,
             note: '',
           });
         }
