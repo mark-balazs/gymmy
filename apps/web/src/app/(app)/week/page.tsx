@@ -7,7 +7,7 @@ import { Page } from '@/components/page';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import { setEntryExercise } from '@/lib/client/mutations';
 import { DEFAULT_PREFS, swapOptions, type Exercise } from '@athletic/domain';
-import { blockWeeks, mondayOf, programRows, weekCoverage } from '@athletic/domain';
+import { blockWeeks, mondayOf, programRows, sessionLabel, weekCoverage } from '@athletic/domain';
 import { fmtDay } from '@/lib/client/format';
 import { ExerciseSheet } from '@/components/exercise-sheet';
 
@@ -132,7 +132,7 @@ export default function WeekPage() {
           <div key={d} className="mt-3 border-t border-[var(--color-line)] pt-3 first:border-t-0">
             <div className="flex items-center justify-between">
               <h3 className="flex items-baseline gap-2 text-sm font-semibold">
-                {tr.t('common.day', { n: d + 1 })}
+                {tr.t('common.day', { n: sessionLabel(d) })}
                 {/* What kind of day this is — "Push", "Legs". Without it a split
                     the user deliberately chose is invisible once they leave
                     onboarding. Full-body days say so too, rather than going

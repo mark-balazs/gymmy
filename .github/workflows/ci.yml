@@ -37,8 +37,13 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Test
-        run: npm test
+      # Only the tests that need nothing: the domain package has no
+      # dependencies, no database and no browser. `npm test` runs every
+      # workspace, which from here would mean the web suite (a real Postgres)
+      # and the whole Playwright run (Postgres, a production build and a
+      # browser) — none of which this job has, so it could only ever fail.
+      - name: Test the domain
+        run: npm run test:domain
 
   build:
     name: Build
@@ -102,6 +107,12 @@ jobs:
 
       - name: Migrate
         run: npm run db:migrate
+
+      # These are the tests whose subject *is* the SQL — seeding, idempotence,
+      # the sign-in throttle. They run here because this is the job with a
+      # database, and nowhere else was running them at all.
+      - name: Test against the database
+        run: npm run test:web
 
       - name: Build
         # e2e runs against a production build; dev-mode recompilation makes the

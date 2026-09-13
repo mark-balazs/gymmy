@@ -38,8 +38,8 @@ test.describe('Language', () => {
     await app.getByLabel(LANGUAGE_LABEL).selectOption('hu');
     await app.getByRole('link', { name: 'Edzés' }).click();
 
-    // "1. nap", with the full stop — not "Nap 1".
-    await expect(app.getByRole('button', { name: '1. nap' })).toBeVisible();
+    // Lettered days read as "A nap", the way Hungarian labels "A csoport".
+    await expect(app.getByRole('button', { name: 'A nap' })).toBeVisible();
 
     // Hungarian takes no plural after a numeral. Appending an "s" is the
     // instinctive English implementation and it is wrong here.

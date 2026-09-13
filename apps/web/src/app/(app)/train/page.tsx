@@ -91,7 +91,7 @@ export default function TrainPage() {
           }}
           options={Array.from({ length: days }, (_, i) => ({
             value: i,
-            label: tr.t('common.day', { n: i + 1 }),
+            label: tr.t('common.day', { n: sessionLabel(i) }),
           }))}
         />
         <div className="flex items-center justify-between gap-3">

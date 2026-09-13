@@ -3,7 +3,7 @@
 import { Sheet } from '@/components/ui';
 import { useT } from '@/lib/client/hooks';
 import type { Key } from '@/lib/i18n';
-import { findSplit, type SplitKey } from '@athletic/domain';
+import { findSplit, sessionLabel, type SplitKey } from '@athletic/domain';
 
 /**
  * What a split actually commits you to.
@@ -40,7 +40,7 @@ export function SplitSheet({ split, onClose }: { split: SplitKey; onClose: () =>
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-sm font-semibold">{tr.day(day.key)}</span>
               <span className="text-[11px] text-[var(--color-muted)]">
-                {shared ? tr.t('split.everyDay') : tr.t('common.day', { n: i + 1 })}
+                {shared ? tr.t('split.everyDay') : tr.t('common.day', { n: sessionLabel(i) })}
               </span>
             </div>
             <ul className="mt-1 flex flex-col gap-0.5">

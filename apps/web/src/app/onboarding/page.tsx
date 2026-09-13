@@ -31,6 +31,7 @@ import {
   type Lang,
   type SplitKey,
   type Where,
+  sessionLabel,
 } from '@athletic/domain';
 
 const STEPS = 4;
@@ -305,7 +306,9 @@ export default function Onboarding() {
             return (
               <Card key={d}>
                 <div className="flex items-baseline justify-between gap-2">
-                  <h3 className="text-sm font-semibold">{tr.t('common.day', { n: d + 1 })}</h3>
+                  <h3 className="text-sm font-semibold">
+                    {tr.t('common.day', { n: sessionLabel(d) })}
+                  </h3>
                   <span className="text-xs text-[var(--color-muted)]">{tr.day(dayKey)}</span>
                 </div>
                 <div className="mt-2 flex flex-col gap-1">

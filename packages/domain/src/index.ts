@@ -12,6 +12,7 @@ export * from './model';
 export * from './coach';
 export * from './details';
 export * from './exercise-names';
+export * from './insights';
 export * from './prefs';
 export * from './seed';
 export * from './splits';

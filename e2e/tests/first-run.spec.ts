@@ -24,8 +24,8 @@ test.describe('First run', () => {
     await app.getByRole('button', { name: /^Shoulders/ }).click();
 
     await expect(app.getByRole('heading', { name: 'Here is your week' })).toBeVisible();
-    await expect(app.getByRole('heading', { name: 'Day 1' })).toBeVisible();
-    await expect(app.getByRole('heading', { name: 'Day 3' })).toBeVisible();
+    await expect(app.getByRole('heading', { name: 'Day A' })).toBeVisible();
+    await expect(app.getByRole('heading', { name: 'Day C' })).toBeVisible();
     await expect(app.getByRole('heading', { name: 'Day 4' })).toHaveCount(0);
 
     await app.getByRole('button', { name: 'Start training' }).click();
@@ -51,7 +51,7 @@ test.describe('First run', () => {
     }
 
     // Three days, five slots each.
-    await expect(app.getByRole('heading', { name: 'Day 1' })).toBeVisible();
+    await expect(app.getByRole('heading', { name: 'Day A' })).toBeVisible();
     await expect(app.getByRole('button', { name: 'Swap' })).toHaveCount(15);
   });
 });

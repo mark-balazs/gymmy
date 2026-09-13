@@ -69,8 +69,8 @@ test.describe('Building your own split', () => {
     await gotoSettings(app);
     await openEditor(app);
 
-    for (const n of [1, 2, 3]) {
-      await expect(app.getByRole('heading', { name: `Day ${n}`, exact: true })).toBeVisible();
+    for (const day of ['A', 'B', 'C']) {
+      await expect(app.getByRole('heading', { name: `Day ${day}`, exact: true })).toBeVisible();
     }
     // Five slots a day, as the seven-pattern skeleton ships them.
     await expect(app.getByRole('button', { name: /^Edit / })).toHaveCount(15);

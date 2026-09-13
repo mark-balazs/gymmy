@@ -34,6 +34,7 @@ import {
   type SlotDraft,
   type SlotKey,
   type SlotRole,
+  sessionLabel,
 } from '@athletic/domain';
 
 /** Matches the range the presets offer, so a hand-built week cannot end up
@@ -183,7 +184,9 @@ export default function CustomSplitPage() {
       {week.map((day, d) => (
         <Card key={d} className="flex flex-col gap-2.5">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-[17px] font-semibold">{tr.t('common.day', { n: d + 1 })}</h3>
+            <h3 className="text-[17px] font-semibold">
+              {tr.t('common.day', { n: sessionLabel(d) })}
+            </h3>
             <select
               aria-label={tr.t('split.dayType')}
               value={day.dayKey ?? 'full'}

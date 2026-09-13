@@ -27,6 +27,7 @@ import {
   slotsForSession,
   weekCoverage,
   DEFAULT_PREFS,
+  sessionLabel,
 } from '@athletic/domain';
 
 export default function HomePage() {
@@ -64,7 +65,7 @@ export default function HomePage() {
           <>
             <div className="flex items-baseline gap-2">
               <span className="text-[26px] leading-none font-bold">
-                {tr.t('common.day', { n: session + 1 })}
+                {tr.t('common.day', { n: sessionLabel(session) })}
               </span>
               {dayKey && <Chip tone="info">{tr.day(dayKey)}</Chip>}
             </div>

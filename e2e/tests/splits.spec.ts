@@ -88,16 +88,16 @@ test.describe('Choosing a split', () => {
     await completeOnboarding(app, { split: 'Push / Pull / Legs', days: '3 days' });
     await openWeek(app);
 
-    await expect(app.getByRole('heading', { name: 'Day 1 Push' })).toBeVisible();
-    await expect(app.getByRole('heading', { name: 'Day 2 Pull' })).toBeVisible();
-    await expect(app.getByRole('heading', { name: 'Day 3 Legs' })).toBeVisible();
+    await expect(app.getByRole('heading', { name: 'Day A Push' })).toBeVisible();
+    await expect(app.getByRole('heading', { name: 'Day B Pull' })).toBeVisible();
+    await expect(app.getByRole('heading', { name: 'Day C Legs' })).toBeVisible();
   });
 
   test('a pinned slot only offers its own pattern when swapping', async ({ app }) => {
     await completeOnboarding(app, { split: 'Push / Pull / Legs', days: '3 days' });
     await openWeek(app);
 
-    // The first exercise of Day 1 sits in a slot pinned to Push.
+    // The first exercise of Day A sits in a slot pinned to Push.
     await app.getByRole('button', { name: 'Swap' }).first().click();
 
     const sheet = app.getByRole('dialog');
@@ -127,7 +127,7 @@ test.describe('Choosing a split', () => {
     await confirmSheet(app);
 
     await openWeek(app);
-    await expect(app.getByRole('heading', { name: 'Day 1 Upper' })).toBeVisible();
+    await expect(app.getByRole('heading', { name: 'Day A Upper' })).toBeVisible();
     await expectTiles(app, FIVE);
 
     // The switch has to reach the server, not just IndexedDB — a period that

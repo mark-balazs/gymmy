@@ -123,7 +123,19 @@ export function index(snap: Snapshot): Indexed {
       a.startWeek < b.startWeek ? -1 : a.startWeek > b.startWeek ? 1 : 0,
     ),
     entries: live(snap.entries),
-    logs: live(snap.logs),
+    /**
+     * Chronological, and that is load-bearing rather than tidy.
+     *
+     * These arrive in IndexedDB primary-key order — which is to say in order of
+     * random UUID, which is no order at all. Anything reading "the last N" off
+     * this array was reading an arbitrary N: `effortCheck` asks whether your
+     * *recent* sets have been too easy and was sampling the whole history at
+     * random, so its verdict could not improve when your training did.
+     */
+    logs: live(snap.logs).sort(
+      (a, b) =>
+        a.date.localeCompare(b.date) || a.session.localeCompare(b.session) || a.setNo - b.setNo,
+    ),
     refSets: live(snap.refSets),
     bodyLogs: live(snap.bodyLogs ?? []).sort((a, b) =>
       a.date < b.date ? -1 : a.date > b.date ? 1 : 0,

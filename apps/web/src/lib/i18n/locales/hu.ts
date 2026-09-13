@@ -66,7 +66,7 @@ export const hu: Record<Key, string> = {
   'common.done': 'Kész',
   'common.add': 'Hozzáadás',
   'common.delete': 'Törlés',
-  'common.day': '{n}. nap',
+  'common.day': '{n} nap',
   'common.week': '{n}. hét',
   'common.thisWeek': 'Ez a hét',
   'common.weight': 'Súly ({unit})',
