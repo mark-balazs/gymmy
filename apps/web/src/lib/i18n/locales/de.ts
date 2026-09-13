@@ -180,8 +180,10 @@ export const de: Record<Key, string> = {
   'week.swapTitle': '{name} tauschen',
   'week.swapBody': 'Die wirken in deiner Woche genauso, deine Abdeckung bleibt also erhalten.',
 
-  'cal.title': 'Die letzten acht Wochen',
+  'cal.title': 'Dein Trainingskalender',
   'cal.sets': 'Sätze',
+  'cal.prevMonth': 'Vorheriger Monat',
+  'cal.nextMonth': 'Nächster Monat',
   'cal.nothing': 'An diesem Tag ist nichts erfasst.',
   'cal.dayTrained': '{day} – {n} Sätze',
   'cal.dayEmpty': '{day} – nichts erfasst',

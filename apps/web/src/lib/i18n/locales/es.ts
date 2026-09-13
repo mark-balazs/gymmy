@@ -184,8 +184,10 @@ export const es: Record<Key, string> = {
   'week.swapTitle': 'Cambiar {name}',
   'week.swapBody': 'Estos trabajan igual dentro de tu semana, así que tu cobertura se mantiene.',
 
-  'cal.title': 'Las últimas ocho semanas',
+  'cal.title': 'Tu calendario de entrenamiento',
   'cal.sets': 'Series',
+  'cal.prevMonth': 'Mes anterior',
+  'cal.nextMonth': 'Mes siguiente',
   'cal.nothing': 'No hay nada registrado ese día.',
   'cal.dayTrained': '{day} – {n} series',
   'cal.dayEmpty': '{day} – sin nada registrado',

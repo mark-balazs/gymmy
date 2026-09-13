@@ -170,8 +170,10 @@ export const en = {
   'week.swapTitle': 'Swap {name}',
   'week.swapBody': 'These work the same way in your week, so your coverage stays intact.',
 
-  'cal.title': 'The last eight weeks',
+  'cal.title': 'Your workout calendar',
   'cal.sets': 'Sets',
+  'cal.prevMonth': 'Previous month',
+  'cal.nextMonth': 'Next month',
   'cal.nothing': 'Nothing logged on this day.',
   'cal.dayTrained': '{day} — {n} sets',
   'cal.dayEmpty': '{day} — nothing logged',
