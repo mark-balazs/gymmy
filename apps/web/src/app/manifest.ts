@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'gymmy',
     short_name: 'gymmy',
-    description: 'Do it for you. Train every way your body moves, and actually get stronger.',
+    description: 'Do it for you',
     start_url: '/train',
     scope: '/',
     display: 'standalone',

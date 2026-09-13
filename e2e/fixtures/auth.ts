@@ -10,7 +10,7 @@
  * the production build.
  */
 
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { SEED_EXERCISES, SEED_PATTERNS } from '../../packages/domain/src/seed';
 import { buildProgram } from '../../packages/domain/src/coach';
@@ -299,6 +299,24 @@ export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser
   } finally {
     client.release();
   }
+}
+
+/**
+ * Puts a known sign-in code in the database, as if it had just been emailed.
+ *
+ * The alternative is reading the real code out of a real inbox, which makes the
+ * test depend on a third party being up. This is the same row Auth.js writes
+ * itself: it stores the code hashed with the secret, never in the clear, so a
+ * database dump is not a pile of working sign-in codes.
+ */
+export async function seedSignInCode(email: string, code: string): Promise<void> {
+  const secret = process.env.AUTH_SECRET ?? 'e2e-secret-e2e-secret-e2e-secret-32ch';
+  const token = createHash('sha256').update(`${code}${secret}`).digest('hex');
+
+  await db().query(
+    'INSERT INTO "verificationToken" (identifier, token, expires) VALUES ($1, $2, $3)',
+    [email, token, new Date(Date.now() + 10 * 60 * 1000)],
+  );
 }
 
 /** Cookie shape Auth.js looks for over plain HTTP. */

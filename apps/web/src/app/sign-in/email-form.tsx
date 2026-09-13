@@ -76,8 +76,22 @@ export function EmailSignIn({ callbackUrl }: { callbackUrl: string }) {
     );
   }
 
+  /*
+   * GET, not POST, and that is the whole of it.
+   *
+   * Auth.js's email callback reads the token and the address off the *query
+   * string* — the flow it was built for is someone opening a link from their
+   * inbox. A POST put them in the body, where it never looked, so it saw no
+   * token at all and answered with its own "Server error" page. Every code ever
+   * entered failed that way.
+   *
+   * A GET form puts the same fields in the query string, which is exactly the
+   * request a magic link would have made. It needs no CSRF token for the same
+   * reason a link does not: the code itself is the secret, it is single-use,
+   * and it expires in ten minutes.
+   */
   return (
-    <form className="flex w-full flex-col gap-2" method="post" action="/api/auth/callback/resend">
+    <form className="flex w-full flex-col gap-2" method="get" action="/api/auth/callback/resend">
       <p className="text-xs text-[var(--color-muted)]">
         If {email} has an account, a code is on its way. It expires in 10 minutes.
       </p>

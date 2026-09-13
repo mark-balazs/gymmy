@@ -11,16 +11,32 @@ before the test that covers it. Every file maps to one spec in `../tests`.
 | [04 — Progressive overload](./04-progression.md) | `progression.spec.ts` | The app tells you what to lift next, and the rule is right |
 | [05 — Training offline](./05-offline.md) | `offline.spec.ts` | The core action works with no network, and recovers |
 | [06 — Language](./06-language.md) | `language.spec.ts` | Hungarian is complete and grammatically correct |
-| [07 — Choosing a split](./07-choosing-a-split.md) | `splits.spec.ts` | Familiar splits are available without giving up coverage |
+| [07 — Choosing a split](./07-choosing-a-split.md) | `splits.spec.ts`, `custom-split.spec.ts` | Familiar splits are available without giving up coverage, and you can build your own |
+| [08 — A full journey](./08-a-full-journey.md) | `journey.spec.ts` | A stranger can sign up, train, leave and come back |
 
-## Conventions
+Other specs cover narrower ground against the same fixtures: `settings`,
+`exercise-detail`, `email-signin`, `sync-paging`, `write-failure`, `recovery`,
+`boot-watchdog` and `pwa-update`.
 
-**Authentication is bypassed, not simulated.** Driving Google's real OAuth
-consent screen in CI is slow, brittle and depends on a third party's uptime.
-Instead `fixtures/auth.ts` inserts a user and a database-backed session row and
-sets the session cookie directly. This tests our session handling honestly —
-the app cannot tell the difference — while leaving no test-only code path in the
-production build.
+## Two layers, on purpose
+
+**Most specs bypass authentication.** Driving Google's real OAuth consent screen
+in CI is slow, brittle and depends on a third party's uptime, so
+`fixtures/auth.ts` inserts a user and a database-backed session row and sets the
+session cookie directly. The app cannot tell the difference, and no test-only
+code path ships.
+
+**Flow 08 does not bypass anything**, and it exists because that trade had a
+cost nobody had paid attention to. Email sign-in was broken from the day it
+shipped — the code went in the request body, Auth.js reads it from the query
+string — and the suite stayed green, because asking for a code was covered and
+entering one was not. A fixture that starts from a session row can never catch
+that.
+
+So: **if a step only ever happens on the way in, a fixture cannot cover it.**
+Account creation, the server-side seeding of the default library, the first sync
+onto an empty device and the sign-out wipe all belong to the journeys. Everything
+else stays fast and focused.
 
 **Each test gets its own user.** Tests run in parallel against one database, so
 a shared account would make them interfere. A fresh user per test also means

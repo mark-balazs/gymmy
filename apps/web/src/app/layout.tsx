@@ -7,7 +7,7 @@ import { BOOT_WATCHDOG, BootSignal } from '@/components/boot-watchdog';
 
 export const metadata: Metadata = {
   title: 'gymmy',
-  description: 'Do it for you. Train every way your body moves, and actually get stronger.',
+  description: 'Do it for you',
   applicationName: 'gymmy',
   appleWebApp: { capable: true, title: 'gymmy', statusBarStyle: 'black-translucent' },
   manifest: '/manifest.webmanifest',

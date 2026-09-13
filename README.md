@@ -175,9 +175,23 @@ violation; plus the historised coverage, which is checked by reading the same
 week before and after a split change and requiring the verdict to be identical.
 
 `e2e` covers the flows a person actually performs, written up in
-[`e2e/flows`](./e2e/flows) before the tests that cover them. Authentication is
-bypassed by seeding a session row rather than driving Google's consent screen,
-so no test-only code path exists in the production build.
+[`e2e/flows`](./e2e/flows) before the tests that cover them. It runs in two
+layers, and the split is deliberate.
+
+Most specs **bypass authentication**, seeding a session row rather than driving
+Google's consent screen — fast, independent, and no test-only code path in the
+production build. But a suite that always starts from a session row can never
+see the front door, and that cost came due: email sign-in was broken from the
+day it shipped (the code was posted in the request body; Auth.js reads it from
+the query string) while the suite stayed green, because asking for a code was
+covered and entering one was not.
+
+So [flow 08](./e2e/flows/08-a-full-journey.md) seeds nothing but the code that
+would have arrived by email and walks the whole thing: sign up, get set up,
+train, sign out, come back, and find the same training on a second device. The
+rule is **if a step only ever happens on the way in, a fixture cannot cover
+it** — account creation, the server-side seeding of the default library, the
+first sync onto an empty device, the sign-out wipe.
 
 ## Known gaps
 

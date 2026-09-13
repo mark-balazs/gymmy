@@ -14,10 +14,7 @@ export default async function SignIn() {
       <div className="flex max-w-[360px] flex-col items-center gap-4 text-center">
         <Logo className="h-12 w-auto text-[var(--color-accent)]" />
         <h1 className="text-[22px] font-bold">gymmy</h1>
-        <p className="text-sm font-semibold text-[var(--color-ink)]">Do it for you</p>
-        <p className="text-sm text-[var(--color-muted)]">
-          Train every way your body moves, and actually get stronger.
-        </p>
+        <p className="text-sm text-[var(--color-muted)]">Do it for you</p>
 
         <form
           action={async () => {
