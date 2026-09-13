@@ -100,7 +100,9 @@ export default function ProgressPage() {
           <div className="flex items-baseline gap-3">
             {/* The one hero number on the page. Proportional figures: tabular
                 digits make a three-digit number look loose at this size. */}
-            <span className="text-[44px] leading-none font-bold">{current.score}</span>
+            <span className="text-[44px] leading-none font-bold text-[var(--color-accent-2)]">
+              {current.score}
+            </span>
             {delta !== null && (
               <span
                 className={cn(
@@ -128,6 +130,7 @@ export default function ProgressPage() {
           <LineChart
             points={strength.map((s) => ({ label: shortDay(s.weekOf, tr.lang), value: s.score }))}
             unit=""
+            tone="secondary"
             label={tr.t('prog.scoreOverTime')}
             tableLabel={tr.t('prog.table')}
             labelHeader={tr.t('prog.week')}
@@ -205,6 +208,9 @@ export default function ProgressPage() {
             <LineChart
               points={points}
               unit={unit}
+              /* The whole Progress tab speaks in the second voice: everything
+                 here measures you, rather than ticking off work done. */
+              tone="secondary"
               label={tr.t('prog.overTime')}
               tableLabel={tr.t('prog.table')}
               labelHeader={tr.t('prog.week')}

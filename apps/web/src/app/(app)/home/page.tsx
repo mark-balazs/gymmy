@@ -101,10 +101,12 @@ export default function HomePage() {
             {progress.map(({ exercise, suggestion }) => (
               <div
                 key={exercise.id}
-                className="flex items-center justify-between gap-2 rounded-[11px] bg-[var(--color-surface-2)] px-3 py-2"
+                /* Violet, like the strength score: this is a statement about
+                   what you are capable of, not about work already ticked off. */
+                className="flex items-center justify-between gap-2 rounded-[11px] bg-[var(--color-accent-2-bg)] px-3 py-2"
               >
                 <span className="flex-1 truncate text-sm font-semibold">{exercise.name}</span>
-                <span className="num text-sm text-[var(--color-accent)]">
+                <span className="num text-sm font-semibold text-[var(--color-accent-2)]">
                   {tr.t('home.goTo', { w: `${suggestion.weight ?? 0} ${unit}` })}
                 </span>
               </div>

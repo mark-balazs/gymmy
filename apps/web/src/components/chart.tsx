@@ -49,6 +49,7 @@ export function LineChart({
   tableLabel,
   labelHeader,
   valueHeader,
+  tone = 'primary',
 }: {
   points: ChartPoint[];
   /** Appended to values in labels and the tooltip. Empty for a unitless score. */
@@ -59,9 +60,14 @@ export function LineChart({
   tableLabel: string;
   labelHeader: string;
   valueHeader: string;
+  /** Which of the app's two voices this chart speaks in. Green is work done;
+   *  violet is what it measured. One hue per chart either way — a single
+   *  series has no identity to encode. */
+  tone?: 'primary' | 'secondary';
 }) {
   const [active, setActive] = useState<number | null>(null);
   const svg = useRef<SVGSVGElement>(null);
+  const hue = tone === 'secondary' ? 'var(--color-accent-2)' : 'var(--color-accent)';
 
   const real = points.filter((p): p is ChartPoint & { value: number } => p.value !== null);
   if (real.length < 2) return null;
@@ -153,14 +159,14 @@ export function LineChart({
         ))}
 
         {runs.map((r, k) => (
-          <path key={`a${k}`} d={area(r)} fill="var(--color-accent)" opacity="0.1" />
+          <path key={`a${k}`} d={area(r)} fill={hue} opacity="0.1" />
         ))}
         {runs.map((r, k) => (
           <path
             key={`l${k}`}
             d={line(r)}
             fill="none"
-            stroke="var(--color-accent)"
+            stroke={hue}
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -176,7 +182,7 @@ export function LineChart({
               cx={x(i)}
               cy={y(p.value)}
               r="4"
-              fill="var(--color-accent)"
+              fill={hue}
               stroke="var(--color-surface)"
               strokeWidth="2"
             />
@@ -197,7 +203,7 @@ export function LineChart({
               cx={x(shown)}
               cy={y(points[shown]!.value!)}
               r="4.5"
-              fill="var(--color-accent)"
+              fill={hue}
               stroke="var(--color-surface)"
               strokeWidth="2"
             />
