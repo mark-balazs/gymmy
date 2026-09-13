@@ -68,3 +68,31 @@ test.describe('Training offline', () => {
     await expect(app.getByText('80 kg × 5').first()).toBeVisible();
   });
 });
+
+test.describe('Staying up to date', () => {
+  /**
+   * An installed PWA can sit in the app switcher for weeks, so the update path
+   * has to work without a cold start. These are its preconditions — each one
+   * silently disables updating rather than breaking anything visible, which is
+   * why they are asserted rather than trusted.
+   */
+  test('the worker is versioned and revalidated', async ({ onboardedApp: app }) => {
+    await waitForServiceWorker(app);
+
+    const state = await app.evaluate(async () => {
+      const reg = await navigator.serviceWorker.ready;
+      return { updateViaCache: reg.updateViaCache, caches: await caches.keys() };
+    });
+
+    // Left at the default, the browser answers update checks from its own HTTP
+    // cache for up to 24 hours.
+    expect(state.updateViaCache).toBe('none');
+
+    // A cache name fixed at build time means every deploy shares one cache and
+    // the activate-time cleanup can never retire anything.
+    const own = state.caches.filter((k) => k.startsWith('athletic-'));
+    expect(own).toHaveLength(1);
+    expect(own[0]).not.toBe('athletic-v1');
+    expect(own[0]!.length).toBeGreaterThan('athletic-'.length);
+  });
+});

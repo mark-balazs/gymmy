@@ -12,7 +12,11 @@
  *   /api/*           never cached; sync must always hit the network
  */
 
-const CACHE = 'athletic-v1';
+/* Replaced at build time by scripts/build-sw.mjs. Two jobs: it gives each
+ * deploy its own cache, and — because it lands in the worker's own bytes — it
+ * is what makes the browser notice there is a new worker at all. */
+const BUILD = '__BUILD_ID__';
+const CACHE = 'athletic-' + BUILD;
 const SHELL = '/train';
 
 self.addEventListener('install', (event) => {

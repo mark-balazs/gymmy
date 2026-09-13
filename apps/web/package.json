@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
-    "vercel-build": "drizzle-kit migrate && next build",
+    "build": "node scripts/build-sw.mjs && next build",
+    "vercel-build": "drizzle-kit migrate && npm run build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
