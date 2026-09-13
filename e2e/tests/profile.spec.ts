@@ -79,6 +79,12 @@ test.describe('Your profile', () => {
     const year = page.getByLabel('Year of birth');
     await year.fill('1955');
     await year.blur();
+    /* Wait for the write to land before navigating. Blur queues it and the
+       navigation used to race it, which made this fail perhaps one run in
+       twenty against a score that was simply correct for a missing birth year
+       — the worst kind of flake, because it accuses the feature. */
+    await page.reload();
+    await expect(page.getByLabel('Year of birth')).toHaveValue('1955', { timeout: 15_000 });
 
     await page.goto('/progress');
     /* Strictly higher, not merely different. The masters allowance scales a
@@ -106,6 +112,47 @@ test.describe('Your profile', () => {
     for (const label of ['Name', 'Year of birth', 'Sex', 'Height']) {
       await expect(you.getByLabel(label)).toBeVisible();
     }
-    await expect(you.getByRole('button', { name: 'Add a picture' }).first()).toBeVisible();
+    // Exactly one, not `.first()` of two: the avatar used to be a button and
+    // sit beside a text button that did the same thing.
+    await expect(you.getByRole('button', { name: 'Add a picture' })).toHaveCount(1);
+  });
+
+  /** A real 8×8 PNG. `createImageBitmap` has to decode this before any of the
+   *  code under test runs, so a stub buffer would fail in the wrong place. */
+  const PNG = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAaklEQVR4nBWNQREAQQzCkFIpSKmUSEFKpSDlbnlmmEQSIyxWICJOVEjDDB52YMhwQwfJjLFZg4k5UyMts3jZhSXLLV2kJ8APvgUO+ucUJjhsHk640PyNYw4fe++c447e3yhTXLZPkXKl5QPGe1gBrfdehAAAAABJRU5ErkJggg==',
+    'base64',
+  );
+
+  test('a picture can be removed and put straight back', async ({ page, context, baseURL }) => {
+    /* Removing was a bare text link sitting directly under another bare text
+       link, and it was instant and final — a mis-tap cost you the picture and
+       the crop. It is now undoable, and the undo has to *write*: restoring it
+       to the screen alone would leave it gone on the next load, which is the
+       worst of the three possible behaviours. */
+    await signInAs(page, context, baseURL!, { onboarded: true });
+    await page.goto('/settings');
+
+    const you = page.getByRole('region', { name: 'You' });
+    await you
+      .locator('input[type=file]')
+      .setInputFiles({ name: 'me.png', mimeType: 'image/png', buffer: PNG });
+
+    // The one control changes what it says once there is something to change.
+    await expect(you.getByRole('button', { name: 'Change picture' })).toHaveCount(1);
+    await expect(you.getByRole('button', { name: 'Add a picture' })).toBeHidden();
+
+    await you.getByRole('button', { name: 'Remove picture' }).click();
+    await expect(you.getByRole('button', { name: 'Add a picture' })).toBeVisible();
+    await expect(you.getByText('Picture removed.')).toBeVisible();
+
+    await you.getByRole('button', { name: 'Undo' }).click();
+    await expect(you.getByRole('button', { name: 'Change picture' })).toBeVisible();
+
+    // The part that separates an undo from a redraw.
+    await page.reload();
+    await expect(page.getByRole('button', { name: 'Change picture' })).toBeVisible({
+      timeout: 15_000,
+    });
   });
 });

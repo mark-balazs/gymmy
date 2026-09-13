@@ -12,7 +12,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { cn } from '@/components/ui';
-import { useSyncStatus, useT } from '@/lib/client/hooks';
+import { Avatar } from '@/components/avatar';
+import { useProfile, useSyncStatus, useT } from '@/lib/client/hooks';
 import { startSync } from '@/lib/client/sync';
 import type { Key } from '@/lib/i18n';
 
@@ -155,11 +156,50 @@ function SyncBadge() {
             ? 'bg-[var(--color-muted)] animate-pulse'
             : 'bg-[var(--color-accent)]';
 
+  /* The dot alone. The words beside it were a running commentary on something
+     that is almost always fine — "All saved", every screen, all day — and they
+     cost the header the width the title needed. The colour is the whole
+     message: green is fine, amber is offline, red wants you, and the one state
+     that genuinely needs a sentence has a screen of its own.
+     The label is kept for screen readers and as a hover tooltip, because a
+     bare coloured dot is meaningless without one. `sr-only` rather than a live
+     region: this changes on every sync, and announcing each one would be a
+     stream of interruptions to say nothing happened. */
   return (
-    <span className="flex items-center gap-2 text-xs text-[var(--color-muted)]">
-      <span className={cn('h-2 w-2 rounded-full', dot)} aria-hidden />
-      {label}
+    <span className="flex items-center" title={label}>
+      <span className={cn('h-2.5 w-2.5 rounded-full', dot)} aria-hidden />
+      <span className="sr-only">{label}</span>
     </span>
+  );
+}
+
+/**
+ * Your picture, top right, going to Settings.
+ *
+ * Settings is already a tab, so this is not the only way in — it is the way
+ * people look for without thinking, and it is the only place in the frame that
+ * is *yours* rather than the app's. It stays a link rather than becoming a
+ * menu: one destination, and a menu holding a single item is a tap nobody
+ * wanted.
+ *
+ * **Named "Your profile", not "Settings"**, even though both go to the same
+ * page. Two links with one name is an ambiguity in the accessibility tree
+ * before it is one in a test — "Settings, link. Settings, link." tells somebody
+ * navigating by name nothing about which is which, and the honest distinction
+ * is that this one is about *you* and the tab is about the app.
+ */
+function ProfileLink() {
+  const profile = useProfile();
+  const { t } = useT();
+
+  return (
+    <Link
+      href="/settings"
+      aria-label={t('nav.you')}
+      className="block h-8 w-8 shrink-0 rounded-full transition-transform duration-150 active:scale-95"
+    >
+      <Avatar src={profile?.avatar} />
+    </Link>
   );
 }
 
@@ -187,7 +227,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         <div className="mx-auto flex max-w-[760px] items-center justify-between">
           <h1 className="text-[22px] font-bold tracking-[-0.02em]">{t(titleKey)}</h1>
-          <SyncBadge />
+          <div className="flex items-center gap-3">
+            <SyncBadge />
+            <ProfileLink />
+          </div>
         </div>
       </header>
 
