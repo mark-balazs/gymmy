@@ -103,7 +103,7 @@ looks like the app is missing. It is not. Author it as HTML:
 `{"layout":"extension","guestParams":{"input":"mermaid","source":{"text":"…","type":"text"},"version":1},"forgeEnvironment":"PRODUCTION","extensionId":"ari:cloud:ecosystem::extension/<the key above>","extensionTitle":"Macro Pack"}`,
 JSON-stringified and then HTML-escaped whole.
 
-Two traps, both silent:
+Four traps, all silent:
 
 - **Escape it programmatically.** A bare `"` inside the mermaid source ends the
   JSON string, Confluence drops the whole attribute, and the macro saves as an
@@ -111,6 +111,22 @@ Two traps, both silent:
   to the same source before publishing.
 - **Line breaks in node labels are `\n`, not `<br/>`.** The renderer may have
   HTML labels disabled, in which case `<br/>` appears literally.
+- **Never update a page that has a diagram with `contentFormat: "markdown"`.**
+  The conversion drops extension nodes without a word, so a markdown update to a
+  page with two diagrams saves it with none. Read the page as `adf` first: if
+  its body contains an `extension` node, update in `html` and paste the macro
+  back in. Markdown is fine for a page that has no macros.
+- **The native <code>language-mermaid</code> fence is not an alternative.** It
+  is a documented Confluence HTML pattern and it does save, but it renders as a
+  *collapsed block of mermaid source* labelled "Diagram" — not a diagram. It was
+  tried and reverted.
+
+If a published diagram stops appearing, check for a purple banner at the top of
+Confluence: Macro Pack periodically needs a **site admin** to accept a
+permissions update under Manage apps → Macro Pack, and until somebody does,
+every diagram in the space renders as nothing. The page content is intact — it
+is a rendering failure, and reading the page as `adf` will show the extension
+node still there.
 
 Mermaid has no syntax check in CI on either side, so render the source before
 publishing — serve a page that loads mermaid from cdnjs and call `mermaid.parse`

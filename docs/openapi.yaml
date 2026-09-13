@@ -39,7 +39,7 @@ info:
 
   contact:
     name: The repository
-    url: https://github.com/markbalazs/athletic-tracker
+    url: https://github.com/mark-balazs/gymmy
 
 servers:
   - url: https://gymmy.vercel.app
