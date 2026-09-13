@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Button, Card, Field, Segmented, Sheet, cn } from '@/components/ui';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import { applySplit, fireAndForget, setLang, setTheme, setUnit } from '@/lib/client/mutations';
+import { sync, wipeLocal } from '@/lib/client/sync';
+import { signOutAction } from './actions';
 import { LANGS } from '@/lib/i18n';
 import type { Key } from '@/lib/i18n';
 import {
@@ -64,6 +66,7 @@ export default function SettingsPage() {
    */
   const [draft, setDraft] = useState<Draft | null>(null);
   const [confirm, setConfirm] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   const saved = draftOf(profile);
   const { split, days, where, bias } = draft ?? saved;
@@ -239,11 +242,36 @@ export default function SettingsPage() {
       </Card>
 
       <Card>
-        <form action="/api/auth/signout" method="post">
-          <Button type="submit" variant="danger" className="w-full">
-            {tr.t('app.signOut')}
-          </Button>
-        </form>
+        <Button
+          variant="danger"
+          className="w-full"
+          disabled={leaving}
+          onClick={async () => {
+            setLeaving(true);
+            /**
+             * Order matters, and both steps are the point.
+             *
+             * The last push goes first, because everything local is about to
+             * be destroyed and an unsynced set would go with it. Then the
+             * local database is cleared — without that, the next person to
+             * sign in on this device inherits the previous account's training,
+             * and the sync engine happily pushes it up under their name.
+             */
+            try {
+              await sync();
+            } catch {
+              /* Offline. The wipe still has to happen; staying signed in is worse. */
+            }
+            try {
+              await wipeLocal();
+            } catch {
+              /* Reported by the storage layer; the session must still end. */
+            }
+            await signOutAction();
+          }}
+        >
+          {tr.t('app.signOut')}
+        </Button>
       </Card>
 
       <Sheet title={tr.t('set.rebuildQ')} open={confirm} onClose={() => setConfirm(false)}>

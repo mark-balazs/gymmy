@@ -70,7 +70,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   events: {
     /** Fires once per account, so the default library is created exactly once. */
     async createUser({ user }) {
-      if (user.id) await seedNewUser(user.id);
+      if (user.id) await seedNewUser(user.id, user.email);
     },
   },
   trustHost: true,

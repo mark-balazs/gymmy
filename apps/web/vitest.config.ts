@@ -12,6 +12,10 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],
+    setupFiles: ['./vitest.setup.ts'],
+    // The seeding test talks to Postgres; the default 5s is not enough for a
+    // few hundred inserts on a cold connection.
+    testTimeout: 30_000,
   },
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },

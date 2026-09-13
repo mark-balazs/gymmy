@@ -8,15 +8,30 @@
 
 import { sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { exercises, patterns, profiles, slots, splitPeriods } from '@/lib/db/schema';
+import {
+  exercises,
+  patterns,
+  profiles,
+  programEntries,
+  slots,
+  splitPeriods,
+} from '@/lib/db/schema';
 import { SEED_EXERCISES, SEED_PATTERNS, buildSlots, findSplit } from '@athletic/domain';
-import { mondayOf } from '@athletic/domain';
+import { buildProgram, index, mondayOf } from '@athletic/domain';
+import type { Snapshot } from '@athletic/domain';
+import { isDemoEmail, seedDemoHistory } from './seed-demo';
 
 /** All seeded rows share one sequence value — they are one logical change. */
 export const nextSeq = sql<number>`nextval('change_seq')`;
 
-export async function seedNewUser(userId: string): Promise<void> {
+export async function seedNewUser(userId: string, email?: string | null): Promise<void> {
   const now = new Date();
+
+  /* The demo account skips setup and arrives mid-block. Everything else about
+   * it is an ordinary account — same tables, same sync, no special cases
+   * downstream — which is the point: a demo that runs on a different code path
+   * is a demo of something you do not ship. */
+  const isDemo = isDemoEmail(email);
 
   const patternRows = SEED_PATTERNS.map((p, i) => ({
     id: crypto.randomUUID(),
@@ -88,7 +103,7 @@ export async function seedNewUser(userId: string): Promise<void> {
     updatedAt: now,
     deletedAt: null,
     seq: nextSeq,
-    onboarded: false,
+    onboarded: isDemo,
     split: defaultSplit.key,
     days: defaultSplit.defaultDays,
     where: 'gym',
@@ -99,4 +114,39 @@ export async function seedNewUser(userId: string): Promise<void> {
     lang: 'en',
     theme: 'system',
   });
+
+  if (!isDemo) return;
+
+  /* Built with the real generator over the rows just written, so the demo's
+   * week is one the app would actually have produced — and its coverage
+   * guarantee holds for the same reason everyone else's does. */
+  const snapshot: Snapshot = {
+    patterns: patternRows.map((r) => ({ ...r, updatedAt: now.toISOString(), deletedAt: null })),
+    exercises: exerciseRows.map((r) => ({ ...r, updatedAt: now.toISOString(), deletedAt: null })),
+    slots: slotRows.map((r) => ({ ...r, updatedAt: now.toISOString(), deletedAt: null })),
+    splitPeriods: [{ ...periodRow, updatedAt: now.toISOString(), deletedAt: null }],
+    entries: [],
+    logs: [],
+    refSets: [],
+    profile: null,
+  };
+
+  const draft = buildProgram(index(snapshot), {
+    days: defaultSplit.defaultDays,
+    where: 'gym',
+    bias: 'none',
+  });
+
+  await db.insert(programEntries).values(
+    draft.map((d) => ({
+      id: crypto.randomUUID(),
+      userId,
+      updatedAt: now,
+      deletedAt: null,
+      seq: nextSeq,
+      ...d,
+    })),
+  );
+
+  await seedDemoHistory(userId);
 }
