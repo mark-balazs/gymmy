@@ -20,7 +20,7 @@ export default async function SignIn() {
             <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />
           </svg>
         </div>
-        <h1 className="text-[22px] font-bold">Athletic Tracker</h1>
+        <h1 className="text-[22px] font-bold">gymmy</h1>
         <p className="text-sm text-[var(--color-muted)]">
           Train every way your body moves, and actually get stronger.
         </p>

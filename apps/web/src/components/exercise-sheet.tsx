@@ -13,12 +13,17 @@ import type { Exercise } from '@athletic/domain';
  */
 export function ExerciseSheet({ exercise, onClose }: { exercise: Exercise; onClose: () => void }) {
   const tr = useT();
+  // Not redundant with the normalising in `index()`: this component can be
+  // handed an exercise from anywhere, and a sheet that throws takes the whole
+  // screen down with it.
+  const images = exercise.images ?? [];
+  const description = exercise.description ?? '';
 
   return (
     <Sheet title={exercise.name} open onClose={onClose}>
-      {exercise.images.length > 0 && (
+      {images.length > 0 && (
         <div className="grid grid-cols-2 gap-2">
-          {exercise.images.map((src, i) => (
+          {images.map((src, i) => (
             <div
               key={src}
               className="relative aspect-[4/3] overflow-hidden rounded-[11px] bg-[var(--color-surface-2)]"
@@ -42,13 +47,13 @@ export function ExerciseSheet({ exercise, onClose }: { exercise: Exercise; onClo
         </div>
       )}
 
-      {exercise.description ? (
-        <p className="text-sm leading-relaxed text-[var(--color-ink)]">{exercise.description}</p>
+      {description ? (
+        <p className="text-sm leading-relaxed text-[var(--color-ink)]">{description}</p>
       ) : (
         <p className="text-sm text-[var(--color-muted)]">{tr.t('ex.noDetail')}</p>
       )}
 
-      {exercise.images.length === 0 && exercise.description !== '' && (
+      {images.length === 0 && description !== '' && (
         <p className="text-xs text-[var(--color-muted)]">{tr.t('ex.noPhotos')}</p>
       )}
     </Sheet>

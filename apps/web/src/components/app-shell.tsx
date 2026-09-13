@@ -17,6 +17,11 @@ import { startSync } from '@/lib/client/sync';
 import type { Key } from '@/lib/i18n';
 
 const TABS = [
+  {
+    href: '/home',
+    key: 'tab.home',
+    icon: 'M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
+  },
   { href: '/train', key: 'tab.train', icon: 'M4 7h16M4 12h10M4 17h7M17 14v6M14 17h6' },
   { href: '/week', key: 'tab.week', icon: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' },
   { href: '/progress', key: 'tab.progress', icon: 'M4 19V5M4 19h16M8 16v-5M12 16V8M16 16v-3' },
@@ -81,7 +86,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <main className="mx-auto flex max-w-[760px] flex-col gap-3.5 p-4">{children}</main>
 
-      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-[var(--color-line)]/70 bg-[var(--color-surface)]/80 backdrop-blur-xl">
+      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-[var(--color-line)]/70 bg-[var(--color-surface)]/80 backdrop-blur-xl">
         {TABS.map((tab) => {
           const on = pathname.startsWith(tab.href);
           return (
@@ -102,7 +107,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 strokeWidth="1.9"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="h-[21px] w-[21px]"
+                className="h-5 w-5"
                 aria-hidden
               >
                 <path d={tab.icon} />

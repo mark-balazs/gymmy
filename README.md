@@ -1,4 +1,4 @@
-# Athletic Tracker
+# gymmy
 
 A local-first training app that tracks whether your week is actually complete.
 Log a set in a basement with no signal; it syncs when you surface.
@@ -141,11 +141,12 @@ mid-request. `SKIP_ENV_VALIDATION=1` bypasses it for builds that only typecheck.
    set by Vercel.
 4. Add `https://your-domain/api/auth/callback/google` as an authorised redirect
    URI in Google Cloud Console.
-5. Run `npm run db:migrate` against the Neon URL once.
+5. Nothing else: `vercel-build` runs `drizzle-kit migrate` before `next build`,
+   so every deploy applies pending migrations and a failed one fails the deploy.
 
 ## Tests
 
-`packages/domain` covers the rules — 126 assertions, including every preset at
+`packages/domain` covers the rules — 133 assertions, including every preset at
 every allowed day count against both equipment settings and every bias, each
 asserted to produce a week with no uncovered pattern, no empty slot and no role
 violation; plus the historised coverage, which is checked by reading the same

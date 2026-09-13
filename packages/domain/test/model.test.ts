@@ -195,3 +195,28 @@ describe('coverage is historised', () => {
     expect(weekCoverage(ix, WEEK_A).split).toBe(null);
   });
 });
+
+describe('rows written before a field existed', () => {
+  /**
+   * A device only receives a row again when its `seq` moves, and adding a
+   * column does not move it. So an exercise sitting in IndexedDB from before
+   * `images` existed has no `images` key at all — and `images.length` on that
+   * throws, which took out the whole screen when the detail sheet opened.
+   */
+  it('defaults fields missing from older local rows', () => {
+    const base = seedSnapshot();
+    const legacy = base.exercises.map((e) => {
+      const { description: _d, images: _i, ...rest } = e;
+      return rest as (typeof base.exercises)[number];
+    });
+
+    const ix = index({ ...base, exercises: legacy });
+
+    for (const e of ix.exercises) {
+      expect(Array.isArray(e.images)).toBe(true);
+      expect(typeof e.description).toBe('string');
+    }
+    // The property that actually crashed.
+    expect(() => ix.exercises.map((e) => e.images.length)).not.toThrow();
+  });
+});

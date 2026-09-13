@@ -99,7 +99,16 @@ export interface Indexed {
 
 export function index(snap: Snapshot): Indexed {
   const patterns = live(snap.patterns).sort((a, b) => a.position - b.position);
-  const exercises = live(snap.exercises);
+  /* Fields added after a device last synced are simply absent from the rows
+   * already in its IndexedDB — the server only re-sends rows whose seq moved,
+   * and adding a column does not move it. Defaulting them here, at the single
+   * point every consumer reads through, is what stops `images.length` throwing
+   * on a row written before images existed. */
+  const exercises = live(snap.exercises).map((e) => ({
+    ...e,
+    description: e.description ?? '',
+    images: e.images ?? [],
+  }));
   const slots = live(snap.slots).sort((a, b) => a.position - b.position);
   return {
     patterns,
@@ -204,6 +213,35 @@ export function slotsForSession(ix: Indexed, session: number): Slot[] {
   const pinned = ix.slots.filter((s) => s.sessionIndex === session);
   const shared = ix.slots.filter((s) => s.sessionIndex === null);
   return (pinned.length ? pinned : shared).slice().sort((a, b) => a.position - b.position);
+}
+
+/**
+ * Which session to open on for a given date.
+ *
+ * Resuming beats advancing. If anything was logged on this date, go back to
+ * that session — a locked phone or a reload mid-workout must not abandon a
+ * half-finished day. Otherwise offer the first session not yet trained this
+ * week.
+ *
+ * Lives here rather than in the page that first needed it because the home
+ * screen has to name the same session the Train tab will open; two copies of
+ * this rule would drift and quietly disagree about what today is.
+ */
+export function nextSession(ix: Indexed, date: string, days: number): number {
+  const logs = allLogs(ix);
+
+  const startedToday = logs.filter((l) => l.date === date).map((l) => l.session);
+  if (startedToday.length) {
+    const earliest = Math.min(...startedToday.map((l) => l.charCodeAt(0) - 65));
+    return Math.min(earliest, days - 1);
+  }
+
+  const week = mondayOf(date);
+  const trained = new Set(logs.filter((l) => l.weekOf === week).map((l) => l.session));
+  for (let i = 0; i < days; i++) {
+    if (!trained.has(sessionLabel(i))) return i;
+  }
+  return 0;
 }
 
 export function programRows(ix: Indexed, sessions: number): ProgramRow[] {

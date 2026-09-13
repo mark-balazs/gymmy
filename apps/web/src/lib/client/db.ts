@@ -48,6 +48,9 @@ class AppDb extends Dexie {
   meta!: EntityTable<Meta, 'key'>;
 
   constructor() {
+    // Not renamed with the app: this is the IndexedDB database name, and a new
+    // one would orphan every existing device's local data behind a store
+    // nothing opens. Branding is not worth someone's training history.
     super('athletic-tracker');
     this.version(1).stores({
       patterns: 'id, position',

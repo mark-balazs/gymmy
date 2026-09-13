@@ -313,6 +313,32 @@ export function suggest(
   return { kind: 'rep', weight: topWeight, reps: Math.min(hi, minReps + 1), detail };
 }
 
+export interface Progression {
+  exercise: Exercise;
+  suggestion: Suggestion;
+}
+
+/**
+ * Everything in the current plan that has earned more weight.
+ *
+ * Double progression already decides this per exercise the moment you open it;
+ * this only gathers the verdicts up so the home screen can say so before you go
+ * looking. Nothing new is computed — if this and the Train card ever disagreed,
+ * one of them would be lying.
+ */
+export function readyToProgress(ix: Indexed, sessions: number): Progression[] {
+  const seen = new Set<string>();
+  const out: Progression[] = [];
+
+  for (const row of programRows(ix, sessions)) {
+    if (!row.exercise || seen.has(row.exercise.id)) continue;
+    seen.add(row.exercise.id);
+    const suggestion = suggest(ix, row.exercise.id, row.entry);
+    if (suggestion.kind === 'up') out.push({ exercise: row.exercise, suggestion });
+  }
+  return out;
+}
+
 /** Are the working sets actually hard enough? The method's central complaint. */
 export function effortCheck(ix: Indexed): boolean {
   const recent = allLogs(ix)

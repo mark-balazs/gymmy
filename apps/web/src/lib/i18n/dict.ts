@@ -15,12 +15,24 @@ export const LANGS: { id: Lang; label: string }[] = [
 ];
 
 export const en = {
-  'app.name': 'Athletic Tracker',
+  'app.name': 'gymmy',
   'app.tagline': 'Train every way your body moves, and actually get stronger.',
   'app.signIn': 'Continue with Google',
   'app.signInWhy': 'Your training syncs across your devices. Nothing is shared.',
   'app.signOut': 'Sign out',
 
+  'tab.home': 'Home',
+  'title.home': 'gymmy',
+  'home.today': "Today's session",
+  'home.resume': 'Carry on where you left off',
+  'home.start': 'Start training',
+  'home.continue': 'Continue — {done} of {total} sets',
+  'home.readyTitle': 'Ready for more weight',
+  'home.readyBody': 'You finished these at the top of the range with something left over.',
+  'home.goTo': 'go {w}',
+  'home.thisWeek': 'This week',
+  'home.seeWeek': 'See the week',
+  'home.covered': '{hit} of {total} movements covered',
   'tab.train': 'Train',
   'tab.week': 'Week',
   'tab.progress': 'Progress',
@@ -205,12 +217,24 @@ export const en = {
 export type Key = keyof typeof en;
 
 export const hu: Record<Key, string> = {
-  'app.name': 'Athletic Tracker',
+  'app.name': 'gymmy',
   'app.tagline': 'Edzd minden mozgásformádat, és tényleg legyél erősebb.',
   'app.signIn': 'Belépés Google-fiókkal',
   'app.signInWhy': 'Az edzéseid szinkronizálódnak az eszközeid között. Semmit nem osztunk meg.',
   'app.signOut': 'Kijelentkezés',
 
+  'tab.home': 'Kezdőlap',
+  'title.home': 'gymmy',
+  'home.today': 'A mai edzés',
+  'home.resume': 'Folytasd, ahol abbahagytad',
+  'home.start': 'Kezdjük',
+  'home.continue': 'Folytatás – {done}/{total} sorozat',
+  'home.readyTitle': 'Jöhet rá több súly',
+  'home.readyBody': 'Ezeket a tartomány tetején fejezted be, és még maradt benned.',
+  'home.goTo': 'mehet {w}',
+  'home.thisWeek': 'Ez a hét',
+  'home.seeWeek': 'A hét megtekintése',
+  'home.covered': '{hit}/{total} mozgásforma megvan',
   'tab.train': 'Edzés',
   'tab.week': 'Hét',
   'tab.progress': 'Fejlődés',

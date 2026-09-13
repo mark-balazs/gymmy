@@ -22,6 +22,25 @@ export function Card({ className, children }: { className?: string; children: Re
 
 type Variant = 'default' | 'primary' | 'ghost' | 'danger';
 
+/** Shared so a link can look like a button without a second copy of the
+ *  styling — a navigation should stay an anchor rather than become a button
+ *  with an onClick, which loses middle-click, long-press and prefetching. */
+export const buttonClass = (variant: Variant = 'default', className?: string): string =>
+  cn(
+    'inline-flex min-h-[var(--spacing-tap)] cursor-pointer items-center justify-center gap-2',
+    'rounded-[12px] border px-4 font-semibold',
+    'transition-[transform,background-color,box-shadow,opacity] duration-150 ease-[var(--ease-out-soft)]',
+    'active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100',
+    variant === 'primary' &&
+      'border-transparent bg-[image:var(--gradient-accent)] text-[var(--color-accent-ink)] shadow-[var(--shadow-accent)]',
+    variant === 'default' &&
+      'border-[var(--color-line)] bg-[var(--color-surface-2)] text-[var(--color-ink)] hover:bg-[var(--color-surface-3)]',
+    variant === 'ghost' &&
+      'border-transparent bg-transparent text-[var(--color-ink)] hover:bg-[var(--color-surface-2)]',
+    variant === 'danger' && 'border-transparent bg-transparent text-[var(--color-bad)]',
+    className,
+  );
+
 export function Button({
   variant = 'default',
   className,
@@ -29,23 +48,7 @@ export function Button({
   ...rest
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
   return (
-    <button
-      {...rest}
-      className={cn(
-        'inline-flex min-h-[var(--spacing-tap)] cursor-pointer items-center justify-center gap-2',
-        'rounded-[12px] border px-4 font-semibold',
-        'transition-[transform,background-color,box-shadow,opacity] duration-150 ease-[var(--ease-out-soft)]',
-        'active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100',
-        variant === 'primary' &&
-          'border-transparent bg-[image:var(--gradient-accent)] text-[var(--color-accent-ink)] shadow-[var(--shadow-accent)]',
-        variant === 'default' &&
-          'border-[var(--color-line)] bg-[var(--color-surface-2)] text-[var(--color-ink)] hover:bg-[var(--color-surface-3)]',
-        variant === 'ghost' &&
-          'border-transparent bg-transparent text-[var(--color-ink)] hover:bg-[var(--color-surface-2)]',
-        variant === 'danger' && 'border-transparent bg-transparent text-[var(--color-bad)]',
-        className,
-      )}
-    >
+    <button {...rest} className={buttonClass(variant, className)}>
       {children}
     </button>
   );
