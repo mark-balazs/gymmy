@@ -79,7 +79,9 @@ export function InfoButton({
       className={cn(
         'grid w-[var(--spacing-tap)] shrink-0 cursor-pointer place-items-center self-stretch',
         'rounded-[11px] text-[13px] font-bold',
-        'text-[var(--color-muted)] hover:text-[var(--color-ink)]',
+        // "Tell me more" is the second voice everywhere it appears, so the
+        // affordance is recognisable as the same thing across screens.
+        'text-[var(--color-accent-2)] hover:opacity-80',
         'transition-colors duration-150 active:scale-[0.94]',
         className,
       )}
@@ -98,7 +100,9 @@ export function Chip({
   tone = 'default',
   children,
 }: {
-  tone?: 'default' | 'ok' | 'bad' | 'warn';
+  /** `info` is the second voice — identity labels like the kind of day this is,
+   *  which are neither a status nor a thing you did. */
+  tone?: 'default' | 'ok' | 'bad' | 'warn' | 'info';
   children: ReactNode;
 }) {
   return (
@@ -109,6 +113,7 @@ export function Chip({
         tone === 'ok' && 'bg-[var(--color-good-bg)] text-[var(--color-accent)]',
         tone === 'bad' && 'bg-[var(--color-bad-bg)] text-[var(--color-bad)]',
         tone === 'warn' && 'text-[var(--color-warn)]',
+        tone === 'info' && 'bg-[var(--color-accent-2-bg)] text-[var(--color-accent-2)]',
       )}
     >
       {children}

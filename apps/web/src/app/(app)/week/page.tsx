@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Card, Sheet, Summary, cn } from '@/components/ui';
+import { Button, Card, Chip, Sheet, Summary, cn } from '@/components/ui';
 import { Page } from '@/components/page';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import { setEntryExercise } from '@/lib/client/mutations';
@@ -137,9 +137,9 @@ export default function WeekPage() {
                     the user deliberately chose is invisible once they leave
                     onboarding. Full-body days say so too, rather than going
                     unlabelled and reading as an omission. */}
-                <span className="text-xs font-normal text-[var(--color-muted)]">
+                <Chip tone="info">
                   {tr.day(rows.find((r) => r.session === d)?.slot.dayKey ?? null)}
-                </span>
+                </Chip>
               </h3>
               <Button
                 variant="ghost"
@@ -164,7 +164,7 @@ export default function WeekPage() {
                       <span className="truncate text-sm">{r.exercise!.name}</span>
                       <span
                         aria-hidden
-                        className="grid h-4 w-4 shrink-0 place-items-center rounded-full border border-[var(--color-line)] text-[10px] font-bold text-[var(--color-muted)]"
+                        className="grid h-4 w-4 shrink-0 place-items-center rounded-full border border-current text-[10px] font-bold text-[var(--color-accent-2)]"
                       >
                         i
                       </span>

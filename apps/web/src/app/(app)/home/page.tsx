@@ -15,7 +15,7 @@
 
 import Link from 'next/link';
 import { useMemo } from 'react';
-import { Card, Summary, buttonClass, cn } from '@/components/ui';
+import { Card, Chip, Summary, buttonClass, cn } from '@/components/ui';
 import { Page } from '@/components/page';
 import { useProfile, useSnapshot, useT, useToday } from '@/lib/client/hooks';
 import { fmtDay } from '@/lib/client/format';
@@ -66,9 +66,7 @@ export default function HomePage() {
               <span className="text-[26px] leading-none font-bold">
                 {tr.t('common.day', { n: session + 1 })}
               </span>
-              {dayKey && (
-                <span className="text-sm text-[var(--color-muted)]">{tr.day(dayKey)}</span>
-              )}
+              {dayKey && <Chip tone="info">{tr.day(dayKey)}</Chip>}
             </div>
 
             <div className="flex flex-col gap-1">

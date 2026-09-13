@@ -119,7 +119,9 @@ export default function ProgressPage() {
 
   return (
     <Page>
-      <Card className="flex flex-col gap-3">
+      {/* The one card that is entirely the second voice: it measures you
+          rather than recording what you did. */}
+      <Card className="flex flex-col gap-3 border-[var(--color-accent-2)]/35 bg-[var(--color-accent-2-bg)]">
         <div className="flex items-center gap-1">
           <h2 className="flex-1 text-[17px] font-semibold">{tr.t('prog.strength')}</h2>
           <InfoButton label={tr.t('prog.strengthWhat')} onClick={() => setExplain(true)} />
