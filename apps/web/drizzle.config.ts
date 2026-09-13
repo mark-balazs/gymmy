@@ -13,7 +13,10 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
  * `DATABASE_URL=<remote> npm run db:migrate`, and silently applying that to
  * localhost instead — reporting success the whole way — is the kind of mistake
  * you only notice when production turns out to have no tables. */
-const explicit = process.env.DATABASE_URL;
+/* Neon's integration supplies both a pooled and a direct URL. Migrations are
+ * DDL and want the direct one — a pooler in transaction mode can reject or
+ * mis-sequence schema changes — while the app itself keeps the pooled URL. */
+const explicit = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
 
 loadEnv({ path: `${root}.env` });
 loadEnv({ path: `${root}apps/web/.env.local`, override: true });
