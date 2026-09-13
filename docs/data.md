@@ -89,6 +89,38 @@ that never resolves. So:
   the one endpoint every device touches on every visit, and it costs nothing on
   a normal sync because the emptiness is read off the pull already done.
 
+### Deleting an account
+
+The right to erasure is not "stop showing it to them", so
+[`delete-account.ts`](../apps/web/src/lib/db/delete-account.ts) deletes rather
+than flags, and is the one place that knows what an account consists of.
+
+Almost all of it falls out of the schema: every replicated table takes its
+`user_id` from `user` with `ON DELETE CASCADE`, so removing that one row takes
+the profile, the library, the plan, the periods, every set and every weigh-in
+with it — atomically, which is what makes a half-deleted account impossible.
+
+Two tables do not hang off `user` and would otherwise be left holding an email
+address: `verificationToken` and `sign_in_attempts`, both keyed on the address
+because a sign-in code is issued before anyone knows whether there is an account
+behind it. They are cleared **first**, so the irreversible step is last — if the
+cascade then fails, the account is intact and the worst that happened is a reset
+throttle.
+
+There is no wrapping transaction. Production runs on Neon's HTTP driver, which
+has no interactive transactions; the ordering above is what makes that safe
+rather than merely tolerable.
+
+The client wipes IndexedDB before calling the server and deliberately does
+**not** sync first: pushing local changes up to an account about to be erased is
+work done to destroy it a moment later, and if the server call then fails the
+device has still been left clean.
+
+Its test does not check a hand-written list of tables. It asks Postgres which
+tables have a `user_id`, an `email` or an `identifier`, and insists none of them
+still holds a matching row — so a table added later without a cascade fails it
+without anybody having to remember.
+
 ### The demo account
 
 Signing in as `DEMO_EMAIL` (default `demo-gymmy@yopmail.com`) seeds five months

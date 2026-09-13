@@ -60,7 +60,8 @@ test.describe('Exercise detail', () => {
     expect(box.width).toBeGreaterThanOrEqual(viewport.width - 1);
 
     // Paging renames the dialog, because what it is *of* is what it is called.
-    await app.getByRole('button', { name: 'Next' }).click();
+    // Scoped and exact: Next.js's own dev-tools button is also called 'Next'.
+    await large.getByRole('button', { name: 'Next', exact: true }).click();
     const second = app.getByRole('dialog', { name: 'Finishing position' });
     await expect(second.getByRole('img', { name: 'Finishing position' })).toBeVisible();
     await expect(large).toBeHidden();

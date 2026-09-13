@@ -17,7 +17,7 @@ import {
   setUnit,
 } from '@/lib/client/mutations';
 import { sync, wipeLocal } from '@/lib/client/sync';
-import { signOutAction } from './actions';
+import { deleteAccountAction, signOutAction } from './actions';
 import { LANGS } from '@/lib/i18n';
 import type { Key } from '@/lib/i18n';
 import {
@@ -26,6 +26,7 @@ import {
   currentSlotDrafts,
   DEFAULT_PREFS,
   findSplit,
+  mondayOf,
   SEXES,
   SPLITS,
   type Bias,
@@ -81,7 +82,13 @@ export default function SettingsPage() {
    */
   const [draft, setDraft] = useState<Draft | null>(null);
   const [confirm, setConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [leaving, setLeaving] = useState(false);
+
+  /** How much of their life is in here, for the deletion warning to be honest
+   *  about. Distinct weeks trained rather than calendar weeks since they
+   *  joined — an account opened in January and used twice is two weeks. */
+  const trainedWeeks = new Set(ix.logs.map((l) => mondayOf(l.date))).size;
   const [info, setInfo] = useState<SplitKey | null>(null);
 
   const saved = draftOf(profile);
@@ -373,6 +380,62 @@ export default function SettingsPage() {
           {tr.t('app.signOut')}
         </Button>
       </Card>
+
+      {/* Separate from sign-out and visually quieter than it, because the two
+          are one tap apart and only one of them is recoverable. */}
+      <Card className="flex flex-col gap-2">
+        <h2 className="text-[17px] font-semibold">{tr.t('set.deleteTitle')}</h2>
+        <p className="text-sm text-[var(--color-muted)]">{tr.t('set.deleteBody')}</p>
+        <Button
+          variant="danger"
+          className="self-start px-0"
+          disabled={leaving}
+          onClick={() => setDeleting(true)}
+        >
+          {tr.t('set.deleteGo')}
+        </Button>
+      </Card>
+
+      <Sheet title={tr.t('set.deleteQ')} open={deleting} onClose={() => setDeleting(false)}>
+        {/* Counted from your own data rather than described in the abstract.
+            "Everything will be deleted" is a sentence people skim; "1,284 sets
+            across 22 weeks" is one they read. */}
+        <p className="text-sm">
+          {tr.t('set.deleteWhat', {
+            sets: ix.logs.length,
+            weeks: trainedWeeks,
+          })}
+        </p>
+        <p className="text-sm text-[var(--color-muted)]">{tr.t('set.deleteForever')}</p>
+        <div className="flex gap-2">
+          <Button className="flex-1" onClick={() => setDeleting(false)}>
+            {tr.t('common.cancel')}
+          </Button>
+          <Button
+            variant="danger"
+            className="flex-1"
+            disabled={leaving}
+            onClick={async () => {
+              setLeaving(true);
+              /* The device is wiped first and deliberately without a sync.
+                 Pushing local changes up to an account that is about to be
+                 erased is work done to destroy it a moment later, and if the
+                 server call then fails we have still left this device clean. */
+              try {
+                await wipeLocal();
+              } catch {
+                /* Reported by the storage layer; the account must still go. */
+              }
+              await deleteAccountAction();
+              // The action ends the session but deliberately does not redirect,
+              // so that the deletion happens before we leave.
+              window.location.replace('/sign-in');
+            }}
+          >
+            {tr.t('set.deleteConfirm')}
+          </Button>
+        </div>
+      </Sheet>
 
       <Sheet title={tr.t('set.rebuildQ')} open={confirm} onClose={() => setConfirm(false)}>
         <p className="text-sm text-[var(--color-muted)]">{tr.t('set.rebuildBody')}</p>

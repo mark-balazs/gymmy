@@ -72,11 +72,14 @@ export async function signInAs(
   context: BrowserContext,
   baseURL: string,
   opts: CreateUserOptions,
-): Promise<void> {
+  // Returned so a test can look the account up in the database afterwards —
+  // which is the only way to assert that something was actually deleted.
+): Promise<TestUser> {
   const user = await createUser(opts);
   await context.addCookies([sessionCookie(user, baseURL)]);
   await page.goto('/train');
   await expect(page.getByRole('heading', { name: /Train|Edzés/ })).toBeVisible();
+  return user;
 }
 
 /**

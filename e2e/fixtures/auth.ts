@@ -364,3 +364,17 @@ export const sessionCookie = (user: TestUser, origin: string) => ({
   sameSite: 'Lax' as const,
   expires: Math.floor(Date.now() / 1000) + 7 * 24 * 3600,
 });
+
+/**
+ * How many rows a table still holds for an account.
+ *
+ * Deletion is the one thing the UI cannot demonstrate: a screen that no longer
+ * shows your training looks identical whether the rows are gone or merely
+ * hidden. This looks.
+ */
+export async function rowCount(table: string, userId: string): Promise<number> {
+  const r = await db().query(`SELECT count(*)::int AS n FROM "${table}" WHERE user_id = $1`, [
+    userId,
+  ]);
+  return (r.rows[0] as { n: number } | undefined)?.n ?? 0;
+}

@@ -95,6 +95,10 @@ Two ways the suite lies to you if you skip that:
   `backdrop-blur` overlay wrapping a panel that animates on `transform`, and
   either makes itself the containing block. The lightbox portals to the body;
   a test that only checks it rendered would not notice. Measure it.
+- **Anything named "Next" needs `exact: true` and a scope.** Next.js's own
+  dev-tools button is called "Next", so an unscoped `getByRole('button', { name:
+  'Next' })` passes against a production build and fails the moment a dev server
+  is what answered on :3000 — which looks like a flake and is not one.
 - **Never hard-code which exercise the generator picked.** It depends on the
   split in force, so use `exerciseNameAt(page)` — a hard-coded name turns a
   split change into a mystery failure three specs away from the cause.

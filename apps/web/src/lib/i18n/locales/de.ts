@@ -249,6 +249,14 @@ export const de: Record<Key, string> = {
   'set.pending': 'Noch nicht übernommen – bau deine Woche neu, damit es greift.',
   'set.noChanges': 'So trainierst du gerade.',
   'set.rebuild': 'Woche neu aufbauen',
+  'set.deleteTitle': 'Konto löschen',
+  'set.deleteBody':
+    'Alles, was du erfasst hast, wird von unseren Servern und von diesem Gerät entfernt. Es bleibt keine Kopie zurück.',
+  'set.deleteGo': 'Mein Konto löschen',
+  'set.deleteQ': 'Konto wirklich löschen?',
+  'set.deleteWhat': 'Damit werden {sets} erfasste Sätze aus {weeks} Trainingswochen gelöscht.',
+  'set.deleteForever': 'Das passiert sofort und lässt sich nicht rückgängig machen.',
+  'set.deleteConfirm': 'Alles löschen',
   'set.rebuildQ': 'Deine Woche neu aufbauen?',
   'set.rebuildBody':
     'Es werden passende neue Übungen gewählt. Dein Verlauf bleibt genau so, wie er ist.',
