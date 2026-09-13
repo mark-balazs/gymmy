@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { Button, Card, Sheet, Summary, cn } from '@/components/ui';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import { setEntryExercise } from '@/lib/client/mutations';
-import { swapOptions } from '@athletic/domain';
+import { swapOptions, type Exercise } from '@athletic/domain';
 import { blockWeeks, mondayOf, programRows, weekCoverage } from '@athletic/domain';
 import { fmtDay } from '@/lib/client/format';
+import { ExerciseSheet } from '@/components/exercise-sheet';
 
 export default function WeekPage() {
   const { ix } = useSnapshot();
@@ -27,6 +28,9 @@ export default function WeekPage() {
   const cov = useMemo(() => weekCoverage(ix, week), [ix, week]);
   const rows = useMemo(() => programRows(ix, days), [ix, days]);
   const [swap, setSwap] = useState<{ session: number; slotId: string; name: string } | null>(null);
+  // Planning the week is exactly when you need to know what a movement is —
+  // more so than mid-session, when you are already doing it.
+  const [detail, setDetail] = useState<Exercise | null>(null);
 
   const missing = cov.cells
     .filter((c) => c.sets === 0)
@@ -148,7 +152,20 @@ export default function WeekPage() {
                 .map((r) => (
                   <div key={r.key} className="flex items-center gap-2">
                     <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
-                    <span className="flex-1 truncate text-sm">{r.exercise!.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => setDetail(r.exercise)}
+                      aria-label={tr.t('ex.about', { name: r.exercise!.name })}
+                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 text-left"
+                    >
+                      <span className="truncate text-sm">{r.exercise!.name}</span>
+                      <span
+                        aria-hidden
+                        className="grid h-4 w-4 shrink-0 place-items-center rounded-full border border-[var(--color-line)] text-[10px] font-bold text-[var(--color-muted)]"
+                      >
+                        i
+                      </span>
+                    </button>
                     <Button
                       variant="ghost"
                       className="min-h-8 px-2 text-xs text-[var(--color-muted)]"
@@ -164,6 +181,8 @@ export default function WeekPage() {
           </div>
         ))}
       </Card>
+
+      {detail && <ExerciseSheet exercise={detail} onClose={() => setDetail(null)} />}
 
       {swap && (
         <Sheet

@@ -21,6 +21,10 @@ export const en = {
   'app.signInWhy': 'Your training syncs across your devices. Nothing is shared.',
   'app.signOut': 'Sign out',
 
+  'set.theme': 'Appearance',
+  'theme.system': 'System',
+  'theme.dark': 'Dark',
+  'theme.light': 'Light',
   'err.title': 'Something went wrong',
   'err.body': 'Your training is saved on the server — this is only this device.',
   'err.retry': 'Try again',
@@ -234,6 +238,10 @@ export const hu: Record<Key, string> = {
   'app.signInWhy': 'Az edzéseid szinkronizálódnak az eszközeid között. Semmit nem osztunk meg.',
   'app.signOut': 'Kijelentkezés',
 
+  'set.theme': 'Megjelenés',
+  'theme.system': 'Rendszer',
+  'theme.dark': 'Sötét',
+  'theme.light': 'Világos',
   'err.title': 'Valami hiba történt',
   'err.body': 'Az edzéseid a szerveren vannak – ez csak ezt az eszközt érinti.',
   'err.retry': 'Újra',

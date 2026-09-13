@@ -225,6 +225,7 @@ export const profiles = pgTable(
     blockWeeks: integer('block_weeks').notNull().default(8),
     unit: text('unit').notNull().default('kg'),
     lang: text('lang').notNull().default('en'),
+    theme: text('theme').notNull().default('system'),
   },
   (t) => [primaryKey({ columns: [t.userId, t.id] }), index('profiles_seq').on(t.userId, t.seq)],
 );

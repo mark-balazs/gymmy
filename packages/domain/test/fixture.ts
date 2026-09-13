@@ -88,6 +88,7 @@ export function seedSnapshot(
       blockWeeks: 8,
       unit: 'kg',
       lang: 'en',
+      theme: 'system',
     },
   };
 }

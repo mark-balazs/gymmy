@@ -97,5 +97,6 @@ export async function seedNewUser(userId: string): Promise<void> {
     blockWeeks: 8,
     unit: 'kg',
     lang: 'en',
+    theme: 'system',
   });
 }

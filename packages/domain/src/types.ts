@@ -17,6 +17,11 @@ export type Where = 'gym' | 'home';
 export type Unit = 'kg' | 'lb';
 export type Lang = 'en' | 'hu';
 
+/** 'system' follows the device. Stored rather than kept in localStorage so the
+ *  choice follows the account onto a new phone, like language does. */
+export const THEMES = ['system', 'dark', 'light'] as const;
+export type Theme = (typeof THEMES)[number];
+
 export const BIASES = ['none', 'shoulders', 'arms', 'glutes', 'back', 'chest'] as const;
 export type Bias = (typeof BIASES)[number];
 
@@ -165,6 +170,7 @@ export interface Profile extends Synced {
   blockWeeks: number;
   unit: Unit;
   lang: Lang;
+  theme: Theme;
 }
 
 /** Everything the client holds. Also the shape of an export file. */

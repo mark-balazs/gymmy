@@ -15,6 +15,7 @@ import {
   SLOT_KEYS,
   SLOT_ROLES,
   SPLIT_KEYS,
+  THEMES,
 } from '@athletic/domain';
 
 const base = {
@@ -110,6 +111,7 @@ export const rowSchemas = {
     blockWeeks: z.number().int().min(1).max(52),
     unit: z.enum(['kg', 'lb']),
     lang: z.enum(['en', 'hu']),
+    theme: z.enum(THEMES).default('system'),
   }),
 } as const;
 

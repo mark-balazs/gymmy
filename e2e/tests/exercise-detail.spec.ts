@@ -1,6 +1,21 @@
 import { expect, test } from '../fixtures/test';
 
 test.describe('Exercise detail', () => {
+  test('is reachable while planning the week, not just while training', async ({
+    onboardedApp: app,
+  }) => {
+    await app.getByRole('link', { name: 'Week' }).click();
+    await app.waitForURL('**/week');
+
+    await app
+      .getByRole('button', { name: /^About / })
+      .first()
+      .click();
+
+    const sheet = app.getByRole('dialog');
+    await expect(sheet.getByRole('img', { name: 'Starting position' })).toBeVisible();
+  });
+
   test('the name opens photographs and a description', async ({ onboardedApp: app }) => {
     const info = app.getByRole('button', { name: /^About / }).first();
     await expect(info).toBeVisible();

@@ -7,38 +7,57 @@
    slight blue cast, and the accent is a gradient reserved for the one primary
    action on a screen. Painting every control in full-strength green made
    everything shout equally, which is the same as nothing standing out. */
+/* Dark by default — this app is used in gyms, often one-handed, often at night.
+   The dark palette is a warm neutral rather than a blue-black: at low light a
+   blue cast reads as cold and, on OLED, as slightly electric. The accent stays
+   the same green in both themes, because it is the brand and the one thing that
+   should not shift underneath you.
+
+   Surfaces step up in lightness rather than sitting flat, and the gradient is
+   reserved for the single primary action on a screen. Painting every control in
+   full-strength green made everything shout equally, which is the same as
+   nothing standing out.
+
+   Three states, in this order:
+     :root                       the dark default
+     prefers-color-scheme: light the system's choice, unless overridden
+     [data-theme]                an explicit choice, which beats both
+
+   The explicit blocks are plain CSS rather than `@theme`: Tailwind reads the
+   token *names* from the block below, and re-declaring the same custom
+   properties under a different selector is all an override needs to be. */
 @theme {
-  --color-bg: #090b0f;
-  --color-surface: #12161d;
-  --color-surface-2: #1a2029;
-  --color-surface-3: #222a35;
-  --color-line: #252e3a;
-  --color-ink: #e9eef5;
-  --color-muted: #8794a4;
+  --color-bg: #1b1a19;
+  --color-surface: #262624;
+  --color-surface-2: #30302e;
+  --color-surface-3: #3b3b38;
+  --color-line: #3d3d3a;
+  --color-ink: #f0eee6;
+  --color-muted: #a5a299;
 
   --color-accent: #34d399;
-  --color-accent-soft: #1d3b33;
-  --color-accent-ink: #04160d;
-  --color-warn: #fbbf5c;
-  --color-bad: #fb7185;
-  --color-bad-bg: #2e1a21;
-  --color-good-bg: #16302a;
+  --color-accent-soft: #23332c;
+  --color-accent-ink: #06180f;
+  --color-warn: #e8b263;
+  --color-bad: #f08a92;
+  --color-bad-bg: #3a2426;
+  --color-good-bg: #22332c;
+
+  --gradient-accent: linear-gradient(135deg, #4ade80 0%, #22c55e 45%, #0ea5a3 100%);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 24px -18px rgb(0 0 0 / 0.85);
+  --shadow-accent: 0 8px 22px -10px rgb(34 197 94 / 0.5);
 
   --radius-card: 16px;
   --spacing-tap: 46px;
-
-  /* One gradient, used only for the primary action. */
-  --gradient-accent: linear-gradient(135deg, #4ade80 0%, #22c55e 45%, #0ea5a3 100%);
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -18px rgb(0 0 0 / 0.9);
-  --shadow-accent: 0 8px 22px -10px rgb(34 197 94 / 0.55);
 
   /* Deliberate, slightly overshooting easing. Linear motion reads as cheap. */
   --ease-out-soft: cubic-bezier(0.2, 0.7, 0.3, 1);
   --ease-spring: cubic-bezier(0.22, 1.2, 0.36, 1);
 }
 
+/* Following the system, but only while nothing has been chosen explicitly. */
 @media (prefers-color-scheme: light) {
-  @theme {
+  :root:not([data-theme='dark']) {
     --color-bg: #f4f6f9;
     --color-surface: #ffffff;
     --color-surface-2: #eef2f7;
@@ -59,6 +78,50 @@
     --shadow-card: 0 1px 2px rgb(16 32 48 / 0.06), 0 10px 26px -20px rgb(16 32 48 / 0.5);
     --shadow-accent: 0 8px 20px -10px rgb(15 159 98 / 0.5);
   }
+}
+
+:root[data-theme='light'] {
+  --color-bg: #f4f6f9;
+  --color-surface: #ffffff;
+  --color-surface-2: #eef2f7;
+  --color-surface-3: #e3e9f0;
+  --color-line: #dde4ec;
+  --color-ink: #0e1620;
+  --color-muted: #5b6878;
+
+  --color-accent: #0f9f62;
+  --color-accent-soft: #d8f3e6;
+  --color-accent-ink: #ffffff;
+  --color-warn: #a05e00;
+  --color-bad: #c8384c;
+  --color-bad-bg: #fbe6e9;
+  --color-good-bg: #e3f6ed;
+
+  --gradient-accent: linear-gradient(135deg, #17b866 0%, #0f9f62 50%, #0d9488 100%);
+  --shadow-card: 0 1px 2px rgb(16 32 48 / 0.06), 0 10px 26px -20px rgb(16 32 48 / 0.5);
+  --shadow-accent: 0 8px 20px -10px rgb(15 159 98 / 0.5);
+}
+
+:root[data-theme='dark'] {
+  --color-bg: #1b1a19;
+  --color-surface: #262624;
+  --color-surface-2: #30302e;
+  --color-surface-3: #3b3b38;
+  --color-line: #3d3d3a;
+  --color-ink: #f0eee6;
+  --color-muted: #a5a299;
+
+  --color-accent: #34d399;
+  --color-accent-soft: #23332c;
+  --color-accent-ink: #06180f;
+  --color-warn: #e8b263;
+  --color-bad: #f08a92;
+  --color-bad-bg: #3a2426;
+  --color-good-bg: #22332c;
+
+  --gradient-accent: linear-gradient(135deg, #4ade80 0%, #22c55e 45%, #0ea5a3 100%);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 24px -18px rgb(0 0 0 / 0.85);
+  --shadow-accent: 0 8px 22px -10px rgb(34 197 94 / 0.5);
 }
 
 html {

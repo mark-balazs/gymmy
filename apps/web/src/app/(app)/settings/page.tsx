@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button, Card, Field, Segmented, Sheet, cn } from '@/components/ui';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
-import { applySplit, setLang, setUnit } from '@/lib/client/mutations';
+import { applySplit, setLang, setTheme, setUnit } from '@/lib/client/mutations';
 import { LANGS } from '@/lib/i18n';
 import type { Key } from '@/lib/i18n';
 import {
@@ -14,6 +14,7 @@ import {
   type Bias,
   type Profile,
   type SplitKey,
+  type Theme,
   type Where,
 } from '@athletic/domain';
 
@@ -93,6 +94,19 @@ export default function SettingsPage() {
           value={tr.lang}
           onChange={(v) => void setLang(v)}
           options={LANGS.map((l) => ({ value: l.id, label: l.label }))}
+        />
+      </Card>
+
+      <Card className="flex flex-col gap-3">
+        <h2 className="text-[17px] font-semibold">{tr.t('set.theme')}</h2>
+        <Segmented
+          value={profile?.theme ?? 'system'}
+          onChange={(v) => void setTheme(v as Theme)}
+          options={[
+            { value: 'system' as const, label: tr.t('theme.system') },
+            { value: 'dark' as const, label: tr.t('theme.dark') },
+            { value: 'light' as const, label: tr.t('theme.light') },
+          ]}
         />
       </Card>
 

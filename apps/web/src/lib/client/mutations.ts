@@ -160,6 +160,7 @@ export async function patchProfile(patch: Partial<Omit<Profile, 'id'>>): Promise
     blockWeeks: existing?.blockWeeks ?? 8,
     unit: existing?.unit ?? 'kg',
     lang: existing?.lang ?? 'en',
+    theme: existing?.theme ?? 'system',
     ...patch,
   };
   return put('profile', next);
@@ -292,6 +293,7 @@ export async function applySplit(
 
 export const setLang = (lang: Profile['lang']) => patchProfile({ lang });
 export const setUnit = (unit: Profile['unit']) => patchProfile({ unit });
+export const setTheme = (theme: Profile['theme']) => patchProfile({ theme });
 export const setTrainingPrefs = (p: { days: number; where: Where; bias: Bias }) => patchProfile(p);
 
 /* ------------------------------------------------------------- library -- */

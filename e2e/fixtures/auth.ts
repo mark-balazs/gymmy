@@ -188,8 +188,8 @@ export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser
 
     const onboarded = opts.onboarded ?? false;
     await client.query(
-      `INSERT INTO profiles (id, user_id, updated_at, deleted_at, seq, onboarded, split, days, "where", bias, block_start, block_weeks, unit, lang)
-       VALUES ($1,$2,$3,NULL,nextval('change_seq'),$4,$5,$6,'gym','none',$7,8,'kg','en')`,
+      `INSERT INTO profiles (id, user_id, updated_at, deleted_at, seq, onboarded, split, days, "where", bias, block_start, block_weeks, unit, lang, theme)
+       VALUES ($1,$2,$3,NULL,nextval('change_seq'),$4,$5,$6,'gym','none',$7,8,'kg','en','system')`,
       [id, id, now, onboarded, split, days, blockStart],
     );
 

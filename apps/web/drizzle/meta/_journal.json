@@ -43,6 +43,13 @@
       "when": 1789292201012,
       "tag": "0005_exercise_details",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789292915353,
+      "tag": "0006_natural_blackheart",
+      "breakpoints": true
     }
   ]
 }
