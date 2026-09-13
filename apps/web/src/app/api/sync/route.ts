@@ -84,7 +84,22 @@ export async function POST(req: Request): Promise<NextResponse> {
   /* ---- pull ---- */
 
   const changes: Record<string, unknown[]> = {};
-  let cursor = since;
+
+  /**
+   * Each table is paged independently, which makes advancing the cursor subtle.
+   *
+   * Taking the highest seq across all tables loses data outright: if logs fill
+   * their page at seq 1_000 while the profile row sits at 5_000, a cursor of
+   * 5_000 means every log between the two is never requested again. It is
+   * silent, permanent, and shows up as a device that is simply missing history.
+   *
+   * So a table that filled its page holds the cursor down to the last row it
+   * actually sent, and the client is told to come back. Rows above that from
+   * other tables get re-sent next round, which costs a little bandwidth and
+   * nothing else — applying them again is idempotent.
+   */
+  let lowestTruncated: number | null = null;
+  let highestSent = since;
 
   for (const [name, table] of Object.entries(SYNC_TABLES)) {
     const rows = await db
@@ -94,16 +109,22 @@ export async function POST(req: Request): Promise<NextResponse> {
       .orderBy(asc(table.seq))
       .limit(SYNC_LIMIT);
 
-    if (rows.length) {
-      changes[name] = rows.map(serialise);
-      for (const r of rows) cursor = Math.max(cursor, Number(r.seq));
+    if (!rows.length) continue;
+    changes[name] = rows.map(serialise);
+
+    const maxSeq = rows.reduce((m, r) => Math.max(m, Number(r.seq)), since);
+    highestSent = Math.max(highestSent, maxSeq);
+
+    if (rows.length === SYNC_LIMIT) {
+      lowestTruncated = lowestTruncated === null ? maxSeq : Math.min(lowestTruncated, maxSeq);
     }
   }
 
   const payload: PullResponse = {
-    cursor,
+    cursor: lowestTruncated ?? highestSent,
     changes,
     serverTime: new Date().toISOString(),
+    hasMore: lowestTruncated !== null,
   };
   return NextResponse.json(payload);
 }

@@ -70,6 +70,8 @@ export interface CreateUserOptions {
    * so the historised coverage can be exercised end to end. Without this a
    * test can only ever see the split that is in force right now.
    */
+  /** Extra logged sets, to push a single table past one sync page. */
+  bulkLogs?: number;
   history?: {
     split: Exclude<SplitKey, 'custom'>;
     weeksBack: number;
@@ -266,6 +268,27 @@ export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser
           [randomUUID(), id, now, e.sessionIndex, e.slotId, e.exerciseId, e.sets, e.repRange],
         );
       }
+    }
+
+    if (opts.bulkLogs) {
+      // One row per statement would take minutes; this is a fixture, not a
+      // demonstration of how the app writes.
+      const first = exercises[0]!;
+      const values: string[] = [];
+      const params: unknown[] = [id, now, first.id];
+      for (let i = 0; i < opts.bulkLogs; i++) {
+        const d = addDays(weeksAgo(8), i % 30);
+        params.push(randomUUID(), d, (i % 20) + 1);
+        const base = params.length - 3;
+        values.push(
+          `($${base + 1},$1,$2,NULL,nextval('change_seq'),$${base + 2},'A',$3,$${base + 3},50,8,2,'')`,
+        );
+      }
+      await client.query(
+        `INSERT INTO set_logs (id, user_id, updated_at, deleted_at, seq, date, session, exercise_id, set_no, weight, reps, rir, note)
+         VALUES ${values.join(',')}`,
+        params,
+      );
     }
 
     await client.query('COMMIT');

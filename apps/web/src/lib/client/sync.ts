@@ -115,6 +115,11 @@ async function run(): Promise<void> {
 
     await setMeta('cursor', payload.cursor);
     await refreshPending();
+
+    // The server held the cursor back because a table filled its page. Come
+    // straight back rather than waiting for the next trigger — otherwise a
+    // device with a lot of history would trickle it in over hours.
+    if (payload.hasMore) schedule(50);
     emit({ state: 'idle', lastSyncedAt: new Date().toISOString(), error: null });
   } catch (err) {
     const offline = typeof navigator !== 'undefined' && !navigator.onLine;

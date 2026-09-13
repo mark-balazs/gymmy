@@ -38,6 +38,9 @@ export interface PullResponse {
   changes: Record<string, unknown[]>;
   /** Server time, so a client with a skewed clock can warn rather than corrupt. */
   serverTime: string;
+  /** At least one table filled its page, so the cursor was held back and there
+   *  is more to fetch. The client must come straight back for it. */
+  hasMore: boolean;
 }
 
 export const SYNC_LIMIT = 500;
