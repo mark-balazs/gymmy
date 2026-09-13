@@ -97,6 +97,11 @@ export const en = {
   'effort.2s': '2 more',
   'effort.4s': 'Easy',
 
+  'ex.start': 'Starting position',
+  'ex.finish': 'Finishing position',
+  'ex.about': 'About {name}',
+  'ex.noDetail': 'No description for this one yet.',
+  'ex.noPhotos': 'No photograph of this movement yet.',
   'train.today': 'Today',
   'train.pickLoad': 'Pick a load',
   'train.logSet': 'Log set {n}',
@@ -284,6 +289,11 @@ export const hu: Record<Key, string> = {
   'effort.2s': 'Még 2',
   'effort.4s': 'Könnyű',
 
+  'ex.start': 'Kiindulóhelyzet',
+  'ex.finish': 'Véghelyzet',
+  'ex.about': '{name} – mi ez?',
+  'ex.noDetail': 'Ehhez még nincs leírás.',
+  'ex.noPhotos': 'Ehhez a mozdulathoz még nincs fénykép.',
   'train.today': 'Ma',
   'train.pickLoad': 'Válassz súlyt',
   'train.logSet': '{n}. sorozat rögzítése',

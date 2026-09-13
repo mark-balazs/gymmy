@@ -27,5 +27,12 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|svg|ico|webmanifest)$).*)'],
+  /* Static assets are skipped by extension. The exercise photographs are jpg,
+   * which was missing here — so every one of them was redirected to /sign-in
+   * and rendered as a broken image. Anything served straight off disk belongs
+   * in this list: it is public either way, and running auth middleware per
+   * image is cost for no benefit. */
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpe?g|webp|avif|gif|svg|ico|webmanifest)$).*)',
+  ],
 };

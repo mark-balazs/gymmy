@@ -6,6 +6,7 @@
  * breaks for home users — `seed.test.ts` asserts it.
  */
 
+import { EXERCISE_DETAILS } from './details';
 import type { PatternKey, Role, SlotKey, SlotRole, Where } from './types';
 
 export interface SeedPattern {
@@ -44,13 +45,20 @@ export interface SeedExercise {
   pattern: PatternKey;
   where: Where;
   tags: string[];
+  description: string;
+  images: string[];
 }
 
+/* Details live in their own file purely for length — a paragraph and two image
+ * paths inline would bury the pattern and equipment, which is what this list is
+ * actually for. `seed.test.ts` asserts every exercise here has an entry. */
 const e = (name: string, pattern: PatternKey, where: Where, ...tags: string[]): SeedExercise => ({
   name,
   pattern,
   where,
   tags,
+  description: EXERCISE_DETAILS[name]?.description ?? '',
+  images: EXERCISE_DETAILS[name]?.images ?? [],
 });
 
 export const SEED_EXERCISES: SeedExercise[] = [

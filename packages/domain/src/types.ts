@@ -78,6 +78,12 @@ export interface Exercise extends Synced {
   where: Where;
   /** Bias tags — 'shoulders', 'arms', … used when generating a program. */
   tags: string[];
+  /** One or two sentences on how to do it. Editable, so it is stored per user
+   *  rather than looked up from a table the user cannot change. */
+  description: string;
+  /** Same-origin paths, so the service worker caches them with everything else.
+   *  Empty where no honest photograph of the movement was available. */
+  images: string[];
 }
 
 export interface Slot extends Synced {

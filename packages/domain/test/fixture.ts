@@ -41,6 +41,8 @@ export function seedSnapshot(
     patternId: byKey.get(x.pattern)!,
     where: x.where,
     tags: x.tags,
+    description: x.description,
+    images: x.images,
   }));
 
   // Materialised from the real preset, so the tests exercise the same slot

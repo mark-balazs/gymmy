@@ -13,6 +13,7 @@
 
 import { useMemo, useState } from 'react';
 import { Button, Card, Chip, Segmented, Stepper, cn } from '@/components/ui';
+import { ExerciseSheet } from '@/components/exercise-sheet';
 import { useProfile, useSnapshot, useT, useToday, type Translator } from '@/lib/client/hooks';
 import { logSet, removeSet } from '@/lib/client/mutations';
 import { EFFORTS, suggestionText } from '@/lib/client/format';
@@ -169,6 +170,7 @@ function ExerciseCard({
   const [reps, setReps] = useState<number | null>(() => s.reps);
   const [rir, setRir] = useState<number>(2);
   const [saving, setSaving] = useState(false);
+  const [detail, setDetail] = useState(false);
   const [seeded, setSeeded] = useState(() => seedOf(s));
 
   /**
@@ -220,7 +222,22 @@ function ExerciseCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-[17px] font-semibold">{exercise.name}</h2>
+          {/* The name is the affordance: needing to know what a movement is
+              happens while reading its name, not on a separate library screen. */}
+          <button
+            type="button"
+            onClick={() => setDetail(true)}
+            aria-label={tr.t('ex.about', { name: exercise.name })}
+            className="flex max-w-full min-w-0 cursor-pointer items-center gap-1.5 text-left"
+          >
+            <h2 className="truncate text-[17px] font-semibold">{exercise.name}</h2>
+            <span
+              aria-hidden
+              className="grid h-4 w-4 shrink-0 place-items-center rounded-full border border-[var(--color-line)] text-[10px] font-bold text-[var(--color-muted)]"
+            >
+              i
+            </span>
+          </button>
           <p className="mt-0.5 text-xs text-[var(--color-muted)]">{suggestionText(tr, s, unit)}</p>
         </div>
         {complete && <Chip tone="ok">✓</Chip>}
@@ -273,6 +290,8 @@ function ExerciseCard({
           ))}
         </div>
       </div>
+
+      {detail && <ExerciseSheet exercise={exercise} onClose={() => setDetail(false)} />}
 
       {row.logs.length > 0 && (
         <div className="flex flex-col">

@@ -110,6 +110,8 @@ export const exercises = pgTable(
     patternId: text('pattern_id').notNull(),
     where: text('where').notNull().default('gym'),
     tags: jsonb('tags').$type<string[]>().notNull().default([]),
+    description: text('description').notNull().default(''),
+    images: jsonb('images').$type<string[]>().notNull().default([]),
   },
   (t) => [primaryKey({ columns: [t.userId, t.id] }), index('exercises_seq').on(t.userId, t.seq)],
 );

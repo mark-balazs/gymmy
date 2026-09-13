@@ -58,6 +58,8 @@ export async function seedNewUser(userId: string): Promise<void> {
         patternId,
         where: x.where,
         tags: x.tags,
+        description: x.description,
+        images: x.images,
       },
     ];
   });

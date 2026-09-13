@@ -134,6 +134,8 @@ export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser
       patternId: patternIds.get(x.pattern)!,
       where: x.where,
       tags: x.tags,
+      description: x.description,
+      images: x.images,
     }));
 
     for (const p of patterns) {
@@ -163,9 +165,19 @@ export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser
     }
     for (const x of exercises) {
       await client.query(
-        `INSERT INTO exercises (id, user_id, updated_at, deleted_at, seq, name, pattern_id, "where", tags)
-         VALUES ($1,$2,$3,NULL,nextval('change_seq'),$4,$5,$6,$7)`,
-        [x.id, id, now, x.name, x.patternId, x.where, JSON.stringify(x.tags)],
+        `INSERT INTO exercises (id, user_id, updated_at, deleted_at, seq, name, pattern_id, "where", tags, description, images)
+         VALUES ($1,$2,$3,NULL,nextval('change_seq'),$4,$5,$6,$7,$8,$9)`,
+        [
+          x.id,
+          id,
+          now,
+          x.name,
+          x.patternId,
+          x.where,
+          JSON.stringify(x.tags),
+          x.description,
+          JSON.stringify(x.images),
+        ],
       );
     }
 

@@ -10,5 +10,6 @@
 export * from './types';
 export * from './model';
 export * from './coach';
+export * from './details';
 export * from './seed';
 export * from './splits';

@@ -41,6 +41,10 @@ export const rowSchemas = {
     patternId: z.string().min(1).max(64),
     where: z.enum(['gym', 'home']),
     tags: z.array(z.string().max(30)).max(10),
+    description: z.string().max(600).default(''),
+    // Relative, same-origin paths only: an absolute URL here would let a
+    // compromised client point every device's image at a host it chose.
+    images: z.array(z.string().max(200).startsWith('/')).max(8).default([]),
   }),
 
   slots: z.object({
