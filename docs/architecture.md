@@ -27,7 +27,7 @@ second implementation to disagree with the first.
 | `apps/web/src/lib/db/demo-history.ts` | Pure: the demo account's training, as data points |
 | `apps/web/src/lib/sync/` | The wire contract and per-table row validation |
 | `apps/web/src/app/(app)/` | The five tabs |
-| `apps/web/src/components/` | The UI kit, the chart, the sheets, the recovery screens |
+| `apps/web/src/components/` | The UI kit, the charts, the sheets, the lightbox, the recovery screens |
 
 ## How a set gets saved
 

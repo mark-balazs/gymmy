@@ -84,6 +84,9 @@ export const es: Record<Key, string> = {
   'common.thisWeek': 'Esta semana',
   'common.weight': 'Peso ({unit})',
   'common.reps': 'Reps',
+  'common.close': 'Cerrar',
+  'common.previous': 'Anterior',
+  'common.next': 'Siguiente',
   'common.loading': 'Cargando…',
   'sub.daysPerWeek': '{n} días por semana',
 
@@ -140,6 +143,7 @@ export const es: Record<Key, string> = {
   'ex.about': 'Sobre {name}',
   'ex.noDetail': 'Este todavía no tiene descripción.',
   'ex.noPhotos': 'Aún no hay foto de este movimiento.',
+  'ex.enlarge': 'Ampliar: {what}',
   'train.today': 'Hoy',
   'train.pickLoad': 'Elige una carga',
   'train.logSet': 'Registrar serie {n}',

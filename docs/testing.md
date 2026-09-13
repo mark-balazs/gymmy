@@ -86,6 +86,15 @@ Two ways the suite lies to you if you skip that:
 - **The chart lives in a sheet.** On Progress, only the strength score draws at
   rest; an exercise's chart is behind its row. Reaching it is part of the test —
   `getByRole('button', { name: \`Show ${lift}\` })`, then the dialog.
+- **An overlay above an overlay owns Escape.** The sheet and the lightbox both
+  listen on `document`, and the sheet registered first — so one press closed
+  both. The lightbox listens in the *capture* phase and stops the event once it
+  has handled it. A test for a nested overlay should press Escape and assert the
+  thing underneath survived.
+- **A `fixed` overlay inside a sheet is sized to the sheet.** The sheet is a
+  `backdrop-blur` overlay wrapping a panel that animates on `transform`, and
+  either makes itself the containing block. The lightbox portals to the body;
+  a test that only checks it rendered would not notice. Measure it.
 - **Never hard-code which exercise the generator picked.** It depends on the
   split in force, so use `exerciseNameAt(page)` — a hard-coded name turns a
   split change into a mystery failure three specs away from the cause.

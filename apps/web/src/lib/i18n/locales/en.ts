@@ -73,6 +73,9 @@ export const en = {
   'common.thisWeek': 'This week',
   'common.weight': 'Weight ({unit})',
   'common.reps': 'Reps',
+  'common.close': 'Close',
+  'common.previous': 'Previous',
+  'common.next': 'Next',
   'common.loading': 'Loading…',
   'sub.daysPerWeek': '{n} days a week',
 
@@ -128,6 +131,7 @@ export const en = {
   'ex.about': 'About {name}',
   'ex.noDetail': 'No description for this one yet.',
   'ex.noPhotos': 'No photograph of this movement yet.',
+  'ex.enlarge': 'Enlarge: {what}',
   'train.today': 'Today',
   'train.pickLoad': 'Pick a load',
   'train.logSet': 'Log set {n}',

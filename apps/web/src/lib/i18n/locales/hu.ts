@@ -71,6 +71,9 @@ export const hu: Record<Key, string> = {
   'common.thisWeek': 'Ez a hét',
   'common.weight': 'Súly ({unit})',
   'common.reps': 'Ismétlés',
+  'common.close': 'Bezárás',
+  'common.previous': 'Előző',
+  'common.next': 'Következő',
   'common.loading': 'Betöltés…',
   'sub.daysPerWeek': 'heti {n} nap',
 
@@ -128,6 +131,7 @@ export const hu: Record<Key, string> = {
   'ex.about': '{name} – mi ez?',
   'ex.noDetail': 'Ehhez még nincs leírás.',
   'ex.noPhotos': 'Ehhez a mozdulathoz még nincs fénykép.',
+  'ex.enlarge': 'Nagyítás: {what}',
   'train.today': 'Ma',
   'train.pickLoad': 'Válassz súlyt',
   'train.logSet': '{n}. sorozat rögzítése',

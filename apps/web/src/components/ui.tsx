@@ -3,6 +3,7 @@
 import { clsx } from 'clsx';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { useEffect } from 'react';
+import { useT } from '@/lib/client/hooks';
 
 export const cn = clsx;
 
@@ -225,6 +226,8 @@ export function Sheet({
   onClose: () => void;
   children: ReactNode;
 }) {
+  const tr = useT();
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -257,7 +260,7 @@ export function Sheet({
             <Button
               variant="ghost"
               className="-mr-1 min-h-9 shrink-0 px-2"
-              aria-label="Close"
+              aria-label={tr.t('common.close')}
               onClick={onClose}
             >
               ✕

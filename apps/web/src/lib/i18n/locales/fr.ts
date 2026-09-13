@@ -80,6 +80,9 @@ export const fr: Record<Key, string> = {
   'common.thisWeek': 'Cette semaine',
   'common.weight': 'Poids ({unit})',
   'common.reps': 'Reps',
+  'common.close': 'Fermer',
+  'common.previous': 'Précédent',
+  'common.next': 'Suivant',
   'common.loading': 'Chargement…',
   'sub.daysPerWeek': '{n} jours par semaine',
 
@@ -137,6 +140,7 @@ export const fr: Record<Key, string> = {
   'ex.about': '{name}, c’est quoi ?',
   'ex.noDetail': 'Pas encore de description pour celui-ci.',
   'ex.noPhotos': 'Pas encore de photo de ce mouvement.',
+  'ex.enlarge': 'Agrandir : {what}',
   'train.today': 'Aujourd’hui',
   'train.pickLoad': 'Choisis une charge',
   'train.logSet': 'Noter la série {n}',

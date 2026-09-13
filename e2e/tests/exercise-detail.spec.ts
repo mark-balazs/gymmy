@@ -29,6 +29,48 @@ test.describe('Exercise detail', () => {
     await expect(sheet.getByRole('img', { name: 'Finishing position' })).toBeVisible();
   });
 
+  test('a photograph opens large when you tap it', async ({ onboardedApp: app }) => {
+    /* Side by side in the sheet each photograph is a cropped third of a
+     * phone's width — enough to recognise a movement you already know, not
+     * enough to learn one you do not. */
+    await app
+      .getByRole('button', { name: /^About / })
+      .first()
+      .click();
+
+    const sheet = app.getByRole('dialog').first();
+    await sheet.getByRole('button', { name: 'Enlarge: Starting position' }).click();
+
+    const large = app.getByRole('dialog', { name: 'Starting position' });
+    const shot = large.getByRole('img', { name: 'Starting position' });
+    await expect(shot).toBeVisible();
+
+    /* The claim is that it is bigger, so measure it. A lightbox that opened at
+     * the same size as the thumbnail would satisfy every assertion about
+     * markup and none about the point. */
+    const thumb = (await sheet.getByRole('img', { name: 'Starting position' }).boundingBox())!;
+    const opened = (await shot.boundingBox())!;
+    expect(opened.width).toBeGreaterThan(thumb.width * 1.8);
+
+    // And it covers the screen rather than the sheet it opened from — which is
+    // what the portal is for: a `fixed` child of the sheet's blurred overlay
+    // would size itself to the sheet instead.
+    const viewport = app.viewportSize()!;
+    const box = (await large.boundingBox())!;
+    expect(box.width).toBeGreaterThanOrEqual(viewport.width - 1);
+
+    // Paging renames the dialog, because what it is *of* is what it is called.
+    await app.getByRole('button', { name: 'Next' }).click();
+    const second = app.getByRole('dialog', { name: 'Finishing position' });
+    await expect(second.getByRole('img', { name: 'Finishing position' })).toBeVisible();
+    await expect(large).toBeHidden();
+
+    await app.keyboard.press('Escape');
+    await expect(app.getByRole('dialog', { name: 'Finishing position' })).toBeHidden();
+    // The sheet it opened from is still there, rather than having gone with it.
+    await expect(sheet.getByRole('img', { name: 'Starting position' })).toBeVisible();
+  });
+
   test('the photographs actually load', async ({ onboardedApp: app }) => {
     // A path pointing at a file that was never vendored renders as a broken
     // box, which no assertion about the markup would ever notice.
