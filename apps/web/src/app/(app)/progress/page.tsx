@@ -8,6 +8,7 @@ import { fireAndForget, logBodyWeight } from '@/lib/client/mutations';
 import { trendText } from '@/lib/client/format';
 import {
   DEFAULT_PREFS,
+  addDays,
   bodyWeightOn,
   mondayOf,
   programExercises,
@@ -49,15 +50,42 @@ export default function ProgressPage() {
   const [weight, setWeight] = useState('');
   const [explain, setExplain] = useState(false);
 
-  const blockStart = profile?.blockStart ?? mondayOf(new Date());
   const days = profile?.days ?? DEFAULT_PREFS.days;
   const unit = profile?.unit ?? DEFAULT_PREFS.unit;
-  const weeks = profile?.blockWeeks ?? DEFAULT_PREFS.blockWeeks;
   const sex = profile?.sex ?? DEFAULT_PREFS.sex;
 
+  /**
+   * The window every chart on this page covers: from your first logged set to
+   * this week.
+   *
+   * It used to be the current *block* — `blockStart` plus `blockWeeks` — which
+   * quietly hid everything. A block is eight weeks long and restarts; anyone
+   * who has trained for longer than that, or whose block began after the
+   * training did, saw charts with fewer than two points in range and no chart
+   * at all, plus a strength score that never moved because all eight of its
+   * weekly points looked back over almost the same stretch.
+   *
+   * Progress is a property of what you have logged, not of which block you are
+   * currently in. Capped at a year so a long history stays legible at this
+   * width; past that the window slides rather than compressing.
+   */
+  const { from, weeks } = useMemo(() => {
+    const thisWeek = mondayOf(new Date());
+    const earliest = ix.logs.map((l) => l.date).sort()[0];
+    if (!earliest) return { from: thisWeek, weeks: 1 };
+
+    const start = mondayOf(earliest);
+    const span = Math.round((Date.parse(thisWeek) - Date.parse(start)) / (7 * 86_400_000)) + 1;
+    const capped = Math.min(Math.max(span, 1), 52);
+    return {
+      from: capped === span ? start : addDays(thisWeek, -7 * (capped - 1)),
+      weeks: capped,
+    };
+  }, [ix.logs]);
+
   const strength = useMemo(
-    () => strengthSeries(ix, blockStart, weeks, { unit, sex }),
-    [ix, blockStart, weeks, unit, sex],
+    () => strengthSeries(ix, from, weeks, { unit, sex }),
+    [ix, from, weeks, unit, sex],
   );
 
   /** Everything trained: what the plan currently holds, then anything logged
@@ -171,8 +199,8 @@ export default function ProgressPage() {
       </Card>
 
       {trained.map((e) => {
-        const p = progressFor(ix, e.id, blockStart, weeks);
-        const t = trend(ix, e.id, blockStart, weeks);
+        const p = progressFor(ix, e.id, from, weeks);
+        const t = trend(ix, e.id, from, weeks);
         const points = withPeaks(p.series, tr.lang);
         return (
           <Card key={e.id} className="flex flex-col gap-2">

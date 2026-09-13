@@ -80,6 +80,13 @@ export interface CreateUserOptions {
    */
   /** Extra logged sets, to push a single table past one sync page. */
   bulkLogs?: number;
+  /**
+   * Starts the training block *this* week even though the history is older —
+   * which is what every account looks like once its eight-week block rolls
+   * over. The Progress tab used to window itself by the block and showed such
+   * an account nothing at all.
+   */
+  blockStartsNow?: boolean;
   history?: {
     split: Exclude<SplitKey, 'custom'>;
     weeksBack: number;
@@ -199,7 +206,7 @@ export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser
     // A block that starts far enough back for the seeded history to be
     // reachable with the Week tab's back arrow.
     const history = opts.history;
-    const blockStart = history ? weeksAgo(history.weeksBack) : mondayOf();
+    const blockStart = history && !opts.blockStartsNow ? weeksAgo(history.weeksBack) : mondayOf();
 
     const onboarded = opts.onboarded ?? false;
     await client.query(
