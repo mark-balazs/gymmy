@@ -10,16 +10,22 @@
  */
 
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
+import { Recovery } from '@/components/recovery';
 import { useProfile, useSyncStatus, useT } from '@/lib/client/hooks';
-import { startSync } from '@/lib/client/sync';
+import { startSync, sync } from '@/lib/client/sync';
+
+/** Long enough that a slow first sync is not mistaken for a wedged app, short
+ *  enough that nobody sits staring at a spinner wondering. */
+const STUCK_AFTER_MS = 12_000;
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const profile = useProfile();
   const status = useSyncStatus();
   const router = useRouter();
   const { t } = useT();
+  const [stuck, setStuck] = useState(false);
 
   // Must start above the profile gate, not inside AppShell. A fresh device has
   // no profile until the first sync lands, so starting it below this point
@@ -33,7 +39,35 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (profile && !profile.onboarded) router.replace('/onboarding');
   }, [profile, router]);
 
+  useEffect(() => {
+    if (profile) return;
+    const timer = setTimeout(() => setStuck(true), STUCK_AFTER_MS);
+    return () => clearTimeout(timer);
+  }, [profile]);
+
   if (!profile) {
+    /**
+     * An error boundary cannot help here: nothing has thrown. The profile
+     * simply never arrives — a sync that cannot reach the server, a local store
+     * that will not open — and the honest failure mode of "wait for it" is
+     * waiting forever, which is what being stuck on a loading screen is.
+     *
+     * So waiting is given a deadline, after which the screen stops pretending
+     * and offers a way out.
+     */
+    if (stuck) {
+      return (
+        <Recovery
+          title={t('err.stuckTitle')}
+          detail={status.error ?? t('err.stuckDetail')}
+          onRetry={() => {
+            setStuck(false);
+            void sync();
+          }}
+        />
+      );
+    }
+
     return (
       <div className="grid min-h-dvh place-items-center p-6 text-center">
         <div className="flex flex-col gap-2">
