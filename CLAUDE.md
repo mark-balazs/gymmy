@@ -59,7 +59,7 @@ column is not optional:
 | gives a component a new responsibility | **Architecture → C3** |
 | changes one of the load-bearing shapes, or adds a new shape mistake worth recording | **Architecture → C4** |
 | adds a table, or changes what a column means | **Architecture → Data model** |
-| changes a route, the sync envelope, a status code, or a rate limit | **API** (overview, `/api/sync`, or Authentication) |
+| changes a route, the sync envelope, a status code, or a rate limit | [`docs/openapi.yaml`](./docs/openapi.yaml) — **not** a Confluence table; see below |
 | adds an environment variable, changes hosting, or changes a CI job | **Infrastructure** |
 | changes a deploy, migration or support procedure — or you hit a failure that took real work to diagnose | **Runbooks** |
 | settles a question that would be a project to reverse | **Decision log** (append; never edit an entry — mark it superseded) |
@@ -67,6 +67,19 @@ column is not optional:
 Every page ends with an **"update this page when"** note. If yours is not in the
 table, that note is the tiebreak. If it is genuinely neither, it probably does
 not need a Confluence change — say so rather than guessing.
+
+### The API is the one exception
+
+[`docs/openapi.yaml`](./docs/openapi.yaml) is the contract, and it is the only
+documentation in this repository a build can check. `openapi.test.ts` reads it
+back and holds every row schema against the Zod schemas in `lib/sync/rows.ts`,
+so a field added there and not added to the spec fails `npm test`.
+
+**Do not re-describe endpoints, fields or status codes on Confluence.** That is
+what the spec is for, and two copies means one of them is wrong. The Confluence
+API page carries the things a spec cannot: why there is one endpoint rather than
+a REST resource per table, and what the held-back cursor is protecting against.
+It links to the YAML for everything else.
 
 **Prose, not a changelog.** These pages say what is true now and why, in the
 same voice as the rest. Do not append "as of March we also…"; rewrite the

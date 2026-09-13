@@ -1,0 +1,663 @@
+# The gymmy HTTP API.
+#
+# This file is the contract, not a description of one. `openapi.test.ts` reads it
+# back and checks every row schema against the Zod schemas the server actually
+# validates with, so a field added to `lib/sync/rows.ts` and not added here
+# fails the build rather than going quietly out of date — which is what
+# happened to the hand-maintained tables this replaced.
+#
+# The API is small on purpose. A local-first client has one thing to say to a
+# server: here is what changed, what did I miss. Everything else is sign-in.
+
+openapi: 3.1.0
+
+info:
+  title: gymmy
+  version: '1.0'
+  summary: The sync and sign-in endpoints behind the gymmy PWA.
+  description: |
+    gymmy keeps a full replica of an account in IndexedDB and reads from it for
+    every screen. The network is therefore never on the path of anything a
+    person does — it is a background reconciliation, and this API is what it
+    reconciles against.
+
+    There is exactly **one** data endpoint. `POST /api/sync` pushes local
+    mutations and pulls everything newer than the caller's cursor in the same
+    round trip, because on one bar of signal the number of round trips is the
+    thing that matters. There is no REST resource per table, no `GET /logs`,
+    and adding one would give the client a second way to be out of date.
+
+    **Conflict policy is last-write-wins per record on `updatedAt`.** This is a
+    single-user app whose dominant write is an immutable set log appended once
+    from one phone. Genuine concurrent edits of one record barely exist, and a
+    CRDT would be substantial machinery for a problem this data shape does not
+    have.
+
+    **The client is not trusted.** `userId` and `seq` are never accepted from
+    the wire and never returned in it — the server owns both — so a client can
+    neither write into another account nor forge its place in the change order.
+
+  contact:
+    name: The repository
+    url: https://github.com/markbalazs/athletic-tracker
+
+servers:
+  - url: https://gymmy.vercel.app
+    description: Production
+  - url: http://localhost:3000
+    description: Local development
+
+tags:
+  - name: sync
+    description: The one data endpoint.
+  - name: auth
+    description: Sign-in. Google OAuth, or a six-digit code by email.
+
+security:
+  - sessionCookie: []
+
+paths:
+  /api/sync:
+    post:
+      tags: [sync]
+      summary: Push local changes and pull everything newer
+      operationId: sync
+      description: |
+        Both directions in one request.
+
+        **Push.** Each mutation is validated against the schema for its table
+        before anything is written. The first invalid row rejects the whole
+        request with `400` — partial acceptance would leave the client believing
+        its outbox had drained.
+
+        **Pull.** Every table newer than `since` is returned, paged
+        independently at 500 rows each.
+
+        **The cursor is the subtle part.** Tables are paged separately, so
+        taking the highest `seq` across all of them loses data outright: if
+        `logs` fills its page at seq 1000 while `profile` has a row at seq 5000,
+        a cursor of 5000 means every log in between is never asked for again —
+        silently, and permanently. So a table that filled its page **holds the
+        cursor down** to the last row it actually sent, and `hasMore` tells the
+        client to come straight back. Rows above that from other tables are
+        re-sent next round; applying them twice is idempotent and costs only
+        bandwidth.
+
+        **Seed repair.** A request with `since: 0` that finds no rows at all
+        means first-run seeding never completed — it happens in an Auth.js
+        event that fires exactly once per account and cannot be made to fire
+        again. This endpoint is the one every device touches on every visit, so
+        it seeds on the spot and pulls again before answering.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PushRequest' }
+            examples:
+              firstSync:
+                summary: A new device, nothing to push
+                value: { since: 0, mutations: [] }
+              loggedASet:
+                summary: One set, logged offline and now catching up
+                value:
+                  since: 12480
+                  mutations:
+                    - table: logs
+                      op: put
+                      row:
+                        id: 01J8Z3QK7M
+                        updatedAt: '2026-09-13T18:22:04.001Z'
+                        deletedAt: null
+                        date: '2026-09-13'
+                        session: A
+                        exerciseId: ex-goblet-squat
+                        setNo: 3
+                        weight: 47.5
+                        reps: 9
+                        rir: 1
+                        note: ''
+      responses:
+        '200':
+          description: Accepted, and here is everything newer than your cursor.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PullResponse' }
+        '400':
+          description: |
+            Unparseable JSON, an envelope that does not match `PushRequest`, or
+            a row that does not match the schema for its table. Nothing was
+            written.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SyncError' }
+              examples:
+                badRow:
+                  value:
+                    error: invalid row for bodyLogs
+                    issues:
+                      - code: too_small
+                        path: [weight]
+                        message: Number must be greater than or equal to 20
+        '401':
+          description: No session.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: unauthorized }
+
+  /api/auth/email-code:
+    post:
+      tags: [auth]
+      security: []
+      summary: Request a six-digit sign-in code
+      operationId: requestEmailCode
+      description: |
+        **Every outcome answers the same way.** Whether the address has an
+        account, whether it was throttled, and whether the send failed are all
+        facts about somebody else's account; an endpoint that distinguishes
+        them is a way to enumerate users. So the body is always `{"ok": true}`
+        and the only thing that varies is the status code — `429`, so a client
+        can back off, which reveals nothing an attacker could not learn by
+        counting their own requests.
+
+        It is separate from Auth.js's own sign-in route so the throttle sits in
+        front of the send rather than beside it.
+
+        Throttled per address and per client over a rolling 15 minutes. The
+        client key is the first `X-Forwarded-For` hop.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email, maxLength: 320 }
+            example: { email: 'someone@example.com' }
+      responses:
+        '200':
+          description: |
+            Taken. This does **not** mean an email was sent — see above.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '429':
+          description: |
+            Over 5 requests for this address, or 20 from this client, in the
+            last 15 minutes. The body is identical to a `200`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+
+  /api/auth/callback/resend:
+    get:
+      tags: [auth]
+      security: []
+      summary: Follow the link in the sign-in email
+      operationId: emailCallback
+      description: |
+        Auth.js reads these from the **query string and never the body**. A form
+        POSTing them is accepted and then ignored, which is not an error
+        anywhere and broke email sign-in for the entire life of the feature.
+      parameters:
+        - { name: token, in: query, required: true, schema: { type: string } }
+        - { name: email, in: query, required: true, schema: { type: string, format: email } }
+        - { name: callbackUrl, in: query, required: false, schema: { type: string } }
+      responses:
+        '302':
+          description: Session cookie set; redirected into the app.
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+        '400':
+          description: The token is wrong, already used, or expired.
+
+  /api/auth/signin/{provider}:
+    post:
+      tags: [auth]
+      security: []
+      summary: Begin sign-in with a provider
+      operationId: signIn
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema: { type: string, enum: [google, resend] }
+      responses:
+        '302':
+          description: Redirected to the provider.
+
+  /api/auth/callback/{provider}:
+    get:
+      tags: [auth]
+      security: []
+      summary: Return from an OAuth provider
+      operationId: oauthCallback
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema: { type: string, enum: [google] }
+        - { name: code, in: query, required: false, schema: { type: string } }
+        - { name: state, in: query, required: false, schema: { type: string } }
+      responses:
+        '302':
+          description: Session cookie set; redirected into the app.
+
+  /api/auth/session:
+    get:
+      tags: [auth]
+      summary: The current session, if any
+      operationId: getSession
+      responses:
+        '200':
+          description: |
+            The session, or `{}` when there is none — not a `401`. This is how
+            Auth.js reports "signed out", and the client treats an empty object
+            as exactly that.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      email: { type: string, format: email }
+                      name: { type: string }
+                      image: { type: string }
+                  expires: { type: string, format: date-time }
+
+  /api/auth/csrf:
+    get:
+      tags: [auth]
+      security: []
+      summary: A CSRF token for the sign-out form
+      operationId: getCsrf
+      responses:
+        '200':
+          description: The token.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  csrfToken: { type: string }
+
+  /api/auth/signout:
+    post:
+      tags: [auth]
+      summary: Sign out
+      operationId: signOut
+      description: |
+        The database session row is deleted, so the sign-out is real on every
+        device rather than a cookie cleared on this one.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [csrfToken]
+              properties:
+                csrfToken: { type: string }
+      responses:
+        '302':
+          description: Session cleared; redirected out of the app.
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: authjs.session-token
+      description: |
+        A database-backed session, set by the sign-in flow. `__Secure-` prefixed
+        in production. Sessions are rows rather than JWTs, so revoking one is
+        immediate everywhere — which is what makes account deletion and
+        sign-out mean what they say.
+
+  schemas:
+    Ok:
+      type: object
+      properties:
+        ok: { type: boolean, const: true }
+
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+
+    SyncError:
+      type: object
+      properties:
+        error: { type: string }
+        issues:
+          type: array
+          description: Zod issues, passed through so a client bug is debuggable.
+          items: { type: object, additionalProperties: true }
+
+    TableName:
+      type: string
+      enum: [patterns, exercises, slots, splitPeriods, entries, logs, refSets, bodyLogs, profile]
+
+    Mutation:
+      type: object
+      required: [table, op, row]
+      properties:
+        table: { $ref: '#/components/schemas/TableName' }
+        op:
+          type: string
+          const: put
+          description: |
+            The only operation. A **delete travels as a put with `deletedAt`
+            set**, because a hard delete cannot replicate to a device that is
+            currently offline — it would simply come back on the next push.
+        row:
+          description: A row matching the schema for `table`.
+          oneOf:
+            - { $ref: '#/components/schemas/Pattern' }
+            - { $ref: '#/components/schemas/Exercise' }
+            - { $ref: '#/components/schemas/Slot' }
+            - { $ref: '#/components/schemas/SplitPeriod' }
+            - { $ref: '#/components/schemas/ProgramEntry' }
+            - { $ref: '#/components/schemas/SetLog' }
+            - { $ref: '#/components/schemas/RefSet' }
+            - { $ref: '#/components/schemas/BodyLog' }
+            - { $ref: '#/components/schemas/Profile' }
+
+    PushRequest:
+      type: object
+      properties:
+        since:
+          type: integer
+          minimum: 0
+          default: 0
+          description: The highest `seq` this client has already applied.
+        mutations:
+          type: array
+          maxItems: 500
+          items: { $ref: '#/components/schemas/Mutation' }
+
+    PullResponse:
+      type: object
+      required: [cursor, changes, serverTime, hasMore]
+      properties:
+        cursor:
+          type: integer
+          description: |
+            Send this back as `since` next time. **Held down** to the last row
+            actually sent when any table filled its page.
+        changes:
+          type: object
+          description: Rows newer than `since`, keyed by table. Absent when empty.
+          properties:
+            patterns: { type: array, items: { $ref: '#/components/schemas/Pattern' } }
+            exercises: { type: array, items: { $ref: '#/components/schemas/Exercise' } }
+            slots: { type: array, items: { $ref: '#/components/schemas/Slot' } }
+            splitPeriods: { type: array, items: { $ref: '#/components/schemas/SplitPeriod' } }
+            entries: { type: array, items: { $ref: '#/components/schemas/ProgramEntry' } }
+            logs: { type: array, items: { $ref: '#/components/schemas/SetLog' } }
+            refSets: { type: array, items: { $ref: '#/components/schemas/RefSet' } }
+            bodyLogs: { type: array, items: { $ref: '#/components/schemas/BodyLog' } }
+            profile: { type: array, items: { $ref: '#/components/schemas/Profile' } }
+        serverTime:
+          type: string
+          format: date-time
+          description: |
+            So a device with a skewed clock can warn rather than quietly write
+            `updatedAt` values that lose every conflict, or win every one.
+        hasMore:
+          type: boolean
+          description: A page was filled. Come straight back with the new cursor.
+
+    Synced:
+      type: object
+      description: |
+        Carried by every replicated row. Declared once in `types.ts` and once as
+        a column spread in `schema.ts`, so the two cannot drift.
+      required: [id, updatedAt]
+      properties:
+        id: { type: string, minLength: 1, maxLength: 64 }
+        updatedAt:
+          type: string
+          format: date-time
+          description: The whole of the conflict policy. Later wins.
+        deletedAt:
+          type: [string, 'null']
+          format: date-time
+          default: null
+          description: Soft delete. Set, and the row replicates as gone.
+
+    PatternKey:
+      type: string
+      enum: [squat, hinge, lunge, push, pull, rotate, carry, isolation]
+
+    Pattern:
+      allOf:
+        - { $ref: '#/components/schemas/Synced' }
+        - type: object
+          required: [name, role, counts, position]
+          properties:
+            key:
+              oneOf:
+                - { $ref: '#/components/schemas/PatternKey' }
+                - { type: 'null' }
+              default: null
+              description: |
+                Stable across translation and renaming. The displayed name
+                prefers this key's translation and falls back to the user's own
+                wording, so renaming something keeps *your* word for it in
+                every language.
+            name: { type: string, minLength: 1, maxLength: 60 }
+            role: { type: string, enum: [Lower, Upper, Midline, Accessory] }
+            counts:
+              type: boolean
+              description: |
+                Whether this is a coverage box. `isolation` is taggable and does
+                not count — the week is not incomplete for skipping curls.
+            position: { type: integer, minimum: 0, maximum: 999 }
+
+    Exercise:
+      allOf:
+        - { $ref: '#/components/schemas/Synced' }
+        - type: object
+          required: [name, patternId, where, tags]
+          properties:
+            name: { type: string, minLength: 1, maxLength: 80 }
+            patternId: { type: string, minLength: 1, maxLength: 64 }
+            where: { type: string, enum: [gym, home] }
+            tags: { type: array, maxItems: 10, items: { type: string, maxLength: 30 } }
+            description: { type: string, maxLength: 600, default: '' }
+            images:
+              type: array
+              maxItems: 8
+              default: []
+              items:
+                type: string
+                maxLength: 200
+                pattern: '^/'
+                description: |
+                  Same-origin relative paths only. An absolute URL here would
+                  let one compromised client repoint every device's images at a
+                  host it chose.
+
+    Slot:
+      allOf:
+        - { $ref: '#/components/schemas/Synced' }
+        - type: object
+          required: [name, requiredRole, position]
+          properties:
+            key:
+              type: [string, 'null']
+              enum: [bigLower, bigUpper, main, secondary, accessory, isolation, finisher, null]
+              default: null
+            name: { type: string, minLength: 1, maxLength: 60 }
+            requiredRole: { type: string, enum: [Any, Lower, Upper, Midline, Accessory] }
+            position: { type: integer, minimum: 0, maximum: 999 }
+            sessionIndex: { type: [integer, 'null'], minimum: 0, maximum: 13, default: null }
+            patternKeys:
+              type: [array, 'null']
+              maxItems: 8
+              default: null
+              items: { $ref: '#/components/schemas/PatternKey' }
+            dayKey:
+              type: [string, 'null']
+              enum: [full, push, pull, legs, upper, lower, null]
+              default: null
+
+    SplitPeriod:
+      allOf:
+        - { $ref: '#/components/schemas/Synced' }
+        - type: object
+          description: |
+            **Append-only.** Changing split appends a period; it never edits
+            one, which is what makes three months of seven-pattern weeks still
+            read as seven-pattern weeks after you move to push/pull.
+          required: [split, days, startWeek, patternKeys]
+          properties:
+            split: { $ref: '#/components/schemas/SplitKey' }
+            days: { type: integer, minimum: 1, maximum: 7 }
+            startWeek:
+              type: string
+              format: date
+              pattern: '^\d{4}-\d{2}-\d{2}$'
+              description: A Monday. A week is the unit of coverage.
+            patternKeys:
+              type: array
+              minItems: 1
+              maxItems: 8
+              description: |
+                A **frozen copy** of the coverage goal, so history survives both
+                a later release changing what a preset means and the user
+                renaming a pattern. At least one: a period covering nothing
+                would score every week complete.
+              items: { $ref: '#/components/schemas/PatternKey' }
+
+    SplitKey:
+      type: string
+      enum: [sevenPattern, pushPullLegs, upperLower, custom]
+
+    ProgramEntry:
+      allOf:
+        - { $ref: '#/components/schemas/Synced' }
+        - type: object
+          description: |
+            Which exercise fills which slot. Note that a `SetLog` references the
+            *exercise* and never the plan — which is what lets the week be
+            rebuilt without touching a single thing you lifted.
+          required: [sessionIndex, slotId, sets, repRange, note]
+          properties:
+            sessionIndex: { type: integer, minimum: 0, maximum: 13 }
+            slotId: { type: string, minLength: 1, maxLength: 64 }
+            exerciseId: { type: [string, 'null'], minLength: 1, maxLength: 64, default: null }
+            sets: { type: integer, minimum: 0, maximum: 50 }
+            repRange: { type: string, maxLength: 40 }
+            startWeight: { type: [number, 'null'], minimum: 0, maximum: 2000, default: null }
+            note: { type: string, maxLength: 500 }
+
+    SetLog:
+      allOf:
+        - { $ref: '#/components/schemas/Synced' }
+        - type: object
+          description: One row per set. The dominant write in the system.
+          required: [date, session, exerciseId, setNo, note]
+          properties:
+            date: { type: string, format: date, pattern: '^\d{4}-\d{2}-\d{2}$' }
+            session: { type: string, minLength: 1, maxLength: 4 }
+            exerciseId: { type: string, minLength: 1, maxLength: 64 }
+            setNo: { type: integer, minimum: 1, maximum: 100 }
+            weight: { type: [number, 'null'], minimum: 0, maximum: 2000, default: null }
+            reps: { type: [integer, 'null'], minimum: 0, maximum: 1000, default: null }
+            rir:
+              type: [integer, 'null']
+              minimum: 0
+              maximum: 20
+              default: null
+              description: |
+                Reps in reserve. The estimated one-rep max is adjusted for it —
+                without that term, a set taken to failure and a set with three
+                left look identical, which makes the whole progress view lie.
+            note: { type: string, maxLength: 500 }
+
+    RefSet:
+      allOf:
+        - { $ref: '#/components/schemas/Synced' }
+        - type: object
+          description: A reference set, logged outside the plan.
+          required: [date, exerciseId, note]
+          properties:
+            date: { type: string, format: date, pattern: '^\d{4}-\d{2}-\d{2}$' }
+            exerciseId: { type: string, minLength: 1, maxLength: 64 }
+            weight: { type: [number, 'null'], minimum: 0, maximum: 2000, default: null }
+            reps: { type: [integer, 'null'], minimum: 0, maximum: 1000, default: null }
+            note: { type: string, maxLength: 2000 }
+
+    BodyLog:
+      allOf:
+        - { $ref: '#/components/schemas/Synced' }
+        - type: object
+          description: |
+            Bodyweight, dated. It is its own record rather than a profile field
+            because the strength score divides by what you weighed *that week*;
+            one current value would rewrite what every past week meant every
+            time you stepped on a scale.
+          required: [date, weight]
+          properties:
+            date: { type: string, format: date, pattern: '^\d{4}-\d{2}-\d{2}$' }
+            weight:
+              type: number
+              minimum: 20
+              maximum: 700
+              description: |
+                In either unit. Out of that range is a typo, and a typo in the
+                denominator of the strength score is worse than a refused write.
+            note: { type: string, maxLength: 500, default: '' }
+
+    Profile:
+      allOf:
+        - { $ref: '#/components/schemas/Synced' }
+        - type: object
+          description: One row per account; `id` equals the user id.
+          required: [onboarded, days, where, bias, blockStart, blockWeeks, unit, lang]
+          properties:
+            onboarded: { type: boolean }
+            split: { $ref: '#/components/schemas/SplitKey' }
+            days: { type: integer, minimum: 1, maximum: 7 }
+            where: { type: string, enum: [gym, home] }
+            bias: { type: string, enum: [none, shoulders, arms, glutes, back, chest] }
+            blockStart: { type: string, format: date, pattern: '^\d{4}-\d{2}-\d{2}$' }
+            blockWeeks: { type: integer, minimum: 1, maximum: 52 }
+            unit: { type: string, enum: [kg, lb] }
+            lang: { type: string, enum: [en, hu, de, fr, es] }
+            theme: { type: string, enum: [system, dark, light], default: system }
+            heightCm: { type: [integer, 'null'], minimum: 80, maximum: 260, default: null }
+            sex:
+              type: string
+              enum: [unspecified, female, male]
+              default: unspecified
+              description: |
+                Asked for one thing: which reference curve the strength score is
+                measured against. "Prefer not to say" takes the midpoint of the
+                two and is a first-class answer.
+            name: { type: string, maxLength: 60, default: '' }
+            birthYear:
+              type: [integer, 'null']
+              minimum: 1900
+              default: null
+              description: |
+                The year, never the age — an age is a fact with an expiry date,
+                and stored once it would rescore every past week against an age
+                you were not. Upper bound is the current year.
+            avatar:
+              type: [string, 'null']
+              maxLength: 64000
+              default: null
+              pattern: '^data:image/'
+              description: |
+                A small square JPEG as a data URL. **This row travels on every
+                pull**, so the cap is not cosmetic: the client downscales to
+                256px before encoding, and this is the backstop against one
+                that does not.

@@ -9,9 +9,14 @@ folder says how it is *built*, and which parts will bite you.
 | Document | What it answers |
 | --- | --- |
 | [architecture.md](./architecture.md) | The layers, what may import what, and how a set gets from a thumb to Postgres |
-| [training-model.md](./training-model.md) | Patterns, splits, coverage, historisation, the strength score |
+| [training-model.md](./training-model.md) | Patterns, splits, coverage, historisation, the strength score, the triage |
 | [data.md](./data.md) | Tables, migrations, the sync protocol, the local store, seeding |
+| [openapi.yaml](./openapi.yaml) | **The HTTP contract.** Every endpoint, every row schema, every status code |
 | [testing.md](./testing.md) | The three test layers and which one a change belongs in |
+
+`openapi.yaml` is the only document here a build can check: `openapi.test.ts`
+holds it against the Zod schemas the server validates with, so it cannot quietly
+fall behind the code the way prose does.
 
 ## The shape in one paragraph
 
