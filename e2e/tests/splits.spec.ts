@@ -185,7 +185,8 @@ test.describe('Coverage is historised', () => {
     await openWeek(page);
 
     // Page back to the block's first week, which was trained seven-pattern.
-    for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Back' }).click();
+    for (let i = 0; i < 3; i++)
+      await page.getByRole('button', { name: 'Back', exact: true }).click();
 
     await expectTiles(page, SEVEN);
     // And the page says why the goal is different, rather than leaving the
@@ -196,7 +197,8 @@ test.describe('Coverage is historised', () => {
   test('the old week still shows the sets logged in it', async ({ page, context, baseURL }) => {
     await signInAs(page, context, baseURL!, seeded);
     await openWeek(page);
-    for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Back' }).click();
+    for (let i = 0; i < 3; i++)
+      await page.getByRole('button', { name: 'Back', exact: true }).click();
 
     // Three of seven trained that week — the data is untouched by the switch.
     await expect(page.getByText(/3 gaps|4 gaps/)).toBeVisible();
