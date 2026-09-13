@@ -9,7 +9,7 @@
  */
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { cn } from '@/components/ui';
 import { useSyncStatus, useT } from '@/lib/client/hooks';
@@ -31,6 +31,71 @@ const TABS = [
     icon: 'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 13a7.5 7.5 0 000-2l2-1.5-2-3.4-2.3 1a7 7 0 00-1.8-1L14.9 3H9.1l-.4 2.9a7 7 0 00-1.8 1l-2.3-1-2 3.4L4.6 11a7.5 7.5 0 000 2l-2 1.5 2 3.4 2.3-1a7 7 0 001.8 1l.4 2.9h5.8l.4-2.9a7 7 0 001.8-1l2.3 1 2-3.4z',
   },
 ] as const;
+
+/** Far enough that it cannot be a tap, and clearly sideways rather than a
+ *  scroll that drifted. */
+const SWIPE_PX = 64;
+const SIDEWAYS = 1.5;
+
+/**
+ * Swipe left and right between the tabs.
+ *
+ * Touch only — a mouse drag across a page means selecting text, and hijacking
+ * it would break that everywhere. Three things are deliberately excluded:
+ *
+ *  - anything inside `[data-no-swipe]`, because a chart you drag to inspect and
+ *    a carousel both need the horizontal axis more than the tab bar does;
+ *  - a gesture that is mostly vertical, which is a scroll that wandered;
+ *  - any route that is not a tab root. `/settings/split` holds an unsaved
+ *    draft, and navigating away from it on a stray thumb movement would throw
+ *    that away silently.
+ */
+function useSwipeTabs(pathname: string): void {
+  const router = useRouter();
+
+  useEffect(() => {
+    const index = TABS.findIndex((t) => t.href === pathname);
+    if (index < 0) return;
+
+    let x0 = 0;
+    let y0 = 0;
+    let tracking = false;
+
+    const start = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      tracking =
+        e.touches.length === 1 &&
+        !!touch &&
+        !(e.target as Element | null)?.closest?.('[data-no-swipe]');
+      if (!touch) return;
+      x0 = touch.clientX;
+      y0 = touch.clientY;
+    };
+
+    const end = (e: TouchEvent) => {
+      if (!tracking) return;
+      tracking = false;
+      const touch = e.changedTouches[0];
+      if (!touch) return;
+
+      const dx = touch.clientX - x0;
+      const dy = touch.clientY - y0;
+      if (Math.abs(dx) < SWIPE_PX || Math.abs(dx) < Math.abs(dy) * SIDEWAYS) return;
+
+      // Left drags the next tab into view, which is the direction every phone
+      // has taught people to expect.
+      const next = TABS[dx < 0 ? index + 1 : index - 1];
+      if (next) router.push(next.href);
+    };
+
+    document.addEventListener('touchstart', start, { passive: true });
+    document.addEventListener('touchend', end, { passive: true });
+    return () => {
+      document.removeEventListener('touchstart', start);
+      document.removeEventListener('touchend', end);
+    };
+  }, [pathname, router]);
+}
 
 function SyncBadge() {
   const { t } = useT();
@@ -71,6 +136,8 @@ function SyncBadge() {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { t } = useT();
+
+  useSwipeTabs(pathname);
 
   useEffect(() => {
     startSync();

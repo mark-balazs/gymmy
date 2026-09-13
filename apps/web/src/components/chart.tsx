@@ -124,6 +124,8 @@ export function LineChart({
         viewBox={`0 0 ${W} ${H}`}
         role="img"
         aria-label={label}
+        // Dragging across this scrubs the chart; it must not also change tab.
+        data-no-swipe
         className="w-full touch-pan-y overflow-visible"
         onPointerDown={(e) => track(e.clientX)}
         onPointerMove={(e) => e.buttons > 0 && track(e.clientX)}

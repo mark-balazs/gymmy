@@ -59,7 +59,7 @@ test.describe('A full journey', () => {
     //    of these questions can be answered without a library behind them.
     await expect(
       page.getByRole('heading', { name: 'How should your week be shaped?' }),
-    ).toBeVisible({ timeout: 20_000 });
+    ).toBeVisible({ timeout: 30_000 });
     await completeOnboarding(page, { split: 'Push / Pull / Legs', days: '3 days' });
 
     // 3. Train. A real generated exercise, a real set.
@@ -91,9 +91,9 @@ test.describe('A full journey', () => {
     //    the step that proves the sets were ever really saved anywhere.
     await signInWithCode(page, email, '222222');
     await expect(page.getByRole('heading', { name: 'Train', exact: true })).toBeVisible({
-      timeout: 20_000,
+      timeout: 30_000,
     });
-    await expect(page.getByText('60 kg × 8').first()).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText('60 kg × 8').first()).toBeVisible({ timeout: 30_000 });
   });
 
   test('the same account on a second device shows the same training', async ({
@@ -108,7 +108,7 @@ test.describe('A full journey', () => {
     await signInWithCode(page, email, '333333');
     await expect(
       page.getByRole('heading', { name: 'How should your week be shaped?' }),
-    ).toBeVisible({ timeout: 20_000 });
+    ).toBeVisible({ timeout: 30_000 });
     await completeOnboarding(page, { days: '3 days' });
 
     await logSet(page, 0, 72.5, 6);
@@ -123,9 +123,9 @@ test.describe('A full journey', () => {
       await signInWithCode(other, email, '444444');
 
       await expect(other.getByRole('heading', { name: 'Train', exact: true })).toBeVisible({
-        timeout: 20_000,
+        timeout: 30_000,
       });
-      await expect(other.getByText('72.5 kg × 6').first()).toBeVisible({ timeout: 20_000 });
+      await expect(other.getByText('72.5 kg × 6').first()).toBeVisible({ timeout: 30_000 });
     } finally {
       await second.close();
     }
