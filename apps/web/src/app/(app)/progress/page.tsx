@@ -26,6 +26,7 @@ import { useMemo, useState } from 'react';
 import { Button, Card, Chip, InfoButton, Sheet, Summary, cn } from '@/components/ui';
 import { Page } from '@/components/page';
 import { LineChart, Sparkline, type ChartPoint } from '@/components/chart';
+import { Delta } from '@/components/delta';
 import { useProfile, useSnapshot, useT, useToday } from '@/lib/client/hooks';
 import { fireAndForget, logBodyWeight } from '@/lib/client/mutations';
 import {
@@ -206,20 +207,11 @@ export default function ProgressPage() {
               {current.score}
             </span>
             {delta !== null && (
-              <span
-                className={cn(
-                  'text-sm font-semibold',
-                  delta > 0 && 'text-[var(--color-accent)]',
-                  delta < 0 && 'text-[var(--color-bad)]',
-                  delta === 0 && 'text-[var(--color-muted)]',
-                )}
-              >
-                {delta > 0 ? '+' : ''}
-                {Math.round(delta)}{' '}
-                <span className="font-normal text-[var(--color-muted)]">
-                  {tr.t('prog.vsWeeks', { n: 8 })}
-                </span>
-              </span>
+              <Delta
+                value={Math.round(delta)}
+                label={deltaLabel(tr, Math.round(delta), tr.t('prog.agoWeeks', { n: 8 }))}
+                className="text-base"
+              />
             )}
           </div>
         ) : (
@@ -386,6 +378,19 @@ function TriageRow({ item, onOpen }: { item: Attention; onOpen: (id: string) => 
   );
 }
 
+/** Up, down or level — and by how much — for whatever the caller measured. */
+function deltaLabel(
+  tr: ReturnType<typeof useT>,
+  value: number,
+  ago: string,
+  unit?: string,
+): string {
+  const by = `${Math.abs(value)}${unit ? ` ${unit}` : ''}`;
+  if (value > 0) return tr.t('prog.deltaUp', { by, ago });
+  if (value < 0) return tr.t('prog.deltaDown', { by, ago });
+  return tr.t('prog.deltaFlat', { by, ago });
+}
+
 function LiftRow({
   progress,
   unit,
@@ -397,12 +402,19 @@ function LiftRow({
 }) {
   const tr = useT();
   const latest = progress.sessions.at(-1);
+  const first = progress.sessions[0];
+  /* Across what is actually on screen, which is what the sparkline beside it
+     draws. Measuring from an all-time first session while showing twelve weeks
+     would put a number next to a line that disagrees with it. One session is
+     not a change, so it has no arrow rather than a zero. */
+  const moved =
+    latest && first && first !== latest ? Math.round((latest.value - first.value) * 10) / 10 : null;
   return (
     <button
       type="button"
       onClick={() => onOpen(progress.exercise.id)}
       aria-label={tr.t('prog.open', { name: tr.exercise(progress.exercise) })}
-      className="flex min-h-[var(--spacing-tap)] cursor-pointer items-center gap-3 rounded-[11px] px-1 text-left"
+      className="flex min-h-[var(--spacing-tap)] cursor-pointer items-center gap-2.5 rounded-[11px] px-1 text-left"
     >
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm">{tr.exercise(progress.exercise)}</div>
@@ -412,6 +424,13 @@ function LiftRow({
             : tr.plural(progress.totalSets, 'set')}
         </div>
       </div>
+      {moved !== null && (
+        <Delta
+          value={moved}
+          label={deltaLabel(tr, moved, tr.t('prog.agoFirst'), unit)}
+          className="text-xs"
+        />
+      )}
       {/* Carries and rotation have no line to draw — see `metricFor`. The row
           still exists, because the sets were still done. */}
       <Sparkline points={toPoints(progress, tr.lang)} />
