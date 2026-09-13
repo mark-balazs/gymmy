@@ -114,9 +114,10 @@ function sessionsOf(logs: DecoratedLog[], metric: ProgressMetric): SessionPoint[
 export interface Drawdown {
   best: number;
   bestDate: string;
-  latest: number;
-  latestDate: string;
-  /** Negative when the latest session is below the best. */
+  /** The best of the last few sessions — what you are lifting *now*. */
+  form: number;
+  formDate: string;
+  /** Negative when recent form sits below the best. */
   delta: number;
   pct: number;
   /**
@@ -128,20 +129,40 @@ export interface Drawdown {
   confident: boolean;
 }
 
+/**
+ * How many sessions count as "lately".
+ *
+ * The first version of this compared the single most recent session against the
+ * all-time best, so one heavy-legs Tuesday read as a regression — and a page
+ * that tells you that is a page you stop believing. Three sessions is enough
+ * that a bad day is outvoted, and short enough that a real slide still shows.
+ */
+const FORM_SESSIONS = 3;
+
+/**
+ * How far below your best you are training now, or null if you are at it.
+ *
+ * "At it" includes *near* it: when the best session is itself one of the last
+ * few, there is nothing to report, because the thing you would be compared
+ * against is your own current form.
+ */
 export function drawdownOf(sessions: SessionPoint[]): Drawdown | null {
   if (sessions.length < 2) return null;
-  const best = sessions.reduce((a, b) => (b.value > a.value ? b : a));
-  const latest = sessions[sessions.length - 1]!;
-  if (best === latest) return null;
+
+  const bestIndex = sessions.reduce((bi, s, i) => (s.value > sessions[bi]!.value ? i : bi), 0);
+  if (bestIndex >= sessions.length - FORM_SESSIONS) return null;
+
+  const best = sessions[bestIndex]!;
+  const form = sessions.slice(-FORM_SESSIONS).reduce((x, y) => (y.value > x.value ? y : x));
 
   return {
     best: best.value,
     bestDate: best.date,
-    latest: latest.value,
-    latestDate: latest.date,
-    delta: Math.round((latest.value - best.value) * 10) / 10,
-    pct: Math.round(((latest.value - best.value) / best.value) * 100),
-    confident: best.rated === latest.rated,
+    form: form.value,
+    formDate: form.date,
+    delta: Math.round((form.value - best.value) * 10) / 10,
+    pct: Math.round(((form.value - best.value) / best.value) * 100),
+    confident: best.rated === form.rated,
   };
 }
 
@@ -247,22 +268,41 @@ export interface Attention {
 
 /** Below this a drop is week-to-week noise rather than a direction. */
 const REGRESSION_PCT = -5;
-/** A stall needs both time and attempts: four weeks away is a holiday, and
- *  four weeks of trying without moving is a plateau. */
-const STALL_WEEKS = 4;
-const STALL_SESSIONS = 3;
+/**
+ * A stall needs both time and attempts.
+ *
+ * Both numbers started far lower and the result was useless: nine lifts out of
+ * eleven came back "stalled" on an account that was training perfectly well.
+ * A month without a personal best is not a plateau — it is a month. Worse, any
+ * lift loaded off a 5 kg stack *cannot* move more often than that, so a short
+ * threshold flags the machines every time and says nothing about the lifter.
+ * Two months and six attempts is the point at which the lift, rather than the
+ * calendar, is the thing that has stopped.
+ */
+const STALL_WEEKS = 8;
+const STALL_SESSIONS = 6;
 /** Three weeks without touching something that is still in your plan. */
 const DORMANT_DAYS = 21;
 
+/** Worst first, by whatever "worst" means for that kind. */
+const severity: Record<AttentionKind, (a: Attention, b: Attention) => number> = {
+  regressed: (a, b) => (a.progress.drawdown?.pct ?? 0) - (b.progress.drawdown?.pct ?? 0),
+  stalled: (a, b) => b.weeksSinceBest - a.weeksSinceBest,
+  dormant: (a, b) => (b.progress.daysSince ?? 0) - (a.progress.daysSince ?? 0),
+};
+
 /**
- * The handful of lifts worth looking at, worst first.
+ * The handful of lifts worth looking at.
  *
- * Deliberately short. A list of fifteen things needing attention is a list
+ * Deliberately short, and deliberately *mixed*: taken a kind at a time rather
+ * than strictly worst-first, because three stalls in a row would hide the lift
+ * you have not touched since July, and those are different problems with
+ * different answers. A list of fifteen things needing attention is a list
  * nobody acts on, and the empty state — "nothing needs a look" — is the most
  * useful thing this page can say on most days.
  */
 export function attention(summary: ExerciseProgress[], asOf: string, limit = 3): Attention[] {
-  const out: Attention[] = [];
+  const found: Record<AttentionKind, Attention[]> = { regressed: [], stalled: [], dormant: [] };
 
   for (const progress of summary) {
     if (!progress.metric) continue; // carries and rotation have no verdict to give
@@ -275,7 +315,7 @@ export function attention(summary: ExerciseProgress[], asOf: string, limit = 3):
     // A drop we cannot attribute to training is not reported at all. See the
     // note at the top of this file: hedging it would still be an accusation.
     if (drawdown && drawdown.confident && drawdown.pct <= REGRESSION_PCT) {
-      out.push({ kind: 'regressed', progress, weeksSinceBest });
+      found.regressed.push({ kind: 'regressed', progress, weeksSinceBest });
       continue;
     }
     if (
@@ -283,22 +323,28 @@ export function attention(summary: ExerciseProgress[], asOf: string, limit = 3):
       weeksSinceBest >= STALL_WEEKS &&
       sessionsSinceBest >= STALL_SESSIONS
     ) {
-      out.push({ kind: 'stalled', progress, weeksSinceBest });
+      found.stalled.push({ kind: 'stalled', progress, weeksSinceBest });
       continue;
     }
     if (inPlan && daysSince !== null && daysSince >= DORMANT_DAYS) {
-      out.push({ kind: 'dormant', progress, weeksSinceBest });
+      found.dormant.push({ kind: 'dormant', progress, weeksSinceBest });
     }
   }
 
   const order: AttentionKind[] = ['regressed', 'stalled', 'dormant'];
-  return out
-    .sort(
-      (a, b) =>
-        order.indexOf(a.kind) - order.indexOf(b.kind) ||
-        (a.progress.drawdown?.pct ?? 0) - (b.progress.drawdown?.pct ?? 0),
-    )
-    .slice(0, limit);
+  for (const kind of order) found[kind].sort(severity[kind]);
+
+  const out: Attention[] = [];
+  for (let round = 0; out.length < limit; round++) {
+    const before = out.length;
+    for (const kind of order) {
+      const next = found[kind][round];
+      if (next) out.push(next);
+      if (out.length >= limit) break;
+    }
+    if (out.length === before) break;
+  }
+  return out;
 }
 
 /* ------------------------------------------------------- pattern presence */

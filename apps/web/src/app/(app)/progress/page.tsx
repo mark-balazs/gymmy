@@ -1,46 +1,65 @@
 'use client';
 
+/**
+ * Progress.
+ *
+ * The version this replaces was a column of fifteen cards, one per exercise,
+ * each with the same chart in it. That is a page which has offloaded all of the
+ * reading onto the reader: the lift that had gone backwards looked exactly like
+ * the fourteen that had not, and finding it meant scrolling through all of
+ * them. Nobody does that twice.
+ *
+ * So the shape here is triage first, evidence on request:
+ *
+ *  1. **Needs a look** — at most three lifts, in words. The whole point of the
+ *     page. Most days it is empty, and saying "nothing needs a look" is the
+ *     most useful thing it can do.
+ *  2. **Strength score** — the one number that is about you rather than about a
+ *     movement, and the only full chart on the page at rest.
+ *  3. **What you have trained** — twelve weeks by seven movements, which is the
+ *     app's actual thesis on a time axis.
+ *  4. **Every lift** — one compact row each, grouped by movement, with a
+ *     sparkline. The full chart is one tap away.
+ */
+
 import { useMemo, useState } from 'react';
-import { Button, Card, InfoButton, Sheet, Summary, cn } from '@/components/ui';
+import { Button, Card, Chip, InfoButton, Sheet, Summary, cn } from '@/components/ui';
 import { Page } from '@/components/page';
-import { LineChart, type ChartPoint } from '@/components/chart';
+import { LineChart, Sparkline, type ChartPoint } from '@/components/chart';
 import { useProfile, useSnapshot, useT, useToday } from '@/lib/client/hooks';
 import { fireAndForget, logBodyWeight } from '@/lib/client/mutations';
-import { trendText } from '@/lib/client/format';
 import {
   DEFAULT_PREFS,
   addDays,
+  attention,
   bodyWeightOn,
+  coveragePatterns,
   mondayOf,
-  programExercises,
-  progressFor,
+  patternWeeks,
+  progressSummary,
+  recentWeeks,
   strengthSeries,
-  trend,
+  type Attention,
+  type ExerciseProgress,
 } from '@athletic/domain';
-import type { SeriesPoint } from '@athletic/domain';
+import type { Key } from '@/lib/i18n';
+
+/** How far back the page looks unless you ask for everything. */
+const WINDOW_WEEKS = 12;
+/** Rows in the presence grid. Twelve weeks fits a phone at 7px a column. */
+const GRID_WEEKS = 12;
 
 /** "12 Mar" — short enough for an axis end, unambiguous enough to place. */
 const shortDay = (iso: string, lang: string): string =>
-  new Date(`${iso}T12:00:00`).toLocaleDateString(lang === 'hu' ? 'hu-HU' : 'en-GB', {
-    day: 'numeric',
-    month: 'short',
-  });
+  new Date(`${iso}T12:00:00`).toLocaleDateString(lang, { day: 'numeric', month: 'short' });
 
-/**
- * Marks the weeks that set a new best.
- *
- * A running maximum rather than "equal to the overall best", so the second time
- * you match a number it is not celebrated again — a personal best is the week
- * you first got there.
- */
-function withPeaks(series: SeriesPoint[], lang: string): ChartPoint[] {
-  let best = -Infinity;
-  return series.map((p) => {
-    const peak = p.value !== null && p.value > best;
-    if (peak) best = p.value!;
-    return { label: shortDay(p.weekOf, lang), value: p.value, peak };
-  });
-}
+const toPoints = (p: ExerciseProgress, lang: string): ChartPoint[] =>
+  p.sessions.map((s) => ({
+    date: s.date,
+    value: s.value,
+    label: shortDay(s.date, lang),
+    peak: s.peak,
+  }));
 
 export default function ProgressPage() {
   const { ix } = useSnapshot();
@@ -50,56 +69,91 @@ export default function ProgressPage() {
 
   const [weight, setWeight] = useState('');
   const [explain, setExplain] = useState(false);
+  const [allTime, setAllTime] = useState(false);
+  const [detail, setDetail] = useState<string | null>(null);
 
   const days = profile?.days ?? DEFAULT_PREFS.days;
   const unit = profile?.unit ?? DEFAULT_PREFS.unit;
   const sex = profile?.sex ?? DEFAULT_PREFS.sex;
+  const birthYear = profile?.birthYear ?? null;
 
   /**
-   * The window every chart on this page covers: from your first logged set to
-   * this week.
+   * The window everything on this page covers.
+   *
+   * Twelve weeks by default rather than the whole history: a year of sessions
+   * squeezed into 340 pixels is a hairball, and "how am I doing" is a question
+   * about the recent past. All time is one tap away for when it is not.
    *
    * It used to be the current *block* — `blockStart` plus `blockWeeks` — which
    * quietly hid everything. A block is eight weeks long and restarts; anyone
-   * who has trained for longer than that, or whose block began after the
-   * training did, saw charts with fewer than two points in range and no chart
-   * at all, plus a strength score that never moved because all eight of its
-   * weekly points looked back over almost the same stretch.
-   *
-   * Progress is a property of what you have logged, not of which block you are
-   * currently in. Capped at a year so a long history stays legible at this
-   * width; past that the window slides rather than compressing.
+   * whose block began after their training did saw charts with fewer than two
+   * points in range, and a strength score that never moved.
    */
-  const { from, weeks } = useMemo(() => {
-    const thisWeek = mondayOf(new Date());
-    const earliest = ix.logs.map((l) => l.date).sort()[0];
-    if (!earliest) return { from: thisWeek, weeks: 1 };
+  const { from, recentFrom } = useMemo(() => {
+    const earliest = ix.logs[0]?.date;
+    const recent = addDays(mondayOf(today), -7 * (WINDOW_WEEKS - 1));
+    // Never earlier than the training itself, so a young account is not
+    // compared against weeks it did not exist for.
+    const recentFrom = earliest && earliest > recent ? mondayOf(earliest) : recent;
+    return { from: allTime && earliest ? mondayOf(earliest) : recentFrom, recentFrom };
+  }, [ix.logs, today, allTime]);
 
-    const start = mondayOf(earliest);
-    const span = Math.round((Date.parse(thisWeek) - Date.parse(start)) / (7 * 86_400_000)) + 1;
-    const capped = Math.min(Math.max(span, 1), 52);
-    return {
-      from: capped === span ? start : addDays(thisWeek, -7 * (capped - 1)),
-      weeks: capped,
-    };
-  }, [ix.logs]);
-
-  const strength = useMemo(
-    () => strengthSeries(ix, from, weeks, { unit, sex }),
-    [ix, from, weeks, unit, sex],
+  const summary = useMemo(
+    () => progressSummary(ix, { from, to: today, sessions: days }),
+    [ix, from, today, days],
   );
 
-  /** Everything trained: what the plan currently holds, then anything logged
-   *  that has since dropped out of it — history does not disappear because the
-   *  week was rebuilt. Built by concatenation rather than by pushing into the
-   *  array `programExercises` returned, which also drops an O(n²) lookup. */
-  const trained = useMemo(() => {
-    const logged = new Set(ix.logs.map((l) => l.exerciseId));
-    const planned = programExercises(ix, days).filter((e) => logged.has(e.id));
-    const inPlan = new Set(planned.map((e) => e.id));
-    const dropped = ix.exercises.filter((e) => logged.has(e.id) && !inPlan.has(e.id));
-    return [...planned, ...dropped];
-  }, [ix, days]);
+  /**
+   * The triage is always about the last twelve weeks, whatever the charts are
+   * showing.
+   *
+   * Asking to *see* more history is not the same as asking to be judged
+   * against more of it: with the verdicts derived from the display window, a
+   * tap on "All time" quietly rewrote them — a lift you had already brought
+   * back would start reading as regressed again the moment a two-year-old
+   * personal best came into range.
+   */
+  const triage = useMemo(
+    () =>
+      attention(
+        from === recentFrom
+          ? summary
+          : progressSummary(ix, { from: recentFrom, to: today, sessions: days }),
+        today,
+        3,
+      ),
+    [ix, summary, from, recentFrom, today, days],
+  );
+
+  const weeksBack = useMemo(
+    () => Math.max(1, Math.round((Date.parse(today) - Date.parse(from)) / (7 * 86_400_000)) + 1),
+    [from, today],
+  );
+  const strength = useMemo(
+    () => strengthSeries(ix, from, weeksBack, { unit, sex, birthYear }),
+    [ix, from, weeksBack, unit, sex, birthYear],
+  );
+
+  const grid = useMemo(
+    () =>
+      patternWeeks(ix, recentWeeks(today, GRID_WEEKS), (weekOf) =>
+        coveragePatterns(ix, weekOf).flatMap((p) => (p.key ? [p.key] : [])),
+      ),
+    [ix, today],
+  );
+
+  /** Grouped by movement, in the app's own pattern order, so the list reads as
+   *  the week does rather than as an alphabet. */
+  const groups = useMemo(() => {
+    const out: { key: string; name: string; items: ExerciseProgress[] }[] = [];
+    for (const pattern of ix.patterns) {
+      const items = summary.filter((p) => p.pattern?.id === pattern.id);
+      if (items.length) out.push({ key: pattern.id, name: tr.pattern(pattern), items });
+    }
+    const rest = summary.filter((p) => !p.pattern);
+    if (rest.length) out.push({ key: 'other', name: tr.t('prog.other'), items: rest });
+    return out;
+  }, [summary, ix.patterns, tr]);
 
   const scored = strength.filter((s) => s.score !== null);
   const current = scored.at(-1) ?? null;
@@ -108,18 +162,35 @@ export default function ProgressPage() {
   const earlier = scored.at(-9) ?? scored[0] ?? null;
   const delta = current && earlier && earlier !== current ? current.score! - earlier.score! : null;
   const bodyWeight = bodyWeightOn(ix, today);
+  const open = summary.find((p) => p.exercise.id === detail) ?? null;
 
-  if (trained.length === 0) {
+  if (!summary.length) {
     return (
-      <Card>
-        <p className="text-[var(--color-muted)]">{tr.t('prog.empty')}</p>
-      </Card>
+      <Page>
+        <Card>
+          <p className="text-[var(--color-muted)]">{tr.t('prog.empty')}</p>
+        </Card>
+      </Page>
     );
   }
 
   return (
     <Page>
-      {/* The one card that is entirely the second voice: it measures you
+      {/* 1 — the reason the page exists. */}
+      <Card className="flex flex-col gap-2.5">
+        <h2 className="text-[17px] font-semibold">{tr.t('prog.needsLook')}</h2>
+        {triage.length === 0 ? (
+          <Summary tone="good">{tr.t('prog.allClear')}</Summary>
+        ) : (
+          <div role="list" className="flex flex-col gap-1">
+            {triage.map((a) => (
+              <TriageRow key={a.progress.exercise.id} item={a} onOpen={setDetail} />
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* 2 — the one card that is entirely the second voice: it measures you
           rather than recording what you did. */}
       <Card className="flex flex-col gap-3 border-[var(--color-accent-2)]/35 bg-[var(--color-accent-2-bg)]">
         <div className="flex items-center gap-1">
@@ -159,7 +230,11 @@ export default function ProgressPage() {
 
         {scored.length > 1 && (
           <LineChart
-            points={strength.map((s) => ({ label: shortDay(s.weekOf, tr.lang), value: s.score }))}
+            points={scored.map((s) => ({
+              date: s.weekOf,
+              value: s.score!,
+              label: shortDay(s.weekOf, tr.lang),
+            }))}
             unit=""
             tone="secondary"
             label={tr.t('prog.scoreOverTime')}
@@ -201,58 +276,40 @@ export default function ProgressPage() {
         </form>
       </Card>
 
-      {trained.map((e) => {
-        const p = progressFor(ix, e.id, from, weeks);
-        const t = trend(ix, e.id, from, weeks);
-        const points = withPeaks(p.series, tr.lang);
-        return (
-          <Card key={e.id} className="flex flex-col gap-2">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="flex-1 truncate text-[17px] font-semibold">{tr.exercise(e)}</h2>
-              <span
-                className={cn(
-                  'text-[15px] font-bold',
-                  t.dir === 'up' && 'text-[var(--color-accent)]',
-                  t.dir === 'down' && 'text-[var(--color-bad)]',
-                  (t.dir === 'flat' || t.dir === 'none') && 'text-[var(--color-muted)]',
-                )}
-              >
-                {t.dir === 'up' ? '▲' : t.dir === 'down' ? '▼' : '—'}
-              </span>
-            </div>
+      {/* 3 — the app's thesis on a time axis. */}
+      <Card className="flex flex-col gap-2">
+        <h2 className="text-[17px] font-semibold">{tr.t('prog.patterns')}</h2>
+        <PatternGrid grid={grid} thisWeek={mondayOf(today)} />
+        <p className="text-[11px] text-[var(--color-muted)]">{tr.t('prog.patternsBody')}</p>
+      </Card>
 
-            <Summary tone={t.dir === 'up' ? 'good' : t.dir === 'down' ? 'gap' : 'near'}>
-              {trendText(tr, t)}
-            </Summary>
+      {/* 4 — everything, compactly. */}
+      <Card className="flex flex-col gap-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-[17px] font-semibold">{tr.t('prog.allLifts')}</h2>
+          <Button
+            variant="ghost"
+            className="min-h-8 px-2 text-xs text-[var(--color-muted)]"
+            aria-pressed={allTime}
+            onClick={() => setAllTime((v) => !v)}
+          >
+            {allTime ? tr.t('prog.windowAll') : tr.t('prog.window', { n: WINDOW_WEEKS })}
+          </Button>
+        </div>
 
-            {p.bestSet && (
-              <p className="num text-[13px] text-[var(--color-muted)]">
-                {tr.t('prog.bestSet', {
-                  w: p.bestSet.weight ?? 0,
-                  unit,
-                  r: p.bestSet.reps ?? 0,
-                })}{' '}
-                · {tr.plural(p.totalSets, 'set')}
-              </p>
-            )}
+        {groups.map((group) => (
+          <section key={group.key} className="flex flex-col gap-1">
+            <h3 className="text-xs font-semibold tracking-wide text-[var(--color-muted)] uppercase">
+              {group.name}
+            </h3>
+            {group.items.map((p) => (
+              <LiftRow key={p.exercise.id} progress={p} unit={unit} onOpen={setDetail} />
+            ))}
+          </section>
+        ))}
+      </Card>
 
-            <LineChart
-              points={points}
-              unit={unit}
-              /* The whole Progress tab speaks in the second voice: everything
-                 here measures you, rather than ticking off work done. */
-              tone="secondary"
-              label={tr.t('prog.overTime')}
-              tableLabel={tr.t('prog.table')}
-              labelHeader={tr.t('prog.week')}
-              valueHeader={tr.t('prog.value')}
-            />
-            {points.some((c) => c.peak) && (
-              <p className="text-[11px] text-[var(--color-muted)]">{tr.t('prog.prs')}</p>
-            )}
-          </Card>
-        );
-      })}
+      {open && <DetailSheet progress={open} unit={unit} onClose={() => setDetail(null)} />}
 
       <Sheet title={tr.t('prog.strengthWhat')} open={explain} onClose={() => setExplain(false)}>
         <p className="text-sm leading-relaxed">{tr.t('prog.strengthBody')}</p>
@@ -263,7 +320,7 @@ export default function ProgressPage() {
           <div className="flex flex-col gap-1">
             {current.parts.map((part) => (
               <div key={part.key} className="flex items-baseline justify-between gap-3 text-sm">
-                <span>{tr.t(`pattern.${part.key}` as never)}</span>
+                <span>{tr.t(`pattern.${part.key}` as Key)}</span>
                 <span className={cn('num', part.best === 0 && 'text-[var(--color-bad)]')}>
                   {part.best ? `${Math.round(part.best)} ${unit}` : '—'}
                 </span>
@@ -275,3 +332,236 @@ export default function ProgressPage() {
     </Page>
   );
 }
+
+/* ------------------------------------------------------------------ parts */
+
+/**
+ * What a verdict says, in words.
+ *
+ * Dated rather than counted in weeks. "Three weeks ago" has to round, and a
+ * rounded zero reads as "your best, set 0 weeks ago" — while the date it is
+ * rounding is both shorter and exact.
+ */
+function verdictOf(item: Attention, tr: ReturnType<typeof useT>): string {
+  const { progress } = item;
+  const when = (iso: string | null | undefined) => (iso ? shortDay(iso, tr.lang) : '');
+  switch (item.kind) {
+    case 'regressed':
+      return tr.t('prog.vRegressed', {
+        pct: Math.abs(progress.drawdown?.pct ?? 0),
+        date: when(progress.drawdown?.bestDate),
+      });
+    case 'stalled':
+      return tr.t('prog.vStalled', {
+        date: when(progress.drawdown?.bestDate),
+        s: tr.plural(progress.sessionsSinceBest, 'session'),
+      });
+    case 'dormant':
+      return tr.t('prog.vDormant', { date: when(progress.lastDate) });
+  }
+}
+
+function TriageRow({ item, onOpen }: { item: Attention; onOpen: (id: string) => void }) {
+  const tr = useT();
+  const { progress } = item;
+  return (
+    <button
+      type="button"
+      role="listitem"
+      onClick={() => onOpen(progress.exercise.id)}
+      aria-label={tr.t('prog.open', { name: tr.exercise(progress.exercise) })}
+      className="flex cursor-pointer items-center gap-3 rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3 py-2.5 text-left"
+    >
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className="truncate text-sm font-semibold">{tr.exercise(progress.exercise)}</span>
+          <Chip tone={item.kind === 'regressed' ? 'bad' : 'info'}>
+            {tr.t(`prog.k${item.kind}` as Key)}
+          </Chip>
+        </div>
+        <p className="mt-0.5 text-xs text-[var(--color-muted)]">{verdictOf(item, tr)}</p>
+      </div>
+      <Sparkline points={toPoints(progress, tr.lang)} />
+    </button>
+  );
+}
+
+function LiftRow({
+  progress,
+  unit,
+  onOpen,
+}: {
+  progress: ExerciseProgress;
+  unit: string;
+  onOpen: (id: string) => void;
+}) {
+  const tr = useT();
+  const latest = progress.sessions.at(-1);
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(progress.exercise.id)}
+      aria-label={tr.t('prog.open', { name: tr.exercise(progress.exercise) })}
+      className="flex min-h-[var(--spacing-tap)] cursor-pointer items-center gap-3 rounded-[11px] px-1 text-left"
+    >
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm">{tr.exercise(progress.exercise)}</div>
+        <div className="num text-[11px] text-[var(--color-muted)]">
+          {latest
+            ? `${Math.round(latest.value * 10) / 10} ${unit} · ${tr.plural(progress.totalSets, 'set')}`
+            : tr.plural(progress.totalSets, 'set')}
+        </div>
+      </div>
+      {/* Carries and rotation have no line to draw — see `metricFor`. The row
+          still exists, because the sets were still done. */}
+      <Sparkline points={toPoints(progress, tr.lang)} />
+    </button>
+  );
+}
+
+function PatternGrid({
+  grid,
+  thisWeek,
+}: {
+  grid: {
+    pattern: import('@athletic/domain').Pattern;
+    weeks: import('@athletic/domain').PatternWeek[];
+  }[];
+  /** The week in progress, which is not a week you have missed. */
+  thisWeek: string;
+}) {
+  const tr = useT();
+  return (
+    // A real table: twelve unlabelled squares a row is exactly the content a
+    // screen reader needs row and column headers for.
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse">
+        <caption className="sr-only">{tr.t('prog.patterns')}</caption>
+        <tbody>
+          {grid.map(({ pattern, weeks }) => (
+            <tr key={pattern.id}>
+              <th
+                scope="row"
+                className="w-0 py-[3px] pr-2 text-left text-[11px] font-medium whitespace-nowrap text-[var(--color-muted)]"
+              >
+                {tr.pattern(pattern)}
+              </th>
+              {weeks.map((w) => {
+                /* The week you are in has not finished, and scoring it as a
+                   miss means every Monday morning opens on a full red column
+                   for work that is not late yet. */
+                const pending = w.sets === 0 && w.weekOf === thisWeek;
+                return (
+                  <td key={w.weekOf} className="p-[1.5px]">
+                    <div
+                      title={`${w.weekOf} · ${w.sets}`}
+                      aria-label={tr.t(
+                        pending
+                          ? 'prog.cellThisWeek'
+                          : w.wanted
+                            ? 'prog.cellSets'
+                            : 'prog.cellNotAsked',
+                        { n: w.sets },
+                      )}
+                      className={cn(
+                        'h-4 w-full min-w-3 rounded-[3px]',
+                        pending && 'border border-[var(--color-line)]',
+                        !pending && w.sets === 0 && w.wanted && 'bg-[var(--color-bad-bg)]',
+                        // Not asked for that week is marked, not blamed — the
+                        // same historisation rule the coverage view obeys.
+                        !pending &&
+                          w.sets === 0 &&
+                          !w.wanted &&
+                          'border border-dashed border-[var(--color-line)]',
+                        w.sets > 0 && 'bg-[var(--color-accent)]',
+                      )}
+                      style={
+                        w.sets > 0 ? { opacity: Math.min(1, 0.35 + w.sets * 0.12) } : undefined
+                      }
+                    />
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function DetailSheet({
+  progress,
+  unit,
+  onClose,
+}: {
+  progress: ExerciseProgress;
+  unit: string;
+  onClose: () => void;
+}) {
+  const tr = useT();
+  const points = toPoints(progress, tr.lang);
+  const d = progress.drawdown;
+
+  return (
+    <Sheet title={tr.exercise(progress.exercise)} open onClose={onClose}>
+      {progress.metric === null ? (
+        <p className="text-sm text-[var(--color-muted)]">{tr.t('prog.noMetric')}</p>
+      ) : points.length < 2 ? (
+        <p className="text-sm text-[var(--color-muted)]">{tr.t('prog.oneSession')}</p>
+      ) : (
+        <>
+          <LineChart
+            points={points}
+            unit={unit}
+            tone="secondary"
+            label={tr.t(progress.metric === 'e1rm' ? 'prog.overTime' : 'prog.overTimeWeight')}
+            tableLabel={tr.t('prog.table')}
+            labelHeader={tr.t('prog.session')}
+            valueHeader={tr.t('prog.value')}
+          />
+          {points.some((p) => p.peak) && (
+            <p className="text-[11px] text-[var(--color-muted)]">{tr.t('prog.prs')}</p>
+          )}
+          <p className="text-[11px] text-[var(--color-muted)]">{tr.t('prog.gapNote')}</p>
+        </>
+      )}
+
+      <dl className="flex flex-col gap-1 border-t border-[var(--color-line)] pt-3 text-sm">
+        {progress.topSet && (
+          <Row
+            k={tr.t('prog.bestSetLabel')}
+            v={tr.t('prog.bestSetValue', {
+              w: progress.topSet.weight ?? 0,
+              unit,
+              r: progress.topSet.reps ?? 0,
+            })}
+          />
+        )}
+        <Row k={tr.t('prog.setsLogged')} v={String(progress.totalSets)} />
+        {progress.lastDate && (
+          <Row k={tr.t('prog.lastTrained')} v={shortDay(progress.lastDate, tr.lang)} />
+        )}
+        {d && (
+          <Row
+            k={tr.t('prog.best')}
+            v={`${Math.round(d.best * 10) / 10} ${unit} · ${shortDay(d.bestDate, tr.lang)}`}
+          />
+        )}
+        {/* Withheld rather than hedged when the two ends of the comparison
+            disagree about whether effort was recorded — an unrated set scores
+            about 5% lower for reasons that are not about strength. */}
+        {d && !d.confident && (
+          <p className="mt-1 text-[11px] text-[var(--color-muted)]">{tr.t('prog.unrated')}</p>
+        )}
+      </dl>
+    </Sheet>
+  );
+}
+
+const Row = ({ k, v }: { k: string; v: string }) => (
+  <div className="flex items-baseline justify-between gap-3">
+    <dt className="text-[var(--color-muted)]">{k}</dt>
+    <dd className="num font-semibold">{v}</dd>
+  </div>
+);

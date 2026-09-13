@@ -6,7 +6,7 @@
  */
 
 import type { Translator } from './hooks';
-import type { Suggestion, Trend } from '@athletic/domain';
+import type { Suggestion } from '@athletic/domain';
 
 export function suggestionText(tr: Translator, s: Suggestion, unit: string): string {
   const w = s.detail.lastWeight ? `${s.detail.lastWeight} ${unit}` : '';
@@ -29,15 +29,6 @@ export function suggestionText(tr: Translator, s: Suggestion, unit: string): str
 export function targetText(tr: Translator, s: Suggestion, unit: string): string {
   if (s.reps === null) return s.weight ? `${s.weight} ${unit}` : tr.t('train.pickLoad');
   return `${s.weight ? `${s.weight} ${unit}` : '—'} × ${s.reps}`;
-}
-
-export function trendText(tr: Translator, t: Trend): string {
-  if (t.points === 0) return tr.t('trend.none');
-  if (t.points === 1) return tr.t('trend.one');
-  if (t.dir === 'up') return tr.t('trend.up', { pct: t.pct });
-  if (t.dir === 'down') return tr.t('trend.down');
-  if (t.stalledWeeks >= 3) return tr.t('trend.flatFor', { n: t.stalledWeeks });
-  return tr.t('trend.flat');
 }
 
 export const EFFORTS = [0, 1, 2, 4] as const;

@@ -29,7 +29,8 @@ import {
 import { SEED_EXERCISES, SEED_PATTERNS, buildSlots, findSplit } from '@athletic/domain';
 import { addDays, buildProgram, index, mondayOf } from '@athletic/domain';
 import type { Snapshot } from '@athletic/domain';
-import { DEMO_HEIGHT_CM, DEMO_SEX, DEMO_WEEKS, isDemoEmail, seedDemoHistory } from './seed-demo';
+import { DEMO_HEIGHT_CM, DEMO_SEX, DEMO_WEEKS } from './demo-history';
+import { isDemoEmail, seedDemoHistory } from './seed-demo';
 
 /** All seeded rows share one sequence value — they are one logical change. */
 export const nextSeq = sql<number>`nextval('change_seq')`;

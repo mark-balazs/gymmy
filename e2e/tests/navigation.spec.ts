@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, logSet, signInAs, test } from '../fixtures/test';
+import { exerciseNameAt, expect, logSet, signInAs, test } from '../fixtures/test';
 
 /**
  * Swiping between tabs.
@@ -138,11 +138,15 @@ test.describe('Swiping between tabs', () => {
       onboarded: true,
       history: { split: 'sevenPattern', weeksBack: 3, exercises: ['Goblet Squat'] },
     });
+    const lift = await exerciseNameAt(page);
     await logSet(page, 0, 60, 8);
     await expect(page.getByText('60 kg × 8').first()).toBeVisible();
 
     await page.goto('/progress');
-    const chart = page.locator('svg[data-no-swipe]').first();
+    await page.getByRole('button', { name: `Show ${lift}` }).click();
+
+    const sheet = page.getByRole('dialog');
+    const chart = sheet.locator('svg[data-no-swipe]');
     await expect(chart).toBeVisible();
 
     const box = (await chart.boundingBox())!;
@@ -151,6 +155,10 @@ test.describe('Swiping between tabs', () => {
       [box.x + box.width - 8, box.y + box.height / 2],
       [box.x + 8, box.y + box.height / 2],
     );
+
+    // Neither outcome the gesture could otherwise have had: the tab bar does
+    // not move, and the sheet the chart is in does not dismiss.
     await expect(page).toHaveURL(/\/progress/);
+    await expect(chart).toBeVisible();
   });
 });

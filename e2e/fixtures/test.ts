@@ -150,6 +150,18 @@ export async function logSet(
 }
 
 /**
+ * The name of the exercise in a given Train card.
+ *
+ * Read off the page rather than assumed: which exercise the generator picks
+ * depends on the split in force, so a hard-coded name turns a split change into
+ * a mystery failure three specs away from the cause.
+ */
+export async function exerciseNameAt(page: Page, index = 0): Promise<string> {
+  const info = page.getByRole('button', { name: /^About / }).nth(index);
+  return (await info.getAttribute('aria-label'))!.replace(/^About /, '');
+}
+
+/**
  * Logs a set taking everything the coach suggested — the one-tap path, and the
  * one almost every real set goes through.
  */

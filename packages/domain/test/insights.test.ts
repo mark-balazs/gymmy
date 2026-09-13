@@ -1,0 +1,226 @@
+import { describe, expect, it } from 'vitest';
+import { attention, drawdownOf, metricFor, type ExerciseProgress, type SessionPoint } from '../src';
+import { seedSnapshot } from './fixture';
+import { index } from '../src/model';
+
+/** One point per training day, oldest first — the shape `sessionsOf` produces. */
+const series = (
+  values: number[],
+  opts: { rated?: boolean[]; from?: string; everyDays?: number } = {},
+): SessionPoint[] => {
+  let best = -Infinity;
+  return values.map((value, i) => {
+    const peak = value > best;
+    if (peak) best = value;
+    const d = new Date(`${opts.from ?? '2026-04-06'}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + i * (opts.everyDays ?? 7));
+    return {
+      date: d.toISOString().slice(0, 10),
+      value,
+      sets: 3,
+      peak,
+      rated: opts.rated?.[i] ?? true,
+    };
+  });
+};
+
+describe('drawdownOf', () => {
+  it('says nothing when the best session is a recent one', () => {
+    // Still climbing. There is no gap between "your best" and "what you lift
+    // now" to report, because they are the same session.
+    expect(drawdownOf(series([100, 102, 104, 106]))).toBeNull();
+  });
+
+  it('does not call one bad day a regression', () => {
+    // Peaked, dipped hard for a single session, came back. Comparing the last
+    // point alone would read this as −10%; comparing recent form reads it as
+    // what it is, which is a Tuesday.
+    expect(drawdownOf(series([100, 105, 110, 99, 110]))).toBeNull();
+  });
+
+  it('reports a slide that has lasted', () => {
+    const d = drawdownOf(series([100, 110, 120, 106, 105, 107]));
+    expect(d).not.toBeNull();
+    expect(d!.best).toBe(120);
+    // Recent form is the *best* of the last three, not the last point — being
+    // judged on your worst recent session would be the same unfairness again.
+    expect(d!.form).toBe(107);
+    expect(d!.pct).toBe(-11);
+  });
+
+  it('marks the comparison unfair when one end is unrated', () => {
+    // est1RM scores an unrated set as taken to failure, so it reads lower for
+    // reasons that have nothing to do with strength.
+    const rated = [true, true, true, false, false, false];
+    expect(drawdownOf(series([100, 110, 120, 106, 105, 107], { rated }))!.confident).toBe(false);
+    expect(drawdownOf(series([100, 110, 120, 106, 105, 107]))!.confident).toBe(true);
+  });
+
+  it('has nothing to say about a single session', () => {
+    expect(drawdownOf(series([100]))).toBeNull();
+  });
+});
+
+describe('metricFor', () => {
+  const ix = index(seedSnapshot());
+  const of = (key: string) => ix.patterns.find((p) => p.key === key) ?? null;
+
+  it('gives carries and rotation no chart at all', () => {
+    // Their reps are metres and seconds. An estimated 1RM from them is not a
+    // number about strength.
+    expect(metricFor(of('carry'))).toBeNull();
+    expect(metricFor(of('rotate'))).toBeNull();
+  });
+
+  it('measures isolation by the weight on the bar', () => {
+    // Ten to fifteen reps is outside the range Epley was fitted for.
+    expect(metricFor(of('isolation'))).toBe('weight');
+  });
+
+  it('measures the big patterns by estimated 1RM', () => {
+    for (const key of ['squat', 'hinge', 'lunge', 'push', 'pull']) {
+      expect(metricFor(of(key))).toBe('e1rm');
+    }
+  });
+});
+
+describe('attention', () => {
+  const ix = index(seedSnapshot());
+  const exercise = ix.exercises[0]!;
+  const pattern = ix.patternById.get(exercise.patternId) ?? null;
+
+  const progress = (over: Partial<ExerciseProgress>): ExerciseProgress => {
+    const sessions = over.sessions ?? [];
+    return {
+      exercise,
+      pattern,
+      metric: 'e1rm',
+      sessions,
+      topSet: null,
+      totalSets: sessions.length * 3,
+      lastDate: sessions.at(-1)?.date ?? null,
+      daysSince: 0,
+      drawdown: drawdownOf(sessions),
+      sessionsSinceBest: 0,
+      inPlan: true,
+      ...over,
+    };
+  };
+
+  it('stays quiet when nothing is wrong', () => {
+    // The empty state is the most useful thing this page says on most days.
+    expect(attention([progress({ sessions: series([100, 104, 108, 112]) })], '2026-09-13')).toEqual(
+      [],
+    );
+  });
+
+  it('will not accuse you on an unfair comparison', () => {
+    const rated = [true, true, true, false, false, false];
+    const p = progress({ sessions: series([100, 110, 120, 100, 101, 100], { rated }) });
+    expect(p.drawdown!.pct).toBeLessThan(-5);
+    expect(attention([p], '2026-09-13')).toEqual([]);
+  });
+
+  it('has no verdict for a movement with no metric', () => {
+    const p = progress({ metric: null, sessions: series([100, 110, 120, 100, 101, 100]) });
+    expect(attention([p], '2026-09-13')).toEqual([]);
+  });
+
+  it('calls a sustained slide a regression', () => {
+    const p = progress({ sessions: series([100, 110, 120, 100, 101, 100]) });
+    const [first] = attention([p], '2026-09-13');
+    expect(first?.kind).toBe('regressed');
+  });
+
+  it('calls a long flat stretch a stall', () => {
+    // Same number, week after week, for two months and nine attempts. That is
+    // the lift having stopped, not the calendar.
+    const p = progress({
+      sessions: series([100, 110, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120], {
+        from: '2026-05-04',
+      }),
+      sessionsSinceBest: 9,
+    });
+    const [first] = attention([p], '2026-09-13');
+    expect(first?.kind).toBe('stalled');
+    expect(first?.weeksSinceBest).toBeGreaterThanOrEqual(8);
+  });
+
+  it('does not call ordinary training a stall', () => {
+    // The rule that shipped first flagged nine lifts out of eleven on an
+    // account that was training perfectly well. Each of these is a stall under
+    // that rule and is not one under this rule, which is the whole difference.
+
+    // Five weeks at the same number, trained every one of them. A month at the
+    // same weight is a month — and anything loaded off a 5 kg stack physically
+    // cannot move faster than that.
+    const recentPeak = progress({
+      sessions: series([100, 110, 120, 120, 120, 120, 120, 120], { from: '2026-07-20' }),
+      sessionsSinceBest: 5,
+      daysSince: 0,
+    });
+    expect(attention([recentPeak], '2026-09-13')).toEqual([]);
+
+    // Long enough ago, but trained fortnightly, so it has only been attempted
+    // five times since. Five attempts is not enough to have established that
+    // anything is stuck.
+    const fewAttempts = progress({
+      sessions: series([100, 110, 120, 120, 120, 120, 120, 120], {
+        from: '2026-06-08',
+        everyDays: 14,
+      }),
+      sessionsSinceBest: 5,
+      daysSince: 0,
+    });
+    expect(fewAttempts.drawdown).not.toBeNull();
+    expect(attention([fewAttempts], '2026-09-13')).toEqual([]);
+  });
+
+  it('notices a planned lift you have stopped doing', () => {
+    const p = progress({
+      sessions: series([100, 104, 108, 112], { from: '2026-06-01' }),
+      daysSince: 40,
+    });
+    const [first] = attention([p], '2026-09-13');
+    expect(first?.kind).toBe('dormant');
+  });
+
+  it('does not nag about something you dropped from the plan', () => {
+    const p = progress({
+      sessions: series([100, 104, 108, 112], { from: '2026-06-01' }),
+      daysSince: 40,
+      inPlan: false,
+    });
+    expect(attention([p], '2026-09-13')).toEqual([]);
+  });
+
+  it('shows a mix of kinds rather than three of the same', () => {
+    // Three stalls in a row would bury the lift nobody has touched since July,
+    // and those are different problems with different answers.
+    const dormant = progress({
+      sessions: series([100, 104, 108, 112], { from: '2026-06-01' }),
+      daysSince: 40,
+    });
+    const stalled = progress({
+      sessions: series([100, 110, 120, 120, 120, 120, 120, 120, 120, 120], {
+        from: '2026-05-04',
+      }),
+      sessionsSinceBest: 7,
+    });
+    const small = progress({ sessions: series([100, 110, 120, 112, 111, 112]) });
+    const big = progress({ sessions: series([100, 110, 120, 90, 91, 90]) });
+
+    expect(attention([dormant, stalled, small, big], '2026-09-13').map((x) => x.kind)).toEqual([
+      'regressed',
+      'stalled',
+      'dormant',
+    ]);
+  });
+
+  it('takes the worst of a kind before the next-worst of that kind', () => {
+    const small = progress({ sessions: series([100, 110, 120, 112, 111, 112]) });
+    const big = progress({ sessions: series([100, 110, 120, 90, 91, 90]) });
+    const picked = attention([small, big], '2026-09-13', 2);
+    expect(picked[0]!.progress.drawdown!.pct).toBeLessThan(picked[1]!.progress.drawdown!.pct);
+  });
+});

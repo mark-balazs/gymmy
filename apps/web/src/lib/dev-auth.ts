@@ -61,9 +61,13 @@ export async function devSignIn(): Promise<void> {
       email: DEV_EMAIL,
       emailVerified: new Date(),
     });
-    // The Google flow gets this from Auth.js's createUser event, which a manual
-    // insert never fires — without it the account syncs down empty.
-    await seedNewUser(userId);
+    /* The Google flow gets this from Auth.js's createUser event, which a manual
+     * insert never fires — without it the account syncs down empty. The address
+     * has to go with it: the seeder decides from the address whether this is
+     * the demo account, so omitting it meant `DEMO_EMAIL=dev@localhost` — the
+     * one way to look at the app locally with months of history in it — was
+     * silently ignored. */
+    await seedNewUser(userId, DEV_EMAIL);
   }
 
   const sessionToken = randomUUID();

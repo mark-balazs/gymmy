@@ -1,7 +1,15 @@
 /** Flow 07 — see ../flows/07-choosing-a-split.md */
 
 import type { Page } from '@playwright/test';
-import { confirmSheet, completeOnboarding, expect, logSet, signInAs, test } from '../fixtures/test';
+import {
+  completeOnboarding,
+  confirmSheet,
+  exerciseNameAt,
+  expect,
+  logSet,
+  signInAs,
+  test,
+} from '../fixtures/test';
 
 const SEVEN = ['Squat', 'Hinge', 'Lunge', 'Push', 'Pull', 'Rotate', 'Carry'];
 /** What push/pull/legs and upper/lower each set out to train. */
@@ -139,6 +147,7 @@ test.describe('Choosing a split', () => {
     // Sets reference exercises, not slots, so rearranging the week cannot
     // destroy what was already lifted.
     await completeOnboarding(app, { days: '3 days' });
+    const lift = await exerciseNameAt(app);
     await logSet(app, 0, 60, 8);
 
     await app.getByRole('link', { name: 'Settings', exact: true }).click();
@@ -149,7 +158,9 @@ test.describe('Choosing a split', () => {
 
     await app.getByRole('link', { name: 'Progress', exact: true }).click();
     await app.waitForURL('**/progress');
-    await expect(app.getByText('60', { exact: false }).first()).toBeVisible();
+    // Listed under the movement it trains, even though the week it was logged
+    // in no longer exists — which is the claim being made.
+    await expect(app.getByRole('button', { name: `Show ${lift}` })).toBeVisible();
   });
 });
 

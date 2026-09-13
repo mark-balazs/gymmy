@@ -95,12 +95,53 @@ Signing in as `DEMO_EMAIL` (default `demo-gymmy@yopmail.com`) seeds five months
 of history, a bodyweight series, a sex and a height — everything the Progress tab
 needs to have something to show.
 
+The generator is split in two on purpose. `demo-history.ts` is **pure** — it
+takes the plan and today's Monday and returns rows — and holds every judgement
+about what plausible training looks like. `seed-demo.ts` only turns those rows
+into SQL. That is what lets the interesting half be asserted without Postgres,
+which is where the mistakes actually are.
+
+**It produces sets, and only sets.** One row per set performed, carrying what
+was on the bar, how many reps went up and how many were left in reserve — the
+same three numbers a person types in. Nothing derived is stored beside them: no
+per-exercise curve, no session summary, no progress series. Everything the
+Progress tab draws is computed back out of those points by `progressSummary`,
+exactly as it is for a real account. A demo whose charts were fed from a curve
+the app does not otherwise have would be a demo of something we do not ship.
+
 Loads come from `demo-loads.ts`, **one entry per exercise**. They used to be per
 *pattern*, which logged a goblet squat at 90 kg and drew the same staircase on
-all seventy charts. Progress is quick early and flattens, rounds to real plate
+all seventy charts.
+
+Each entry may also carry an **arc**, which is what stopped the demo being a
+place where nothing ever goes wrong. Every lift used to be
+`start × (1 + gain × curve(week))` — one shared monotone curve — so no lift
+could stall, slide, appear late or be quietly dropped, and those are precisely
+the four things the Progress tab exists to point out. Its lead section rendered
+empty on the one account anybody opens. The arcs in force:
+
+| Arc | Lift | What it shows |
+| --- | --- | --- |
+| `stall` | Barbell Bench Press | Moved for ten weeks, then sat. Reps stop wobbling too — grinding the same five *is* the stall |
+| `regress` | Reverse Lunge | Peaked in July, dropped ~13%, clawing back slowly |
+| `irregular` | Chest-Supported Row | Two weeks in three, so the line has real gaps |
+| `late` | Step-Up | Added two months in; its line starts mid-chart |
+| `abandoned` | Overhead Tricep Extension | Still on the plan, untouched since July |
+
+On top of the arc: progress is quick early and flattens, rounds to real plate
 jumps (which produces uneven plateaus by itself), and is interrupted by a deload
-every sixth week, a bad session about one in ten, a missed session and a week
+every sixth week, a bad session about one in ten, two missed sessions and a week
 off. Bodyweight movements carry a fraction of bodyweight and progress in reps.
+
+Noise is salted per exercise where it should be and shared where it should be: a
+bad *day* hits everything you touched that evening, which is honest and makes the
+charts dip together, while the rep wobble is per lift — without that, five charts
+gain and lose the same rep in lockstep, which is the tell that one generator drew
+all of them.
 
 All of it is derived rather than random — the same account seeded twice produces
 identical history, which is what keeps the seed safe to re-run.
+
+Locally, `DEMO_EMAIL=dev@localhost` in `apps/web/.env.local` gives the dev-bypass
+account the whole demo history, which is the fastest way to look at Progress
+with something in it.

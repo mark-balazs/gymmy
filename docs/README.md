@@ -46,6 +46,27 @@ as a distinct state from a sync failure, because "saved here, not there yet" and
 dictionary; pattern, slot, day and split names translate by key with the user's
 own wording winning where they renamed something.
 
+**The database stores what happened, never what it means.** A set row carries the
+weight, the reps and the reps in reserve that were logged, and nothing else.
+Every derived number — the estimated 1RM, the per-session series, drawdowns, the
+strength score, the triage on Progress — is computed at read time from those
+rows. Nothing pre-aggregated is stored, synced or seeded beside them. This is
+why the demo generator emits sets rather than a curve: the Progress tab reads
+that account back exactly as it reads a real one, so the two cannot drift, and a
+disagreement between the charts and the logs is a bug you can see rather than
+one the seed has papered over.
+
+**A verdict is withheld rather than hedged.** `est1RM` scores an unrated set as
+though it were taken to failure, so it reads about 5% *lower* than the same set
+with two reps in reserve recorded — which means somebody who simply stops rating
+their sets looks like they are regressing. Every comparison in
+[insights.ts](../packages/domain/src/insights.ts) carries `confident`, and the
+page drops the verdict when the two ends disagree about whether effort was
+recorded. Saying nothing is the honest answer; a softened accusation is still an
+accusation. The same rule is why a regression is measured against the best of
+the last three sessions rather than the single most recent one: one bad Tuesday
+is not a slide, and a page that tells you it is stops being believed.
+
 **The app must never be unrecoverable.** There is an error boundary, a stuck-load
 deadline, a boot watchdog that runs without React, and a sync-time repair for an
 account that was never seeded. Each exists because a real person got stuck.

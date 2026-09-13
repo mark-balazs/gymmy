@@ -3,7 +3,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Page } from '@playwright/test';
 import { seedSignInCode } from '../fixtures/auth';
-import { completeOnboarding, expect, logSet, test } from '../fixtures/test';
+import { completeOnboarding, exerciseNameAt, expect, logSet, test } from '../fixtures/test';
 
 /**
  * The whole thing, walked the way a person walks it.
@@ -63,6 +63,7 @@ test.describe('A full journey', () => {
     await completeOnboarding(page, { split: 'Push / Pull / Legs', days: '3 days' });
 
     // 3. Train. A real generated exercise, a real set.
+    const lift = await exerciseNameAt(page);
     await logSet(page, 0, 60, 8);
     await expect(page.getByText('60 kg × 8').first()).toBeVisible();
 
@@ -76,7 +77,7 @@ test.describe('A full journey', () => {
     // 5. And it shows up as progress.
     await tab(page, 'Progress').click();
     await page.waitForURL('**/progress');
-    await expect(page.getByText('60', { exact: false }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: `Show ${lift}` })).toBeVisible();
 
     // 6. Leave. Signing out wipes this device, so anything that had not
     //    reached the server would be gone for good — wait until it has.

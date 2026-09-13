@@ -23,7 +23,39 @@
  *           load *is* you. `start` is then the added weight, and `repGain` is
  *           how many reps are earned across the block — which is how these
  *           actually progress.
+ *   arc     what happened to this lift over the block. Absent means it simply
+ *           went up, which is the boring majority.
+ *
+ * The arc is the fix for a demo where nothing ever went wrong. Every lift used
+ * to be `start × (1 + gain × curve(week))`, one shared monotone curve, so no
+ * lift could stall, slide, appear late or be quietly dropped — and those are
+ * precisely the four things the Progress page exists to point out. On the one
+ * account we show people, its lead section had nothing to say.
  */
+
+/**
+ * How a lift went, beyond simply going up.
+ *
+ * This shapes what gets *logged* and nothing else. No arc is stored, synced or
+ * read back: what lands in the database is ordinary set rows, indistinguishable
+ * from sets a person typed in, and every number the Progress page shows is
+ * derived from those rows the same way it is for a real account. A demo whose
+ * charts were fed from a curve the app does not otherwise have would be a demo
+ * of something we do not ship.
+ */
+export type DemoArc =
+  /** Moved for a while, then stopped. The most common thing that happens to a
+   *  lift, and the one the old generator could not produce at all. */
+  | { kind: 'stall'; from: number }
+  /** Peaked, went backwards — a tweak, a layoff, a technique reset — and is
+   *  clawing its way back. */
+  | { kind: 'regress'; peak: number; drop: number }
+  /** Trained about two weeks in three, so the line has real gaps in it. */
+  | { kind: 'irregular' }
+  /** Not in the routine until partway through the block. */
+  | { kind: 'late'; from: number }
+  /** Still in the plan, but untouched for weeks. */
+  | { kind: 'abandoned'; after: number };
 
 export interface DemoLoad {
   start: number;
@@ -32,6 +64,7 @@ export interface DemoLoad {
   gain: number;
   bw?: number;
   repGain?: number;
+  arc?: DemoArc;
 }
 
 /** Fallbacks, by pattern, for anything not listed. */
@@ -70,16 +103,39 @@ export const DEMO_LOADS: Record<string, DemoLoad> = {
 
   /* ------------------------------------------------------------- lunge -- */
   'Walking Lunge': { start: 20, reps: 10, inc: 2, gain: 0.3 },
-  'Reverse Lunge': { start: 20, reps: 10, inc: 2, gain: 0.3 },
+  'Reverse Lunge': {
+    start: 20,
+    reps: 10,
+    inc: 2,
+    // Enough rungs on the rack that the slide below has somewhere to land: at
+    // four dumbbells' worth of range a 'regression' is one pair of bells.
+    gain: 0.35,
+    // Something went in the knee around week thirteen.
+    arc: { kind: 'regress', peak: 13, drop: 0.6 },
+  },
   'Bulgarian Split Squat': { start: 16, reps: 8, inc: 2, gain: 0.35 },
-  'Step-Up': { start: 16, reps: 10, inc: 2, gain: 0.35 },
+  'Step-Up': {
+    start: 16,
+    reps: 10,
+    inc: 2,
+    gain: 0.35,
+    // Added to the routine two months in, so its line starts mid-chart.
+    arc: { kind: 'late', from: 14 },
+  },
   'Split Squat': { start: 20, reps: 8, inc: 2, gain: 0.3 },
   'Curtsy Lunge': { start: 14, reps: 10, inc: 2, gain: 0.35 },
   'Lateral Lunge': { start: 14, reps: 10, inc: 2, gain: 0.35 },
 
   /* -------------------------------------------------------------- push -- */
   'DB Bench Press': { start: 26, reps: 8, inc: 2, gain: 0.25 },
-  'Barbell Bench Press': { start: 70, reps: 5, inc: 2.5, gain: 0.17 },
+  'Barbell Bench Press': {
+    start: 70,
+    reps: 5,
+    inc: 2.5,
+    gain: 0.17,
+    // Ran for two and a half months and then sat there. Everybody's bench.
+    arc: { kind: 'stall', from: 10 },
+  },
   'Overhead Press': { start: 45, reps: 5, inc: 2.5, gain: 0.17 },
   'DB Shoulder Press': { start: 20, reps: 8, inc: 2, gain: 0.28 },
   'Incline DB Press': { start: 22, reps: 8, inc: 2, gain: 0.27 },
@@ -94,7 +150,14 @@ export const DEMO_LOADS: Record<string, DemoLoad> = {
   'Seated Cable Row': { start: 60, reps: 10, inc: 5, gain: 0.25 },
   'Barbell Row': { start: 60, reps: 8, inc: 2.5, gain: 0.22 },
   'DB Row': { start: 28, reps: 10, inc: 2, gain: 0.25 },
-  'Chest-Supported Row': { start: 25, reps: 10, inc: 2, gain: 0.25 },
+  'Chest-Supported Row': {
+    start: 25,
+    reps: 10,
+    inc: 2,
+    gain: 0.25,
+    // The one that gets skipped when the session runs long.
+    arc: { kind: 'irregular' },
+  },
   'Face Pull': { start: 25, reps: 15, inc: 2.5, gain: 0.28 },
   'Pull-Up': { start: 0, reps: 6, inc: 2.5, gain: 0, bw: 1, repGain: 5 },
   'Chin-Up': { start: 0, reps: 7, inc: 2.5, gain: 0, bw: 1, repGain: 5 },
@@ -127,7 +190,14 @@ export const DEMO_LOADS: Record<string, DemoLoad> = {
   'DB Curl': { start: 12, reps: 12, inc: 2, gain: 0.3 },
   'Hammer Curl': { start: 14, reps: 12, inc: 2, gain: 0.28 },
   'Tricep Pushdown': { start: 25, reps: 14, inc: 2.5, gain: 0.28 },
-  'Overhead Tricep Extension': { start: 15, reps: 12, inc: 2.5, gain: 0.3 },
+  'Overhead Tricep Extension': {
+    start: 15,
+    reps: 12,
+    inc: 2.5,
+    gain: 0.3,
+    // Still on the plan. Has not been touched since week sixteen.
+    arc: { kind: 'abandoned', after: 16 },
+  },
   'Leg Extension': { start: 45, reps: 12, inc: 5, gain: 0.28 },
   'Leg Curl': { start: 40, reps: 12, inc: 5, gain: 0.28 },
   'Calf Raise': { start: 60, reps: 15, inc: 5, gain: 0.3 },

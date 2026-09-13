@@ -81,5 +81,11 @@ Two ways the suite lies to you if you skip that:
   un-throttled response must call `resetSignInThrottle()` first.
 - **Tab-bar locators must be `exact: true`.** A card whose description mentions
   "week" will otherwise match `link named "Week"`.
-- **Charts need two weeks of data** before they render anything, so a test that
+- **Charts need two sessions** before they render anything, so a test that
   locates one has to seed history *and* log something today.
+- **The chart lives in a sheet.** On Progress, only the strength score draws at
+  rest; an exercise's chart is behind its row. Reaching it is part of the test —
+  `getByRole('button', { name: \`Show ${lift}\` })`, then the dialog.
+- **Never hard-code which exercise the generator picked.** It depends on the
+  split in force, so use `exerciseNameAt(page)` — a hard-coded name turns a
+  split change into a mystery failure three specs away from the cause.
