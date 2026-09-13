@@ -231,6 +231,20 @@ export const de: Record<Key, string> = {
   'prog.score': 'Wert',
   'prog.prs': '★ steht für eine Bestleistung',
 
+  'set.you': 'Du',
+  'set.app': 'Die App',
+  'set.name': 'Name',
+  'set.namePlaceholder': 'Wie sollen wir dich nennen?',
+  'set.birthYear': 'Geburtsjahr',
+  'set.birthYearPlaceholder': 'z. B. 1990',
+  'set.birthYearWhy':
+    'Damit dein Kraftwert dein Alter berücksichtigen kann. Freiwillig – ohne Angabe rechnet der Wert einfach ohne Altersbonus.',
+  'set.yearBad': 'Gib ein Jahr zwischen {from} und {to} ein.',
+  'set.picAdd': 'Bild hinzufügen',
+  'set.picChange': 'Bild ändern',
+  'set.picRemove': 'Bild entfernen',
+  'set.picBad': 'Diese Datei ließ sich nicht als Bild lesen.',
+  'set.picTooBig': 'Dieses Bild ist selbst verkleinert zu groß. Versuch ein anderes.',
   'set.aboutYou': 'Über dich',
   'set.sex': 'Geschlecht',
   'set.sexWhy':

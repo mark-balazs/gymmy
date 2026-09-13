@@ -231,6 +231,20 @@ export const fr: Record<Key, string> = {
   'prog.score': 'Score',
   'prog.prs': '★ signale un record personnel',
 
+  'set.you': 'Toi',
+  'set.app': 'L’application',
+  'set.name': 'Nom',
+  'set.namePlaceholder': 'Comment t’appeler ?',
+  'set.birthYear': 'Année de naissance',
+  'set.birthYearPlaceholder': 'par exemple 1990',
+  'set.birthYearWhy':
+    'Sert à tenir compte de ton âge dans ton score de force. Facultatif : sans cela, le score n’applique tout simplement aucun ajustement.',
+  'set.yearBad': 'Saisis une année entre {from} et {to}.',
+  'set.picAdd': 'Ajouter une photo',
+  'set.picChange': 'Changer la photo',
+  'set.picRemove': 'Retirer la photo',
+  'set.picBad': 'Ce fichier n’a pas pu être lu comme une image.',
+  'set.picTooBig': 'Cette photo reste trop lourde même réduite. Essaie-en une autre.',
   'set.aboutYou': 'À propos de toi',
   'set.sex': 'Sexe',
   'set.sexWhy':

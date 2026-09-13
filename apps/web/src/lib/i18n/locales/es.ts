@@ -235,6 +235,20 @@ export const es: Record<Key, string> = {
   'prog.score': 'Puntuación',
   'prog.prs': '★ marca un récord personal',
 
+  'set.you': 'Tú',
+  'set.app': 'La aplicación',
+  'set.name': 'Nombre',
+  'set.namePlaceholder': '¿Cómo te llamamos?',
+  'set.birthYear': 'Año de nacimiento',
+  'set.birthYearPlaceholder': 'por ejemplo 1990',
+  'set.birthYearWhy':
+    'Sirve para tener en cuenta tu edad en la puntuación de fuerza. Opcional: sin ello la puntuación simplemente no aplica ningún ajuste.',
+  'set.yearBad': 'Introduce un año entre {from} y {to}.',
+  'set.picAdd': 'Añadir una foto',
+  'set.picChange': 'Cambiar la foto',
+  'set.picRemove': 'Quitar la foto',
+  'set.picBad': 'No se ha podido leer ese archivo como imagen.',
+  'set.picTooBig': 'Esa foto sigue siendo demasiado grande incluso reducida. Prueba con otra.',
   'set.aboutYou': 'Sobre ti',
   'set.sex': 'Sexo',
   'set.sexWhy':

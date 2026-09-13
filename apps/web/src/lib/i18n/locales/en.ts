@@ -221,6 +221,20 @@ export const en = {
   'prog.score': 'Score',
   'prog.prs': '★ marks a personal best',
 
+  'set.you': 'You',
+  'set.app': 'The app',
+  'set.name': 'Name',
+  'set.namePlaceholder': 'What should we call you?',
+  'set.birthYear': 'Year of birth',
+  'set.birthYearPlaceholder': 'e.g. 1990',
+  'set.birthYearWhy':
+    'Used to allow for age in your strength score. Optional — without it the score simply makes no allowance.',
+  'set.yearBad': 'Enter a year between {from} and {to}.',
+  'set.picAdd': 'Add a picture',
+  'set.picChange': 'Change picture',
+  'set.picRemove': 'Remove picture',
+  'set.picBad': 'That file could not be read as an image.',
+  'set.picTooBig': 'That picture is too large even after shrinking. Try another one.',
   'set.aboutYou': 'About you',
   'set.sex': 'Sex',
   'set.sexWhy':

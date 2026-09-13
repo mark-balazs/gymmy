@@ -5,14 +5,13 @@ import { useState } from 'react';
 import { Button, Card, Field, InfoButton, Segmented, Sheet, cn } from '@/components/ui';
 import { Page } from '@/components/page';
 import { SplitSheet } from '@/components/split-sheet';
+import { ProfileCard } from '@/components/profile-card';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import {
   applyCustomSplit,
   applySplit,
   fireAndForget,
-  setHeight,
   setLang,
-  setSex,
   setTheme,
   setUnit,
 } from '@/lib/client/mutations';
@@ -27,7 +26,6 @@ import {
   DEFAULT_PREFS,
   findSplit,
   mondayOf,
-  SEXES,
   SPLITS,
   type Bias,
   type Lang,
@@ -112,81 +110,11 @@ export default function SettingsPage() {
 
   return (
     <Page>
-      <Card className="flex flex-col gap-3">
-        <h2 className="text-[17px] font-semibold">{tr.t('set.language')}</h2>
-        {/* A select rather than a segmented control: five languages will not
-            fit across a phone, and the list is meant to grow. */}
-        <select
-          aria-label={tr.t('set.language')}
-          value={tr.lang}
-          onChange={(e) => fireAndForget(setLang(e.target.value as Lang))}
-          className="min-h-[var(--spacing-tap)] rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
-        >
-          {LANGS.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.label}
-            </option>
-          ))}
-        </select>
-      </Card>
-
-      <Card className="flex flex-col gap-3">
-        <h2 className="text-[17px] font-semibold">{tr.t('set.theme')}</h2>
-        <Segmented
-          value={profile?.theme ?? 'system'}
-          onChange={(v) => fireAndForget(setTheme(v as Theme))}
-          options={[
-            { value: 'system' as const, label: tr.t('theme.system') },
-            { value: 'dark' as const, label: tr.t('theme.dark') },
-            { value: 'light' as const, label: tr.t('theme.light') },
-          ]}
-        />
-      </Card>
-
-      <Card className="flex flex-col gap-3">
-        <h2 className="text-[17px] font-semibold">{tr.t('set.units')}</h2>
-        <Segmented
-          value={profile?.unit ?? DEFAULT_PREFS.unit}
-          onChange={(v) => fireAndForget(setUnit(v))}
-          options={[
-            { value: 'kg' as const, label: 'kg' },
-            { value: 'lb' as const, label: 'lb' },
-          ]}
-        />
-      </Card>
-
-      <Card className="flex flex-col gap-3">
-        <h2 className="text-[17px] font-semibold">{tr.t('set.aboutYou')}</h2>
-
-        <Field label={tr.t('set.sex')}>
-          <select
-            value={profile?.sex ?? DEFAULT_PREFS.sex}
-            onChange={(e) => fireAndForget(setSex(e.target.value as Profile['sex']))}
-            className="min-h-[var(--spacing-tap)] rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
-          >
-            {SEXES.map((s) => (
-              <option key={s} value={s}>
-                {tr.t(`sex.${s}` as Key)}
-              </option>
-            ))}
-          </select>
-        </Field>
-        {/* Said plainly, because being asked this in a training app without a
-            reason is a fair thing to be wary of. */}
-        <p className="text-xs text-[var(--color-muted)]">{tr.t('set.sexWhy')}</p>
-
-        <Field label={tr.t('set.height')}>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={profile?.heightCm ?? ''}
-            onChange={(e) =>
-              fireAndForget(setHeight(e.target.value === '' ? null : Number(e.target.value)))
-            }
-            className="num min-h-[var(--spacing-tap)] w-full min-w-0 rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
-          />
-        </Field>
-      </Card>
+      {/* Everything the app knows about you, in one card.
+          These used to be three: a name and picture had nowhere to go at all,
+          while sex and height sat under "About you" — a separate box for facts
+          of exactly the same kind. The division was never about the reader. */}
+      <ProfileCard />
 
       <Card className="flex flex-col gap-3">
         <h2 className="text-[17px] font-semibold">{tr.t('set.split')}</h2>
@@ -346,6 +274,53 @@ export default function SettingsPage() {
         <p className="text-xs text-[var(--color-muted)]">
           {dirty ? tr.t('set.pending') : tr.t('set.noChanges')}
         </p>
+      </Card>
+
+      {/* One card, because these are the same kind of thing: how the app
+          presents itself. Three separate boxes for three single controls made
+          the page read as a list of unrelated settings. */}
+      <Card className="flex flex-col gap-3">
+        <h2 className="text-[17px] font-semibold">{tr.t('set.app')}</h2>
+
+        <Field label={tr.t('set.language')}>
+          {/* A select rather than a segmented control: five languages will not
+              fit across a phone, and the list is meant to grow. */}
+          <select
+            aria-label={tr.t('set.language')}
+            value={tr.lang}
+            onChange={(e) => fireAndForget(setLang(e.target.value as Lang))}
+            className="min-h-[var(--spacing-tap)] rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
+          >
+            {LANGS.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label={tr.t('set.theme')}>
+          <Segmented
+            value={profile?.theme ?? 'system'}
+            onChange={(v) => fireAndForget(setTheme(v as Theme))}
+            options={[
+              { value: 'system' as const, label: tr.t('theme.system') },
+              { value: 'dark' as const, label: tr.t('theme.dark') },
+              { value: 'light' as const, label: tr.t('theme.light') },
+            ]}
+          />
+        </Field>
+
+        <Field label={tr.t('set.units')}>
+          <Segmented
+            value={profile?.unit ?? DEFAULT_PREFS.unit}
+            onChange={(v) => fireAndForget(setUnit(v))}
+            options={[
+              { value: 'kg' as const, label: 'kg' },
+              { value: 'lb' as const, label: 'lb' },
+            ]}
+          />
+        </Field>
       </Card>
 
       <Card>

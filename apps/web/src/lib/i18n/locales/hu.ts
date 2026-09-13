@@ -222,6 +222,20 @@ export const hu: Record<Key, string> = {
   'prog.score': 'Pontszám',
   'prog.prs': 'A ★ egyéni csúcsot jelöl',
 
+  'set.you': 'Te',
+  'set.app': 'Az alkalmazás',
+  'set.name': 'Név',
+  'set.namePlaceholder': 'Hogy szólítsunk?',
+  'set.birthYear': 'Születési év',
+  'set.birthYearPlaceholder': 'például 1990',
+  'set.birthYearWhy':
+    'Az erőpontszámban vesszük figyelembe az életkorodat. Nem kötelező – nélküle a pontszám egyszerűen nem számol vele.',
+  'set.yearBad': 'Adj meg egy évet {from} és {to} között.',
+  'set.picAdd': 'Kép hozzáadása',
+  'set.picChange': 'Kép cseréje',
+  'set.picRemove': 'Kép eltávolítása',
+  'set.picBad': 'Ezt a fájlt nem sikerült képként beolvasni.',
+  'set.picTooBig': 'Ez a kép kicsinyítve is túl nagy. Próbálj másikat.',
   'set.aboutYou': 'Rólad',
   'set.sex': 'Nem',
   'set.sexWhy':

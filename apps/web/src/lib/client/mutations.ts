@@ -378,6 +378,24 @@ export const setLang = (lang: Profile['lang']) => patchProfile({ lang });
 export const setUnit = (unit: Profile['unit']) => patchProfile({ unit });
 export const setTheme = (theme: Profile['theme']) => patchProfile({ theme });
 export const setTrainingPrefs = (p: { days: number; where: Where; bias: Bias }) => patchProfile(p);
+export const setName = (name: string) => patchProfile({ name: name.trim().slice(0, 60) });
+export const setAvatar = (avatar: string | null) => patchProfile({ avatar });
+
+/**
+ * The year, not the age.
+ *
+ * An age is a fact with an expiry date: stored once, it is wrong within a year,
+ * and every past week would be rescored against an age you were not. Range is
+ * checked here as well as on the wire because a typo shifts the age allowance
+ * on every week of the strength score, and silently.
+ */
+export const setBirthYear = (birthYear: number | null) =>
+  patchProfile({
+    birthYear:
+      birthYear === null || (birthYear >= 1900 && birthYear <= new Date().getFullYear())
+        ? birthYear
+        : null,
+  });
 
 /* ------------------------------------------------------------- library -- */
 
