@@ -15,9 +15,9 @@ import { useMemo, useState } from 'react';
 import { Button, Card, Chip, Segmented, Stepper, cn } from '@/components/ui';
 import { ExerciseSheet } from '@/components/exercise-sheet';
 import { useProfile, useSnapshot, useT, useToday, type Translator } from '@/lib/client/hooks';
-import { logSet, removeSet } from '@/lib/client/mutations';
+import { fireAndForget, logSet, removeSet } from '@/lib/client/mutations';
 import { EFFORTS, suggestionText } from '@/lib/client/format';
-import { effortCheck, suggest } from '@athletic/domain';
+import { DEFAULT_PREFS, effortCheck, suggest } from '@athletic/domain';
 import { allLogs, mondayOf, sessionLabel, sessionPlan, type Indexed } from '@athletic/domain';
 import type { Key } from '@/lib/i18n';
 import type { PlanRow, Suggestion } from '@athletic/domain';
@@ -27,14 +27,13 @@ export default function TrainPage() {
   const profile = useProfile();
   const tr = useT();
   const today = useToday();
+  const days = profile?.days ?? DEFAULT_PREFS.days;
+  const unit = profile?.unit ?? DEFAULT_PREFS.unit;
 
   const [date, setDate] = useState(today);
   const [day, setDay] = useState(0);
   /** Which date the default was chosen for, so it is chosen once and not re-run. */
   const [pickedFor, setPickedFor] = useState<string | null>(null);
-
-  const days = profile?.days ?? 3;
-  const unit = profile?.unit ?? 'kg';
 
   /** Which session to open on, given what has already been logged. Pure. */
   const suggestedDay = useMemo(() => {
@@ -199,6 +198,8 @@ function ExerciseCard({
     // double tap would otherwise log the set twice.
     setSaving(true);
     try {
+      // Reported by the write layer if it fails; the button simply frees up
+      // again so the set can be tried once more.
       await logSet({
         date,
         session: sessionLabel(day),
@@ -208,6 +209,8 @@ function ExerciseCard({
         reps,
         rir,
       });
+    } catch {
+      /* Already surfaced in the sync badge. */
     } finally {
       setSaving(false);
     }
@@ -310,7 +313,7 @@ function ExerciseCard({
                 variant="danger"
                 className="min-h-8 px-2 text-xs"
                 aria-label={tr.t('common.delete')}
-                onClick={() => void removeSet(l.id)}
+                onClick={() => fireAndForget(removeSet(l.id))}
               >
                 ✕
               </Button>

@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import { Button, Card, Field, Segmented, Sheet, cn } from '@/components/ui';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
-import { applySplit, setLang, setTheme, setUnit } from '@/lib/client/mutations';
+import { applySplit, fireAndForget, setLang, setTheme, setUnit } from '@/lib/client/mutations';
 import { LANGS } from '@/lib/i18n';
 import type { Key } from '@/lib/i18n';
 import {
   allowedDays,
   BIASES,
+  DEFAULT_PREFS,
   findSplit,
   SPLITS,
   type Bias,
@@ -26,10 +27,10 @@ interface Draft {
 }
 
 const draftOf = (p: Profile | null): Draft => ({
-  split: p?.split ?? 'sevenPattern',
-  days: p?.days ?? 3,
-  where: p?.where ?? 'gym',
-  bias: p?.bias ?? 'none',
+  split: p?.split ?? DEFAULT_PREFS.split,
+  days: p?.days ?? DEFAULT_PREFS.days,
+  where: p?.where ?? DEFAULT_PREFS.where,
+  bias: p?.bias ?? DEFAULT_PREFS.bias,
 });
 
 const SPLIT_OPTIONS: SplitKey[] = SPLITS.map((s) => s.key);
@@ -92,7 +93,7 @@ export default function SettingsPage() {
         <h2 className="text-[17px] font-semibold">{tr.t('set.language')}</h2>
         <Segmented
           value={tr.lang}
-          onChange={(v) => void setLang(v)}
+          onChange={(v) => fireAndForget(setLang(v))}
           options={LANGS.map((l) => ({ value: l.id, label: l.label }))}
         />
       </Card>
@@ -101,7 +102,7 @@ export default function SettingsPage() {
         <h2 className="text-[17px] font-semibold">{tr.t('set.theme')}</h2>
         <Segmented
           value={profile?.theme ?? 'system'}
-          onChange={(v) => void setTheme(v as Theme)}
+          onChange={(v) => fireAndForget(setTheme(v as Theme))}
           options={[
             { value: 'system' as const, label: tr.t('theme.system') },
             { value: 'dark' as const, label: tr.t('theme.dark') },
@@ -113,8 +114,8 @@ export default function SettingsPage() {
       <Card className="flex flex-col gap-3">
         <h2 className="text-[17px] font-semibold">{tr.t('set.units')}</h2>
         <Segmented
-          value={profile?.unit ?? 'kg'}
-          onChange={(v) => void setUnit(v)}
+          value={profile?.unit ?? DEFAULT_PREFS.unit}
+          onChange={(v) => fireAndForget(setUnit(v))}
           options={[
             { value: 'kg' as const, label: 'kg' },
             { value: 'lb' as const, label: 'lb' },

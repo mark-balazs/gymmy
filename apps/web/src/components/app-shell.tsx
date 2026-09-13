@@ -37,24 +37,28 @@ function SyncBadge() {
   const status = useSyncStatus();
 
   const label =
-    status.state === 'syncing'
-      ? t('sync.syncing')
-      : status.state === 'offline'
-        ? t('sync.offline')
-        : status.state === 'error'
-          ? t('sync.error')
-          : status.pending > 0
-            ? t('sync.pending', { n: status.pending })
-            : t('sync.idle');
+    status.state === 'storage'
+      ? t('sync.storage')
+      : status.state === 'syncing'
+        ? t('sync.syncing')
+        : status.state === 'offline'
+          ? t('sync.offline')
+          : status.state === 'error'
+            ? t('sync.error')
+            : status.pending > 0
+              ? t('sync.pending', { n: status.pending })
+              : t('sync.idle');
 
   const dot =
-    status.state === 'error'
+    status.state === 'storage'
       ? 'bg-[var(--color-bad)]'
-      : status.state === 'offline'
-        ? 'bg-[var(--color-warn)]'
-        : status.state === 'syncing'
-          ? 'bg-[var(--color-muted)] animate-pulse'
-          : 'bg-[var(--color-accent)]';
+      : status.state === 'error'
+        ? 'bg-[var(--color-bad)]'
+        : status.state === 'offline'
+          ? 'bg-[var(--color-warn)]'
+          : status.state === 'syncing'
+            ? 'bg-[var(--color-muted)] animate-pulse'
+            : 'bg-[var(--color-accent)]';
 
   return (
     <span className="flex items-center gap-2 text-xs text-[var(--color-muted)]">

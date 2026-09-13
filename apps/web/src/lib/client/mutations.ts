@@ -7,7 +7,7 @@
  */
 
 import { local } from './db';
-import { enqueue } from './sync';
+import { enqueue, reportStorageFailure } from './sync';
 import type {
   Bias,
   Exercise,
@@ -30,10 +30,29 @@ import { buildProgram, buildSlots, coversFor, findSplit, index, mondayOf } from 
 const now = (): string => new Date().toISOString();
 const id = (): string => crypto.randomUUID();
 
+/**
+ * Every write goes through here, and so does every failure.
+ *
+ * The throw is preserved so a caller running a multi-step change can stop
+ * rather than carry on over a half-written state; `fireAndForget` exists for
+ * the callers that genuinely have nothing to do about it, and makes that
+ * decision visible instead of leaving a floating promise to reject unhandled.
+ */
 async function put<T extends { id: string }>(table: TableName, row: T): Promise<T> {
-  await local.table(table).put(row as never);
-  await enqueue(table, row);
-  return row;
+  try {
+    await local.table(table).put(row as never);
+    await enqueue(table, row);
+    return row;
+  } catch (err) {
+    reportStorageFailure(err);
+    throw err;
+  }
+}
+
+/** For writes whose failure is already surfaced and where the caller has no
+ *  better answer than carrying on. Never used to hide an error. */
+export function fireAndForget(p: Promise<unknown>): void {
+  void p.catch(() => undefined);
 }
 
 /* --------------------------------------------------------------- logging */

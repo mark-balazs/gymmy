@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button, Card, Sheet, Summary, cn } from '@/components/ui';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import { setEntryExercise } from '@/lib/client/mutations';
-import { swapOptions, type Exercise } from '@athletic/domain';
+import { DEFAULT_PREFS, swapOptions, type Exercise } from '@athletic/domain';
 import { blockWeeks, mondayOf, programRows, weekCoverage } from '@athletic/domain';
 import { fmtDay } from '@/lib/client/format';
 import { ExerciseSheet } from '@/components/exercise-sheet';
@@ -15,11 +15,13 @@ export default function WeekPage() {
   const profile = useProfile();
   const tr = useT();
   const router = useRouter();
+  const days = profile?.days ?? DEFAULT_PREFS.days;
+  const where = profile?.where ?? DEFAULT_PREFS.where;
+  const blockLen = profile?.blockWeeks ?? DEFAULT_PREFS.blockWeeks;
 
-  const days = profile?.days ?? 3;
   const weeks = useMemo(
-    () => blockWeeks(profile?.blockStart ?? mondayOf(new Date()), profile?.blockWeeks ?? 8),
-    [profile?.blockStart, profile?.blockWeeks],
+    () => blockWeeks(profile?.blockStart ?? mondayOf(new Date()), blockLen),
+    [profile?.blockStart, blockLen],
   );
   const thisWeek = mondayOf(new Date());
   const [week, setWeek] = useState(() => (weeks.includes(thisWeek) ? thisWeek : weeks[0]!));
@@ -191,7 +193,7 @@ export default function WeekPage() {
           onClose={() => setSwap(null)}
         >
           <p className="text-sm text-[var(--color-muted)]">{tr.t('week.swapBody')}</p>
-          {swapOptions(ix, days, swap.session, swap.slotId, profile?.where ?? 'gym').map((e) => (
+          {swapOptions(ix, days, swap.session, swap.slotId, where).map((e) => (
             <Button
               key={e.id}
               className="w-full justify-start"

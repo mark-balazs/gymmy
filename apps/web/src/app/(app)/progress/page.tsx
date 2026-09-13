@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { Card, Summary, cn } from '@/components/ui';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import { trendText } from '@/lib/client/format';
-import { mondayOf, programExercises, progressFor, trend } from '@athletic/domain';
+import { DEFAULT_PREFS, mondayOf, programExercises, progressFor, trend } from '@athletic/domain';
 import type { SeriesPoint } from '@athletic/domain';
 
 /** Hand-drawn so there is no chart library to ship, cache or keep current. */
@@ -52,18 +52,21 @@ export default function ProgressPage() {
   const profile = useProfile();
   const tr = useT();
 
-  const days = profile?.days ?? 3;
   const blockStart = profile?.blockStart ?? mondayOf(new Date());
-  const weeks = profile?.blockWeeks ?? 8;
-  const unit = profile?.unit ?? 'kg';
+  const days = profile?.days ?? DEFAULT_PREFS.days;
+  const unit = profile?.unit ?? DEFAULT_PREFS.unit;
+  const weeks = profile?.blockWeeks ?? DEFAULT_PREFS.blockWeeks;
 
+  /** Everything trained: what the plan currently holds, then anything logged
+   *  that has since dropped out of it — history does not disappear because the
+   *  week was rebuilt. Built by concatenation rather than by pushing into the
+   *  array `programExercises` returned, which also drops an O(n²) lookup. */
   const trained = useMemo(() => {
     const logged = new Set(ix.logs.map((l) => l.exerciseId));
-    const pool = programExercises(ix, days);
-    for (const e of ix.exercises) {
-      if (logged.has(e.id) && !pool.some((p) => p.id === e.id)) pool.push(e);
-    }
-    return pool.filter((e) => logged.has(e.id));
+    const planned = programExercises(ix, days).filter((e) => logged.has(e.id));
+    const inPlan = new Set(planned.map((e) => e.id));
+    const dropped = ix.exercises.filter((e) => logged.has(e.id) && !inPlan.has(e.id));
+    return [...planned, ...dropped];
   }, [ix, days]);
 
   if (trained.length === 0) {

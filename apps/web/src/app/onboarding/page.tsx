@@ -12,7 +12,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Card, Segmented, cn } from '@/components/ui';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
-import { applySplit, patchProfile, setLang } from '@/lib/client/mutations';
+import { applySplit, fireAndForget, patchProfile, setLang } from '@/lib/client/mutations';
 import { startSync } from '@/lib/client/sync';
 import { LANGS } from '@/lib/i18n';
 import type { Key } from '@/lib/i18n';
@@ -178,7 +178,7 @@ export default function Onboarding() {
           <div className="w-[170px]">
             <Segmented
               value={tr.lang}
-              onChange={(v) => void setLang(v)}
+              onChange={(v) => fireAndForget(setLang(v))}
               options={LANGS.map((l) => ({ value: l.id, label: l.label }))}
             />
           </div>

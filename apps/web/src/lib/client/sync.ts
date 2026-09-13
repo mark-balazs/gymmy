@@ -15,7 +15,13 @@ import { local, DOMAIN_TABLES, getMeta, setMeta, type Outbox } from './db';
 import type { PullResponse } from '@/lib/sync/protocol';
 import type { TableName } from '@athletic/domain';
 
-export type SyncState = 'idle' | 'syncing' | 'offline' | 'error';
+/**
+ * `error` and `storage` are deliberately distinct. An `error` means the change
+ * is safe on this device but has not reached the server yet — annoying, and it
+ * resolves itself. `storage` means the write never landed at all, so the set
+ * the user believes they logged does not exist anywhere.
+ */
+export type SyncState = 'idle' | 'syncing' | 'offline' | 'error' | 'storage';
 
 export interface SyncStatus {
   state: SyncState;
@@ -57,6 +63,19 @@ export async function enqueue(table: TableName, row: { id: string }): Promise<vo
   });
   await refreshPending();
   schedule();
+}
+
+/**
+ * A write to the local database failed.
+ *
+ * This is worse than a failed sync and has to be said differently. A sync
+ * failure means "saved here, not there yet"; this means the set was not saved
+ * *anywhere* — the device is out of space, or in a private window, or the store
+ * is corrupt. Staying quiet would leave someone believing they had logged a set
+ * that does not exist.
+ */
+export function reportStorageFailure(err: unknown): void {
+  emit({ state: 'storage', error: err instanceof Error ? err.message : String(err) });
 }
 
 export function schedule(delay = 800): void {
@@ -120,6 +139,10 @@ async function run(): Promise<void> {
     // straight back rather than waiting for the next trigger — otherwise a
     // device with a lot of history would trickle it in over hours.
     if (payload.hasMore) schedule(50);
+
+    // The push is capped per round, so a long offline session leaves more
+    // behind. Without this it drains 200 at a time on the five-minute backstop.
+    else if (status.pending > 0) schedule(200);
     emit({ state: 'idle', lastSyncedAt: new Date().toISOString(), error: null });
   } catch (err) {
     const offline = typeof navigator !== 'undefined' && !navigator.onLine;

@@ -61,6 +61,8 @@ export const en = {
   'sync.syncing': 'Saving…',
   'sync.offline': 'Offline — saved on this device',
   'sync.error': 'Could not sync',
+  // Deliberately not "could not sync": nothing was written at all.
+  'sync.storage': 'Not saved on this device',
   'sync.pending': '{n} waiting to sync',
 
   'common.back': 'Back',
@@ -278,6 +280,7 @@ export const hu: Record<Key, string> = {
   'sync.syncing': 'Mentés…',
   'sync.offline': 'Nincs net – ezen az eszközön elmentve',
   'sync.error': 'A szinkronizálás nem sikerült',
+  'sync.storage': 'Nem sikerült elmenteni az eszközre',
   'sync.pending': '{n} vár szinkronizálásra',
 
   'common.back': 'Vissza',

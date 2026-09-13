@@ -25,6 +25,7 @@ import {
   sessionPlan,
   slotsForSession,
   weekCoverage,
+  DEFAULT_PREFS,
 } from '@athletic/domain';
 
 export default function HomePage() {
@@ -32,9 +33,8 @@ export default function HomePage() {
   const profile = useProfile();
   const tr = useT();
   const today = useToday();
-
-  const days = profile?.days ?? 3;
-  const unit = profile?.unit ?? 'kg';
+  const days = profile?.days ?? DEFAULT_PREFS.days;
+  const unit = profile?.unit ?? DEFAULT_PREFS.unit;
 
   const session = useMemo(() => nextSession(ix, today, days), [ix, today, days]);
   const plan = useMemo(() => sessionPlan(ix, days, today, session), [ix, days, today, session]);
