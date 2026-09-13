@@ -10,7 +10,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Card, InfoButton, Segmented, cn } from '@/components/ui';
+import { Button, Card, InfoButton, cn } from '@/components/ui';
 import { SplitSheet } from '@/components/split-sheet';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import { applySplit, fireAndForget, patchProfile, setLang } from '@/lib/client/mutations';
@@ -28,6 +28,7 @@ import {
   programCoverage,
   SPLITS,
   type Bias,
+  type Lang,
   type SplitKey,
   type Where,
 } from '@athletic/domain';
@@ -177,13 +178,18 @@ export default function Onboarding() {
           ))}
         </div>
         {step === 0 && (
-          <div className="w-[170px]">
-            <Segmented
-              value={tr.lang}
-              onChange={(v) => fireAndForget(setLang(v))}
-              options={LANGS.map((l) => ({ value: l.id, label: l.label }))}
-            />
-          </div>
+          <select
+            aria-label={tr.t('set.language')}
+            value={tr.lang}
+            onChange={(e) => fireAndForget(setLang(e.target.value as Lang))}
+            className="min-h-9 rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-2 text-sm"
+          >
+            {LANGS.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.label}
+              </option>
+            ))}
+          </select>
         )}
       </div>
 

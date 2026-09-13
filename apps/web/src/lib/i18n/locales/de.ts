@@ -182,7 +182,7 @@ export const de: Record<Key, string> = {
   'prog.strengthBody':
     'Deine beste Leistung in jeder der fünf belasteten Bewegungen, addiert und an deinem Körpergewicht gemessen – mit der Kurve, die auch im Wettkampf benutzt wird. So bedeutet der Wert dasselbe, egal wie viel du wiegst. Gezählt werden nur die letzten zwei Monate, denn er soll zeigen, was du jetzt kannst.',
   'prog.strengthNot':
-    'Es ist keine Rangliste. Es ist sonst niemand darin, und eine Bewegung, die du nicht trainierst, zählt als null – alle fünf abzudecken ist die halbe Sache.',
+    'Es ist keine Rangliste. Es ist sonst niemand darin, und eine Bewegung, die du nicht trainierst, zählt als null – alle fünf abzudecken ist die halbe Miete.',
   'prog.needWeight': 'Trag dein Körpergewicht ein, dann läuft das hier mit.',
   'prog.needLifts': 'Trag ein paar Einheiten ein, dann läuft das hier mit.',
   'prog.vsWeeks': 'ggü. vor {n} Wochen',

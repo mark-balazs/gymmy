@@ -208,7 +208,7 @@ export default function ProgressPage() {
         return (
           <Card key={e.id} className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="flex-1 truncate text-[17px] font-semibold">{e.name}</h2>
+              <h2 className="flex-1 truncate text-[17px] font-semibold">{tr.exercise(e)}</h2>
               <span
                 className={cn(
                   'text-[15px] font-bold',

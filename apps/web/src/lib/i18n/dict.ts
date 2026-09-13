@@ -14,6 +14,9 @@
 import type { Lang } from '@athletic/domain';
 import { en } from './locales/en';
 import { hu } from './locales/hu';
+import { de } from './locales/de';
+import { fr } from './locales/fr';
+import { es } from './locales/es';
 import type { Key } from './locales/en';
 
 export { en };
@@ -27,7 +30,10 @@ export type { Key };
  */
 export const LANGS: { id: Lang; label: string }[] = [
   { id: 'en', label: 'English' },
+  { id: 'de', label: 'Deutsch' },
+  { id: 'es', label: 'Español' },
+  { id: 'fr', label: 'Français' },
   { id: 'hu', label: 'Magyar' },
 ];
 
-export const dicts: Record<Lang, Record<Key, string>> = { en, hu };
+export const dicts: Record<Lang, Record<Key, string>> = { en, hu, de, fr, es };

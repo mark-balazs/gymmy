@@ -12,7 +12,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { local, snapshot } from './db';
 import { onSyncStatus, type SyncStatus } from './sync';
-import { index, type Indexed } from '@athletic/domain';
+import { exerciseName, index, type Indexed } from '@athletic/domain';
 import {
   dayName,
   detectLang,
@@ -86,6 +86,7 @@ export interface Translator {
   t: (key: Key, params?: Params) => string;
   plural: (n: number, noun: 'set' | 'session') => string;
   pattern: (p: Pattern | null | undefined) => string;
+  exercise: (e: { name: string } | null | undefined) => string;
   slot: (s: Slot | null | undefined) => string;
   holds: (s: { requiredRole: SlotRole | null; patternKeys: PatternKey[] | null }) => string;
   day: (k: DayKey | null | undefined) => string;
@@ -101,6 +102,7 @@ export function useT(): Translator {
       t: (key: Key, params?: Params) => translate(lang, key, params),
       plural: (n: number, noun: 'set' | 'session') => pluralise(lang, n, noun),
       pattern: (p: Pattern | null | undefined) => patternName(lang, p),
+      exercise: (e: { name: string } | null | undefined) => exerciseName(lang, e),
       slot: (s: Slot | null | undefined) => slotName(lang, s),
       holds: (s: { requiredRole: SlotRole | null; patternKeys: PatternKey[] | null }) =>
         slotHolds(lang, s),

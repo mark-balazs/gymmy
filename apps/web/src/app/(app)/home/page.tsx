@@ -80,7 +80,7 @@ export default function HomePage() {
                         : 'bg-[var(--color-line)]',
                     )}
                   />
-                  <span className="flex-1 truncate">{p.exercise!.name}</span>
+                  <span className="flex-1 truncate">{tr.exercise(p.exercise)}</span>
                 </div>
               ))}
             </div>
@@ -104,7 +104,9 @@ export default function HomePage() {
                    what you are capable of, not about work already ticked off. */
                 className="flex items-center justify-between gap-2 rounded-[11px] bg-[var(--color-accent-2-bg)] px-3 py-2"
               >
-                <span className="flex-1 truncate text-sm font-semibold">{exercise.name}</span>
+                <span className="flex-1 truncate text-sm font-semibold">
+                  {tr.exercise(exercise)}
+                </span>
                 <span className="num text-sm font-semibold text-[var(--color-accent-2)]">
                   {tr.t('home.goTo', { w: `${suggestion.weight ?? 0} ${unit}` })}
                 </span>

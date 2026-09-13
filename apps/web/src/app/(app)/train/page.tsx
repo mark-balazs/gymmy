@@ -231,10 +231,10 @@ function ExerciseCard({
           <button
             type="button"
             onClick={() => setDetail(true)}
-            aria-label={tr.t('ex.about', { name: exercise.name })}
+            aria-label={tr.t('ex.about', { name: tr.exercise(exercise) })}
             className="flex max-w-full min-w-0 cursor-pointer items-center gap-1.5 text-left"
           >
-            <h2 className="truncate text-[17px] font-semibold">{exercise.name}</h2>
+            <h2 className="truncate text-[17px] font-semibold">{tr.exercise(exercise)}</h2>
             <span
               aria-hidden
               className="grid h-4 w-4 shrink-0 place-items-center rounded-full border border-[var(--color-line)] text-[10px] font-bold text-[var(--color-muted)]"

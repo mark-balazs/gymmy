@@ -10,6 +10,7 @@ import { z } from 'zod';
 import {
   BIASES,
   DAY_KEYS,
+  LANG_CODES,
   PATTERN_KEYS,
   ROLES,
   SLOT_KEYS,
@@ -120,7 +121,7 @@ export const rowSchemas = {
     blockStart: isoDay,
     blockWeeks: z.number().int().min(1).max(52),
     unit: z.enum(['kg', 'lb']),
-    lang: z.enum(['en', 'hu']),
+    lang: z.enum(LANG_CODES),
     theme: z.enum(THEMES).default('system'),
     heightCm: z.number().int().min(80).max(260).nullable().default(null),
     sex: z.enum(SEXES).default('unspecified'),

@@ -2,10 +2,13 @@
 
 import { expect, test } from '../fixtures/test';
 
+/** The language picker names itself in whichever language is showing. */
+const LANGUAGE_LABEL = /Language|Nyelv|Sprache|Idioma|Langue/;
+
 test.describe('Language', () => {
   test('switches to Hungarian across the whole interface', async ({ onboardedApp: app }) => {
     await app.getByRole('link', { name: 'Settings', exact: true }).click();
-    await app.getByRole('button', { name: 'Magyar' }).click();
+    await app.getByLabel(LANGUAGE_LABEL).selectOption('hu');
 
     await expect(app.getByRole('link', { name: 'Edzés' })).toBeVisible();
     await expect(app.getByRole('link', { name: 'Fejlődés' })).toBeVisible();
@@ -14,7 +17,7 @@ test.describe('Language', () => {
 
   test('translates the coverage tiles', async ({ onboardedApp: app }) => {
     await app.getByRole('link', { name: 'Settings', exact: true }).click();
-    await app.getByRole('button', { name: 'Magyar' }).click();
+    await app.getByLabel(LANGUAGE_LABEL).selectOption('hu');
     await app.getByRole('link', { name: 'Hét' }).click();
 
     for (const name of [
@@ -32,7 +35,7 @@ test.describe('Language', () => {
 
   test('uses Hungarian ordinals and no plural after a numeral', async ({ onboardedApp: app }) => {
     await app.getByRole('link', { name: 'Settings', exact: true }).click();
-    await app.getByRole('button', { name: 'Magyar' }).click();
+    await app.getByLabel(LANGUAGE_LABEL).selectOption('hu');
     await app.getByRole('link', { name: 'Edzés' }).click();
 
     // "1. nap", with the full stop — not "Nap 1".
@@ -46,7 +49,7 @@ test.describe('Language', () => {
 
   test('persists across a reload and sets the document language', async ({ onboardedApp: app }) => {
     await app.getByRole('link', { name: 'Settings', exact: true }).click();
-    await app.getByRole('button', { name: 'Magyar' }).click();
+    await app.getByLabel(LANGUAGE_LABEL).selectOption('hu');
     await expect(app.getByRole('link', { name: 'Edzés' })).toBeVisible();
 
     // What a screen reader announces the page in, and what a browser offers to
@@ -71,7 +74,7 @@ test.describe('Language', () => {
     });
 
     await app.getByRole('link', { name: 'Settings', exact: true }).click();
-    await app.getByRole('button', { name: 'Magyar' }).click();
+    await app.getByLabel(LANGUAGE_LABEL).selectOption('hu');
     await expect(app.getByRole('link', { name: 'Edzés' })).toBeVisible();
     await app.reload();
     await expect(app.getByRole('link', { name: 'Edzés' })).toBeVisible();
@@ -81,10 +84,10 @@ test.describe('Language', () => {
 
   test('switches back to English', async ({ onboardedApp: app }) => {
     await app.getByRole('link', { name: 'Settings', exact: true }).click();
-    await app.getByRole('button', { name: 'Magyar' }).click();
+    await app.getByLabel(LANGUAGE_LABEL).selectOption('hu');
     await expect(app.getByRole('link', { name: 'Edzés' })).toBeVisible();
 
-    await app.getByRole('button', { name: 'English' }).click();
+    await app.getByLabel(LANGUAGE_LABEL).selectOption('en');
     await expect(app.getByRole('link', { name: 'Train', exact: true })).toBeVisible();
   });
 });

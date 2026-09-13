@@ -15,7 +15,16 @@ export type SlotRole = (typeof SLOT_ROLES)[number];
 
 export type Where = 'gym' | 'home';
 export type Unit = 'kg' | 'lb';
-export type Lang = 'en' | 'hu';
+/**
+ * Languages the app ships.
+ *
+ * A const array rather than a bare union so the wire schema can validate
+ * against the same list the dictionary is built from — adding a language then
+ * means adding a locale file and a code here, and the typechecker finds every
+ * place that has to change.
+ */
+export const LANG_CODES = ['en', 'hu', 'de', 'fr', 'es'] as const;
+export type Lang = (typeof LANG_CODES)[number];
 
 /** 'system' follows the device. Stored rather than kept in localStorage so the
  *  choice follows the account onto a new phone, like language does. */

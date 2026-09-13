@@ -158,10 +158,10 @@ export default function WeekPage() {
                     <button
                       type="button"
                       onClick={() => setDetail(r.exercise)}
-                      aria-label={tr.t('ex.about', { name: r.exercise!.name })}
+                      aria-label={tr.t('ex.about', { name: tr.exercise(r.exercise) })}
                       className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 text-left"
                     >
-                      <span className="truncate text-sm">{r.exercise!.name}</span>
+                      <span className="truncate text-sm">{tr.exercise(r.exercise)}</span>
                       <span
                         aria-hidden
                         className="grid h-4 w-4 shrink-0 place-items-center rounded-full border border-current text-[10px] font-bold text-[var(--color-accent-2)]"
@@ -173,7 +173,7 @@ export default function WeekPage() {
                       variant="ghost"
                       className="min-h-8 px-2 text-xs text-[var(--color-muted)]"
                       onClick={() =>
-                        setSwap({ session: d, slotId: r.slot.id, name: r.exercise!.name })
+                        setSwap({ session: d, slotId: r.slot.id, name: tr.exercise(r.exercise) })
                       }
                     >
                       {tr.t('week.swap')}
@@ -203,7 +203,7 @@ export default function WeekPage() {
                 setSwap(null);
               }}
             >
-              {e.name}
+              {tr.exercise(e)}
             </Button>
           ))}
         </Sheet>

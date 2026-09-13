@@ -29,6 +29,7 @@ import {
   SEXES,
   SPLITS,
   type Bias,
+  type Lang,
   type Profile,
   type SplitKey,
   type Theme,
@@ -106,11 +107,20 @@ export default function SettingsPage() {
     <Page>
       <Card className="flex flex-col gap-3">
         <h2 className="text-[17px] font-semibold">{tr.t('set.language')}</h2>
-        <Segmented
+        {/* A select rather than a segmented control: five languages will not
+            fit across a phone, and the list is meant to grow. */}
+        <select
+          aria-label={tr.t('set.language')}
           value={tr.lang}
-          onChange={(v) => fireAndForget(setLang(v))}
-          options={LANGS.map((l) => ({ value: l.id, label: l.label }))}
-        />
+          onChange={(e) => fireAndForget(setLang(e.target.value as Lang))}
+          className="min-h-[var(--spacing-tap)] rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
+        >
+          {LANGS.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.label}
+            </option>
+          ))}
+        </select>
       </Card>
 
       <Card className="flex flex-col gap-3">

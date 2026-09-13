@@ -6,6 +6,9 @@
  * is correct and "3 sorozatok" is not.
  */
 
+import { LANG_CODES } from '@athletic/domain';
+
+export { exerciseName } from '@athletic/domain';
 import type {
   DayKey,
   Lang,
@@ -75,8 +78,20 @@ export const dayName = (lang: Lang, key: DayKey | null | undefined): string =>
 export const splitName = (lang: Lang, key: SplitKey): string =>
   translate(lang, `split.${key}` as Key);
 
+/**
+ * The first of the browser's preferred languages we actually ship.
+ *
+ * Walked in *their* order, not ours: somebody whose list is [fr-CA, en] wants
+ * French, and scanning our languages against their list instead would hand them
+ * English because English happens to come first in our array.
+ */
 export function detectLang(): Lang {
   if (typeof navigator === 'undefined') return 'en';
   const tags = navigator.languages ?? [navigator.language ?? 'en'];
-  return tags.some((l) => l.toLowerCase().startsWith('hu')) ? 'hu' : 'en';
+  for (const tag of tags) {
+    const base = tag.toLowerCase().split('-')[0];
+    const hit = LANG_CODES.find((code) => code === base);
+    if (hit) return hit;
+  }
+  return 'en';
 }

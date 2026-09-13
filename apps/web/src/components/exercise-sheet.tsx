@@ -20,7 +20,7 @@ export function ExerciseSheet({ exercise, onClose }: { exercise: Exercise; onClo
   const description = exercise.description ?? '';
 
   return (
-    <Sheet title={exercise.name} open onClose={onClose}>
+    <Sheet title={tr.exercise(exercise)} open onClose={onClose}>
       {images.length > 0 && (
         <div className="grid grid-cols-2 gap-2">
           {images.map((src, i) => (
