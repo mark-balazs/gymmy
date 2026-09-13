@@ -68,9 +68,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   events: {
-    /** Fires once per account, so the default library is created exactly once. */
+    /**
+     * The earliest moment the default library can exist, but deliberately not
+     * the only one.
+     *
+     * A throw here becomes Auth.js's "Server error" page, and this event fires
+     * exactly once per account — so a failure used to be permanent: the user
+     * row was already written, the event would never fire again, and the
+     * account was left signed in and forever empty, which the app can only
+     * render as a loading screen that never resolves.
+     *
+     * So it is best-effort. `/api/sync` seeds any account that turns up with
+     * nothing, and seeding is idempotent, so the worst case is one slow first
+     * sync rather than an account nobody can use.
+     */
     async createUser({ user }) {
-      if (user.id) await seedNewUser(user.id, user.email);
+      if (!user.id) return;
+      try {
+        await seedNewUser(user.id, user.email);
+      } catch (err) {
+        console.error('[seed] first-run seeding failed; sync will retry', err);
+      }
     },
   },
   trustHost: true,

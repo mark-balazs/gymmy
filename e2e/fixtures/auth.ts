@@ -62,6 +62,14 @@ function weeksAgo(n: number): string {
  * cannot interfere and each one starts from a real first-run state.
  */
 export interface CreateUserOptions {
+  /**
+   * A user and a session and nothing else — no patterns, no library, no
+   * profile. This is what an account looks like when first-run seeding failed:
+   * Auth.js writes the user row before it fires the event that seeds, and that
+   * event never fires twice. Used to prove the app repairs it rather than
+   * sitting on a loading screen forever.
+   */
+  bare?: boolean;
   onboarded?: boolean;
   split?: Exclude<SplitKey, 'custom'>;
   days?: number;
@@ -99,6 +107,11 @@ export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser
       'INSERT INTO session ("sessionToken", "userId", expires) VALUES ($1, $2, $3)',
       [sessionToken, id, expires],
     );
+
+    if (opts.bare) {
+      await client.query('COMMIT');
+      return { id, email, sessionToken };
+    }
 
     const now = new Date();
     const iso = now.toISOString();

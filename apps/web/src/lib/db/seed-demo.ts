@@ -16,7 +16,7 @@ import { sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { exercises as exercisesTable, patterns, programEntries, setLogs } from '@/lib/db/schema';
 import { mondayOf, sessionLabel } from '@athletic/domain';
-import { nextSeq } from './seed-user';
+import { nextSeq, seedId } from './seed-user';
 
 /**
  * Which address gets this treatment.
@@ -115,7 +115,9 @@ export async function seedDemoHistory(userId: string): Promise<void> {
 
         for (let setNo = 1; setNo <= (entry.sets || 3); setNo++) {
           rows.push({
-            id: crypto.randomUUID(),
+            // Derived, not random, for the same reason the rest of the seed is:
+            // this has to be safe to run again over a history it half wrote.
+            id: seedId(userId, 'demoLog', `${date}:${entry.exerciseId}:${setNo}`),
             userId,
             updatedAt: new Date(`${date}T18:00:00Z`),
             deletedAt: null,
@@ -139,6 +141,6 @@ export async function seedDemoHistory(userId: string): Promise<void> {
   // limit, and this is the one place that inserts in bulk.
   for (let i = 0; i < rows.length; i += 200) {
     const chunk = rows.slice(i, i + 200).map((r) => ({ ...r, seq: nextSeq }));
-    await db.insert(setLogs).values(chunk);
+    await db.insert(setLogs).values(chunk).onConflictDoNothing();
   }
 }

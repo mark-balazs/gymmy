@@ -11,6 +11,7 @@ import { and, asc, eq, gt, sql } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { SYNC_TABLES, type SyncTableName } from '@/lib/db/schema';
+import { seedNewUser } from '@/lib/db/seed-user';
 import { pushRequest, SYNC_LIMIT, type PullResponse } from '@/lib/sync/protocol';
 import { rowSchemas } from '@/lib/sync/rows';
 
@@ -83,21 +84,49 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   /* ---- pull ---- */
 
-  const changes: Record<string, unknown[]> = {};
+  let payload = await pull(userId, since);
 
   /**
-   * Each table is paged independently, which makes advancing the cursor subtle.
+   * A device asking from scratch and getting nothing back means the account has
+   * no rows at all — first-run seeding never completed.
    *
-   * Taking the highest seq across all tables loses data outright: if logs fill
-   * their page at seq 1_000 while the profile row sits at 5_000, a cursor of
-   * 5_000 means every log between the two is never requested again. It is
-   * silent, permanent, and shows up as a device that is simply missing history.
+   * That seeding happens in Auth.js's `createUser` event, which fires exactly
+   * once per account and cannot be made to fire again. Without this, a single
+   * failed seed leaves someone signed in, syncing perfectly, and permanently
+   * empty — and an empty account has no profile, which the app can only render
+   * as a loading screen that never resolves.
    *
-   * So a table that filled its page holds the cursor down to the last row it
-   * actually sent, and the client is told to come back. Rows above that from
-   * other tables get re-sent next round, which costs a little bandwidth and
-   * nothing else — applying them again is idempotent.
+   * This is the one place every device touches on every visit, so it is where
+   * the repair belongs. Seeding writes stable ids and ignores conflicts, so
+   * two devices arriving at once cannot produce two libraries, and a seed that
+   * half-wrote is finished rather than duplicated.
    */
+  if (since === 0 && Object.keys(payload.changes).length === 0) {
+    console.warn(`[sync] empty account ${userId}; seeding now`);
+    await seedNewUser(userId, session.user?.email);
+    payload = await pull(userId, since);
+  }
+
+  return NextResponse.json(payload);
+}
+
+/**
+ * Everything newer than `since`, one page per table.
+ *
+ * Each table is paged independently, which makes advancing the cursor subtle.
+ *
+ * Taking the highest seq across all tables loses data outright: if logs fill
+ * their page at seq 1_000 while the profile row sits at 5_000, a cursor of
+ * 5_000 means every log between the two is never requested again. It is
+ * silent, permanent, and shows up as a device that is simply missing history.
+ *
+ * So a table that filled its page holds the cursor down to the last row it
+ * actually sent, and the client is told to come back. Rows above that from
+ * other tables get re-sent next round, which costs a little bandwidth and
+ * nothing else — applying them again is idempotent.
+ */
+async function pull(userId: string, since: number): Promise<PullResponse> {
+  const changes: Record<string, unknown[]> = {};
   let lowestTruncated: number | null = null;
   let highestSent = since;
 
@@ -120,13 +149,12 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
   }
 
-  const payload: PullResponse = {
+  return {
     cursor: lowestTruncated ?? highestSent,
     changes,
     serverTime: new Date().toISOString(),
     hasMore: lowestTruncated !== null,
   };
-  return NextResponse.json(payload);
 }
 
 /** Dates leave as ISO strings; `seq` and `userId` are server-side concerns and

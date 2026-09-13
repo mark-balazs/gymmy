@@ -1,6 +1,37 @@
+import { createUser, sessionCookie } from '../fixtures/auth';
 import { expect, test } from '../fixtures/test';
 
 test.describe('Not getting stuck', () => {
+  /**
+   * An account can exist without a library. Auth.js writes the user row and
+   * *then* fires the event that seeds one, that event fires exactly once per
+   * account, and a failure in it used to be permanent — leaving somebody signed
+   * in, syncing cleanly, and with no profile, which this app can only render as
+   * a loading screen that never resolves.
+   *
+   * The repair lives in `/api/sync`: a device asking from scratch and getting
+   * nothing back means the account is empty, so it is seeded then and there.
+   */
+  test('an account that was never seeded builds itself on first sync', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    // A user and a session and nothing else — no patterns, no exercises, no
+    // profile. Exactly what a failed first-run seed leaves behind.
+    const user = await createUser({ bare: true });
+    await context.addCookies([sessionCookie(user, baseURL!)]);
+
+    await page.goto('/train');
+
+    // Setup can only be reached once a profile exists, and the questions can
+    // only be answered once there is a library behind them — so arriving here
+    // is proof the server built both rather than the app merely not crashing.
+    await expect(
+      page.getByRole('heading', { name: 'How should your week be shaped?' }),
+    ).toBeVisible({ timeout: 30_000 });
+  });
+
   /**
    * The bug this exists for: an exercise row synced before `images` existed has
    * no such key, `images.length` threw, and the whole screen went blank with no
