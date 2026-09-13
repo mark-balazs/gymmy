@@ -16,14 +16,41 @@ import { useSyncStatus, useT } from '@/lib/client/hooks';
 import { startSync } from '@/lib/client/sync';
 import type { Key } from '@/lib/i18n';
 
+/**
+ * The tab bar.
+ *
+ * Each icon has to say what the tab *is* at twenty pixels, with a word beneath
+ * it that is doing most of the work anyway. Two were saying the wrong thing:
+ *
+ *  - **Train** was a bulleted list with a plus — the universal icon for "add a
+ *    row to a list". It described the mechanics of logging rather than the
+ *    reason you opened the app, and it was the one icon nothing about it
+ *    suggested a gym.
+ *  - **Week** was a two-by-two grid, which every operating system on earth uses
+ *    for "all apps". A week is a calendar; drawing it as a dashboard meant the
+ *    icon had to be read twice.
+ *
+ * The other three are left alone. A house, a bar chart and a cog are not
+ * original, and that is exactly why they work.
+ */
 const TABS = [
   {
     href: '/home',
     key: 'tab.home',
     icon: 'M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
   },
-  { href: '/train', key: 'tab.train', icon: 'M4 7h16M4 12h10M4 17h7M17 14v6M14 17h6' },
-  { href: '/week', key: 'tab.week', icon: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' },
+  {
+    href: '/train',
+    key: 'tab.train',
+    // A dumbbell: two collars, two plates, one bar.
+    icon: 'M4.5 10v4M7.5 7.5v9M16.5 7.5v9M19.5 10v4M7.5 12h9',
+  },
+  {
+    href: '/week',
+    key: 'tab.week',
+    // A calendar, divided into days rather than left as an empty page.
+    icon: 'M4 6h16v14H4zM4 10h16M9 3v4M15 3v4M9 14v6M15 14v6',
+  },
   { href: '/progress', key: 'tab.progress', icon: 'M4 19V5M4 19h16M8 16v-5M12 16V8M16 16v-3' },
   {
     href: '/settings',
