@@ -188,6 +188,23 @@ jumps (which produces uneven plateaus by itself), and is interrupted by a deload
 every sixth week, a bad session about one in ten, two missed sessions and a week
 off. Bodyweight movements carry a fraction of bodyweight and progress in reps.
 
+**One plateau is shared across every lift**, which per-exercise arcs cannot
+produce. The strength score is a sum over five patterns, so a single lift pausing
+disappears into the other four and the headline number climbed in eighteen weeks
+out of twenty-one — a five-month chart with no flat stretch anywhere, which is
+not what training looks like. The plateau is five weeks of no progress that the
+block never gets back, so it costs the total rather than being caught up from.
+
+It also exposed a real ordering bug in `attention()`: a lift abandoned during a
+flat stretch was reported as **stalled**, and a stall claims you kept turning up
+and it would not move. Dormancy is checked first now — see
+[training-model.md](./training-model.md#the-triage).
+
+Bodyweight is an exponential approach to a settling point rather than a straight
+slope that stops dead at week fourteen, and its noise comes from the same
+deterministic wobble as everything else. It used to be a six-entry array indexed
+by `week % 6`, so the chart drew one zigzag five times over.
+
 Noise is salted per exercise where it should be and shared where it should be: a
 bad *day* hits everything you touched that evening, which is honest and makes the
 charts dip together, while the rep wobble is per lift — without that, five charts

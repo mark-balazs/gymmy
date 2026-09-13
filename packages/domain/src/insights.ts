@@ -318,16 +318,24 @@ export function attention(summary: ExerciseProgress[], asOf: string, limit = 3):
       found.regressed.push({ kind: 'regressed', progress, weeksSinceBest });
       continue;
     }
+    /* Dormancy is checked before the stall, and the order is load-bearing. A
+       stall says "you keep turning up and it will not move", and that claim
+       requires you to have turned up — so a lift nobody has touched in three
+       weeks cannot be stuck, whatever its last few sessions looked like. Run
+       the other way round and a lift abandoned during a flat patch is reported
+       as "no higher than July, 0 sessions since", which is both nonsense and
+       hides the only thing worth saying about it: it is still in your week and
+       you are not doing it. */
+    if (inPlan && daysSince !== null && daysSince >= DORMANT_DAYS) {
+      found.dormant.push({ kind: 'dormant', progress, weeksSinceBest });
+      continue;
+    }
     if (
       drawdown?.confident &&
       weeksSinceBest >= STALL_WEEKS &&
       sessionsSinceBest >= STALL_SESSIONS
     ) {
       found.stalled.push({ kind: 'stalled', progress, weeksSinceBest });
-      continue;
-    }
-    if (inPlan && daysSince !== null && daysSince >= DORMANT_DAYS) {
-      found.dormant.push({ kind: 'dormant', progress, weeksSinceBest });
     }
   }
 

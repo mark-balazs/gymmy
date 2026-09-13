@@ -83,17 +83,17 @@ export const DEMO_LOADS: Record<string, DemoLoad> = {
   /* ------------------------------------------------------------- squat -- */
   'Goblet Squat': { start: 28, reps: 10, inc: 2, gain: 0.28 },
   'Leg Press': { start: 160, reps: 10, inc: 10, gain: 0.25 },
-  'Barbell Back Squat': { start: 95, reps: 5, inc: 2.5, gain: 0.18 },
-  'Barbell Front Squat': { start: 70, reps: 5, inc: 2.5, gain: 0.18 },
+  'Barbell Back Squat': { start: 95, reps: 5, inc: 2.5, gain: 0.11 },
+  'Barbell Front Squat': { start: 70, reps: 5, inc: 2.5, gain: 0.12 },
   'Hack Squat': { start: 100, reps: 8, inc: 5, gain: 0.24 },
   'Zercher Squat': { start: 60, reps: 6, inc: 2.5, gain: 0.2 },
-  'Box Squat': { start: 85, reps: 5, inc: 2.5, gain: 0.18 },
+  'Box Squat': { start: 85, reps: 5, inc: 2.5, gain: 0.12 },
   'Smith Machine Squat': { start: 90, reps: 8, inc: 5, gain: 0.22 },
 
   /* ------------------------------------------------------------- hinge -- */
-  'Romanian Deadlift': { start: 80, reps: 8, inc: 2.5, gain: 0.22 },
-  'Conventional Deadlift': { start: 120, reps: 5, inc: 5, gain: 0.16 },
-  'Trap Bar Deadlift': { start: 130, reps: 5, inc: 5, gain: 0.17 },
+  'Romanian Deadlift': { start: 80, reps: 8, inc: 2.5, gain: 0.15 },
+  'Conventional Deadlift': { start: 120, reps: 5, inc: 5, gain: 0.1 },
+  'Trap Bar Deadlift': { start: 130, reps: 5, inc: 5, gain: 0.1 },
   'Hip Thrust': { start: 100, reps: 10, inc: 5, gain: 0.28 },
   'Good Morning': { start: 50, reps: 8, inc: 2.5, gain: 0.22 },
   'Back Extension': { start: 15, reps: 12, inc: 2.5, gain: 0.3 },
@@ -132,11 +132,11 @@ export const DEMO_LOADS: Record<string, DemoLoad> = {
     start: 70,
     reps: 5,
     inc: 2.5,
-    gain: 0.17,
+    gain: 0.12,
     // Ran for two and a half months and then sat there. Everybody's bench.
     arc: { kind: 'stall', from: 10 },
   },
-  'Overhead Press': { start: 45, reps: 5, inc: 2.5, gain: 0.17 },
+  'Overhead Press': { start: 45, reps: 5, inc: 2.5, gain: 0.12 },
   'DB Shoulder Press': { start: 20, reps: 8, inc: 2, gain: 0.28 },
   'Incline DB Press': { start: 22, reps: 8, inc: 2, gain: 0.27 },
   'Machine Chest Press': { start: 60, reps: 10, inc: 5, gain: 0.25 },
@@ -148,7 +148,7 @@ export const DEMO_LOADS: Record<string, DemoLoad> = {
   /* -------------------------------------------------------------- pull -- */
   'Lat Pulldown': { start: 60, reps: 10, inc: 5, gain: 0.25 },
   'Seated Cable Row': { start: 60, reps: 10, inc: 5, gain: 0.25 },
-  'Barbell Row': { start: 60, reps: 8, inc: 2.5, gain: 0.22 },
+  'Barbell Row': { start: 60, reps: 8, inc: 2.5, gain: 0.15 },
   'DB Row': { start: 28, reps: 10, inc: 2, gain: 0.25 },
   'Chest-Supported Row': {
     start: 25,

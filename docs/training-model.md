@@ -113,6 +113,30 @@ rewrite what every past week meant every time you stepped on a scale.
 taken to failure and a set with three left look identical, which makes the whole
 progress view lie.
 
+## The triage
+
+`attention()` in `insights.ts` decides what the Progress page leads with. Three
+verdicts, and **the order they are tested in is the model, not an
+implementation detail**:
+
+1. **Regressed** — a confident drawdown of 5% or worse against recent form.
+2. **Dormant** — still in your plan, untouched for 21 days.
+3. **Stalled** — no higher for 8 weeks *and* 6 sessions.
+
+Dormant is tested **before** stalled because a stall says *you keep turning up
+and it will not move*, and that claim requires you to have turned up. Run the
+other way round — which it was — and a lift abandoned during a flat stretch
+comes out as "no higher than July, and 0 sessions since then": nonsense, and it
+buries the only useful thing to say, which is that it is still in your week and
+you are not doing it.
+
+The thresholds are deliberately slack. At 4 weeks and 3 sessions the demo
+account had nine of its eleven lifts flagged as stalled, and a page that says
+most of your training needs a look is a page nobody acts on.
+
+Results are then taken **a kind at a time** rather than strictly worst-first, so
+three stalls cannot bury the one lift you stopped doing.
+
 ## Double progression
 
 ```mermaid

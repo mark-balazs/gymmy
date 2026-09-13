@@ -21,6 +21,11 @@
  *  - **a per-exercise arc** — one stalls, one has gone backwards, one is
  *    trained about two weeks in three, one appeared two months in, and one is
  *    still on the plan but has not been touched for over a month;
+ *  - **a shared plateau** — a couple of months in the middle where nothing
+ *    moved at all. Per-exercise arcs are not enough for this: the strength
+ *    score is a sum across five patterns, so one lift pausing vanishes into
+ *    the other four and the headline number climbed in eighteen weeks out of
+ *    twenty-one, which is the one shape no real chart has;
  *  - **quick early, flattening later**, because that is what five months looks
  *    like — not a straight line, and not the 100%+ gains the old version
  *    produced on light movements;
@@ -100,45 +105,88 @@ const isDeload = (w: number): boolean => w > 0 && w % 6 === 5;
 const isOff = (w: number): boolean => w === 11;
 
 /**
- * Bodyweight, drifting down and then settling — with a wobble that repeats
- * exactly, because this has to be reproducible.
+ * Bodyweight: a cut that runs out of steam, then maintenance.
+ *
+ * Two things were visible here on a chart and neither happens to a person. The
+ * drift was `Math.min(w, 14) * 0.2` — a dead-straight slope that stops *dead*
+ * at week fourteen, which nobody's weight does; and the wobble was a six-entry
+ * array indexed by `w % 6`, so the same zigzag was drawn five times in a row.
+ * Together they made a sawtooth with a visible period, on the one series in the
+ * app somebody might actually recognise their own in.
+ *
+ * So: an exponential approach to a new settling point, which is what losing
+ * weight looks like — quick at first, then increasingly stubborn — and noise
+ * from the same deterministic wobble everything else here uses, which does not
+ * repeat. Still identical on every run, which is the constraint that matters.
  */
 export function bodyWeightFor(w: number): number {
-  const drift = 82 - Math.min(w, 14) * 0.2;
-  const wobble = [0, 0.4, -0.3, 0.2, -0.5, 0.3][w % 6]!;
-  return Math.round((drift + wobble) * 10) / 10;
+  const cut = 3.2 * (1 - Math.exp(-w / 6));
+  return Math.round((82 - cut + jitter(w, 0, 5) * 0.45) * 10) / 10;
 }
 
 /* ------------------------------------------------------------------ arcs */
 
 const STEADY: DemoArc | null = null;
 
+/**
+ * A month somewhere in the middle where nothing moved.
+ *
+ * Every lift on its own smooth ramp produces a strength score that rises in
+ * eighteen weeks out of twenty-one, and that is the one thing no real chart
+ * does. A block has runs, and it has stretches where the same weights keep
+ * coming back around — a heavy month at work, a fortnight of being ill, or
+ * simply the point at which what worked in week two stops working.
+ *
+ * It is shared rather than per-lift on purpose. A plateau is something that
+ * happens to the person, not to the barbell, so it lands on everything at once
+ * — which is also the only version of it the strength score can show, since
+ * that score is a sum across five patterns and one lift pausing disappears
+ * into the other four.
+ */
+const PLATEAU = { from: 8, weeks: 5 };
+
+/**
+ * Weeks of *progress* banked by calendar week `w`.
+ *
+ * The plateau contributes none, so it costs the block the gains it would have
+ * made — which is the honest version. A plateau that the curve caught up from
+ * afterwards would be a plateau with no consequences, and would leave the
+ * five-month total exactly where it was.
+ */
+const earnedWeeks = (w: number): number =>
+  w < PLATEAU.from ? w : Math.max(PLATEAU.from, w - PLATEAU.weeks);
+
 /** How much of this lift's gain has been realised by week `w`. */
 function progressAt(arc: DemoArc | null, w: number): number {
-  if (!arc) return ramp(w / LAST);
+  const e = earnedWeeks(w);
+  if (!arc) return ramp(e / LAST);
   switch (arc.kind) {
     case 'stall':
       // Frozen from `from` onward. The weight stops moving because the lifter
       // stopped being able to move it, not because the generator ran out.
-      return ramp(Math.min(w, arc.from) / LAST);
+      return ramp(Math.min(e, earnedWeeks(arc.from)) / LAST);
     case 'regress': {
+      // Calendar weeks, not earned ones: a knee gives way on a date, and it
+      // heals over real time rather than over training that did not happen.
       const after = w - arc.peak;
-      if (after <= 0) return ramp(w / LAST);
+      if (after <= 0) return ramp(e / LAST);
       // Down over about three weeks, then clawing back far more slowly than it
       // went — which is what coming back from a tweak actually feels like.
       const fallen = arc.drop * (Math.min(after, 3) / 3);
       const clawed = Math.min(fallen, Math.max(0, after - 4) * 0.03);
-      return Math.max(0, ramp(arc.peak / LAST) - fallen + clawed);
+      return Math.max(0, ramp(earnedWeeks(arc.peak) / LAST) - fallen + clawed);
     }
     case 'irregular':
       // Slower, because you are there less often.
-      return ramp((0.7 * w) / LAST);
-    case 'late':
+      return ramp((0.7 * e) / LAST);
+    case 'late': {
       // Starts from scratch when it is introduced, not from where the block
       // would have carried it had it been there all along.
-      return ramp((w - arc.from) / Math.max(1, LAST - arc.from));
+      const begun = earnedWeeks(arc.from);
+      return ramp((e - begun) / Math.max(1, LAST - begun));
+    }
     case 'abandoned':
-      return ramp(w / LAST);
+      return ramp(e / LAST);
   }
 }
 

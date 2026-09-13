@@ -185,6 +185,24 @@ describe('attention', () => {
     expect(first?.kind).toBe('dormant');
   });
 
+  it('calls a lift you walked away from dormant, not stuck', () => {
+    /* It qualifies as both: flat for months, and untouched for six weeks. But
+       "stuck" means you keep turning up and it will not move, and that claim
+       needs you to have turned up. Reported the other way round it reads "no
+       higher than June, and 0 sessions since then" — nonsense, and it buries
+       the only useful thing to say, which is that it is still in your week and
+       you are not doing it. */
+    const p = progress({
+      sessions: series([100, 110, 120, 120, 120, 120, 120, 120, 120], { from: '2026-05-04' }),
+      sessionsSinceBest: 6,
+      daysSince: 42,
+    });
+    // Genuinely a stall by every other measure — which is what makes the
+    // ordering the thing under test rather than the thresholds.
+    expect(p.drawdown?.confident).toBe(true);
+    expect(attention([p], '2026-09-13').map((x) => x.kind)).toEqual(['dormant']);
+  });
+
   it('does not nag about something you dropped from the plan', () => {
     const p = progress({
       sessions: series([100, 104, 108, 112], { from: '2026-06-01' }),

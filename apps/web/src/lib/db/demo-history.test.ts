@@ -9,10 +9,11 @@ import {
   index,
   mondayOf,
   progressSummary,
+  strengthSeries,
   type Indexed,
   type Snapshot,
 } from '@athletic/domain';
-import { DEMO_WEEKS, demoHistory, type DemoPlanEntry } from './demo-history';
+import { DEMO_WEEKS, bodyWeightFor, demoHistory, type DemoPlanEntry } from './demo-history';
 
 /**
  * The demo account is the one account we know will be looked at, and what makes
@@ -254,5 +255,97 @@ describe('the demo history', () => {
     const top = (name: string) => byName(name)?.topSet?.weight ?? 0;
     expect(top('Trap Bar Deadlift')).toBeGreaterThan(top('Goblet Squat'));
     expect(top('Goblet Squat')).toBeGreaterThan(top('Hammer Curl'));
+  });
+});
+
+/**
+ * The longest run of consecutive weeks whose score stays within `tolerance`.
+ *
+ * Callers measure it over a *prefix* of the block rather than the whole of it,
+ * and that is the point. A flat tail is not a plateau — it is where the chart
+ * happens to end — and the generator that had no plateau anywhere already had
+ * one of those, so a test looking at the whole series would have passed against
+ * exactly the thing it exists to rule out.
+ */
+function longestFlatRun(scores: number[], tolerance: number): number {
+  let best = 1;
+  for (let a = 0; a < scores.length; a++) {
+    for (let b = a + 1; b < scores.length; b++) {
+      const seg = scores.slice(a, b + 1);
+      const lo = Math.min(...seg);
+      if (Math.max(...seg) - lo > lo * tolerance) break;
+      best = Math.max(best, b - a + 1);
+    }
+  }
+  return best;
+}
+
+describe('the demo strength score', () => {
+  const scores = strengthSeries(ix, mondayOf(ix.logs[0]!.date), DEMO_WEEKS, {
+    unit: 'kg',
+    sex: 'male',
+    birthYear: null,
+  })
+    .map((p) => p.score)
+    .filter((n): n is number => n !== null);
+
+  it('has a couple of months in the middle where nothing moved', () => {
+    /* Every lift used to ride its own smooth ramp, and the sum of five of them
+       climbed in eighteen weeks out of twenty-one. A strength score that rises
+       almost every week for five months is the one shape no real chart has.
+       This asserts a shared plateau exists, and that it sits somewhere the
+       person would have lived through rather than at the end. */
+    const middle = scores.slice(0, Math.ceil(scores.length * 0.75));
+    expect(longestFlatRun(middle, 0.01)).toBeGreaterThanOrEqual(6);
+  });
+
+  it('still ends up meaningfully stronger than it started', () => {
+    // The other half of it. A plateau is only honest if the block around it
+    // went somewhere, and a demo whose headline number never moves shows
+    // nothing at all.
+    const first = scores[0]!;
+    const last = scores[scores.length - 1]!;
+    expect(last / first).toBeGreaterThan(1.08);
+    // And not a novice's five months, which is what adding a fifth to every
+    // pattern at once would be describing.
+    expect(last / first).toBeLessThan(1.25);
+  });
+});
+
+describe('the demo bodyweight', () => {
+  it('does not repeat the same wobble every six weeks', () => {
+    /* It was a straight drift plus a six-entry array indexed by `w % 6`, so the
+       chart drew one zigzag five times over. The week-on-week *change* is what
+       exposes that: with a period-six wobble, the step from week w to w+1 is
+       identical to the step from w+6 to w+7, for every week the trend is
+       straight. Comparing the six-week-apart weights instead would not catch
+       it — the drift cancels and the flat tail supplies variety of its own,
+       which is how the first version of this test passed against the bug. */
+    const step = (w: number) => bodyWeightFor(w + 1) - bodyWeightFor(w);
+    const echoes = Array.from(
+      { length: DEMO_WEEKS - 7 },
+      (_, w) => Math.abs(step(w + 6) - step(w)) < 0.05,
+    ).filter(Boolean).length;
+    expect(echoes).toBeLessThan(3);
+  });
+
+  it('loses weight quickly and then keeps drifting', () => {
+    const first = bodyWeightFor(0);
+    const half = bodyWeightFor(Math.floor(DEMO_WEEKS / 2));
+    expect(first - half).toBeGreaterThan(1.5);
+    expect(first - bodyWeightFor(DEMO_WEEKS - 1)).toBeLessThan(5);
+
+    /* And it does not stop dead. `Math.min(w, 14) * 0.2` meant the trend was
+       exactly, permanently flat from week fourteen, with only the repeating
+       wobble on top — so these two three-week averages came out the wrong way
+       round. Averaged rather than compared point to point, because a single
+       week is mostly wobble. */
+    const mean = (from: number, to: number) =>
+      Array.from({ length: to - from }, (_, i) => bodyWeightFor(from + i)).reduce(
+        (a, b) => a + b,
+        0,
+      ) /
+      (to - from);
+    expect(mean(14, 17)).toBeGreaterThan(mean(19, 22));
   });
 });
