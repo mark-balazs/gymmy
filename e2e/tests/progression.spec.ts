@@ -17,12 +17,25 @@ async function target(page: Page, index = 0): Promise<string> {
   return `${weight} × ${reps}`;
 }
 
-/** Moves the date field forward so "last time" means a previous session. */
-async function setDate(page: import('@playwright/test').Page, daysAhead: number): Promise<void> {
+/**
+ * Moves the date forward so "last time" means a previous session, and stays on
+ * the same day of the split.
+ *
+ * That second half is not tidiness. Train opens on **the first session not yet
+ * trained this week**, so moving three days forward from a Monday lands on Day
+ * B — a different exercise, with no history, and a suggestion that is correctly
+ * blank. The test then fails against an app that is working perfectly.
+ *
+ * It only showed up when the clock rolled into a Monday: three days from a
+ * Friday, Saturday or Sunday crosses into the next week, where nothing has been
+ * trained yet and Day A is offered again. So this passed four days in seven and
+ * failed the other three, which is the worst kind of test to own.
+ */
+async function setDate(page: Page, daysAhead: number): Promise<void> {
   const d = new Date();
   d.setDate(d.getDate() + daysAhead);
-  const iso = d.toISOString().slice(0, 10);
-  await page.locator('input[type="date"]').fill(iso);
+  await page.locator('input[type="date"]').fill(d.toISOString().slice(0, 10));
+  await page.getByRole('button', { name: 'Day A', exact: true }).click();
 }
 
 test.describe('Progressive overload', () => {

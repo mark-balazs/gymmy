@@ -378,3 +378,119 @@ export async function rowCount(table: string, userId: string): Promise<number> {
   ]);
   return (r.rows[0] as { n: number } | undefined)?.n ?? 0;
 }
+
+/**
+ * A trainer, a published plan, and a share aimed at somebody.
+ *
+ * Written straight into the database rather than driven through the coach UI,
+ * for the same reason every other fixture here is: the test is about what the
+ * athlete does with a plan, and getting there through eleven taps of somebody
+ * else's screen would make it fail for reasons that are not the point.
+ */
+export async function shareAPlanWith(
+  athleteId: string,
+  opts: {
+    name?: string;
+    days?: number;
+    /** Slot 0 of session 0, by name. Anything the seeded library has. */
+    exerciseName?: string | null;
+    viaGroup?: boolean;
+  } = {},
+): Promise<{ planId: string; trainerId: string }> {
+  const client = await db().connect();
+  try {
+    await client.query('BEGIN');
+
+    const trainerId = randomUUID();
+    await client.query(`INSERT INTO "user" (id, name, email, role) VALUES ($1,$2,$3,'trainer')`, [
+      trainerId,
+      'Coach Ann',
+      `coach-${trainerId.slice(0, 8)}@example.test`,
+    ]);
+
+    const planId = randomUUID();
+    const days = opts.days ?? 3;
+    await client.query(
+      `INSERT INTO plans (id, owner_id, name, description, days, "where", version, published_at)
+       VALUES ($1,$2,$3,$4,$5,'gym',1,now())`,
+      [planId, trainerId, opts.name ?? 'Coach block', 'Four weeks of pressing', days],
+    );
+
+    /* A real skeleton from the real preset, so the plan installs a week the
+       coverage rules recognise rather than a hand-written approximation. */
+    const preset = findSplit('sevenPattern')!;
+    const slots = buildSlots(preset, days);
+    for (const s of slots) {
+      const first = s.sessionIndex === 0 && s.position === 0;
+      await client.query(
+        `INSERT INTO plan_slots
+           (id, plan_id, session_index, position, key, name, required_role, pattern_keys, day_key, exercise_name, sets, rep_range)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+        [
+          randomUUID(),
+          planId,
+          s.sessionIndex,
+          s.position,
+          s.key,
+          s.name,
+          s.requiredRole,
+          s.patternKeys ? JSON.stringify(s.patternKeys) : null,
+          s.dayKey,
+          first ? (opts.exerciseName ?? null) : null,
+          first ? 5 : 3,
+          '5-8',
+        ],
+      );
+    }
+
+    if (opts.viaGroup) {
+      const groupId = randomUUID();
+      await client.query(`INSERT INTO user_groups (id, owner_id, name) VALUES ($1,$2,$3)`, [
+        groupId,
+        trainerId,
+        'Tuesday squad',
+      ]);
+      await client.query(`INSERT INTO group_members (group_id, user_id) VALUES ($1,$2)`, [
+        groupId,
+        athleteId,
+      ]);
+      await client.query(`INSERT INTO plan_shares (id, plan_id, group_id) VALUES ($1,$2,$3)`, [
+        randomUUID(),
+        planId,
+        groupId,
+      ]);
+    } else {
+      await client.query(
+        `INSERT INTO plan_shares (id, plan_id, target_user_id) VALUES ($1,$2,$3)`,
+        [randomUUID(), planId, athleteId],
+      );
+    }
+
+    await client.query('COMMIT');
+    return { planId, trainerId };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/** Publishes a new edition, which is what an athlete is then offered. */
+export async function publishNewVersion(planId: string): Promise<void> {
+  await db().query(`UPDATE plans SET version = version + 1, updated_at = now() WHERE id = $1`, [
+    planId,
+  ]);
+}
+
+/** What the profile row says about the plan in effect. */
+export async function planInEffect(
+  userId: string,
+): Promise<{ planId: string | null; planVersion: number | null }> {
+  const r = await db().query(
+    `SELECT plan_id, plan_version FROM profiles WHERE user_id = $1 LIMIT 1`,
+    [userId],
+  );
+  const row = r.rows[0] as { plan_id: string | null; plan_version: number | null } | undefined;
+  return { planId: row?.plan_id ?? null, planVersion: row?.plan_version ?? null };
+}

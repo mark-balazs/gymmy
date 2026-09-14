@@ -63,7 +63,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: { signIn: '/sign-in' },
   callbacks: {
     session({ session, user }) {
-      if (session.user) session.user.id = user.id;
+      if (session.user) {
+        session.user.id = user.id;
+        /* The role rides along so a server component can decide whether the
+           coach area exists for this person without a second query. It is
+           only ever a hint for rendering: every write that depends on it
+           re-reads the row, because a role is the kind of thing that gets
+           revoked and a session can outlive that by three months. */
+        session.user.role = (user as { role?: string }).role === 'trainer' ? 'trainer' : 'athlete';
+      }
       return session;
     },
   },

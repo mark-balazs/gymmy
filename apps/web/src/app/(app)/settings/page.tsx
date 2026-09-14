@@ -6,6 +6,8 @@ import { Button, Card, Field, InfoButton, Segmented, Sheet, cn } from '@/compone
 import { Page } from '@/components/page';
 import { SplitSheet } from '@/components/split-sheet';
 import { ProfileCard } from '@/components/profile-card';
+import { PlansCard } from '@/components/plans-card';
+import { CoachLink } from '@/components/coach-link';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import {
   applyCustomSplit,
@@ -115,6 +117,11 @@ export default function SettingsPage() {
           while sex and height sat under "About you" — a separate box for facts
           of exactly the same kind. The division was never about the reader. */}
       <ProfileCard />
+
+      {/* Above the presets, because the choice is genuinely three-way now:
+          a plan somebody wrote for you, a built-in split, or your own week.
+          Renders nothing at all for an account nobody coaches. */}
+      <PlansCard />
 
       <Card className="flex flex-col gap-3">
         <h2 className="text-[17px] font-semibold">{tr.t('set.split')}</h2>
@@ -322,6 +329,8 @@ export default function SettingsPage() {
           />
         </Field>
       </Card>
+
+      <CoachLink />
 
       <Card>
         <Button
