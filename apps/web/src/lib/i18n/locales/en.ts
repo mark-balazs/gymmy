@@ -101,6 +101,11 @@ export const en = {
   'onboard.where.homeh': 'Dumbbells and bodyweight',
   'onboard.q3.title': 'Anything you want to bring up?',
   'onboard.q3.sub': 'One area gets a little extra. Everything else stays balanced.',
+  'onboard.q4.title': 'What do you weigh?',
+  'onboard.q4.sub':
+    'The strength score is a ratio, so without this there is no score at all. You can change it any time, and it is asked again whenever you want.',
+  'onboard.q4.placeholder': 'e.g. 78.5',
+  'onboard.q4.skip': 'Skip for now',
   'onboard.done.title': 'Here is your week',
   'onboard.done.sub': 'Built to cover all seven ways your body moves. You can swap anything later.',
   'onboard.start': 'Start training',

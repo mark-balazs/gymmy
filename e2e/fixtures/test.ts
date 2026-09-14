@@ -107,6 +107,9 @@ export async function completeOnboarding(
     days?: '2 days' | '3 days' | '4 days' | '5 days' | '6 days';
     where?: 'A gym' | 'Home';
     bias?: string;
+    /** Bodyweight, or null to take the skip. Defaults to answering, because
+     *  that is what most people will do and what makes the score exist. */
+    weight?: number | null;
   } = {},
 ): Promise<void> {
   await page.goto('/onboarding');
@@ -122,6 +125,18 @@ export async function completeOnboarding(
   await page
     .getByRole('button', { name: new RegExp(opts.bias ?? 'Nothing in particular') })
     .click();
+
+  /* Bodyweight. Asked here rather than left to Settings because the strength
+     score is a ratio: without it there is no score at all, which is how every
+     account in production ended up with training and no number. */
+  const weight = opts.weight === undefined ? 78.5 : opts.weight;
+  if (weight === null) {
+    await page.getByRole('button', { name: 'Skip for now' }).click();
+  } else {
+    await page.getByLabel('What do you weigh?').fill(String(weight));
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
+  }
+
   await expect(page.getByRole('heading', { name: 'Here is your week' })).toBeVisible();
   await page.getByRole('button', { name: 'Start training' }).click();
   await page.waitForURL('**/train');

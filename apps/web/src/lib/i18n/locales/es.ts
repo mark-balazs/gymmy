@@ -112,6 +112,11 @@ export const es: Record<Key, string> = {
   'onboard.where.homeh': 'Mancuernas y peso corporal',
   'onboard.q3.title': '¿Algo que quieras trabajar más?',
   'onboard.q3.sub': 'Una zona recibe algo extra. El resto sigue equilibrado.',
+  'onboard.q4.title': '¿Cuánto pesas?',
+  'onboard.q4.sub':
+    'La puntuación de fuerza es una proporción: sin esto no hay ninguna puntuación. Puedes cambiarlo cuando quieras.',
+  'onboard.q4.placeholder': 'p. ej. 78,5',
+  'onboard.q4.skip': 'Omitir por ahora',
   'onboard.done.title': 'Esta es tu semana',
   'onboard.done.sub':
     'Hecha para cubrir las siete formas en que se mueve tu cuerpo. Puedes cambiar lo que quieras después.',

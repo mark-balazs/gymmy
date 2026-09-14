@@ -100,6 +100,11 @@ export const hu: Record<Key, string> = {
   'onboard.where.homeh': 'Kézisúlyzó és saját testsúly',
   'onboard.q3.title': 'Van, amin külön dolgoznál?',
   'onboard.q3.sub': 'Egy területet kicsit többet edzel. A többi kiegyensúlyozott marad.',
+  'onboard.q4.title': 'Mennyi a testsúlyod?',
+  'onboard.q4.sub':
+    'Az erőpontszám egy arányszám, enélkül egyáltalán nincs pontszám. Bármikor módosíthatod.',
+  'onboard.q4.placeholder': 'pl. 78,5',
+  'onboard.q4.skip': 'Most kihagyom',
   'onboard.done.title': 'Íme a heted',
   'onboard.done.sub':
     'Úgy állítottuk össze, hogy mind a hét mozgásforma benne legyen. Bármit kicserélhetsz később.',

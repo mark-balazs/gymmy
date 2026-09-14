@@ -36,7 +36,7 @@ describe('seeding the demo account', () => {
     await db.delete(schema.users).where(sql`${schema.users.id} = ${userId}`);
   });
 
-  const rows = async (table: 'profiles' | 'programEntries' | 'setLogs') => {
+  const rows = async (table: 'profiles' | 'programEntries' | 'setLogs' | 'bodyLogs') => {
     const t = schema[table];
     return db
       .select()
@@ -53,6 +53,61 @@ describe('seeding the demo account', () => {
   it('has a generated week to train', async () => {
     const entries = await rows('programEntries');
     expect(entries.length).toBeGreaterThan(0);
+  });
+
+  it('produces a strength score with a history behind it', async () => {
+    /* The one screen the demo exists to show, asserted end to end rather than
+       from the generator: seeded to the database, read back, and scored by the
+       same `strengthSeries` the Progress tab calls.
+       The generator tests prove the *sets* have a shape. They cannot prove the
+       seeding wrote the two things a score needs — a sex and a dated bodyweight
+       for every week — and without either of those the page correctly shows no
+       number at all, which looks exactly like a demo with no history. */
+    const { index, strengthSeries, mondayOf } = await import('@athletic/domain');
+
+    const [profile] = (await rows('profiles')) as { sex: string; heightCm: number | null }[];
+    expect(profile?.sex).toBe('male');
+
+    const weights = (await rows('bodyLogs')) as { date: string; weight: number }[];
+    // One a week across the block: the score divides by what you weighed *that*
+    // week, so a single current reading would leave every past week unscored.
+    expect(weights.length).toBeGreaterThan(15);
+
+    const logs = (await rows('setLogs')) as Record<string, unknown>[];
+    const exercises = (await db
+      .select()
+      .from(schema.exercises)
+      .where(sql`${schema.exercises.userId} = ${userId}`)) as Record<string, unknown>[];
+    const patterns = (await db
+      .select()
+      .from(schema.patterns)
+      .where(sql`${schema.patterns.userId} = ${userId}`)) as Record<string, unknown>[];
+
+    const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : (v as string));
+    const ix = index({
+      patterns: patterns.map((p) => ({ ...p, updatedAt: iso(p.updatedAt), deletedAt: null })),
+      exercises: exercises.map((e) => ({ ...e, updatedAt: iso(e.updatedAt), deletedAt: null })),
+      slots: [],
+      splitPeriods: [],
+      entries: [],
+      logs: logs.map((l) => ({ ...l, updatedAt: iso(l.updatedAt), deletedAt: null })),
+      refSets: [],
+      bodyLogs: weights.map((b) => ({
+        ...b,
+        updatedAt: new Date().toISOString(),
+        deletedAt: null,
+      })),
+      profile: null,
+    } as never);
+
+    const from = mondayOf([...weights.map((w) => w.date)].sort()[0]!);
+    const series = strengthSeries(ix, from, 22, { unit: 'kg', sex: 'male', birthYear: null });
+    const scored = series.map((s) => s.score).filter((n): n is number => n !== null);
+
+    // A history, not a number: most weeks scored, and the block went somewhere.
+    expect(scored.length).toBeGreaterThan(15);
+    expect(Math.min(...scored)).toBeGreaterThan(0);
+    expect(Math.max(...scored) / Math.min(...scored)).toBeGreaterThan(1.08);
   });
 
   it('arrives with weeks of training already behind it', async () => {

@@ -109,6 +109,11 @@ export const de: Record<Key, string> = {
   'onboard.where.homeh': 'Kurzhanteln und Körpergewicht',
   'onboard.q3.title': 'Willst du etwas gezielt aufbauen?',
   'onboard.q3.sub': 'Ein Bereich bekommt etwas mehr. Der Rest bleibt ausgewogen.',
+  'onboard.q4.title': 'Was wiegst du?',
+  'onboard.q4.sub':
+    'Der Kraftwert ist ein Verhältnis — ohne das gibt es gar keinen Wert. Du kannst es jederzeit ändern.',
+  'onboard.q4.placeholder': 'z. B. 78,5',
+  'onboard.q4.skip': 'Erst mal überspringen',
   'onboard.done.title': 'Das ist deine Woche',
   'onboard.done.sub':
     'Sie deckt alle sieben Bewegungen ab, die dein Körper kann. Tauschen kannst du später alles.',

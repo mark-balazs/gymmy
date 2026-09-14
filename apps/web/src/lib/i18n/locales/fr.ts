@@ -109,6 +109,11 @@ export const fr: Record<Key, string> = {
   'onboard.where.homeh': 'Haltères et poids du corps',
   'onboard.q3.title': 'Quelque chose à faire progresser ?',
   'onboard.q3.sub': 'Une zone en reçoit un peu plus. Le reste reste équilibré.',
+  'onboard.q4.title': 'Combien pèses-tu ?',
+  'onboard.q4.sub':
+    'Le score de force est un rapport : sans cela il n’y a aucun score. Tu peux le changer à tout moment.',
+  'onboard.q4.placeholder': 'p. ex. 78,5',
+  'onboard.q4.skip': 'Passer pour l’instant',
   'onboard.done.title': 'Voilà ta semaine',
   'onboard.done.sub':
     'Construite pour couvrir les sept façons dont ton corps bouge. Tu peux tout changer plus tard.',

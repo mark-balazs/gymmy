@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Four questions, then a finished program.
+ * Five questions, then a finished program.
  *
  * The split is asked first because it constrains the rest: push/pull/legs
  * cannot cover a week in two days, so the day options are derived from the
@@ -13,7 +13,13 @@ import { useRouter } from 'next/navigation';
 import { Button, Card, InfoButton, cn } from '@/components/ui';
 import { SplitSheet } from '@/components/split-sheet';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
-import { applySplit, fireAndForget, patchProfile, setLang } from '@/lib/client/mutations';
+import {
+  applySplit,
+  fireAndForget,
+  logBodyWeight,
+  patchProfile,
+  setLang,
+} from '@/lib/client/mutations';
 import { startSync } from '@/lib/client/sync';
 import { LANGS } from '@/lib/i18n';
 import type { Key } from '@/lib/i18n';
@@ -24,6 +30,7 @@ import {
   BIASES,
   findSplit,
   index,
+  isoDate,
   mondayOf,
   programCoverage,
   SPLITS,
@@ -34,7 +41,16 @@ import {
   sessionLabel,
 } from '@athletic/domain';
 
-const STEPS = 4;
+/**
+ * Questions before the preview.
+ *
+ * The fifth is bodyweight, and it is here rather than buried in Settings
+ * because without it the strength score is null — permanently, and silently.
+ * Every account in production had trained and had no score at all, because
+ * nothing had ever asked. A headline number that only works for people who
+ * went looking for a field is a number that does not work.
+ */
+const STEPS = 5;
 
 /** Defined at module scope: a component declared inside render is a brand-new
  *  type on every keystroke, so React would unmount and remount the list below it. */
@@ -95,6 +111,7 @@ export default function Onboarding() {
   const [days, setDays] = useState(3);
   const [where, setWhere] = useState<Where>('gym');
   const [bias, setBias] = useState<Bias>('none');
+  const [weight, setWeight] = useState('');
   const [info, setInfo] = useState<SplitKey | null>(null);
 
   // A brand-new account arrives before its first sync, so this page starts the
@@ -286,11 +303,48 @@ export default function Onboarding() {
               selected={bias === b}
               onClick={() => {
                 setBias(b);
-                setStep(STEPS);
+                setStep(4);
               }}
             />
           ))}
           <Back label={tr.t('common.back')} onClick={() => setStep(2)} />
+        </>
+      )}
+
+      {step === 4 && (
+        <>
+          <div>
+            <h1 className="text-[26px] leading-tight font-bold">{tr.t('onboard.q4.title')}</h1>
+            <p className="mt-1.5 text-[var(--color-muted)]">{tr.t('onboard.q4.sub')}</p>
+          </div>
+
+          <input
+            type="number"
+            inputMode="decimal"
+            step="0.1"
+            autoFocus
+            aria-label={tr.t('onboard.q4.title')}
+            placeholder={tr.t('onboard.q4.placeholder')}
+            value={weight}
+            onChange={(e) => setWeight(e.target.value)}
+            className="num min-h-[var(--spacing-tap)] w-full rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3 text-lg"
+          />
+
+          <Button variant="primary" onClick={() => setStep(STEPS)}>
+            {tr.t('common.next')}
+          </Button>
+          {/* Skippable, and it says so. Asking is what was missing; insisting
+              would be a worse answer than the one we had. */}
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setWeight('');
+              setStep(STEPS);
+            }}
+          >
+            {tr.t('onboard.q4.skip')}
+          </Button>
+          <Back label={tr.t('common.back')} onClick={() => setStep(3)} />
         </>
       )}
 
@@ -330,6 +384,14 @@ export default function Onboarding() {
           <Button
             variant="primary"
             onClick={async () => {
+              const kg = Number(weight.replace(',', '.'));
+              /* Dated, like every other bodyweight: the score divides by what
+                 you weighed that week, and one undated value would rewrite
+                 what every past week meant the next time you stepped on a
+                 scale. Skipped silently when nobody answered. */
+              if (Number.isFinite(kg) && kg > 0) {
+                await logBodyWeight(isoDate(new Date()), kg);
+              }
               await applySplit(snap, { split, days, where, bias });
               await patchProfile({ onboarded: true });
               router.replace('/train');
