@@ -52,6 +52,39 @@ Server-side every table has a composite primary key `(user_id, id)` and a `seq`
 index. `seq` comes from one shared Postgres sequence, `change_seq`, so a single
 cursor orders changes across every table.
 
+## The tables that are not synced
+
+Six of them, and they are the only rows in the system written by one person and
+read by another:
+
+| Table | Notes |
+| --- | --- |
+| `plans` | A trainer's plan. `version` bumps on every publish of an already-published plan |
+| `plan_slots` | Its skeleton. Exercises are named, never referenced by id — see below |
+| `user_groups` | A set of people, allowed to contain one |
+| `group_members` | Plain many-to-many. A group of one is not a special case |
+| `plan_shares` | One target: a person or a group. Revoked, never deleted |
+| `plan_events` | Append-only audit. The only table that does **not** cascade |
+
+They sit outside `TABLES` deliberately. Everything in the sync set is
+`primaryKey(user_id, id)` cascading from `user`, which encodes "one person owns
+this row and is the only one who edits it" — and a plan breaks both halves. In
+the sync set, a trainer closing their account would destroy plans other people
+train on, and last-write-wins would be refereeing edits between two people.
+
+**Exercises travel by name.** An exercise id is `seedId(userId, 'exercise',
+name)` — a SHA-256 of the user id — so a trainer's id for a bench press matches
+nothing in any other account. A plan built on ids would apply cleanly, resolve to
+nothing, and leave somebody with an empty week and no error. Names are resolved
+against the athlete's own library at the moment of applying; one they do not have
+costs them that exercise and not that session.
+
+`plan_events` is the deliberate exception to the cascade. Deleting a plan, a
+group or the person who acted sets the reference to null and keeps the event,
+with the name it had at the time copied alongside. Erasure has to remove the
+person; it does not have to remove the fact that a plan was shared with forty
+people in March. `delete-account.test.ts` asserts both halves of that.
+
 ## Adding a field to an existing table
 
 There is a trap here that has already bricked the app once.

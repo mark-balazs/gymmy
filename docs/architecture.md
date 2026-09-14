@@ -63,11 +63,14 @@ second implementation to disagree with the first.
 | `packages/domain/src/coach.ts` | Program generation and double progression |
 | `packages/domain/src/insights.ts` | What Progress and the calendar *say* — session series, drawdowns, the triage, a day |
 | `packages/domain/src/splits.ts` | Split presets, slot materialisation, coverage sets |
+| `packages/domain/src/plans.ts` | A plan as a portable thing: no ids from any account, exercises by name |
 | `packages/domain/src/seed.ts` `details.ts` | The default library: 7 patterns, 70 exercises, their photos and descriptions |
 | `apps/web/src/lib/client/` | IndexedDB, the sync engine, every mutation |
 | `apps/web/src/lib/db/` | Drizzle schema, per-account seeding, the demo |
 | `apps/web/src/lib/db/demo-history.ts` | Pure: the demo account's training, as data points |
 | `apps/web/src/lib/sync/` | The wire contract and per-table row validation |
+| `apps/web/src/lib/db/plans.ts` | Plans, groups, shares, and who can see what. **Not** a replicated table |
+| `apps/web/src/lib/api/plans.ts` | The session/trainer guard and the wire schema for the plan endpoints |
 | `apps/web/src/app/(app)/` | The five tabs |
 | `apps/web/src/components/` | The UI kit, the charts, the calendar, the sheets, the lightbox, the profile card, the recovery screens |
 
@@ -120,6 +123,58 @@ at 5,000, a cursor of 5,000 means every log in between is never requested again 
 silently, permanently. So a table that filled its page **holds the cursor down**
 to the last row it actually sent and the client is told to come straight back.
 `e2e/tests/sync-paging.spec.ts` is the guard.
+
+## Plans, and the one place two people share a row
+
+Everything above assumes a row belongs to exactly one person who is the only one
+who edits it. Every synced table is `primaryKey(userId, id)` cascading from
+`user`, and that assumption is what last-write-wins, the full replica and the
+cascade all rest on.
+
+A trainer's plan breaks both halves of it: one person writes it, many read it.
+So plans live **outside the sync set** — `plans`, `plan_slots`, `user_groups`,
+`group_members`, `plan_shares` and `plan_events`, reached over a small read API
+rather than replicated. Putting them in would mean a trainer closing their
+account destroyed plans other people train on, and would hand last-write-wins
+the job of refereeing two people editing one row, which
+[the decision log](https://dextra.atlassian.net/wiki/spaces/~712020296b34b54b84454489d16860c808e925/pages/934543399)
+names as the exact condition for revisiting it.
+
+**What crosses into an athlete's data is not the plan but its effect.** Applying
+one materialises ordinary `slots`, an appended `splitPeriod` and generated
+`entries`, through the same `installSkeleton` a preset goes through — it is the
+third caller alongside `applySplit` and `applyCustomSplit`. After that moment
+nothing downstream knows a trainer was involved, which is exactly what keeps
+historisation, offline and last-write-wins working untouched.
+
+It is a **copy, taken once**. `profile.planId` and `planVersion` record what was
+applied so a newer edition can be *offered*; the trainer never reaches into a
+week somebody is standing in.
+
+Two traps worth knowing before touching any of it:
+
+- **Exercises travel by name.** An exercise id is
+  `sha256(userId, 'exercise', name)`, so a trainer's id matches nothing in
+  anybody else's library. A plan built on ids applies without an error and
+  leaves an empty week. A name the athlete lacks costs them that exercise and
+  not that session — the generator still fills the slot.
+- **Read the plan through `planOf(profile)`.** The server does not re-send a row
+  because a column was added, so a device that synced before `planId` existed
+  has no such key and `profile.planId !== null` is `true` for an account that
+  has never seen a plan.
+
+Visibility is computed per request rather than stored on the plan: you own it,
+or a live share points at you, directly or through a group you are in. Cached as
+a flag, every membership change would have to find and rewrite every plan, and
+the first one missed leaves somebody reading a plan they were removed from.
+
+> **Known gap:** `installSkeleton` is a dozen writes with no wrapping
+> transaction, and the profile is the last of them. Tear the page down partway —
+> a navigation, a crash — and the week installs while the profile still names
+> the old split, so Settings and the Week tab disagree until it is applied
+> again. This predates plans and is true of `applySplit` too; it surfaced when
+> an e2e test navigated the moment the button was clicked. Dexie has
+> transactions; nothing here uses them yet.
 
 ## Offline and recovery
 

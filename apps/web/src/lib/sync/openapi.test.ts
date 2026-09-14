@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import yaml from 'js-yaml';
@@ -84,10 +84,32 @@ describe('docs/openapi.yaml', () => {
   });
 
   it('documents every route that exists', () => {
-    // Catch-all Auth.js routes are listed individually by path, so this checks
-    // the two hand-written handlers rather than the file tree.
-    for (const path of ['/api/sync', '/api/auth/email-code']) {
-      expect(spec.paths).toHaveProperty([path, 'post']);
+    /* Read off the file tree rather than a list somebody has to remember to
+       extend. The previous version named two routes by hand, which is precisely
+       the shape of documentation that goes stale — seven route files were added
+       in one afternoon and it would have gone on passing.
+
+       Auth.js's catch-all is skipped: it is one file serving a dozen endpoints,
+       and the spec lists the ones that matter individually. */
+    const api = join(import.meta.dirname, '../../app/api');
+    const found: string[] = [];
+
+    const walk = (dir: string, prefix: string): void => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const at = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(at, `${prefix}/${entry.name}`);
+        } else if (entry.name === 'route.ts' && !prefix.includes('[...')) {
+          // Next spells a dynamic segment `[id]`; OpenAPI spells it `{id}`.
+          found.push(`/api${prefix}`.replace(/\[(\w+)\]/g, '{$1}'));
+        }
+      }
+    };
+    walk(api, '');
+
+    expect(found.length).toBeGreaterThan(5);
+    for (const path of found) {
+      expect(Object.keys(spec.paths)).toContain(path);
     }
   });
 });

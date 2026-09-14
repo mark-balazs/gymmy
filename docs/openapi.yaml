@@ -52,6 +52,12 @@ tags:
     description: The one data endpoint.
   - name: auth
     description: Sign-in. Google OAuth, or a six-digit code by email.
+  - name: plans
+    description: |
+      Plans a trainer writes and shares. The one part of the API where a row is
+      written by one person and read by another — and the only part not backed
+      by the replicated store, because every synced table assumes a row belongs
+      to exactly one account.
 
 security:
   - sessionCookie: []
@@ -245,6 +251,348 @@ paths:
         '302':
           description: Session cookie set; redirected into the app.
 
+  /api/plans:
+    get:
+      tags: [plans]
+      summary: The plans you can see
+      operationId: listPlans
+      description: |
+        Yours, plus anything published and shared with you — directly, or with a
+        group you are in. Visibility is computed on every request rather than
+        stored on the plan: caching it would mean every membership change had to
+        find and rewrite every plan, and the first one missed leaves somebody
+        reading a plan they were removed from.
+
+        Somebody else's plan appears only once published. A draft is a person
+        thinking out loud.
+      responses:
+        '200':
+          description: The list, newest edit first.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  plans:
+                    type: array
+                    items: { $ref: '#/components/schemas/PlanSummary' }
+        '401':
+          description: No session.
+    post:
+      tags: [plans]
+      summary: Create a plan
+      operationId: createPlan
+      description: |
+        Trainers only, and the role is re-read from the database rather than
+        taken from the session — a session lasts ninety days and a role that was
+        taken away should not outlive it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlanInput' }
+      responses:
+        '201':
+          description: Created, as a draft. Publishing is a separate act.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+        '400': { description: The body does not match `PlanInput`. }
+        '401': { description: Not signed in, or not a trainer. }
+
+  /api/plans/{id}:
+    get:
+      tags: [plans]
+      summary: One plan, in the shape a client applies
+      operationId: getPlan
+      description: |
+        **Applying this is a copy, taken once.** The client materialises it into
+        its own slots, an appended split period and generated entries, through
+        the same code path a built-in split goes through. Nothing afterwards
+        reads the plan again; the id and version are kept only so a newer
+        edition can be *offered*.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: The plan.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  plan: { $ref: '#/components/schemas/PlanShape' }
+                  version: { type: integer }
+                  ownerName: { type: [string, 'null'] }
+        '401': { description: No session. }
+        '404':
+          description: |
+            No such plan, **or** one you cannot see. Deliberately the same
+            answer: any other pair would make this a way to discover which plan
+            ids are real.
+    put:
+      tags: [plans]
+      summary: Replace a plan's contents
+      operationId: updatePlan
+      description: |
+        Editing a **published** plan bumps its version, which is the whole of
+        the update mechanism: an athlete carries the version they applied, so a
+        higher one is how the app knows to offer a new edition rather than
+        rewrite a week somebody is standing in. Editing a draft does not bump
+        it — nobody is training on a draft.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlanInput' }
+      responses:
+        '200': { description: Saved. }
+        '400': { description: The body does not match `PlanInput`. }
+        '401': { description: Not signed in, or not a trainer. }
+        '404': { description: Not yours, or not there. }
+    delete:
+      tags: [plans]
+      summary: Delete a plan
+      operationId: deletePlan
+      description: |
+        Nobody's training changes. A plan that was applied was copied at that
+        moment, so this takes away future editions and nothing else — which is
+        the property that makes deletion safe to offer at all.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Gone. }
+        '401': { description: Not signed in, or not a trainer. }
+        '404': { description: Not yours, or not there. }
+
+  /api/plans/{id}/publish:
+    post:
+      tags: [plans]
+      summary: Publish a plan
+      operationId: publishPlan
+      description: |
+        Separate from editing because it is a different act: an edit changes a
+        document, publishing is the moment it becomes something other people can
+        be given. Idempotent.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Published, or already was. }
+        '401': { description: Not signed in, or not a trainer. }
+        '404': { description: Not yours, or not there. }
+
+  /api/plans/{id}/shares:
+    get:
+      tags: [plans]
+      summary: Who a plan has been given to
+      operationId: listShares
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Live shares only; revoked ones are kept but not listed.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  shares:
+                    type: array
+                    items: { $ref: '#/components/schemas/Share' }
+        '401': { description: Not signed in, or not a trainer. }
+    post:
+      tags: [plans]
+      summary: Share a plan with one person or one group
+      operationId: sharePlan
+      description: |
+        Exactly one target. Both has no meaning anybody could agree on, and
+        neither is a share into the void, so either is refused rather than
+        guessed at.
+
+        **A `200` does not mean a person was found.** Whether an address has a
+        gymmy account is a fact about them rather than about this plan, so the
+        answer is identical either way.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userEmail: { type: string, format: email, maxLength: 320 }
+                groupId: { type: string, maxLength: 64 }
+      responses:
+        '200': { description: Taken. See above — this is not a confirmation. }
+        '400': { description: Neither target, or both. }
+        '401': { description: Not signed in, or not a trainer. }
+        '404': { description: Not your plan. }
+    delete:
+      tags: [plans]
+      summary: Revoke a share
+      operationId: revokeShare
+      description: |
+        Revoked, not deleted — "this was shared and then taken back" is a
+        different fact from "this was never shared", and only one of them can be
+        answered by a missing row. It reaches nobody's training: a plan already
+        applied is already theirs. What stops is sight of the plan and of every
+        future edition of it.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [shareId]
+              properties:
+                shareId: { type: string, maxLength: 64 }
+      responses:
+        '200': { description: Revoked. }
+        '400': { description: No `shareId`. }
+        '401': { description: Not signed in, or not a trainer. }
+        '404': { description: Not your plan, or no such share. }
+
+  /api/groups:
+    get:
+      tags: [plans]
+      summary: Groups you own, with their members
+      operationId: listGroups
+      responses:
+        '200':
+          description: Your groups.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items: { $ref: '#/components/schemas/Group' }
+        '401': { description: Not signed in, or not a trainer. }
+    post:
+      tags: [plans]
+      summary: Create a group
+      operationId: createGroup
+      description: |
+        A group is allowed to hold one person. Nothing distinguishes a group of
+        one from a share aimed at an individual except which field the share
+        fills in — deliberately, so a trainer who gains a second client does not
+        have to restructure what they already set up.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 60 }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+        '400': { description: No name. }
+        '401': { description: Not signed in, or not a trainer. }
+
+  /api/groups/{id}:
+    put:
+      tags: [plans]
+      summary: Rename a group
+      operationId: renameGroup
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 60 }
+      responses:
+        '200': { description: Renamed. }
+        '400': { description: No name. }
+        '401': { description: Not signed in, or not a trainer. }
+        '404': { description: Not yours, or not there. }
+    delete:
+      tags: [plans]
+      summary: Delete a group
+      operationId: deleteGroup
+      description: |
+        Takes nobody's training away and shares nothing new — it retires the
+        shares aimed at the group, and stops future ones reaching that set of
+        people.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Gone. }
+        '401': { description: Not signed in, or not a trainer. }
+        '404': { description: Not yours, or not there. }
+
+  /api/groups/{id}/members:
+    post:
+      tags: [plans]
+      summary: Add somebody to a group, by email address
+      operationId: addGroupMember
+      description: |
+        An address is the only handle a trainer has for a client: they know who
+        they coach, not what user id the database handed them.
+
+        **An unknown address is not an error** and the answer is identical
+        either way. "No such user" would make this a way of asking whether any
+        given person has a gymmy account, which is a fact about somebody who has
+        not agreed to be discoverable.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email, maxLength: 320 }
+      responses:
+        '200': { description: Taken. See above — this is not a confirmation. }
+        '400': { description: Not an email address. }
+        '401': { description: Not signed in, or not a trainer. }
+        '404': { description: Not your group. }
+    delete:
+      tags: [plans]
+      summary: Remove somebody from a group
+      operationId: removeGroupMember
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId]
+              properties:
+                userId: { type: string, maxLength: 64 }
+      responses:
+        '200': { description: Removed. }
+        '400': { description: No `userId`. }
+        '401': { description: Not signed in, or not a trainer. }
+        '404': { description: Not your group. }
+
   /api/auth/session:
     get:
       tags: [auth]
@@ -338,6 +686,112 @@ components:
           type: array
           description: Zod issues, passed through so a client bug is debuggable.
           items: { type: object, additionalProperties: true }
+
+    PlanSummary:
+      type: object
+      description: Enough to list a plan without opening it.
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        days: { type: integer, description: 'Cadence: sessions a week.' }
+        where: { type: string, enum: [gym, home] }
+        version:
+          type: integer
+          description: |
+            Higher than the version an athlete applied is how the app knows to
+            offer them a new edition.
+        ownerName:
+          type: [string, 'null']
+          description: Who wrote it. A plan with no attribution is one nobody trusts.
+        mine: { type: boolean, description: True for your own, including drafts. }
+
+    PlanSlot:
+      type: object
+      description: |
+        One slot of a plan: the week's structure, plus what the trainer wants
+        done in it.
+      required: [sessionIndex, position, name, requiredRole, sets, repRange]
+      properties:
+        sessionIndex: { type: integer, minimum: 0, maximum: 13 }
+        position: { type: integer, minimum: 0, maximum: 50 }
+        key:
+          type: [string, 'null']
+          enum: [bigLower, bigUpper, main, secondary, accessory, isolation, finisher, null]
+        name: { type: string, minLength: 1, maxLength: 60 }
+        requiredRole: { type: string, enum: [Any, Lower, Upper, Midline, Accessory] }
+        patternKeys:
+          type: [array, 'null']
+          maxItems: 8
+          items: { $ref: '#/components/schemas/PatternKey' }
+        dayKey:
+          type: [string, 'null']
+          enum: [full, push, pull, legs, upper, lower, null]
+        exerciseName:
+          type: [string, 'null']
+          maxLength: 80
+          description: |
+            **A name, never an id.** An exercise row is keyed
+            `sha256(userId, 'exercise', name)`, so a trainer's id for a bench
+            press matches nothing in anybody else's library — a plan built on
+            ids would apply without error and leave somebody with an empty week.
+
+            Resolved against the athlete's own library at the moment of
+            applying. A name they do not have costs them that exercise and not
+            that session: the slot stays, and their week fills it itself.
+
+            Null is a legitimate choice, and means "something of this shape
+            here, you pick".
+        sets: { type: integer, minimum: 0, maximum: 50 }
+        repRange: { type: string, maxLength: 40 }
+
+    PlanShape:
+      type: object
+      description: A plan as it travels. No ids, no user, no row owned by an account.
+      required: [name, description, days, where, slots]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        description: { type: string, maxLength: 600 }
+        days: { type: integer, minimum: 1, maximum: 7 }
+        where: { type: string, enum: [gym, home] }
+        slots:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/PlanSlot' }
+
+    PlanInput:
+      allOf:
+        - { $ref: '#/components/schemas/PlanShape' }
+        - type: object
+          description: What a trainer sends when creating or replacing a plan.
+
+    Share:
+      type: object
+      description: One live share. Exactly one of the two targets is set.
+      properties:
+        id: { type: string }
+        targetUserId: { type: [string, 'null'] }
+        targetName: { type: [string, 'null'] }
+        groupId: { type: [string, 'null'] }
+        groupName: { type: [string, 'null'] }
+
+    Group:
+      type: object
+      description: |
+        A set of people, which is allowed to contain one. A person is in as many
+        groups as they are put in — it is a plain many-to-many, and a group of
+        one is not a special case.
+      properties:
+        id: { type: string }
+        name: { type: string }
+        members:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              name: { type: [string, 'null'] }
+              email: { type: [string, 'null'] }
 
     TableName:
       type: string
