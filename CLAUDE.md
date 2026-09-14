@@ -87,6 +87,16 @@ sentence that is now wrong.
 
 ### Diagrams in Confluence
 
+**The entity relationship diagrams are generated — never hand-drawn.**
+`npm run er:diagram -w @athletic/web -- --macro` rewrites `docs/data-model.mmd`
+from `schema.ts` and prints the macro HTML for each of the three diagrams, ready
+to paste onto **Architecture → Data model**. `er-diagram.test.ts` fails when the
+committed diagram and the schema disagree, so a schema change cannot ship with a
+stale picture — but the test cannot paste it, so that last step is yours. Do not
+edit those diagrams in Confluence: the next regeneration throws the edit away.
+
+Everything below is for diagrams that are genuinely hand-authored.
+
 Mermaid renders through **Macro Pack**, which is a Forge extension rather than a
 classic macro — so searching the macro browser for "mermaid" finds nothing and
 looks like the app is missing. It is not. Author it as HTML:

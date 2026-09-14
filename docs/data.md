@@ -36,6 +36,24 @@ stores, `DOMAIN_TABLES`, `SYNC_TABLES`, and the Zod schemas in
 version bump, plus a migration. The typechecker catches most of it; the Dexie
 bump it does not.
 
+The entity relationship diagrams on Confluence are **generated from the schema
+rather than drawn**. `npm run er:diagram -w @athletic/web` rewrites
+[`data-model.mmd`](./data-model.mmd) and, with `-- --macro`, prints the Macro
+Pack HTML to paste onto **Architecture → Data model**.
+`apps/web/src/lib/db/er-diagram.test.ts` holds the committed file against
+`schema.ts`, so **a new table or a renamed column fails `npm test`** until the
+diagram catches up — and a table with no home in one of the three groups fails
+it too, which is what makes one impossible to forget. The macro escaping is
+done in code and asserted to round-trip, because a bare quote in the mermaid
+source makes Confluence drop the whole attribute and save an empty box with no
+error anywhere.
+
+Two things in there are still written by hand, and the test only checks that
+they stay *valid*: which group a table belongs to, and the relationships the
+schema cannot express — `set_logs.exercise_id` and `exercises.pattern_id` are
+plain text columns, because the target is keyed on `(user_id, id)` and the
+referencing column carries only the id half.
+
 | Table | Notes |
 | --- | --- |
 | `patterns` | The seven, plus isolation. `counts: false` means "not a coverage box" |
