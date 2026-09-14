@@ -250,6 +250,44 @@ export interface Profile extends Synced {
 }
 
 /** Everything the client holds. Also the shape of an export file. */
+/**
+ * A lift you have said you want to grow, and by when.
+ *
+ * **This is the only thing that entitles the app to an opinion about whether
+ * you are progressing.** Without one it reports what you did and says nothing
+ * about whether that was enough — because "your bench press is not moving" is a
+ * judgement nobody asked for, and it costs more motivation than it buys.
+ *
+ * A goal is consent, scoped to one lift and bounded in time. It expires on
+ * `targetDate` and is never renewed automatically, so silence is the resting
+ * state of the app and has to be deliberately interrupted.
+ */
+export interface Goal extends Synced {
+  exerciseId: string;
+  /**
+   * Target estimated one-rep max, in the profile's unit.
+   *
+   * The same measure every chart on the Progress tab draws, so the goal and
+   * the line tracking it cannot disagree. A target working weight would be
+   * ambiguous without also fixing the reps.
+   */
+  target: number;
+  /**
+   * The estimated one-rep max when the goal was set.
+   *
+   * Frozen rather than recomputed: the pace is measured from where you
+   * actually started, so a good week later on cannot quietly move the
+   * goalposts and a bad one cannot make you look further behind than you are.
+   */
+  baseline: number;
+  /** yyyy-mm-dd. */
+  startedOn: string;
+  /** yyyy-mm-dd. Past this the goal is over and the app goes quiet again. */
+  targetDate: string;
+  /** Set when it is ended early. Expiry needs no field — it is a date. */
+  retiredAt: string | null;
+}
+
 export interface Snapshot {
   patterns: Pattern[];
   exercises: Exercise[];
@@ -259,6 +297,7 @@ export interface Snapshot {
   logs: SetLog[];
   refSets: RefSet[];
   bodyLogs: BodyLog[];
+  goals: Goal[];
   profile: Profile | null;
 }
 
@@ -271,6 +310,7 @@ export const TABLES = [
   'logs',
   'refSets',
   'bodyLogs',
+  'goals',
   'profile',
 ] as const;
 export type TableName = (typeof TABLES)[number];

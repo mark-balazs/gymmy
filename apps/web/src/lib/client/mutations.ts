@@ -12,6 +12,7 @@ import type {
   Bias,
   BodyLog,
   Exercise,
+  Goal,
   Pattern,
   ProgramEntry,
   Profile,
@@ -200,6 +201,45 @@ export async function applyProgram(draft: DraftEntry[], days: number): Promise<v
   await patchProfile({ days });
 }
 
+/* ----------------------------------------------------------------- goals */
+
+/**
+ * Records that somebody wants to be held to a lift.
+ *
+ * The baseline is captured here and frozen, rather than recomputed later: the
+ * distance covered is measured from where they actually started, so a good
+ * session afterwards cannot move the goalposts and a bad one cannot make them
+ * look further behind than they are.
+ */
+export async function setGoal(input: {
+  exerciseId: string;
+  target: number;
+  baseline: number;
+  startedOn: string;
+  targetDate: string;
+}): Promise<Goal> {
+  return put<Goal>('goals', {
+    id: id(),
+    updatedAt: now(),
+    deletedAt: null,
+    retiredAt: null,
+    ...input,
+  });
+}
+
+/**
+ * Ends a goal early.
+ *
+ * Retired rather than deleted, and deliberately: changing your mind about what
+ * you were chasing is part of the history, and a goal that vanishes takes the
+ * reason the app was talking about that lift with it. It also stops the app
+ * evaluating that lift from the moment it is retired.
+ */
+export async function retireGoal(goalId: string): Promise<void> {
+  const row = await local.goals.get(goalId);
+  if (!row) return;
+  await put<Goal>('goals', { ...row, retiredAt: now(), updatedAt: now() });
+}
 /* --------------------------------------------------------------- profile */
 
 export async function patchProfile(patch: Partial<Omit<Profile, 'id'>>): Promise<Profile> {

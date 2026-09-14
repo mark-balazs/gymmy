@@ -795,7 +795,8 @@ components:
 
     TableName:
       type: string
-      enum: [patterns, exercises, slots, splitPeriods, entries, logs, refSets, bodyLogs, profile]
+      enum:
+        [patterns, exercises, slots, splitPeriods, entries, logs, refSets, bodyLogs, goals, profile]
 
     Mutation:
       type: object
@@ -820,6 +821,7 @@ components:
             - { $ref: '#/components/schemas/SetLog' }
             - { $ref: '#/components/schemas/RefSet' }
             - { $ref: '#/components/schemas/BodyLog' }
+            - { $ref: '#/components/schemas/Goal' }
             - { $ref: '#/components/schemas/Profile' }
 
     PushRequest:
@@ -856,6 +858,7 @@ components:
             logs: { type: array, items: { $ref: '#/components/schemas/SetLog' } }
             refSets: { type: array, items: { $ref: '#/components/schemas/RefSet' } }
             bodyLogs: { type: array, items: { $ref: '#/components/schemas/BodyLog' } }
+            goals: { type: array, items: { $ref: '#/components/schemas/Goal' } }
             profile: { type: array, items: { $ref: '#/components/schemas/Profile' } }
         serverTime:
           type: string
@@ -1069,6 +1072,61 @@ components:
                 In either unit. Out of that range is a typo, and a typo in the
                 denominator of the strength score is worse than a refused write.
             note: { type: string, maxLength: 500, default: '' }
+
+    Goal:
+      allOf:
+        - { $ref: '#/components/schemas/Synced' }
+        - type: object
+          description: |
+            One lift the user has asked to be evaluated on, until a stated date.
+
+            It exists because the app used to volunteer verdicts about whether
+            everything was progressing, which is a judgement about what somebody
+            was trying to do — and it does not know that. So a goal is consent:
+            with no goal on a lift, the API still returns every set and the
+            client still draws the line, and nothing anywhere says whether it
+            was enough.
+
+            The server validates the shape and nothing more. The guardrails that
+            decide whether a goal is *sensible* — far enough to clear the retest
+            noise, long enough to accumulate, and no more than three at a time —
+            live in the domain package and run on the client, because they are
+            the same rules an offline device has to apply to the same write.
+          required: [exerciseId, target, baseline, startedOn, targetDate]
+          properties:
+            exerciseId: { type: string, minLength: 1, maxLength: 64 }
+            target:
+              type: number
+              minimum: 1
+              maximum: 2000
+              description: |
+                An estimated one-rep max, in the account's unit. Bounded like
+                every other weight in the app: a typo here is one the app would
+                then hold somebody to for a quarter.
+            baseline:
+              type: number
+              minimum: 0
+              maximum: 2000
+              description: |
+                Where the lift was when the goal was set, frozen. Recomputing it
+                later would move the finish line under somebody.
+            startedOn: { type: string, format: date, pattern: '^\d{4}-\d{2}-\d{2}$' }
+            targetDate:
+              type: string
+              format: date
+              pattern: '^\d{4}-\d{2}-\d{2}$'
+              description: |
+                The day it stops mattering. Nothing renews a goal automatically:
+                silence is the resting state, so it has to be interrupted
+                deliberately rather than restored deliberately.
+            retiredAt:
+              type: [string, 'null']
+              format: date-time
+              default: null
+              description: |
+                Set when the user withdraws the permission early. Distinct from
+                `deletedAt`, which would lose the record — an expired or retired
+                goal is history, and is what the app reports an outcome from.
 
     Profile:
       allOf:

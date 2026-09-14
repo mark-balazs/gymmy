@@ -46,6 +46,7 @@ bump it does not.
 | `logs` (`set_logs`) | The dominant write. One row per set |
 | `refSets` | Reference sets, outside the plan |
 | `bodyLogs` | Bodyweight, dated. Denominator of the strength score |
+| `goals` | One lift the user has asked to be judged on, until a date. Nothing else in the app evaluates progression without one |
 | `profile` | One row per user; `id` equals `userId` |
 
 Server-side every table has a composite primary key `(user_id, id)` and a `seq`

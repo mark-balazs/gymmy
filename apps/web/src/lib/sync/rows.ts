@@ -111,6 +111,18 @@ export const rowSchemas = {
     note: z.string().max(500).default(''),
   }),
 
+  goals: z.object({
+    ...base,
+    exerciseId: z.string().min(1).max(64),
+    /* Bounded the same way every other weight in the app is. A target
+       outside this is a typo, and a typo in a goal is something the app
+       would then hold somebody to. */
+    target: z.number().min(1).max(2000),
+    baseline: z.number().min(0).max(2000),
+    startedOn: isoDay,
+    targetDate: isoDay,
+    retiredAt: z.string().datetime().nullable().default(null),
+  }),
   profile: z.object({
     ...base,
     onboarded: z.boolean(),

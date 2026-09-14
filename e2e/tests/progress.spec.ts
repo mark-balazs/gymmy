@@ -45,10 +45,14 @@ test.describe('Progress covers the training, not the block', () => {
     await page.getByRole('link', { name: 'Progress', exact: true }).click();
     await page.waitForURL('**/progress');
 
-    // The page leads with a verdict. With three clean weeks behind it there is
-    // nothing wrong, and saying so is the point — an empty section here would
-    // read as something still loading.
-    await expect(page.getByRole('heading', { name: 'Needs a look' })).toBeVisible();
+    /* The page leads with the charts and no verdict at all. It used to open on
+       "Needs a look", and with three clean weeks behind it, "nothing needs a
+       look — everything you train is moving": the app grading training against
+       a standard nobody agreed to. Verdicts now require a goal on the lift, so
+       an account that has not set one sees no such card. `goals.spec.ts` walks
+       the other half of that. */
+    await expect(page.getByRole('heading', { name: 'Worth knowing' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Every lift' })).toBeVisible();
 
     // The lift is a row in the list, and tapping it is what opens the chart.
     await page.getByRole('button', { name: 'Show Goblet Squat' }).click();

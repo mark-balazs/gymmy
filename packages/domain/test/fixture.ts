@@ -76,6 +76,7 @@ export function seedSnapshot(
     logs: [],
     refSets: [],
     bodyLogs: [],
+    goals: [],
     profile: {
       id: 'profile-1',
       updatedAt: now,

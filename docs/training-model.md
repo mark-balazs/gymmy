@@ -113,6 +113,87 @@ rewrite what every past week meant every time you stepped on a scale.
 taken to failure and a set with three left look identical, which makes the whole
 progress view lie.
 
+## Goals, and the permission they grant
+
+`attention()` produces two of its three verdicts **only for a lift the user has
+set a goal on**. With no goals — the state every account starts in and returns
+to — the app describes and does not grade: the charts are drawn, the numbers are
+honest, and nothing says whether any of it was enough.
+
+This is not a tone preference. "Your bench press is not progressing, it needs a
+look" is a judgement about what somebody was trying to do, and the app does not
+know that. Aimed at a person maintaining deliberately, coming back from an
+injury, or training because it makes their week better, it costs motivation and
+buys nothing. The failure mode was never a wrong number; it was somebody reading
+that their training had let them down and doing less of it.
+
+So evaluation is opt-in, one lift at a time. **A goal is consent**: it names the
+lift, the number, and the date it stops mattering.
+
+- It is per-lift, so permission for one is not permission for all.
+- It **expires** and is never renewed automatically. Silence is the resting
+  state and has to be deliberately interrupted, not deliberately restored.
+- It is withdrawable in one tap from the card it appears on. A permission you
+  cannot easily revoke is not one.
+
+`growingExercises(ix, today)` is the set of exercise ids with a live goal, and
+it is what gates the verdicts. `regressed` and `stalled` are withheld without
+it. **`dormant` is not gated** — "this is in your week and you have not done it
+in three weeks" is an observation about the plan the user chose themselves, not
+a claim about growth, and it is the one thing here somebody wants either way.
+
+### The guardrails, and what the evidence does not say
+
+`checkGoal()` in `goals.ts` refuses four things and warns about one. The refusals
+are about whether a goal is *measurable* and has *room to happen* — never about
+whether it is impressive.
+
+| | Rule | Why |
+| --- | --- | --- |
+| refuse | target under **+5%** | A retested one-rep max varies by about **4.2%** on its own (median within-subject CV across 32 studies, pooled n = 1595 — Grgic et al., *Sports Medicine – Open* 2020;6:31). A smaller goal cannot be told from a good day. |
+| refuse | under **8 weeks** | Not a figure from a study, and the code says so. It follows from two that are: progression is per-successful-session, and a detectable change has to clear that CV — so the horizon must hold enough sessions for enough increments to add up. |
+| refuse | over **52 weeks** | Past a year it is a hope, and the app would be nagging for one. |
+| refuse | more than **3 live** | You cannot ask to be pushed on everything. |
+| warn | an implied rate far past the user's own trailing gain | Trained lifters add roughly **7.5–12.5%** in their first measured year, and strength against training time goes as log(time) — Steele et al., *RQES*, doi:10.1080/02701367.2022.2070592. |
+
+The ambition check is measured against **this person's own trailing six-month
+gain, doubled** (`recentGainOf`), falling back to the literature figure only
+when there is not enough history. A novice and a ten-year lifter differ by more
+than one threshold can express, and their own rate is the only measurement of
+which they are.
+
+It **warns rather than refuses**, because commitment is what makes a goal work
+at all and a goal somebody has rejected as not theirs performs *worse* than no
+goal (Locke & Latham, *American Psychologist* 2002;57(9):705-717). The app says
+what it knows and leaves the decision with the person doing the training.
+
+**There is deliberately no expected pace.** The first version of this feature
+gave every goal a linear rate and flagged you for being behind it — and that is
+the one shape the literature does not support. ACSM's 2–10% load increase is
+*per exercise, once the lifter can already exceed the target reps*, not per week
+(*Med Sci Sports Exerc* 2009;41(3):687-708). No major body publishes a safe
+percent-per-week rate of gain. A `GoalProgress` therefore carries `moved` — has
+this cleared the retest CV, yes or no — and a test asserts the field list, so an
+`expected` reappearing fails the suite.
+
+The practitioner "2-for-2 rule" and its kilo increments are a textbook
+convention rather than a research finding, and the kilo figures in circulation
+are 20–25% above the percentages they claim to implement. They are not quoted to
+the user as evidence, because they are not evidence.
+
+Nothing here is enforced server-side beyond the shape of the row: the guardrails
+run on the client because they are the same rules an offline device has to apply
+to the same write.
+
+### How a goal ends
+
+`outcomeOf()` has three results and none of them is "failed". Reaching it is
+`achieved`; ending with real distance covered is `partly`, reported as what was
+added; ending flat is `flat`, reported as information. An ended goal lingers on
+the card for three weeks rather than vanishing on its date — the app asked for
+two months of somebody's attention, and disappearing in silence the morning it
+expires is the one ending that says nothing at all.
+
 ## The triage
 
 `attention()` in `insights.ts` decides what the Progress page leads with. Three
@@ -120,8 +201,9 @@ verdicts, and **the order they are tested in is the model, not an
 implementation detail**:
 
 1. **Regressed** — a confident drawdown of 5% or worse against recent form.
-2. **Dormant** — still in your plan, untouched for 21 days.
-3. **Stalled** — no higher for 8 weeks *and* 6 sessions.
+   *Needs a live goal on the lift.*
+2. **Dormant** — still in your plan, untouched for 21 days. *Always shown.*
+3. **Stalled** — no higher for 8 weeks *and* 6 sessions. *Needs a live goal.*
 
 Dormant is tested **before** stalled because a stall says *you keep turning up
 and it will not move*, and that claim requires you to have turned up. Run the

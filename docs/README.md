@@ -72,6 +72,18 @@ accusation. The same rule is why a regression is measured against the best of
 the last three sessions rather than the single most recent one: one bad Tuesday
 is not a slide, and a page that tells you it is stops being believed.
 
+**The app grades nothing it was not asked to grade.** Every progression
+verdict — a lift that has slid, a lift that has stopped moving — is gated on the
+user having set a goal on that lift, which is a row in `goals` with a number and
+a date. With no goal the app draws the line and says nothing about whether it was
+enough, because "your bench press needs a look" is a claim about what somebody
+was trying to do and the app does not know that. The one ungated verdict is
+dormancy: that is an observation about the plan they chose themselves. The
+guardrails on setting a goal, and the studies behind them, are in
+[training-model.md](./training-model.md#goals-and-the-permission-they-grant) —
+including the linear "expected pace" that the first version shipped with and the
+evidence does not support.
+
 **The app must never be unrecoverable.** There is an error boundary, a stuck-load
 deadline, a boot watchdog that runs without React, and a sync-time repair for an
 account that was never seeded. Each exists because a real person got stuck.

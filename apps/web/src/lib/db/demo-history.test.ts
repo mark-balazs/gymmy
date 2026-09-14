@@ -88,6 +88,7 @@ function demoAccount(): { ix: Indexed; plan: DemoPlanEntry[] } {
     logs: [],
     refSets: [],
     bodyLogs: [],
+    goals: [],
     profile: null,
   };
 
@@ -137,7 +138,14 @@ const summary = progressSummary(ix, {
   to: today,
   sessions: findSplit('sevenPattern')!.defaultDays,
 });
-const triage = attention(summary, today, 20);
+/* Every chartable lift, so the demo's arcs can be asserted. A real account
+   sees none of this without setting a goal — the gate is tested in the domain
+   suite; what this file is about is whether the generated history has the
+   shape the page would report IF asked. */
+const triage = attention(summary, today, {
+  limit: 20,
+  growing: new Set(summary.map((s) => s.exercise.id)),
+});
 const kinds = triage.map((a) => a.kind);
 const byName = (name: string) => summary.find((p) => p.exercise.name === name);
 const verdictOn = (name: string) => triage.find((a) => a.progress.exercise.name === name)?.kind;

@@ -181,6 +181,7 @@ export async function seedNewUser(userId: string, email?: string | null): Promis
     logs: [],
     refSets: [],
     bodyLogs: [],
+    goals: [],
     profile: null,
   };
 

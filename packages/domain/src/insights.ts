@@ -4,11 +4,19 @@
  * The old page drew one chart per exercise and left the reading to you: fifteen
  * near-identical lines, and the one that had gone backwards looked exactly like
  * the fourteen that had not. Everything here exists to turn that pile into a
- * few sentences — what regressed, what has stopped moving, what you have not
- * touched in a month — so the charts become the evidence rather than the
- * message.
+ * few sentences, so the charts become the evidence rather than the message.
  *
- * Two decisions run through all of it.
+ * Three decisions run through all of it.
+ *
+ * **The app does not volunteer an opinion about whether you are growing.** It
+ * used to: every account got told what had stalled and what had slipped. That
+ * is a judgement nobody asked for, and aimed at somebody maintaining on
+ * purpose, returning from an injury, or training because it makes their week
+ * better, it costs motivation rather than buying any. So the two progression
+ * verdicts are gated on a live goal for that lift — see `attention` and
+ * `goals.ts`. Without one this file still computes the drawdown and the
+ * sessions-since-best, because the *chart* is honest description; it simply
+ * does not hand them to anybody as a verdict.
  *
  * **Not every movement has a one-rep max.** A carry is logged by distance, so
  * its "reps" are metres and an estimated 1RM from them is not a number about
@@ -28,6 +36,7 @@
 
 import {
   addDays,
+  daysBetween,
   decorate,
   mondayOf,
   num,
@@ -167,8 +176,6 @@ export function drawdownOf(sessions: SessionPoint[]): Drawdown | null {
 }
 
 const DAY_MS = 86_400_000;
-const daysBetween = (from: string, to: string): number =>
-  Math.round((Date.parse(to) - Date.parse(from)) / DAY_MS);
 
 /* ------------------------------------------------------------ the summary */
 
@@ -301,12 +308,41 @@ const severity: Record<AttentionKind, (a: Attention, b: Attention) => number> = 
  * nobody acts on, and the empty state — "nothing needs a look" — is the most
  * useful thing this page can say on most days.
  */
-export function attention(summary: ExerciseProgress[], asOf: string, limit = 3): Attention[] {
+export function attention(
+  summary: ExerciseProgress[],
+  asOf: string,
+  opts: {
+    limit?: number;
+    /**
+     * The lifts the user has asked to be held to — one live goal each.
+     *
+     * **Progression verdicts are gated on this, and that is the point of it.**
+     * "Down 13% on your best" and "no higher than June, nine sessions since"
+     * are both true and neither was asked for. Told to somebody who is
+     * maintaining on purpose, coming back from an injury, or training because
+     * it makes their week better, they are an accusation the app invented — and
+     * the cost is not a wrong number, it is a person training less.
+     *
+     * So the default is empty, and the default is silence. Set a goal on a lift
+     * and the app will tell you when it stops moving; do not and it will show
+     * you the line and say nothing about whether it was enough.
+     */
+    growing?: ReadonlySet<string>;
+  } = {},
+): Attention[] {
+  const limit = opts.limit ?? 3;
+  const growing = opts.growing ?? new Set<string>();
   const found: Record<AttentionKind, Attention[]> = { regressed: [], stalled: [], dormant: [] };
 
   for (const progress of summary) {
     if (!progress.metric) continue; // carries and rotation have no verdict to give
     const { drawdown, sessionsSinceBest, daysSince, inPlan } = progress;
+    /* Dormancy survives without a goal; the two progression verdicts do not.
+       "This is in your week and you have not done it in three weeks" is an
+       observation about the plan the user themselves chose — it makes no claim
+       about whether they should be getting stronger, and it is the one thing
+       here somebody would want to know regardless. */
+    const mayJudge = growing.has(progress.exercise.id);
 
     const weeksSinceBest = drawdown
       ? Math.max(0, Math.round(daysBetween(mondayOf(drawdown.bestDate), mondayOf(asOf)) / 7))
@@ -314,7 +350,7 @@ export function attention(summary: ExerciseProgress[], asOf: string, limit = 3):
 
     // A drop we cannot attribute to training is not reported at all. See the
     // note at the top of this file: hedging it would still be an accusation.
-    if (drawdown && drawdown.confident && drawdown.pct <= REGRESSION_PCT) {
+    if (mayJudge && drawdown && drawdown.confident && drawdown.pct <= REGRESSION_PCT) {
       found.regressed.push({ kind: 'regressed', progress, weeksSinceBest });
       continue;
     }
@@ -331,6 +367,7 @@ export function attention(summary: ExerciseProgress[], asOf: string, limit = 3):
       continue;
     }
     if (
+      mayJudge &&
       drawdown?.confident &&
       weeksSinceBest >= STALL_WEEKS &&
       sessionsSinceBest >= STALL_SESSIONS

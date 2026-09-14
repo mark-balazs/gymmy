@@ -92,6 +92,17 @@ export interface CreateUserOptions {
     weeksBack: number;
     /** Readonly so a caller can declare the list with `as const`. */
     exercises: readonly string[];
+    /**
+     * Weekly sessions per exercise, oldest first. One by default, which is all
+     * most specs need — they are checking that old weeks keep reading against
+     * the split they were trained under, and one set proves that.
+     *
+     * Ask for more when the behaviour under test needs a lift to have a
+     * *history* rather than a data point: a goal will not offer a baseline
+     * built on fewer than three sessions, for the same reason it refuses a
+     * target inside the retest noise.
+     */
+    sessions?: number;
   };
 }
 
@@ -241,16 +252,21 @@ export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser
       await insertPeriod(history.split, weeksAgo(history.weeksBack), days);
 
       const byName = new Map(exercises.map((e) => [e.name, e]));
-      const logDate = addDays(weeksAgo(history.weeksBack), 1);
+      const start = addDays(weeksAgo(history.weeksBack), 1);
       let setNo = 0;
       for (const name of history.exercises) {
         const ex = byName.get(name);
         if (!ex) throw new Error(`history exercise not seeded: ${name}`);
-        await client.query(
-          `INSERT INTO set_logs (id, user_id, updated_at, deleted_at, seq, date, session, exercise_id, set_no, weight, reps, rir, note)
-           VALUES ($1,$2,$3,NULL,nextval('change_seq'),$4,'A',$5,$6,40,8,2,'')`,
-          [randomUUID(), id, now, logDate, ex.id, ++setNo],
-        );
+        for (let week = 0; week < (history.sessions ?? 1); week++) {
+          /* A week apart and 2.5 kg up each time — a lift that is being
+             trained rather than the same set copied, so anything reading a
+             trend off it reads a real one. */
+          await client.query(
+            `INSERT INTO set_logs (id, user_id, updated_at, deleted_at, seq, date, session, exercise_id, set_no, weight, reps, rir, note)
+             VALUES ($1,$2,$3,NULL,nextval('change_seq'),$4,'A',$5,$6,$7,8,2,'')`,
+            [randomUUID(), id, now, addDays(start, week * 7), ex.id, ++setNo, 40 + week * 2.5],
+          );
+        }
       }
     }
 
@@ -279,6 +295,7 @@ export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser
         logs: [],
         refSets: [],
         bodyLogs: [],
+        goals: [],
         profile: null,
       };
       const draft = buildProgram(index(snapshot), { days, where: 'gym', bias: 'none' });

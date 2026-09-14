@@ -260,6 +260,30 @@ export const bodyLogs = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.id] }), index('bodylogs_seq').on(t.userId, t.seq)],
 );
 
+/**
+ * A lift the user has asked to be held to, and by when.
+ *
+ * The only thing that entitles the app to an opinion about whether somebody
+ * is progressing. With no live goal it reports what they did and says nothing
+ * about whether it was enough.
+ */
+export const goals = pgTable(
+  'goals',
+  {
+    ...synced,
+    exerciseId: text('exercise_id').notNull(),
+    /** Target estimated one-rep max, in the profile unit. */
+    target: doublePrecision('target').notNull(),
+    /** The estimated one-rep max when it was set. Frozen, so the pace is
+     *  measured from where they actually started. */
+    baseline: doublePrecision('baseline').notNull(),
+    startedOn: text('started_on').notNull(),
+    /** Past this the goal is over and the app goes quiet again. */
+    targetDate: text('target_date').notNull(),
+    retiredAt: timestamp('retired_at', { withTimezone: true }),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.id] }), index('goals_seq').on(t.userId, t.seq)],
+);
 /** One row per user; `id` equals `userId`. */
 export const profiles = pgTable(
   'profiles',
@@ -299,6 +323,7 @@ export const SYNC_TABLES = {
   logs: setLogs,
   refSets,
   bodyLogs,
+  goals,
   profile: profiles,
 } as const;
 

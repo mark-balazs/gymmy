@@ -89,6 +89,11 @@ describe('attention', () => {
   const exercise = ix.exercises[0]!;
   const pattern = ix.patternById.get(exercise.patternId) ?? null;
 
+  /* The permission slip. Progression verdicts are gated on a live goal for
+     the lift, so a test that wants one has to say so — which is the whole
+     behaviour, expressed as an argument. */
+  const growing = new Set([exercise.id]);
+
   const progress = (over: Partial<ExerciseProgress>): ExerciseProgress => {
     const sessions = over.sessions ?? [];
     return {
@@ -118,17 +123,17 @@ describe('attention', () => {
     const rated = [true, true, true, false, false, false];
     const p = progress({ sessions: series([100, 110, 120, 100, 101, 100], { rated }) });
     expect(p.drawdown!.pct).toBeLessThan(-5);
-    expect(attention([p], '2026-09-13')).toEqual([]);
+    expect(attention([p], '2026-09-13', { growing })).toEqual([]);
   });
 
   it('has no verdict for a movement with no metric', () => {
     const p = progress({ metric: null, sessions: series([100, 110, 120, 100, 101, 100]) });
-    expect(attention([p], '2026-09-13')).toEqual([]);
+    expect(attention([p], '2026-09-13', { growing })).toEqual([]);
   });
 
   it('calls a sustained slide a regression', () => {
     const p = progress({ sessions: series([100, 110, 120, 100, 101, 100]) });
-    const [first] = attention([p], '2026-09-13');
+    const [first] = attention([p], '2026-09-13', { growing });
     expect(first?.kind).toBe('regressed');
   });
 
@@ -141,7 +146,7 @@ describe('attention', () => {
       }),
       sessionsSinceBest: 9,
     });
-    const [first] = attention([p], '2026-09-13');
+    const [first] = attention([p], '2026-09-13', { growing });
     expect(first?.kind).toBe('stalled');
     expect(first?.weeksSinceBest).toBeGreaterThanOrEqual(8);
   });
@@ -159,7 +164,7 @@ describe('attention', () => {
       sessionsSinceBest: 5,
       daysSince: 0,
     });
-    expect(attention([recentPeak], '2026-09-13')).toEqual([]);
+    expect(attention([recentPeak], '2026-09-13', { growing })).toEqual([]);
 
     // Long enough ago, but trained fortnightly, so it has only been attempted
     // five times since. Five attempts is not enough to have established that
@@ -173,7 +178,7 @@ describe('attention', () => {
       daysSince: 0,
     });
     expect(fewAttempts.drawdown).not.toBeNull();
-    expect(attention([fewAttempts], '2026-09-13')).toEqual([]);
+    expect(attention([fewAttempts], '2026-09-13', { growing })).toEqual([]);
   });
 
   it('notices a planned lift you have stopped doing', () => {
@@ -181,7 +186,7 @@ describe('attention', () => {
       sessions: series([100, 104, 108, 112], { from: '2026-06-01' }),
       daysSince: 40,
     });
-    const [first] = attention([p], '2026-09-13');
+    const [first] = attention([p], '2026-09-13', { growing });
     expect(first?.kind).toBe('dormant');
   });
 
@@ -200,7 +205,7 @@ describe('attention', () => {
     // Genuinely a stall by every other measure — which is what makes the
     // ordering the thing under test rather than the thresholds.
     expect(p.drawdown?.confident).toBe(true);
-    expect(attention([p], '2026-09-13').map((x) => x.kind)).toEqual(['dormant']);
+    expect(attention([p], '2026-09-13', { growing }).map((x) => x.kind)).toEqual(['dormant']);
   });
 
   it('does not nag about something you dropped from the plan', () => {
@@ -209,7 +214,7 @@ describe('attention', () => {
       daysSince: 40,
       inPlan: false,
     });
-    expect(attention([p], '2026-09-13')).toEqual([]);
+    expect(attention([p], '2026-09-13', { growing })).toEqual([]);
   });
 
   it('shows a mix of kinds rather than three of the same', () => {
@@ -228,17 +233,58 @@ describe('attention', () => {
     const small = progress({ sessions: series([100, 110, 120, 112, 111, 112]) });
     const big = progress({ sessions: series([100, 110, 120, 90, 91, 90]) });
 
-    expect(attention([dormant, stalled, small, big], '2026-09-13').map((x) => x.kind)).toEqual([
+    expect(
+      attention([dormant, stalled, small, big], '2026-09-13', { growing }).map((x) => x.kind),
+    ).toEqual(['regressed', 'stalled', 'dormant']);
+  });
+
+  it('says nothing about growth until somebody asks it to', () => {
+    /* The whole point of the gate, and the behaviour this file used to get
+       wrong. Both of these are unambiguous by every other measure — a 17%
+       slide, and two months flat across nine attempts — and with no goal on
+       the lift the app has nothing to say about either.
+
+       Telling somebody their bench press has stopped moving is a judgement
+       about what they were trying to do, and the app does not know that.
+       Aimed at somebody maintaining deliberately, or coming back from an
+       injury, it costs motivation and buys nothing. */
+    const slid = progress({ sessions: series([100, 110, 120, 100, 101, 100]) });
+    const flat = progress({
+      sessions: series([100, 110, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120], {
+        from: '2026-05-04',
+      }),
+      sessionsSinceBest: 9,
+    });
+
+    expect(attention([slid, flat], '2026-09-13')).toEqual([]);
+
+    // The evidence is still computed — the chart is honest description, and
+    // only the *verdict* needed permission.
+    expect(slid.drawdown!.pct).toBeLessThan(-5);
+
+    // And with the goal, both come back.
+    expect(attention([slid, flat], '2026-09-13', { growing }).map((a) => a.kind)).toEqual([
       'regressed',
       'stalled',
-      'dormant',
     ]);
+  });
+
+  it('still says what you planned and have not done, goal or no goal', () => {
+    /* Dormancy is not a claim about growth. "This is in your week and you have
+       not done it in three weeks" is an observation about the plan the user
+       chose themselves, so it needs no permission — and it is the one thing
+       here somebody would want to know either way. */
+    const p = progress({
+      sessions: series([100, 104, 108, 112], { from: '2026-06-01' }),
+      daysSince: 40,
+    });
+    expect(attention([p], '2026-09-13').map((a) => a.kind)).toEqual(['dormant']);
   });
 
   it('takes the worst of a kind before the next-worst of that kind', () => {
     const small = progress({ sessions: series([100, 110, 120, 112, 111, 112]) });
     const big = progress({ sessions: series([100, 110, 120, 90, 91, 90]) });
-    const picked = attention([small, big], '2026-09-13', 2);
+    const picked = attention([small, big], '2026-09-13', { limit: 2, growing });
     expect(picked[0]!.progress.drawdown!.pct).toBeLessThan(picked[1]!.progress.drawdown!.pct);
   });
 });

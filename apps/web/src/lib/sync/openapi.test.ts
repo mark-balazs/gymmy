@@ -43,6 +43,7 @@ const SCHEMA_FOR: Record<(typeof TABLES)[number], string> = {
   logs: 'SetLog',
   refSets: 'RefSet',
   bodyLogs: 'BodyLog',
+  goals: 'Goal',
   profile: 'Profile',
 };
 

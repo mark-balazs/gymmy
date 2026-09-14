@@ -17,6 +17,7 @@ import type {
   SetLog,
   Slot,
   SplitPeriod,
+  Goal,
   Snapshot,
   TableName,
 } from '@athletic/domain';
@@ -45,6 +46,7 @@ class AppDb extends Dexie {
   logs!: EntityTable<SetLog, 'id'>;
   refSets!: EntityTable<RefSet, 'id'>;
   bodyLogs!: EntityTable<BodyLog, 'id'>;
+  goals!: EntityTable<Goal, 'id'>;
   profile!: EntityTable<Profile, 'id'>;
   outbox!: EntityTable<Outbox, 'seq'>;
   meta!: EntityTable<Meta, 'key'>;
@@ -75,6 +77,10 @@ class AppDb extends Dexie {
     this.version(3).stores({
       bodyLogs: 'id, date',
     });
+
+    this.version(4).stores({
+      goals: 'id, exerciseId',
+    });
   }
 }
 
@@ -89,6 +95,7 @@ export const DOMAIN_TABLES: TableName[] = [
   'logs',
   'refSets',
   'bodyLogs',
+  'goals',
   'profile',
 ];
 
@@ -105,18 +112,29 @@ export async function setMeta(key: string, value: unknown): Promise<void> {
 
 /** Everything the domain layer needs, read in one pass. */
 export async function snapshot(): Promise<Snapshot> {
-  const [patterns, exercises, slots, splitPeriods, entries, logs, refSets, bodyLogs, profiles] =
-    await Promise.all([
-      local.patterns.toArray(),
-      local.exercises.toArray(),
-      local.slots.toArray(),
-      local.splitPeriods.toArray(),
-      local.entries.toArray(),
-      local.logs.toArray(),
-      local.refSets.toArray(),
-      local.bodyLogs.toArray(),
-      local.profile.toArray(),
-    ]);
+  const [
+    patterns,
+    exercises,
+    slots,
+    splitPeriods,
+    entries,
+    logs,
+    refSets,
+    bodyLogs,
+    goals,
+    profiles,
+  ] = await Promise.all([
+    local.patterns.toArray(),
+    local.exercises.toArray(),
+    local.slots.toArray(),
+    local.splitPeriods.toArray(),
+    local.entries.toArray(),
+    local.logs.toArray(),
+    local.refSets.toArray(),
+    local.bodyLogs.toArray(),
+    local.goals.toArray(),
+    local.profile.toArray(),
+  ]);
   return {
     patterns,
     exercises,
@@ -126,6 +144,7 @@ export async function snapshot(): Promise<Snapshot> {
     logs,
     refSets,
     bodyLogs,
+    goals,
     profile: profiles[0] ?? null,
   };
 }

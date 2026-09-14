@@ -16,6 +16,7 @@ import type {
   ProgramEntry,
   ProgramRow,
   RefSet,
+  Goal,
   SetLog,
   Slot,
   Snapshot,
@@ -57,6 +58,12 @@ export function mondayOf(d: Date | string): string {
   return isoDate(x);
 }
 
+/** Whole days from one yyyy-mm-dd to another. Negative if `to` is earlier. */
+export const daysBetween = (from: string, to: string): number =>
+  Math.round(
+    (new Date(`${to}T12:00:00`).getTime() - new Date(`${from}T12:00:00`).getTime()) / 86_400_000,
+  );
+
 export function addDays(isoStr: string, n: number): string {
   const d = new Date(`${isoStr}T12:00:00`);
   d.setDate(d.getDate() + n);
@@ -97,6 +104,9 @@ export interface Indexed {
   entries: ProgramEntry[];
   logs: SetLog[];
   refSets: RefSet[];
+  /** Lifts the user has asked to be held to, live ones and expired alike;
+   *  `liveGoals()` narrows to the ones still running. */
+  goals: Goal[];
   patternById: Map<string, Pattern>;
   exerciseById: Map<string, Exercise>;
   slotById: Map<string, Slot>;
@@ -123,6 +133,7 @@ export function index(snap: Snapshot): Indexed {
       a.startWeek < b.startWeek ? -1 : a.startWeek > b.startWeek ? 1 : 0,
     ),
     entries: live(snap.entries),
+    goals: live(snap.goals ?? []),
     /**
      * Chronological, and that is load-bearing rather than tidy.
      *

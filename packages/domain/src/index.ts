@@ -17,3 +17,4 @@ export * from './prefs';
 export * from './seed';
 export * from './splits';
 export * from './plans';
+export * from './goals';

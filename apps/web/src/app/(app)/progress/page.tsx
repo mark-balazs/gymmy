@@ -11,15 +11,24 @@
  *
  * So the shape here is triage first, evidence on request:
  *
- *  1. **Needs a look** — at most three lifts, in words. The whole point of the
- *     page. Most days it is empty, and saying "nothing needs a look" is the
- *     most useful thing it can do.
- *  2. **Strength score** — the one number that is about you rather than about a
+ *  1. **Worth knowing** — at most three lifts, in words. Present only when
+ *     there is something to say: something you planned and have not done, or a
+ *     lift you have asked to be pushed on that has stopped moving. On an
+ *     account with no goals the card is usually absent entirely, which is the
+ *     point of it — see below.
+ *  2. **What you are pushing** — the live goals, only when there are any.
+ *  3. **Strength score** — the one number that is about you rather than about a
  *     movement, and the only full chart on the page at rest.
- *  3. **What you have trained** — twelve weeks by seven movements, which is the
+ *  4. **What you have trained** — twelve weeks by seven movements, which is the
  *     app's actual thesis on a time axis.
- *  4. **Every lift** — one compact row each, grouped by movement, with a
- *     sparkline. The full chart is one tap away.
+ *  5. **Every lift** — one compact row each, grouped by movement, with a
+ *     sparkline. The full chart, and the way to set a goal, are one tap away.
+ *
+ * The card at the top used to be headed "Needs a look" and, on a quiet week,
+ * said "nothing needs a look — everything you train is moving". Both were the
+ * app grading somebody's training against an assumption it had made up. The
+ * shipped version only evaluates a lift the user has volunteered, via a goal,
+ * and the empty state is the card not being there at all.
  */
 
 import { useMemo, useState } from 'react';
@@ -27,6 +36,7 @@ import { Button, Card, Chip, InfoButton, Sheet, Summary, cn } from '@/components
 import { Page } from '@/components/page';
 import { LineChart, Sparkline, type ChartPoint } from '@/components/chart';
 import { Delta } from '@/components/delta';
+import { GoalCard, GoalForm, useGoalCards } from '@/components/goal';
 import { useProfile, useSnapshot, useT, useToday } from '@/lib/client/hooks';
 import { fireAndForget, logBodyWeight } from '@/lib/client/mutations';
 import {
@@ -37,6 +47,7 @@ import {
   coveragePatterns,
   mondayOf,
   patternWeeks,
+  growingExercises,
   progressSummary,
   recentWeeks,
   strengthSeries,
@@ -114,6 +125,11 @@ export default function ProgressPage() {
    * back would start reading as regressed again the moment a two-year-old
    * personal best came into range.
    */
+  /* The lifts the user has asked to be held to. Empty for almost everybody,
+     and empty means the page offers no opinion on whether anything is
+     growing — it draws the lines and leaves the reading to them. */
+  const growing = useMemo(() => growingExercises(ix, today), [ix, today]);
+
   const triage = useMemo(
     () =>
       attention(
@@ -121,9 +137,9 @@ export default function ProgressPage() {
           ? summary
           : progressSummary(ix, { from: recentFrom, to: today, sessions: days }),
         today,
-        3,
+        { limit: 3, growing },
       ),
-    [ix, summary, from, recentFrom, today, days],
+    [ix, summary, from, recentFrom, today, days, growing],
   );
 
   const weeksBack = useMemo(
@@ -163,6 +179,7 @@ export default function ProgressPage() {
   const earlier = scored.at(-9) ?? scored[0] ?? null;
   const delta = current && earlier && earlier !== current ? current.score! - earlier.score! : null;
   const bodyWeight = bodyWeightOn(ix, today);
+  const goals = useGoalCards();
   const open = summary.find((p) => p.exercise.id === detail) ?? null;
 
   if (!summary.length) {
@@ -177,21 +194,32 @@ export default function ProgressPage() {
 
   return (
     <Page>
-      {/* 1 — the reason the page exists. */}
-      <Card className="flex flex-col gap-2.5">
-        <h2 className="text-[17px] font-semibold">{tr.t('prog.needsLook')}</h2>
-        {triage.length === 0 ? (
-          <Summary tone="good">{tr.t('prog.allClear')}</Summary>
-        ) : (
-          <div role="list" className="flex flex-col gap-1">
-            {triage.map((a) => (
-              <TriageRow key={a.progress.exercise.id} item={a} onOpen={setDetail} />
-            ))}
-          </div>
-        )}
-      </Card>
+      {/* 1 — what the app has actually been asked to watch.
+          Absent when there is nothing to report AND nothing has been
+          volunteered: an empty card headed with a judgement is still a
+          judgement, and on most accounts this is every week. Once a goal
+          exists, the empty state earns its place — the app was asked to
+          watch, so "nothing to flag" is it answering. */}
+      {(triage.length > 0 || growing.size > 0) && (
+        <Card className="flex flex-col gap-2.5">
+          <h2 className="text-[17px] font-semibold">{tr.t('prog.needsLook')}</h2>
+          {triage.length === 0 ? (
+            <Summary tone="idle">{tr.t('prog.allClear')}</Summary>
+          ) : (
+            <div role="list" className="flex flex-col gap-1">
+              {triage.map((a) => (
+                <TriageRow key={a.progress.exercise.id} item={a} onOpen={setDetail} />
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
-      {/* 2 — the one card that is entirely the second voice: it measures you
+      {/* 2 — the consent record. Nothing here means the app is not evaluating
+          anything, and that is the state it ships in. */}
+      {goals.length > 0 && <GoalCard items={goals} unit={unit} onOpen={setDetail} />}
+
+      {/* 3 — the one card that is entirely the second voice: it measures you
           rather than recording what you did. */}
       <Card className="flex flex-col gap-3 border-[var(--color-accent-2)]/35 bg-[var(--color-accent-2-bg)]">
         <div className="flex items-center gap-1">
@@ -268,14 +296,14 @@ export default function ProgressPage() {
         </form>
       </Card>
 
-      {/* 3 — the app's thesis on a time axis. */}
+      {/* 4 — the app's thesis on a time axis. */}
       <Card className="flex flex-col gap-2">
         <h2 className="text-[17px] font-semibold">{tr.t('prog.patterns')}</h2>
         <PatternGrid grid={grid} thisWeek={mondayOf(today)} />
         <p className="text-[11px] text-[var(--color-muted)]">{tr.t('prog.patternsBody')}</p>
       </Card>
 
-      {/* 4 — everything, compactly. */}
+      {/* 5 — everything, compactly. */}
       <Card className="flex flex-col gap-2.5">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-[17px] font-semibold">{tr.t('prog.allLifts')}</h2>
@@ -574,6 +602,13 @@ function DetailSheet({
           <p className="mt-1 text-[11px] text-[var(--color-muted)]">{tr.t('prog.unrated')}</p>
         )}
       </dl>
+
+      {/* The only place a goal can be set, because it is the only place the
+          baseline is already on screen. A lift with no metric has no number to
+          set one against — carries are metres. */}
+      {progress.metric !== null && (
+        <GoalForm exercise={progress.exercise} unit={unit} onSaved={onClose} />
+      )}
     </Sheet>
   );
 }
