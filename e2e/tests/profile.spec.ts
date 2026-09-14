@@ -80,11 +80,22 @@ test.describe('Your profile', () => {
     await year.fill('1955');
     await year.blur();
     /* Wait for the write to land before navigating. Blur queues it and the
-       navigation used to race it, which made this fail perhaps one run in
-       twenty against a score that was simply correct for a missing birth year
-       — the worst kind of flake, because it accuses the feature. */
-    await page.reload();
-    await expect(page.getByLabel('Year of birth')).toHaveValue('1955', { timeout: 15_000 });
+       navigation used to race it, which made this fail against a score that was
+       simply correct for a missing birth year — the worst kind of flake,
+       because it accuses the feature.
+
+       Reloading inside the poll is what actually closes it: a single reload can
+       still outrun the write, and then the assertion is measuring the reload
+       rather than the field. */
+    await expect
+      .poll(
+        async () => {
+          await page.reload();
+          return page.getByLabel('Year of birth').inputValue();
+        },
+        { timeout: 30_000 },
+      )
+      .toBe('1955');
 
     await page.goto('/progress');
     /* Strictly higher, not merely different. The masters allowance scales a
