@@ -26,7 +26,20 @@ import type {
   PatternKey,
 } from '@athletic/domain';
 import type { DraftEntry, SlotDraft } from '@athletic/domain';
-import { buildProgram, buildSlots, coversFor, findSplit, index, mondayOf } from '@athletic/domain';
+import {
+  DEFAULT_PREFS,
+  buildProgram,
+  buildSlots,
+  coversFor,
+  findSplit,
+  index,
+  mondayOf,
+  planFill,
+  planSessions,
+  planSlotKey,
+  planToDrafts,
+} from '@athletic/domain';
+import type { PlanFill, PlanShape } from '@athletic/domain';
 
 const now = (): string => new Date().toISOString();
 const id = (): string => crypto.randomUUID();
@@ -211,6 +224,12 @@ export async function patchProfile(patch: Partial<Omit<Profile, 'id'>>): Promise
     name: existing?.name ?? '',
     birthYear: existing?.birthYear ?? null,
     avatar: existing?.avatar ?? null,
+    /* Carried forward explicitly, like everything else here. This function
+       rebuilds the row rather than merging into it, so a field left out of this
+       list is silently dropped by every unrelated write — editing your name
+       would have quietly taken you off your trainer's plan. */
+    planId: existing?.planId ?? null,
+    planVersion: existing?.planVersion ?? null,
     ...patch,
   };
   return put('profile', next);
@@ -302,7 +321,28 @@ async function openPeriod(
  */
 async function installSkeleton(
   snap: Snapshot,
-  opts: { split: SplitKey; days: number; where: Where; bias: Bias; drafts: SlotDraft[] },
+  opts: {
+    split: SplitKey;
+    days: number;
+    where: Where;
+    bias: Bias;
+    drafts: SlotDraft[];
+    /**
+     * What a shared plan asks for, slot by slot, once its exercise names have
+     * been resolved against this account's library. Applied *over* the
+     * generated week rather than instead of it, so a plan that names an
+     * exercise nobody here has still produces a complete session.
+     */
+    fill?: Map<string, PlanFill>;
+    /**
+     * The plan this week came from, or null for one chosen or built here.
+     *
+     * Always written, never merely set: picking a preset or editing your own
+     * skeleton has to *clear* it, or the app goes on claiming you are training
+     * your coach's block long after you stopped.
+     */
+    plan?: { id: string; version: number } | null;
+  },
 ): Promise<void> {
   const existingSlots = await local.slots.toArray();
   for (const s of existingSlots) {
@@ -336,11 +376,38 @@ async function installSkeleton(
     where: opts.where,
     bias: opts.bias,
   });
+  /* A plan's choices land on top of the generated week, keyed by where the slot
+     sits rather than by any id — ids are what cannot cross between accounts.
+     Anything the plan does not speak to keeps what the generator picked. */
+  const byId = new Map(slots.map((s) => [s.id, s]));
   for (const d of draft) {
-    await put<ProgramEntry>('entries', { id: id(), updatedAt: now(), deletedAt: null, ...d });
+    const slot = byId.get(d.slotId);
+    const want = slot && opts.fill?.get(planSlotKey(d.sessionIndex, slot.position));
+    await put<ProgramEntry>('entries', {
+      id: id(),
+      updatedAt: now(),
+      deletedAt: null,
+      ...d,
+      ...(want
+        ? {
+            // A name this library does not have leaves the generator's choice
+            // in place: the plan costs you that exercise, not that session.
+            exerciseId: want.exerciseId ?? d.exerciseId,
+            sets: want.sets,
+            repRange: want.repRange,
+          }
+        : {}),
+    });
   }
 
-  await patchProfile({ split: opts.split, days: opts.days, where: opts.where, bias: opts.bias });
+  await patchProfile({
+    split: opts.split,
+    days: opts.days,
+    where: opts.where,
+    bias: opts.bias,
+    planId: opts.plan?.id ?? null,
+    planVersion: opts.plan?.version ?? null,
+  });
 }
 
 /** Switches to one of the built-in splits. */
@@ -372,6 +439,44 @@ export async function applyCustomSplit(
 ): Promise<void> {
   if (!opts.drafts.length) return;
   await installSkeleton(snap, { ...opts, split: 'custom' });
+}
+
+/**
+ * Puts a plan somebody shared with you into effect.
+ *
+ * The third and last caller of `installSkeleton`, and deliberately not a new
+ * path: a shared plan becomes ordinary slots, an appended period and generated
+ * entries, exactly as a preset does. After this returns, nothing in the app
+ * treats the week any differently — which is what keeps historisation, offline
+ * and last-write-wins working, none of which were built for two people sharing
+ * a row.
+ *
+ * It is a **copy**, taken once. The plan id and version are recorded so the app
+ * can notice a newer version and offer it; the trainer editing their plan never
+ * reaches in and rewrites a week somebody is standing in.
+ *
+ * The cadence comes from the skeleton rather than from the plan's own `days`.
+ * Those two can disagree — a trainer types four and then builds three days —
+ * and the skeleton is the thing that actually becomes somebody's week.
+ */
+export async function applySharedPlan(
+  snap: Snapshot,
+  plan: PlanShape,
+  ref: { id: string; version: number },
+): Promise<void> {
+  if (!plan.slots.length) return;
+  await installSkeleton(snap, {
+    // Custom, because a plan's skeleton is arbitrary: `coversFor` then derives
+    // the coverage goal from the slots rather than from a preset that does not
+    // describe this week.
+    split: 'custom',
+    days: planSessions(plan),
+    where: plan.where,
+    bias: snap.profile?.bias ?? DEFAULT_PREFS.bias,
+    drafts: planToDrafts(plan),
+    fill: planFill(plan, index(snap)),
+    plan: ref,
+  });
 }
 
 export const setLang = (lang: Profile['lang']) => patchProfile({ lang });

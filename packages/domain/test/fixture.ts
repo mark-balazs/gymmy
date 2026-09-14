@@ -95,6 +95,8 @@ export function seedSnapshot(
       name: '',
       birthYear: null,
       avatar: null,
+      planId: null,
+      planVersion: null,
     },
   };
 }

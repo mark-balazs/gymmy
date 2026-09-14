@@ -35,6 +35,9 @@ export const users = pgTable('user', {
   email: text('email').unique(),
   emailVerified: timestamp('emailVerified', { mode: 'date' }),
   image: text('image'),
+  /** Extensible rather than a boolean: reporting and auditing will want more
+   *  than 'is a trainer', and a column is far cheaper to widen than a flag. */
+  role: text('role').$type<UserRole>().notNull().default('athlete'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -279,6 +282,10 @@ export const profiles = pgTable(
     /** A small square image inline as a data URL — see the note on the domain
      *  type for why it lives in the row rather than in object storage. */
     avatar: text('avatar'),
+    /* The shared plan in effect, and the version applied. Null for a week
+       the user chose or built themselves. A snapshot, never a link. */
+    planId: text('plan_id'),
+    planVersion: integer('plan_version'),
   },
   (t) => [primaryKey({ columns: [t.userId, t.id] }), index('profiles_seq').on(t.userId, t.seq)],
 );
@@ -296,3 +303,183 @@ export const SYNC_TABLES = {
 } as const;
 
 export type SyncTableName = keyof typeof SYNC_TABLES;
+
+/* ------------------------------------------------ trainers and plans -- */
+
+/**
+ * Everything below this line is **deliberately not in `SYNC_TABLES`**, and that
+ * is the load-bearing decision rather than an oversight.
+ *
+ * Every replicated table is `primaryKey(userId, id)` and cascades from `user`,
+ * which encodes an assumption that has held since the first commit: a row
+ * belongs to exactly one person, who is the only one who edits it. A plan
+ * breaks both halves — it is owned by a trainer and read by everybody they
+ * shared it with. Putting it in the sync set would mean a trainer closing their
+ * account destroyed plans other people were training on, and it would hand
+ * last-write-wins the job of arbitrating between two people editing one row,
+ * which the decision log names as the exact condition for revisiting it.
+ *
+ * So plans live here, server-side, reached over a small read API. What crosses
+ * into an athlete's replicated data is not the plan but its *effect*: ordinary
+ * `slots`, an appended `splitPeriods` row and generated `entries`, written by
+ * the same `installSkeleton` a preset goes through. After that moment nothing
+ * downstream knows a trainer was involved.
+ */
+
+/** Extensible on purpose: reporting and auditing will want more than a flag. */
+export const USER_ROLES = ['athlete', 'trainer'] as const;
+export type UserRole = (typeof USER_ROLES)[number];
+
+export const plans = pgTable(
+  'plans',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    ownerId: text('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    description: text('description').notNull().default(''),
+    /** Cadence: sessions a week this plan is written for. */
+    days: integer('days').notNull().default(3),
+    where: text('where').$type<'gym' | 'home'>().notNull().default('gym'),
+    /**
+     * Bumped on every publish of an already-published plan.
+     *
+     * A plan is applied as a snapshot, so this is how an athlete already
+     * training on version 3 learns that a version 4 exists — an offer, never a
+     * rewrite of the week they are standing in.
+     */
+    version: integer('version').notNull().default(1),
+    publishedAt: timestamp('published_at', { withTimezone: true }),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index('plans_owner').on(t.ownerId)],
+);
+
+export const planSlots = pgTable(
+  'plan_slots',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    planId: text('plan_id')
+      .notNull()
+      .references(() => plans.id, { onDelete: 'cascade' }),
+    sessionIndex: integer('session_index').notNull(),
+    position: integer('position').notNull(),
+    key: text('key'),
+    name: text('name').notNull(),
+    requiredRole: text('required_role').notNull().default('Any'),
+    patternKeys: jsonb('pattern_keys').$type<string[] | null>(),
+    dayKey: text('day_key'),
+    /** By NAME, never by id: an exercise id is `sha256(userId, …)` and means
+     *  nothing outside the account that produced it. Resolved on apply. */
+    exerciseName: text('exercise_name'),
+    sets: integer('sets').notNull().default(3),
+    repRange: text('rep_range').notNull().default(''),
+  },
+  (t) => [uniqueIndex('plan_slots_pos').on(t.planId, t.sessionIndex, t.position)],
+);
+
+/**
+ * A group of people, which is allowed to contain one person.
+ *
+ * Nothing distinguishes "a group of one" from a share aimed at an individual
+ * except which column the share fills in, and that is deliberate: a trainer who
+ * starts with one client and gains a second should not have to restructure
+ * anything they already set up.
+ */
+export const userGroups = pgTable(
+  'user_groups',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    ownerId: text('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index('user_groups_owner').on(t.ownerId)],
+);
+
+/** Plain many-to-many: a group holds many people, a person is in many groups. */
+export const groupMembers = pgTable(
+  'group_members',
+  {
+    groupId: text('group_id')
+      .notNull()
+      .references(() => userGroups.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    addedAt: timestamp('added_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.groupId, t.userId] }), index('group_members_user').on(t.userId)],
+);
+
+/**
+ * Who a plan has been given to: one person, or one group.
+ *
+ * Revoked rather than deleted, because "this was shared and then taken back" is
+ * a different fact from "this was never shared", and only one of them can be
+ * answered by a missing row. Revoking does not reach into anybody's week — a
+ * plan already applied is already theirs.
+ */
+export const planShares = pgTable(
+  'plan_shares',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    planId: text('plan_id')
+      .notNull()
+      .references(() => plans.id, { onDelete: 'cascade' }),
+    targetUserId: text('target_user_id').references(() => users.id, { onDelete: 'cascade' }),
+    groupId: text('group_id').references(() => userGroups.id, { onDelete: 'cascade' }),
+    sharedAt: timestamp('shared_at', { withTimezone: true }).defaultNow().notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('plan_shares_plan').on(t.planId),
+    index('plan_shares_user').on(t.targetUserId),
+    index('plan_shares_group').on(t.groupId),
+  ],
+);
+
+/**
+ * Append-only: what was done to a plan, by whom, and when.
+ *
+ * Here from the first commit rather than added later, because an audit trail
+ * retrofitted only ever covers what happened after it was added — and the
+ * questions people ask of one are always about the period before.
+ *
+ * Note what does **not** cascade. Deleting a plan, a group, or the person who
+ * acted nulls the reference and keeps the event, with the name it had at the
+ * time copied alongside. Erasure has to remove the person; it does not have to
+ * remove the fact that some plan was shared with forty people in March.
+ */
+export const planEvents = pgTable(
+  'plan_events',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    at: timestamp('at', { withTimezone: true }).defaultNow().notNull(),
+    actorId: text('actor_id').references(() => users.id, { onDelete: 'set null' }),
+    action: text('action').notNull(),
+    planId: text('plan_id').references(() => plans.id, { onDelete: 'set null' }),
+    /** The name as it read at the time, so the row still says something once
+     *  the plan it refers to is gone. */
+    planName: text('plan_name'),
+    groupId: text('group_id').references(() => userGroups.id, { onDelete: 'set null' }),
+    groupName: text('group_name'),
+    detail: jsonb('detail').$type<Record<string, unknown>>(),
+  },
+  (t) => [index('plan_events_plan').on(t.planId), index('plan_events_at').on(t.at)],
+);

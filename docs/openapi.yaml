@@ -661,3 +661,26 @@ components:
                 pull**, so the cap is not cosmetic: the client downscales to
                 256px before encoding, and this is the backstop against one
                 that does not.
+            planId:
+              type: [string, 'null']
+              maxLength: 64
+              default: null
+              description: |
+                The shared plan currently in effect, or null for a week the
+                person chose or built themselves.
+
+                **This is a snapshot, not a link.** Accepting a trainer's plan
+                materialises ordinary slots, an appended split period and
+                generated entries; nothing afterwards reads the plan again. The
+                id is kept only so the app can notice a newer version and
+                *offer* it, rather than rewriting a week somebody is standing
+                in.
+            planVersion:
+              type: [integer, 'null']
+              minimum: 1
+              default: null
+              description: |
+                The version of that plan which was applied. Required together
+                with `planId` — a version with no plan cannot be offered an
+                update, and a plan with no version cannot be compared against
+                one, so the client treats either alone as "no plan".

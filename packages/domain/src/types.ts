@@ -230,6 +230,23 @@ export interface Profile extends Synced {
    *  and guessing it would be worse than not having it. */
   heightCm: number | null;
   sex: Sex;
+  /**
+   * The shared plan currently in effect, and the version of it that was
+   * applied. Null for a week you chose or built yourself, which is every
+   * account until somebody accepts a trainer's plan.
+   *
+   * A plan is applied as a snapshot, so the version is not a link — it is how
+   * the app knows to say "your trainer has published a newer one" rather than
+   * quietly rewriting a week somebody is standing in.
+   *
+   * **Read these through `planOf()`, never directly.** A device that synced
+   * before these columns existed holds profile rows without the keys, and the
+   * server does not re-send a row just because a column was added — so
+   * `profile.planId !== null` is `true` on those devices, for a profile that
+   * has no plan at all.
+   */
+  planId: string | null;
+  planVersion: number | null;
 }
 
 /** Everything the client holds. Also the shape of an export file. */

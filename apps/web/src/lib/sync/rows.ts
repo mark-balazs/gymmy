@@ -136,6 +136,8 @@ export const rowSchemas = {
      * every sync carry a photograph. The client downscales to a small square
      * before encoding; this is the backstop that stops a client which does not.
      */
+    planId: z.string().min(1).max(64).nullable().default(null),
+    planVersion: z.number().int().min(1).max(100000).nullable().default(null),
     avatar: z
       .string()
       .max(64_000)
