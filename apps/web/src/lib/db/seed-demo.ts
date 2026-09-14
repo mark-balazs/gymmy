@@ -19,12 +19,13 @@ import { db } from '@/lib/db';
 import {
   bodyLogs,
   exercises as exercisesTable,
+  goals as goalsTable,
   patterns,
   programEntries,
   setLogs,
 } from '@/lib/db/schema';
 import { mondayOf } from '@athletic/domain';
-import { demoHistory, type DemoPlanEntry } from './demo-history';
+import { demoGoals, demoHistory, type DemoPlanEntry } from './demo-history';
 import { nextSeq, seedId } from './seed-user';
 
 /**
@@ -87,7 +88,8 @@ export async function seedDemoHistory(userId: string): Promise<void> {
     ];
   });
 
-  const { sets, weights } = demoHistory(entries, mondayOf(new Date()));
+  const thisMonday = mondayOf(new Date());
+  const { sets, weights } = demoHistory(entries, thisMonday);
 
   const rows: (typeof setLogs.$inferInsert)[] = sets.map((s) => ({
     // Derived, not random, for the same reason the rest of the seed is: this
@@ -129,4 +131,29 @@ export async function seedDemoHistory(userId: string): Promise<void> {
       })),
     )
     .onConflictDoNothing();
+  /* The two lifts this account has asked to be pushed on. Written last,
+     because they are derived from the sets above: a goal whose baseline did
+     not come from the history it sits beside would put a finish line on the
+     chart that has nothing to do with the line. */
+  const goalRows = demoGoals(entries, sets, thisMonday);
+  if (goalRows.length) {
+    await db
+      .insert(goalsTable)
+      .values(
+        goalRows.map((g) => ({
+          id: seedId(userId, 'demoGoal', g.exerciseId),
+          userId,
+          updatedAt: new Date(`${g.startedOn}T19:00:00Z`),
+          deletedAt: null,
+          seq: nextSeq,
+          exerciseId: g.exerciseId,
+          target: g.target,
+          baseline: g.baseline,
+          startedOn: g.startedOn,
+          targetDate: g.targetDate,
+          retiredAt: null,
+        })),
+      )
+      .onConflictDoNothing();
+  }
 }

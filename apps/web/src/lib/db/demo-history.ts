@@ -38,7 +38,7 @@
  * history, which is what lets the whole seed be safely re-run — see seed-user.
  */
 
-import { sessionLabel } from '@athletic/domain';
+import { est1RM, sessionLabel } from '@athletic/domain';
 import { BY_PATTERN, DEMO_LOADS, type DemoArc, type DemoLoad } from './demo-loads';
 
 /** Roughly five months. Long enough for the progress charts to have a shape
@@ -347,4 +347,88 @@ export function demoHistory(
   }
 
   return { sets, weights };
+}
+/* ---------------------------------------------------------------- goals */
+
+/** One goal the demo account arrives already having set. */
+export interface DemoGoal {
+  exerciseId: string;
+  baseline: number;
+  target: number;
+  startedOn: string;
+  targetDate: string;
+}
+
+/**
+ * Which lift each goal is on, and how long ago it was set.
+ *
+ * The two ages are the point. Set on the same day, the climbing one would
+ * already be finished — eight percent is about five weeks of a lift that gains
+ * a third over a block, and a goal that arrives complete shows the ending and
+ * never the bar. So the stalled one has been running long enough to have
+ * visibly not moved, and the climbing one is recent enough to still be
+ * climbing. Which is also how goals turn up on a real account: at different
+ * times, for different reasons.
+ */
+const GOAL_PLAN: { want: DemoArc['kind'] | null; weeksAgo: number }[] = [
+  { want: 'stall', weeksAgo: 6 },
+  { want: null, weeksAgo: 3 },
+];
+
+/** Long enough to clear the app's own eight-week minimum comfortably. */
+const GOAL_WEEKS = 14;
+/** Eight percent: comfortably past the retest noise, short of a warning. */
+const GOAL_DISTANCE = 0.08;
+
+/**
+ * The two goals the demo account arrives with.
+ *
+ * Without one the app says nothing evaluative at all, which is correct on a
+ * real account and useless on a demo — it would leave the whole feature, and
+ * the triage card that depends on it, invisible. So the demo has asked to be
+ * pushed on exactly two lifts, chosen for what they demonstrate:
+ *
+ *  - **the one that stalled**, so the verdict card has something in it and a
+ *    reader can see what a goal buys;
+ *  - **one that is climbing steadily**, so the other state — a bar moving, on
+ *    track, nothing to say about it — is on screen beside it.
+ *
+ * Both are picked off the arcs in `demo-loads` rather than named here, because
+ * which exercises the generator puts in the demo's week depends on the split
+ * and would drift. If neither arc is in the plan the account simply arrives
+ * with fewer goals; a demo missing a card is better than a seed that throws.
+ */
+export function demoGoals(plan: DemoPlanEntry[], sets: DemoSet[], thisMonday: string): DemoGoal[] {
+  /** The best estimated one-rep max this lift had when the goal was set — the
+   *  same eight-week window, and the same estimator, the app would use. */
+  const baselineOf = (exerciseId: string, startedOn: string): number => {
+    const from = addDays(startedOn, -56);
+    let best = 0;
+    for (const s of sets) {
+      if (s.exerciseId !== exerciseId || s.date < from || s.date >= startedOn) continue;
+      const e = est1RM(s.weight, s.reps, s.rir);
+      if (e !== null && e > best) best = e;
+    }
+    return Math.round(best * 10) / 10;
+  };
+
+  return GOAL_PLAN.flatMap(({ want, weeksAgo }) => {
+    const entry = plan.find((e) => (loadFor(e.name, e.patternKey).arc?.kind ?? null) === want);
+    if (!entry) return [];
+
+    const startedOn = addDays(thisMonday, -7 * weeksAgo);
+    const baseline = baselineOf(entry.exerciseId, startedOn);
+    if (baseline <= 0) return [];
+
+    return [
+      {
+        exerciseId: entry.exerciseId,
+        baseline,
+        // To the nearest half, because that is what a person would type.
+        target: Math.round(baseline * (1 + GOAL_DISTANCE) * 2) / 2,
+        startedOn,
+        targetDate: addDays(startedOn, 7 * GOAL_WEEKS),
+      },
+    ];
+  });
 }

@@ -106,6 +106,7 @@ async function main(): Promise<void> {
         (SELECT count(*)::int FROM body_logs  WHERE user_id = ${id}) AS weights,
         (SELECT count(*)::int FROM exercises  WHERE user_id = ${id}) AS exercises,
         (SELECT count(*)::int FROM program_entries WHERE user_id = ${id}) AS entries,
+        (SELECT count(*)::int FROM goals      WHERE user_id = ${id}) AS goals,
         (SELECT sex FROM profiles WHERE user_id = ${id})              AS sex,
         (SELECT min(date) FROM set_logs WHERE user_id = ${id})        AS first_set
     `)
@@ -114,10 +115,20 @@ async function main(): Promise<void> {
   console.log('\nSeeded:');
   console.table([counts]);
 
-  const ok = Number(counts.sets) > 500 && Number(counts.weights) > 15 && counts.sex === 'male';
+  /* Goals are checked for the same reason bodyweight is. Without one the app
+     says nothing evaluative about any lift — correct on a real account, and on
+     the demo it silently hides both the goal card and the verdict card that
+     depends on it. */
+  const ok =
+    Number(counts.sets) > 500 &&
+    Number(counts.weights) > 15 &&
+    Number(counts.goals) > 0 &&
+    counts.sex === 'male';
   if (!ok) {
-    console.error('\nThat does not look right — a demo needs sets, weekly bodyweights and a sex,');
-    console.error('or the strength score is null and the Progress tab has nothing to show.');
+    console.error(
+      '\nThat does not look right — a demo needs sets, weekly bodyweights, a sex and a goal,',
+    );
+    console.error('or the Progress tab has no score and nothing to say about any lift.');
     process.exit(1);
   }
 

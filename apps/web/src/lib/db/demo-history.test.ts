@@ -5,15 +5,27 @@ import {
   attention,
   buildProgram,
   buildSlots,
+  checkGoal,
+  est1RM,
   findSplit,
+  goalProgress,
+  growingExercises,
   index,
+  isLive,
   mondayOf,
   progressSummary,
   strengthSeries,
+  type Goal,
   type Indexed,
   type Snapshot,
 } from '@athletic/domain';
-import { DEMO_WEEKS, bodyWeightFor, demoHistory, type DemoPlanEntry } from './demo-history';
+import {
+  DEMO_WEEKS,
+  bodyWeightFor,
+  demoGoals,
+  demoHistory,
+  type DemoPlanEntry,
+} from './demo-history';
 
 /**
  * The demo account is the one account we know will be looked at, and what makes
@@ -355,5 +367,84 @@ describe('the demo bodyweight', () => {
       ) /
       (to - from);
     expect(mean(14, 17)).toBeGreaterThan(mean(19, 22));
+  });
+});
+describe('the demo goals', () => {
+  const { sets } = demoHistory(plan, today);
+  const goals = demoGoals(plan, sets, today);
+
+  /** A `DemoGoal` as the row the app would have written. */
+  const toRow = (g: (typeof goals)[number]): Goal => ({
+    id: `goal-${g.exerciseId}`,
+    updatedAt: now,
+    deletedAt: null,
+    retiredAt: null,
+    ...g,
+  });
+
+  /** The account as it arrives: its own history, plus its own goals. */
+  const withGoals: Indexed = { ...ix, goals: goals.map(toRow) };
+
+  it('asks to be pushed on the lift that stalled, and on one that is climbing', () => {
+    /* Without a goal the app says nothing evaluative — right on a real account
+       and useless on a demo, where it would leave both the goal card and the
+       verdict card invisible. Two, so both states are on screen at once: one
+       lift the app now has something to say about, and one it does not. */
+    expect(goals).toHaveLength(2);
+    expect(goals.map((g) => g.exerciseId)).toContain(byName('Barbell Bench Press')!.exercise.id);
+
+    // And the gate opens for exactly those two, not for the other fifteen.
+    expect(growingExercises(withGoals, today).size).toBe(2);
+  });
+
+  it('makes the verdict card say something a reader can act on', () => {
+    // The whole reason the demo has goals. Bench stalled months ago, and with
+    // the permission in place the page reports it.
+    const shown = attention(summary, today, {
+      limit: 3,
+      growing: growingExercises(withGoals, today),
+    });
+    expect(shown.map((a) => a.progress.exercise.name)).toContain('Barbell Bench Press');
+    expect(shown.find((a) => a.progress.exercise.name === 'Barbell Bench Press')?.kind).toBe(
+      'stalled',
+    );
+  });
+
+  it('passes the app’s own guardrails', () => {
+    // A seeded goal the app itself would have refused is a demo of a bug.
+    for (const g of goals) {
+      const check = checkGoal({ ...g, liveCount: 0, ownRecentGain: null });
+      expect(check.allowed).toBe(true);
+      expect(check.reason).toBeNull();
+    }
+  });
+
+  it('is still running, with weeks left to watch', () => {
+    for (const g of goals) {
+      const p = goalProgress(toRow(g), withGoals, today);
+      expect(isLive(p.goal, today)).toBe(true);
+      expect(p.daysLeft).toBeGreaterThan(7);
+      // Neither is finished, because a demo of a goal that is already done
+      // shows the ending and never the bar.
+      expect(p.achieved).toBe(false);
+    }
+  });
+
+  it('measures from where the lift actually was', () => {
+    /* The baseline comes off the same sets the chart is drawn from. A round
+       number picked by hand would put a finish line on the page with no
+       relationship to the line underneath it. */
+    for (const g of goals) {
+      const before = sets.filter((s) => s.exerciseId === g.exerciseId && s.date < g.startedOn);
+      const best = Math.max(...before.map((s) => est1RM(s.weight, s.reps, s.rir) ?? 0));
+      expect(g.baseline).toBeCloseTo(best, 1);
+      expect(g.target).toBeGreaterThan(g.baseline);
+    }
+  });
+
+  it('gives the same account the same goals twice', () => {
+    // Same reason the rest of the seed is derived rather than random: it has
+    // to be safe to run again over a history it half wrote.
+    expect(demoGoals(plan, sets, today)).toEqual(goals);
   });
 });
