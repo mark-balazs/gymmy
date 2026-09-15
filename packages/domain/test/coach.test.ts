@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { buildProgram, suggest } from '../src/coach';
-import { index, programCoverage, programRows } from '../src/model';
-import { BIASES } from '../src/types';
+import { OFF_PLAN, buildProgram, suggest, swapOptions } from '../src/coach';
+import { index, programCoverage, programRows, type Indexed } from '../src/model';
+import { BIASES, type Bias, type PatternKey, type Where } from '../src/types';
 import { logsFor, seedIndex, seedSnapshot, withEntries } from './fixture';
 
 describe('program generation', () => {
@@ -64,6 +64,109 @@ describe('program generation', () => {
     };
     const draft = buildProgram(index(renamed), { days: 3, where: 'gym', bias: 'none' });
     const built = withEntries(renamed, draft);
+    expect(programCoverage(built, 3).filter((c) => c.sets === 0)).toEqual([]);
+  });
+});
+
+describe('movements the app records but never prescribes', () => {
+  /* The library is gaining conditioning work so a CrossFit class can be logged
+     at all. Every one of those is fine to have done and wrong to be handed: a
+     slot comes with a 6-12 rep range and double progression telling you to add
+     weight when it felt easy, which is meaningless advice about a medicine ball
+     that weighs nine kilos forever.
+
+     Every test here tags **the exercise the generator actually chose**, read
+     back from an untagged run, rather than tagging a pool and asserting the
+     survivor. The first version did the latter and passed with the guard
+     switched off: the generator picks a squat pool by an index that barely
+     moves, so it was choosing Goblet Squat either way and the test was
+     agreeing with a coincidence. */
+  const base = seedSnapshot();
+  const plain = index(base);
+
+  const chosenFor = (
+    ix: Indexed,
+    key: PatternKey,
+    opts: { where: Where; bias: Bias; days: number },
+  ) => {
+    const patternId = ix.patterns.find((p) => p.key === key)!.id;
+    return buildProgram(ix, opts)
+      .map((d) => (d.exerciseId ? ix.exerciseById.get(d.exerciseId) : null))
+      .filter((e): e is NonNullable<typeof e> => !!e && e.patternId === patternId);
+  };
+
+  /** The same library with `names` marked off-plan. */
+  const tagging = (names: string[]) =>
+    index({
+      ...base,
+      exercises: base.exercises.map((e) =>
+        names.includes(e.name) ? { ...e, tags: [...e.tags, OFF_PLAN] } : e,
+      ),
+    });
+
+  it('picks something else once the movement it wanted is off-plan', () => {
+    for (const days of [2, 3, 4]) {
+      const opts = { days, where: 'gym' as const, bias: 'none' as const };
+      const before = chosenFor(plain, 'squat', opts);
+      expect(before.length).toBeGreaterThan(0);
+
+      const banned = [...new Set(before.map((e) => e.name))];
+      const after = chosenFor(tagging(banned), 'squat', opts);
+
+      // Still a squat in the week, and not one of the ones we just refused.
+      expect(after.length).toBe(before.length);
+      expect(after.some((e) => banned.includes(e.name))).toBe(false);
+    }
+  });
+
+  it('does not let a bias fallback smuggle one back in', () => {
+    /* The reason the filter sits in `pool`'s base rather than in its tag
+       argument: `pool` is called a second time with a null tag whenever a bias
+       leaves a pattern empty, and that second call is exactly where an off-plan
+       movement would reappear — for the user who asked for a bias, which is
+       nobody's idea of a guard. */
+    for (const bias of BIASES) {
+      const opts = { days: 3, where: 'gym' as const, bias };
+      const banned = [...new Set(chosenFor(plain, 'squat', opts).map((e) => e.name))];
+      const after = chosenFor(tagging(banned), 'squat', opts);
+      expect(after.some((e) => banned.includes(e.name))).toBe(false);
+    }
+  });
+
+  it('stops offering one as a swap for a planned slot', () => {
+    const draft = buildProgram(plain, { days: 3, where: 'gym', bias: 'none' });
+    const built = withEntries(base, draft);
+    const row = programRows(built, 3).find((r) => r.pattern?.key === 'squat')!;
+
+    const before = swapOptions(built, 3, row.session, row.slot.id, 'gym');
+    const victim = before.find((e) => e.name !== row.exercise?.name)!;
+    expect(victim).toBeDefined();
+
+    const taggedIx = tagging([victim.name]);
+    const builtTagged = withEntries(
+      { ...base, exercises: taggedIx.exercises },
+      buildProgram(taggedIx, { days: 3, where: 'gym', bias: 'none' }),
+    );
+    const rowTagged = programRows(builtTagged, 3).find((r) => r.pattern?.key === 'squat')!;
+    const after = swapOptions(builtTagged, 3, rowTagged.session, rowTagged.slot.id, 'gym');
+
+    expect(before.map((e) => e.name)).toContain(victim.name);
+    expect(after.map((e) => e.name)).not.toContain(victim.name);
+  });
+
+  it('never satisfies the coverage guarantee with something it refuses to pick', () => {
+    // The guard must not be able to leave a pattern uncovered, nor to look
+    // covered by an exercise the generator would never choose.
+    const banned = [
+      ...new Set(
+        chosenFor(plain, 'squat', { days: 3, where: 'gym', bias: 'none' }).map((e) => e.name),
+      ),
+    ];
+    const taggedIx = tagging(banned);
+    const built = withEntries(
+      { ...base, exercises: taggedIx.exercises },
+      buildProgram(taggedIx, { days: 3, where: 'gym', bias: 'none' }),
+    );
     expect(programCoverage(built, 3).filter((c) => c.sets === 0)).toEqual([]);
   });
 });

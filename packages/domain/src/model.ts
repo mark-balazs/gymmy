@@ -71,11 +71,37 @@ export function addDays(isoStr: string, n: number): string {
 }
 
 /**
+ * The most reps an estimate will be made from.
+ *
+ * Epley is linear in reps and never stops being linear, so inverted it claims a
+ * 21-rep set was 58% of a maximum and a 30-rep set exactly half of one. Real
+ * rep-max curves flatten, so the error is not noise — it runs one way, upward,
+ * and it grows with the rep count. A 30-rep deadlift at 100 kg reads as a 200 kg
+ * single; nothing in the app would question it, and the strength score would
+ * carry it for eight weeks and then report its departure as a decline.
+ *
+ * Twelve is the top of `REP_RANGE.big`, the range every loaded pattern is
+ * actually prescribed in — so this refuses to estimate from sets the app never
+ * asked anybody to do, and estimates from every set it did. It also happens to
+ * be the number that stops the middle set of 21-15-9.
+ *
+ * **Judged on the reps performed, not on reps plus reps-in-reserve.** The
+ * effective figure would be the more theoretical line to draw, and it would
+ * blank an ordinary twelve-rep set that finished with three left — real
+ * training, prescribed by this app, that must keep charting.
+ */
+export const MAX_EST_REPS = 12;
+
+/**
  * Epley, adjusted for reps in reserve.
  *
  * Without the RIR term a set taken to failure and a set left with three in the
  * tank look identical, which makes the whole progress view lie. This is the one
  * number that lets sessions of different intensity be compared.
+ *
+ * Null above `MAX_EST_REPS`, exactly as it is null for a set with no weight:
+ * not an error, and not a zero — the app simply has no maximum to estimate from
+ * that set, and says so by having nothing to say.
  */
 export function est1RM(
   weight: number | null,
@@ -85,6 +111,7 @@ export function est1RM(
   const w = num(weight);
   const r = num(reps);
   if (!w || !r) return null;
+  if (r > MAX_EST_REPS) return null;
   return Math.round(w * (1 + (r + num(rir)) / 30) * 10) / 10;
 }
 

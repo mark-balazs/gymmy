@@ -47,6 +47,18 @@ the pattern, so the repair cannot create the violation it exists to prevent.
 > asserted but not *proven*. A case that forces the repair to matter would be a
 > genuine addition.
 
+> **Known gap, and the one to read before growing the library:** `pick()`
+> indexes a pattern's pool by day-plus-position, a number that never exceeds 9,
+> so the generator **saturates**. Measured across every preset, legal day count,
+> location and bias: **59 of the current 70 exercises are ever programmed
+> automatically, 87 of 150, and still 87 of 230.** Eleven of the seventy we ship
+> are already unreachable unless somebody picks them by hand.
+>
+> Adding exercises therefore changes nobody's week. It only lengthens the swap
+> sheet, which is an uncapped list of full-width buttons with no search and no
+> grouping. Selection has to be fixed alongside any library growth, or the work
+> is invisible.
+
 ## Historisation
 
 **The one invariant that matters most.** Three months of seven-pattern weeks
@@ -112,6 +124,58 @@ rewrite what every past week meant every time you stepped on a scale.
 `est1RM` is Epley **adjusted for reps in reserve** — without the RIR term a set
 taken to failure and a set with three left look identical, which makes the whole
 progress view lie.
+
+### It refuses to estimate above 12 reps
+
+`MAX_EST_REPS = 12`, and past it `est1RM` returns null exactly as it does for a
+set with no weight. Not an error and not a zero: the app has no maximum to
+estimate from that set, and says so by having nothing to say.
+
+Epley is linear in reps and stays linear, so inverted it claims a 21-rep set was
+58% of a maximum and a 30-rep set exactly half of one. Real rep-max curves
+flatten, so the error is not noise — it runs one way, upward, and grows with the
+rep count. **A 30-rep deadlift at 100 kg reads as a 200 kg single.** Nothing
+downstream would question it: it would enter the strength score as a personal
+best on a lift nobody ever maxed, sit there for eight weeks, and then be reported
+as a *decline* when it aged out of the window.
+
+Twelve is the top of `REP_RANGE.big`, the range every loaded pattern is actually
+prescribed in — so the ceiling refuses sets the app never asked anybody to do and
+accepts every set it did. **Judged on reps performed, not reps plus RIR.** The
+effective figure is the more theoretical line and would blank an ordinary
+twelve-rep set finished with three left, which is real training this app
+prescribes.
+
+Two things downstream used to assume "trained" and "chartable" were the same day,
+and both are now wrong:
+
+- **`lastDate` is the last day trained**, never the last day plotted. Read off
+  the chart it freezes on the last heavy day, and the lift drifts into "not
+  trained in three weeks" while somebody is in the gym doing it — and dormancy is
+  the one verdict needing no goal, so the app would say it unprompted.
+- **A loaded pattern with nothing chartable falls back to the weight on the bar**,
+  the same demotion isolation already gets. Only when there is nothing at all to
+  plot: a lift with both heavy and high-rep days keeps its estimate and simply
+  omits the high-rep points.
+
+### Movements the app records but never prescribes
+
+An exercise tagged `offPlan` (`OFF_PLAN` in `coach.ts`) is excluded from `pool()`
+and from `swapOptions()`. It can be logged, and a trainer can still name one in a
+plan; the generator will not put it in anybody's week.
+
+This exists because the library is gaining conditioning work — thrusters, wall
+balls, burpees, box jumps — so that a class can be logged at all. Each is fine to
+have done and wrong to be *handed*: a slot arrives with a 6-12 rep range and
+double progression telling you to add weight when it felt easy, which is
+meaningless advice about a medicine ball that weighs nine kilos forever.
+
+It is a tag rather than a column because `tags` is already a string array on the
+wire, in Dexie and in Postgres — so it costs no migration and no version bump,
+and a row that has never heard of it simply does not carry it. The filter sits in
+`pool()`'s **base** rather than its tag argument: `pool` is called again with a
+null tag whenever a bias empties a pattern, and that fallback is exactly where an
+off-plan movement would otherwise reappear.
 
 ## Goals, and the permission they grant
 

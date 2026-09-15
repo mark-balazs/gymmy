@@ -54,6 +54,47 @@ describe('strength score', () => {
   const fullWeek = (weight = 100, date = addDays(thisWeek, 1)) =>
     SCORED_PATTERNS.map((k) => set(k, weight, date));
 
+  it('a conditioning workout cannot inflate it', () => {
+    /* The reason the estimate has a rep ceiling at all. Somebody does a
+       CrossFit class — thirty deadlifts at 100 kg, twenty-one thrusters at 40 —
+       and logs it honestly. Epley, being linear in reps forever, would read
+       that first one as a 200 kg single: a personal best on a movement they
+       have never maxed, carried by the score for eight weeks, and then reported
+       as a *decline* when it ages out of the window.
+
+       A number the app puts on screen as a headline has to survive its owner
+       training in a way the app did not plan. */
+    const heavy = set('hinge', 140, addDays(thisWeek, 1)); // a real 5-rep set
+    const metcon = { ...set('hinge', 100, addDays(thisWeek, 2)), reps: 30, id: 'metcon' };
+
+    const honest = strengthAt(index(build([heavy], [body(80, thisWeek)])), thisWeek, {
+      unit: 'kg',
+      sex: 'male',
+    });
+    const withMetcon = strengthAt(index(build([heavy, metcon], [body(80, thisWeek)])), thisWeek, {
+      unit: 'kg',
+      sex: 'male',
+    });
+
+    expect(withMetcon.score).toBe(honest.score);
+
+    // And the reason it matters: unchecked, that one set claims a 200 kg max
+    // against a genuine 163 kg estimate from the heavy day.
+    expect(100 * (1 + 30 / 30)).toBeGreaterThan(140 * (1 + 5 / 30));
+  });
+
+  it('still counts a hard set at the top of the prescribed range', () => {
+    // The ceiling must not quietly delete ordinary training. Twelve reps is
+    // what the app itself programmes for a loaded pattern.
+    const twelve = { ...set('hinge', 100, addDays(thisWeek, 1)), reps: 12, id: 'twelve' };
+    const scored = strengthAt(index(build([twelve], [body(80, thisWeek)])), thisWeek, {
+      unit: 'kg',
+      sex: 'male',
+    });
+    expect(scored.score).not.toBeNull();
+    expect(scored.parts.find((p) => p.key === 'hinge')!.best).toBeGreaterThan(0);
+  });
+
   it('is fair across bodyweights rather than a raw multiple', () => {
     // A plain "total ÷ bodyweight" flatters a light lifter and punishes a heavy
     // one, because strength does not scale linearly with mass. The published

@@ -3,6 +3,7 @@ import {
   addDays,
   blockWeeks,
   coveragePatterns,
+  MAX_EST_REPS,
   est1RM,
   index,
   mondayOf,
@@ -22,6 +23,34 @@ describe('estimated 1RM', () => {
   it('returns null rather than zero for an incomplete set', () => {
     expect(est1RM(null, 8, 2)).toBeNull();
     expect(est1RM(60, null, 2)).toBeNull();
+  });
+
+  it('refuses to estimate from a set nobody could estimate from', () => {
+    /* Epley is linear in reps and stays linear, so a high-rep set is not a
+       noisy maximum — it is a maximum invented by extrapolation, and always
+       upward. Twenty-one thrusters is conditioning; thirty reps at 100 kg is
+       not a 200 kg deadlift. The app has nothing to say about a maximum here,
+       and says it the same way it does for a set with no weight. */
+    expect(est1RM(100, 21, 0)).toBeNull();
+    expect(est1RM(100, 30, 0)).toBeNull();
+    expect(est1RM(9, 50, 0)).toBeNull();
+  });
+
+  it('draws the line at the top of the range the app itself prescribes', () => {
+    // Twelve is the top of REP_RANGE.big. Every loaded pattern is programmed
+    // inside it, so nothing the app asked for stops charting.
+    expect(MAX_EST_REPS).toBe(12);
+    expect(est1RM(100, 12, 0)).not.toBeNull();
+    expect(est1RM(100, 13, 0)).toBeNull();
+  });
+
+  it('judges the reps performed, not the reps left in the tank', () => {
+    /* The deliberate choice. Counting reps-in-reserve toward the ceiling would
+       be the more theoretical line and would blank an ordinary twelve-rep set
+       that finished with three left — real training, prescribed by this app,
+       which has to keep charting. */
+    expect(est1RM(100, 12, 3)).not.toBeNull();
+    expect(est1RM(100, 12, 3)).toBeGreaterThan(est1RM(100, 12, 0)!);
   });
 });
 

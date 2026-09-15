@@ -33,6 +33,26 @@ export type DraftEntry = Omit<ProgramEntry, keyof import('./types').Synced>;
 const pick = <T>(list: T[], i: number): T | null =>
   list.length ? (list[((i % list.length) + list.length) % list.length] as T) : null;
 
+/**
+ * A movement the app will record but will never put in somebody's week.
+ *
+ * The library is about to gain conditioning work — thrusters, wall balls,
+ * burpees, box jumps — so that a CrossFit class can be logged at all. Every one
+ * of those is a legitimate thing to have done and a terrible thing to be
+ * *prescribed*: the generator hands a slot a rep range of 6-12 and double
+ * progression tells you to add weight when it felt easy, which is meaningless
+ * advice about a medicine ball that weighs nine kilos forever.
+ *
+ * It is a tag rather than a column because `tags` is already a string array on
+ * the wire, in Dexie and in Postgres — so this costs no migration, no schema
+ * change and no version bump, and an older row that has never heard of it
+ * simply does not carry it.
+ *
+ * It bounds the *generator* and nothing else. A trainer may still name one of
+ * these in a plan deliberately, and anybody may log one.
+ */
+export const OFF_PLAN = 'offPlan';
+
 /** Matched on pattern identity, never on name — names are translated and
  *  renameable, so name matching would break the generator in any non-English UI. */
 function pool(
@@ -44,6 +64,10 @@ function pool(
   if (!pattern) return [];
   return ix.exercises.filter((e) => {
     if (e.patternId !== pattern.id) return false;
+    // In the base filter, not the `tag` argument: `pool` is called again with a
+    // null tag whenever a bias leaves a pattern empty, and an off-plan movement
+    // must not come back through that fallback.
+    if (e.tags.includes(OFF_PLAN)) return false;
     if (where === 'home' && e.where !== 'home') return false;
     if (tag && !e.tags.includes(tag)) return false;
     return true;
@@ -233,6 +257,9 @@ export function swapOptions(
   return ix.exercises.filter((e) => {
     const pattern = ix.patternById.get(e.patternId);
     if (!pattern) return false;
+    // The swap sheet offers alternatives for a planned slot, so it is bound by
+    // the same rule as the generator that filled it.
+    if (e.tags.includes(OFF_PLAN)) return false;
     if (where === 'home' && e.where !== 'home') return false;
 
     // A pinned slot (a push day's main lift) only offers that pattern.

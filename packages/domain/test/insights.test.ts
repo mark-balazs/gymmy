@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { attention, drawdownOf, metricFor, type ExerciseProgress, type SessionPoint } from '../src';
+import {
+  attention,
+  drawdownOf,
+  findSplit,
+  metricFor,
+  progressSummary,
+  type ExerciseProgress,
+  type SessionPoint,
+  type SetLog,
+} from '../src';
 import { seedSnapshot } from './fixture';
 import { index } from '../src/model';
 
@@ -81,6 +90,62 @@ describe('metricFor', () => {
     for (const key of ['squat', 'hinge', 'lunge', 'push', 'pull']) {
       expect(metricFor(of(key))).toBe('e1rm');
     }
+  });
+});
+
+describe('a lift trained above the estimate ceiling', () => {
+  /* `est1RM` stops estimating above twelve reps, which means a set can now be
+     real training that produces no point on any chart. Two things downstream
+     used to assume those were the same thing. */
+  const base = seedSnapshot();
+  const ix0 = index(base);
+  const bench = ix0.exercises.find((e) => e.name === 'Barbell Bench Press')!;
+  const sessions = findSplit('sevenPattern')!.defaultDays;
+
+  const log = (date: string, weight: number, reps: number): SetLog => ({
+    id: `l-${date}-${reps}`,
+    updatedAt: `${date}T12:00:00.000Z`,
+    deletedAt: null,
+    date,
+    session: 'A',
+    exerciseId: bench.id,
+    setNo: 1,
+    weight,
+    reps,
+    rir: 0,
+    note: '',
+  });
+
+  const summarise = (logs: SetLog[]) =>
+    progressSummary(index({ ...base, logs }), {
+      from: '2026-01-01',
+      to: '2026-09-14',
+      sessions,
+    }).find((p) => p.exercise.id === bench.id)!;
+
+  it('still says when it was last trained', () => {
+    /* Read off the chart, "last trained" freezes on the last heavy day while
+       somebody is in the gym doing the lift — and drifts into "not trained in
+       three weeks", which is the one verdict that needs no goal and so would be
+       said unprompted. */
+    const p = summarise([log('2026-08-01', 100, 5), log('2026-09-10', 60, 20)]);
+    expect(p.lastDate).toBe('2026-09-10');
+    expect(p.daysSince).toBeLessThan(21);
+  });
+
+  it('charts the heavy days and simply leaves the rest off the line', () => {
+    const p = summarise([log('2026-08-01', 100, 5), log('2026-09-10', 60, 20)]);
+    expect(p.metric).toBe('e1rm');
+    expect(p.sessions.map((s) => s.date)).toEqual(['2026-08-01']);
+  });
+
+  it('measures by the weight on the bar when nothing can be estimated', () => {
+    /* A movement only ever trained for high reps would otherwise get the right
+       axis label over an empty chart. Falling back to the heaviest set is the
+       same demotion isolation already gets, for the same reason. */
+    const p = summarise([log('2026-08-01', 50, 20), log('2026-09-10', 60, 25)]);
+    expect(p.metric).toBe('weight');
+    expect(p.sessions.map((s) => s.value)).toEqual([50, 60]);
   });
 });
 

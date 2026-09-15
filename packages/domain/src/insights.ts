@@ -228,19 +228,39 @@ export function progressSummary(
   return ordered.map((exercise) => {
     const logs = byExercise.get(exercise.id) ?? [];
     const pattern = ix.patternById.get(exercise.patternId) ?? null;
-    const metric = metricFor(pattern);
-    const sessions = sessionsOf(logs, metric);
+
+    /* A loaded pattern is charted by estimated 1RM — unless nothing it has
+       logged can produce one. That happens now that `est1RM` refuses to
+       estimate above `MAX_EST_REPS`: a movement only ever trained for high
+       reps would otherwise get the right axis label over an empty chart.
+       Falling back to the weight on the bar is the same demotion isolation
+       already gets, and for the same reason.
+
+       Only when there is *nothing* to plot. A lift with both heavy days and
+       high-rep days keeps its estimate and simply does not plot the high-rep
+       ones, which is the honest reading of both. */
+    const wanted = metricFor(pattern);
+    const preferred = sessionsOf(logs, wanted);
+    const demoted = wanted === 'e1rm' && preferred.length === 0;
+    const metric = demoted ? 'weight' : wanted;
+    const sessions = demoted ? sessionsOf(logs, 'weight') : preferred;
 
     const topSet = logs.reduce<DecoratedLog | null>(
       (best, l) => (!best || num(l.weight) > num(best.weight) ? l : best),
       null,
     );
-    const lastDate = sessions.length
-      ? sessions[sessions.length - 1]!.date
-      : (logs
-          .map((l) => l.date)
-          .sort()
-          .at(-1) ?? null);
+    /* The last day this was *trained*, never the last day it could be plotted.
+       Those used to be the same date and are not any more: a set above
+       `MAX_EST_REPS` is real training that produces no point on the chart. Read
+       off the chart instead, this freezes on the last heavy day and the lift
+       drifts into "not trained in three weeks" while somebody is in the gym
+       doing it — and dormancy is the one verdict that needs no goal, so the
+       app would say it unprompted. */
+    const lastDate =
+      logs
+        .map((l) => l.date)
+        .sort()
+        .at(-1) ?? null;
 
     const bestIndex = sessions.length
       ? sessions.reduce((bi, s, i) => (s.value > sessions[bi]!.value ? i : bi), 0)
