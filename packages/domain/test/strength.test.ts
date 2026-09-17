@@ -83,16 +83,38 @@ describe('strength score', () => {
     expect(100 * (1 + 30 / 30)).toBeGreaterThan(140 * (1 + 5 / 30));
   });
 
-  it('still counts a hard set at the top of the prescribed range', () => {
-    // The ceiling must not quietly delete ordinary training. Twelve reps is
-    // what the app itself programmes for a loaded pattern.
-    const twelve = { ...set('hinge', 100, addDays(thisWeek, 1)), reps: 12, id: 'twelve' };
-    const scored = strengthAt(index(build([twelve], [body(80, thisWeek)])), thisWeek, {
-      unit: 'kg',
-      sex: 'male',
-    });
-    expect(scored.score).not.toBeNull();
-    expect(scored.parts.find((p) => p.key === 'hinge')!.best).toBeGreaterThan(0);
+  it('counts a set of ten to failure, and no longer counts the app’s own twelve', () => {
+    /* This test asserted the opposite premise until the ceiling moved: that
+       twelve reps must keep scoring *because* the app programmes twelve. That
+       argument is about our programming, not about the estimate's validity, and
+       the published bounds are all at ten or below — so the honest resolution
+       was to move the ceiling rather than keep the range it flattered.
+
+       The consequence is deliberate and it is this: a twelve-rep set now scores
+       nothing at all. It still counts as training, still fills the week's
+       coverage, and still charts by the weight on the bar. It simply does not
+       get turned into a one-rep maximum. */
+    const scoreOf = (reps: number, rir: number) =>
+      strengthAt(
+        index(
+          build(
+            [{ ...set('hinge', 100, addDays(thisWeek, 1)), reps, rir, id: `r${reps}-${rir}` }],
+            [body(80, thisWeek)],
+          ),
+        ),
+        thisWeek,
+        { unit: 'kg', sex: 'male' },
+      );
+
+    expect(scoreOf(10, 0).parts.find((p) => p.key === 'hinge')!.best).toBeGreaterThan(0);
+    expect(scoreOf(11, 0).parts.find((p) => p.key === 'hinge')!.best).toBe(0);
+    expect(scoreOf(12, 0).parts.find((p) => p.key === 'hinge')!.best).toBe(0);
+
+    /* And reps in reserve count against it, which is what the score cares
+       about most: eight with four left is a twelve-rep effort by Epley's own
+       arithmetic, and it used to be scored as one. */
+    expect(scoreOf(8, 2).parts.find((p) => p.key === 'hinge')!.best).toBeGreaterThan(0);
+    expect(scoreOf(8, 4).parts.find((p) => p.key === 'hinge')!.best).toBe(0);
   });
 
   it('is fair across bodyweights rather than a raw multiple', () => {

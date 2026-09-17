@@ -125,11 +125,12 @@ rewrite what every past week meant every time you stepped on a scale.
 taken to failure and a set with three left look identical, which makes the whole
 progress view lie.
 
-### It refuses to estimate above 12 reps
+### It refuses to estimate above 10 reps to failure
 
-`MAX_EST_REPS = 12`, and past it `est1RM` returns null exactly as it does for a
-set with no weight. Not an error and not a zero: the app has no maximum to
-estimate from that set, and says so by having nothing to say.
+`MAX_EST_REPS_TO_FAILURE = 10`, checked against `reps + rir`, and past it
+`est1RM` returns null exactly as it does for a set with no weight. Not an error
+and not a zero: the app has no maximum to estimate from that set, and says so by
+having nothing to say.
 
 Epley is linear in reps and stays linear, so inverted it claims a 21-rep set was
 58% of a maximum and a 30-rep set exactly half of one. Real rep-max curves
@@ -139,12 +140,32 @@ downstream would question it: it would enter the strength score as a personal
 best on a lift nobody ever maxed, sit there for eight weeks, and then be reported
 as a *decline* when it aged out of the window.
 
-Twelve is the top of `REP_RANGE.big`, the range every loaded pattern is actually
-prescribed in — so the ceiling refuses sets the app never asked anybody to do and
-accepts every set it did. **Judged on reps performed, not reps plus RIR.** The
-effective figure is the more theoretical line and would blank an ordinary
-twelve-rep set finished with three left, which is real training this app
-prescribes.
+**Both the number and the quantity it bounds are corrections.** The first version
+was twelve, counted on reps alone, and both halves were wrong:
+
+- Twelve was the top of `REP_RANGE.big` — *this app's own prescribed range*,
+  which is an argument about our programming and not about the estimate's
+  validity. The published bounds are all lower: Brzycki's 1993 article says under
+  ten, Reynolds et al. 2006 "no more than 10", and Mayhew et al. 1995 found all
+  six common equations significantly biased above ten. Nobody publishes a ceiling
+  at twelve.
+- Counting reps alone guarded a quantity the estimate never used. `est1RM` feeds
+  Epley `reps + rir`, so a twelve-rep set with four in reserve passed a check for
+  twelve and was then extrapolated from as a sixteen — the exact invented maximum
+  the ceiling exists to refuse.
+
+**The cost is large and was accepted with the number in hand.** The effort
+control defaults to two in reserve, so only sets of eight or fewer now produce an
+estimate, while the app prescribes 6–12. On the demo account this takes the
+estimable share of logged sets from 77% to 39%. Those sets are still training:
+they fill the week's coverage and chart by the weight on the bar. They are simply
+not turned into a one-rep maximum.
+
+One thing no source supports at all, and this ceiling does not vindicate:
+treating `reps + rir` as equivalent to reps to failure. Every validation study
+took subjects to momentary failure, and the substitution is itself off by about
+one rep (Halperin et al. 2022). The ceiling bounds that substitution; it does not
+justify it.
 
 Two things downstream used to assume "trained" and "chartable" were the same day,
 and both are now wrong:

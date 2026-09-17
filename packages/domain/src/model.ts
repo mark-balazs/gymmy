@@ -70,7 +70,7 @@ export function addDays(isoStr: string, n: number): string {
 }
 
 /**
- * The most reps an estimate will be made from.
+ * The most **reps to failure** an estimate will be made from.
  *
  * Epley is linear in reps and never stops being linear, so inverted it claims a
  * 21-rep set was 58% of a maximum and a 30-rep set exactly half of one. Real
@@ -79,17 +79,34 @@ export function addDays(isoStr: string, n: number): string {
  * single; nothing in the app would question it, and the strength score would
  * carry it for eight weeks and then report its departure as a decline.
  *
- * Twelve is the top of `REP_RANGE.big`, the range every loaded pattern is
- * actually prescribed in — so this refuses to estimate from sets the app never
- * asked anybody to do, and estimates from every set it did. It also happens to
- * be the number that stops the middle set of 21-15-9.
+ * **Ten, and counted against reps *plus* reps in reserve.** Both halves of that
+ * are corrections to the first version of this ceiling, which was twelve and
+ * counted reps alone:
  *
- * **Judged on the reps performed, not on reps plus reps-in-reserve.** The
- * effective figure would be the more theoretical line to draw, and it would
- * blank an ordinary twelve-rep set that finished with three left — real
- * training, prescribed by this app, that must keep charting.
+ *  - Twelve came from `REP_RANGE.big`, this app's own prescribed range. That is
+ *    not a published bound and the literature's is lower — Brzycki's own 1993
+ *    article says under ten, Reynolds et al. 2006 say "no more than 10", and
+ *    Mayhew et al. 1995 found all six common equations significantly biased
+ *    above ten. Nobody publishes a ceiling at twelve.
+ *  - Counting reps alone was simply inconsistent with the estimator beneath it.
+ *    `est1RM` feeds Epley `reps + rir`, so a twelve-rep set with four in
+ *    reserve was handed in as a sixteen-rep effort by a guard that had just
+ *    checked it was under twelve. The ceiling has to bound the quantity that is
+ *    actually used.
+ *
+ * The cost is deliberate and large: at the effort control's default of two in
+ * reserve, only sets of eight or fewer produce an estimate, and on the demo
+ * account this takes the estimable share of logged sets from 77% to 39%. That
+ * is the honest reading of a method validated on sets taken to failure at ten
+ * reps or fewer. Everything else still counts as training, still fills the
+ * week, and is charted by the weight on the bar instead.
+ *
+ * Note also what no source supports at all: treating `reps + rir` as equivalent
+ * to reps to failure. Every validation study took subjects to momentary
+ * failure, and the substitution is itself off by about one rep (Halperin et al.
+ * 2022). This ceiling bounds that substitution; it does not vindicate it.
  */
-export const MAX_EST_REPS = 12;
+export const MAX_EST_REPS_TO_FAILURE = 10;
 
 /**
  * Epley, adjusted for reps in reserve.
@@ -98,9 +115,14 @@ export const MAX_EST_REPS = 12;
  * tank look identical, which makes the whole progress view lie. This is the one
  * number that lets sessions of different intensity be compared.
  *
- * Null above `MAX_EST_REPS`, exactly as it is null for a set with no weight:
- * not an error, and not a zero — the app simply has no maximum to estimate from
- * that set, and says so by having nothing to say.
+ * Null above `MAX_EST_REPS_TO_FAILURE`, exactly as it is null for a set with no
+ * weight: not an error, and not a zero — the app simply has no maximum to
+ * estimate from that set, and says so by having nothing to say.
+ *
+ * The ceiling is checked against the same `reps + rir` Epley is handed, not
+ * against `reps` alone. Guarding one quantity and estimating from another is how
+ * a twelve-rep set with four in reserve used to pass a check for twelve and then
+ * be estimated from as a sixteen.
  */
 export function est1RM(
   weight: number | null,
@@ -110,7 +132,7 @@ export function est1RM(
   const w = num(weight);
   const r = num(reps);
   if (!w || !r) return null;
-  if (r > MAX_EST_REPS) return null;
+  if (r + num(rir) > MAX_EST_REPS_TO_FAILURE) return null;
   return Math.round(w * (1 + (r + num(rir)) / 30) * 10) / 10;
 }
 

@@ -360,7 +360,7 @@ export interface DemoGoal {
 }
 
 /**
- * Which lift each goal is on, and how long ago it was set.
+ * Which lift each goal is on, and the **oldest** it should be.
  *
  * The two ages are the point. Set on the same day, the climbing one would
  * already be finished — eight percent is about five weeks of a lift that gains
@@ -369,6 +369,15 @@ export interface DemoGoal {
  * visibly not moved, and the climbing one is recent enough to still be
  * climbing. Which is also how goals turn up on a real account: at different
  * times, for different reasons.
+ *
+ * `weeksAgo` is a ceiling rather than a fixture, and the difference matters:
+ * these were fixed numbers, hand-tuned until the demo looked right, and they
+ * rotted the first time something upstream moved. Tightening the estimator's
+ * rep ceiling lowered every baseline, which lowered every target with it, and
+ * the climbing goal arrived already achieved — the exact state the paragraph
+ * above says it must never be in. A constant cannot notice that. The search in
+ * `demoGoals` can, and re-derives the age from the history it is actually
+ * looking at.
  */
 const GOAL_PLAN: { want: DemoArc['kind'] | null; weeksAgo: number }[] = [
   { want: 'stall', weeksAgo: 6 },
@@ -378,7 +387,7 @@ const GOAL_PLAN: { want: DemoArc['kind'] | null; weeksAgo: number }[] = [
 /** Long enough to clear the app's own eight-week minimum comfortably. */
 const GOAL_WEEKS = 14;
 /** Eight percent: comfortably past the retest noise, short of a warning. */
-const GOAL_DISTANCE = 0.08;
+export const GOAL_DISTANCE = 0.08;
 
 /**
  * The two goals the demo account arrives with.
@@ -399,13 +408,14 @@ const GOAL_DISTANCE = 0.08;
  * with fewer goals; a demo missing a card is better than a seed that throws.
  */
 export function demoGoals(plan: DemoPlanEntry[], sets: DemoSet[], thisMonday: string): DemoGoal[] {
-  /** The best estimated one-rep max this lift had when the goal was set — the
-   *  same eight-week window, and the same estimator, the app would use. */
-  const baselineOf = (exerciseId: string, startedOn: string): number => {
-    const from = addDays(startedOn, -56);
+  /** The best estimated one-rep max this lift reached in a window, using the
+   *  same estimator the app itself would use — so a goal seeded here is one the
+   *  app's own arithmetic agrees with. `to` of null means "up to today". */
+  const bestIn = (exerciseId: string, from: string, to: string | null): number => {
     let best = 0;
     for (const s of sets) {
-      if (s.exerciseId !== exerciseId || s.date < from || s.date >= startedOn) continue;
+      if (s.exerciseId !== exerciseId || s.date < from) continue;
+      if (to !== null && s.date >= to) continue;
       const e = est1RM(s.weight, s.reps, s.rir);
       if (e !== null && e > best) best = e;
     }
@@ -416,19 +426,33 @@ export function demoGoals(plan: DemoPlanEntry[], sets: DemoSet[], thisMonday: st
     const entry = plan.find((e) => (loadFor(e.name, e.patternKey).arc?.kind ?? null) === want);
     if (!entry) return [];
 
-    const startedOn = addDays(thisMonday, -7 * weeksAgo);
-    const baseline = baselineOf(entry.exerciseId, startedOn);
-    if (baseline <= 0) return [];
+    /* Oldest first, because age is what makes the goal worth looking at — a
+       bar that has had time to move. The first age that is still *unfinished*
+       wins, which is the invariant the demo actually needs and the one a fixed
+       `weeksAgo` could only approximate. A lift climbing fast simply gets a
+       younger goal rather than a finished one. */
+    for (let age = weeksAgo; age >= 1; age--) {
+      const startedOn = addDays(thisMonday, -7 * age);
+      const baseline = bestIn(entry.exerciseId, addDays(startedOn, -56), startedOn);
+      if (baseline <= 0) continue;
 
-    return [
-      {
-        exerciseId: entry.exerciseId,
-        baseline,
-        // To the nearest half, because that is what a person would type.
-        target: Math.round(baseline * (1 + GOAL_DISTANCE) * 2) / 2,
-        startedOn,
-        targetDate: addDays(startedOn, 7 * GOAL_WEEKS),
-      },
-    ];
+      // To the nearest half, because that is what a person would type.
+      const target = Math.round(baseline * (1 + GOAL_DISTANCE) * 2) / 2;
+      /* Floored at the baseline exactly as `goalProgress` floors it, so this
+         asks the same question the card will: has the target been reached? */
+      const reached = Math.max(bestIn(entry.exerciseId, startedOn, null), baseline);
+      if (reached >= target) continue;
+
+      return [
+        {
+          exerciseId: entry.exerciseId,
+          baseline,
+          target,
+          startedOn,
+          targetDate: addDays(startedOn, 7 * GOAL_WEEKS),
+        },
+      ];
+    }
+    return [];
   });
 }

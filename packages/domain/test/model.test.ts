@@ -6,7 +6,7 @@ import {
   programRows,
   sessionLabel,
   sessionsDone,
-  MAX_EST_REPS,
+  MAX_EST_REPS_TO_FAILURE,
   est1RM,
   index,
   mondayOf,
@@ -40,21 +40,38 @@ describe('estimated 1RM', () => {
     expect(est1RM(9, 50, 0)).toBeNull();
   });
 
-  it('draws the line at the top of the range the app itself prescribes', () => {
-    // Twelve is the top of REP_RANGE.big. Every loaded pattern is programmed
-    // inside it, so nothing the app asked for stops charting.
-    expect(MAX_EST_REPS).toBe(12);
-    expect(est1RM(100, 12, 0)).not.toBeNull();
-    expect(est1RM(100, 13, 0)).toBeNull();
+  it('draws the line where the literature draws it, not where our programming does', () => {
+    /* Ten, not twelve. Twelve was the top of REP_RANGE.big — this app's own
+       prescribed range, which is not a published bound and is above every
+       bound that is: Brzycki 1993 says under ten, Reynolds 2006 "no more than
+       10", Mayhew 1995 found all six common equations biased past it. */
+    expect(MAX_EST_REPS_TO_FAILURE).toBe(10);
+    expect(est1RM(100, 10, 0)).not.toBeNull();
+    expect(est1RM(100, 11, 0)).toBeNull();
   });
 
-  it('judges the reps performed, not the reps left in the tank', () => {
-    /* The deliberate choice. Counting reps-in-reserve toward the ceiling would
-       be the more theoretical line and would blank an ordinary twelve-rep set
-       that finished with three left — real training, prescribed by this app,
-       which has to keep charting. */
-    expect(est1RM(100, 12, 3)).not.toBeNull();
-    expect(est1RM(100, 12, 3)).toBeGreaterThan(est1RM(100, 12, 0)!);
+  it('counts the reps left in the tank against the ceiling', () => {
+    /* The correction that matters. Epley is fed `reps + rir`, so a ceiling on
+       `reps` alone guarded a quantity the estimate never used: a twelve-rep set
+       with four in reserve passed a check for twelve and was then extrapolated
+       from as a sixteen — the exact invented maximum the ceiling exists to
+       refuse. Eight and two is a ten-rep effort and estimable; eight and three
+       is eleven and is not. */
+    expect(est1RM(100, 8, 2)).not.toBeNull();
+    expect(est1RM(100, 8, 3)).toBeNull();
+    expect(est1RM(100, 12, 4)).toBeNull();
+  });
+
+  it('costs us most of the estimates, knowingly', () => {
+    /* Not a fact about the formula — a fact about this app, recorded so nobody
+       "fixes" the ceiling later without meeting it. The effort control defaults
+       to two in reserve and the app prescribes 6-12, so the majority of what it
+       asks for now produces no estimate at all. On the demo account this takes
+       the estimable share of logged sets from 77% to 39%. Those sets still
+       count as training and still chart by the weight on the bar. */
+    expect(est1RM(60, 9, 2)).toBeNull();
+    expect(est1RM(60, 12, 2)).toBeNull();
+    expect(est1RM(60, 8, 2)).not.toBeNull();
   });
 });
 

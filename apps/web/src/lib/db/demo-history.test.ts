@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   SEED_EXERCISES,
   SEED_PATTERNS,
+  addDays,
   attention,
   buildProgram,
   buildSlots,
@@ -21,6 +22,7 @@ import {
 } from '@athletic/domain';
 import {
   DEMO_WEEKS,
+  GOAL_DISTANCE,
   bodyWeightFor,
   demoGoals,
   demoHistory,
@@ -439,6 +441,54 @@ describe('the demo goals', () => {
       const best = Math.max(...before.map((s) => est1RM(s.weight, s.reps, s.rir) ?? 0));
       expect(g.baseline).toBeCloseTo(best, 1);
       expect(g.target).toBeGreaterThan(g.baseline);
+    }
+  });
+
+  it('sets each goal as far back as the history allows', () => {
+    /* The invariant the hand-tuned `weeksAgo` constants used to stand in for,
+       stated directly so it cannot rot again. Age is what makes a goal worth
+       looking at — a bar that has had time to move — so the generator takes the
+       oldest start date that does not arrive finished.
+
+       Both halves matter. Without the search, a goal is as old as the constant
+       says and may be complete on arrival, which is what a tighter rep ceiling
+       caused. With a search that gave up too early, every goal would be a week
+       old with a flat bar, and the existing tests would all still pass.
+
+       So: one week older than it was given would have been too old. The stalled
+       lift is the exception by construction — it never reaches any target, so
+       nothing stops it sitting at its ceiling — and it is asserted the other
+       way round, that it is genuinely old rather than freshly minted. */
+    const weeksOld = (startedOn: string) =>
+      Math.round(
+        (Date.parse(`${today}T12:00:00Z`) - Date.parse(`${startedOn}T12:00:00Z`)) / 6048e5,
+      );
+
+    const bench = goals.find((g) => g.exerciseId === byName('Barbell Bench Press')!.exercise.id)!;
+    expect(weeksOld(bench.startedOn)).toBeGreaterThanOrEqual(6);
+
+    for (const g of goals) {
+      const age = weeksOld(g.startedOn);
+      if (g === bench) continue;
+
+      // Re-derive what a goal one week older would have been, the way the
+      // generator does: baseline off the preceding eight weeks, target 8% on.
+      const older = addDays(today, -7 * (age + 1));
+      const bestIn = (from: string, to: string | null) =>
+        Math.max(
+          0,
+          ...sets
+            .filter(
+              (s) =>
+                s.exerciseId === g.exerciseId && s.date >= from && (to === null || s.date < to),
+            )
+            .map((s) => est1RM(s.weight, s.reps, s.rir) ?? 0),
+        );
+      const baseline = Math.round(bestIn(addDays(older, -56), older) * 10) / 10;
+      const target = Math.round(baseline * (1 + GOAL_DISTANCE) * 2) / 2;
+
+      expect(baseline).toBeGreaterThan(0);
+      expect(Math.max(bestIn(older, null), baseline)).toBeGreaterThanOrEqual(target);
     }
   });
 

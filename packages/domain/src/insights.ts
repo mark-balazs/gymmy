@@ -231,8 +231,9 @@ export function progressSummary(
 
     /* A loaded pattern is charted by estimated 1RM — unless nothing it has
        logged can produce one. That happens now that `est1RM` refuses to
-       estimate above `MAX_EST_REPS`: a movement only ever trained for high
-       reps would otherwise get the right axis label over an empty chart.
+       estimate above `MAX_EST_REPS_TO_FAILURE`: a movement only ever trained
+       for high reps would otherwise get the right axis label over an empty
+       chart.
        Falling back to the weight on the bar is the same demotion isolation
        already gets, and for the same reason.
 
@@ -251,7 +252,7 @@ export function progressSummary(
     );
     /* The last day this was *trained*, never the last day it could be plotted.
        Those used to be the same date and are not any more: a set above
-       `MAX_EST_REPS` is real training that produces no point on the chart. Read
+       the ceiling is real training that produces no point on the chart. Read
        off the chart instead, this freezes on the last heavy day and the lift
        drifts into "not trained in three weeks" while somebody is in the gym
        doing it — and dormancy is the one verdict that needs no goal, so the
