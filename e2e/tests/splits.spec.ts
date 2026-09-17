@@ -148,7 +148,7 @@ test.describe('Choosing a split', () => {
     // destroy what was already lifted.
     await completeOnboarding(app, { days: '3 days' });
     const lift = await exerciseNameAt(app);
-    await logSet(app, 0, 60, 8);
+    await logSet(app, 60, 8);
 
     await app.getByRole('link', { name: 'Settings', exact: true }).click();
     await app.waitForURL('**/settings');

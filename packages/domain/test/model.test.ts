@@ -3,6 +3,9 @@ import {
   addDays,
   blockWeeks,
   coveragePatterns,
+  programRows,
+  sessionLabel,
+  sessionsDone,
   MAX_EST_REPS,
   est1RM,
   index,
@@ -10,6 +13,7 @@ import {
   periodFor,
   weekCoverage,
 } from '../src/model';
+import { buildProgram } from '../src/coach';
 import { logsFor, period, seedSnapshot } from './fixture';
 
 describe('estimated 1RM', () => {
@@ -247,5 +251,70 @@ describe('rows written before a field existed', () => {
     }
     // The property that actually crashed.
     expect(() => ix.exercises.map((e) => e.images.length)).not.toThrow();
+  });
+});
+
+describe('which of the week’s sessions are finished', () => {
+  /* Drives the tick on the Train day tabs. The interesting cases are all about
+     what "finished" must NOT mean. */
+  /* The seeded snapshot has no program entries, so nothing is planned and
+     nothing can be finished. A real week has to be generated first. */
+  const seeded = seedSnapshot('sevenPattern', 3);
+  const drafts = buildProgram(index(seeded), { days: 3, where: 'gym', bias: 'none' });
+  const base = {
+    ...seeded,
+    entries: drafts.map((d, i) => ({
+      ...d,
+      id: `plan-${i}`,
+      updatedAt: '2026-09-01T00:00:00.000Z',
+      deletedAt: null,
+    })),
+  };
+  const ix0 = index(base);
+
+  /** Every planned exercise of one session, with `sets` logged against each. */
+  const fullSession = (session: number, date: string, sets: number) =>
+    programRows(ix0, 3)
+      .filter((r) => r.session === session && r.exercise)
+      .flatMap((r) =>
+        logsFor(
+          r.exercise!.id,
+          Array.from({ length: sets }, () => ({ weight: 40, reps: 8, rir: 2 })),
+          date,
+        ).map((l) => ({ ...l, session: sessionLabel(session) })),
+      );
+
+  it('counts nothing as finished on an untouched week', () => {
+    expect(sessionsDone(ix0, 3, WEEK_A)).toEqual([false, false, false]);
+  });
+
+  it('ticks a day whose every planned set is logged', () => {
+    const ix = index({ ...base, logs: fullSession(0, '2026-09-08', 3) });
+    expect(sessionsDone(ix, 3, WEEK_A)).toEqual([true, false, false]);
+  });
+
+  it('does not tick a day that is only part-done', () => {
+    // Two of three sets on every exercise. Nearly finished is not finished.
+    const ix = index({ ...base, logs: fullSession(0, '2026-09-08', 2) });
+    expect(sessionsDone(ix, 3, WEEK_A)).toEqual([false, false, false]);
+  });
+
+  it('looks across the whole week, not one date', () => {
+    /* You trained Day A on Tuesday and you are looking at the app on Thursday.
+       Scoped to the selected date, every tab would read as unfinished the moment
+       you paged the date forward — which is most of the week. */
+    const ix = index({ ...base, logs: fullSession(0, '2026-09-08', 3) });
+    expect(sessionsDone(ix, 3, WEEK_A)[0]).toBe(true);
+
+    // …and the week boundary still holds: last week's work does not tick this
+    // week's tabs.
+    expect(sessionsDone(ix, 3, WEEK_B)).toEqual([false, false, false]);
+  });
+
+  it('never ticks a day with nothing planned', () => {
+    // `done >= target` is trivially true when the target is zero, so an empty
+    // day would arrive pre-ticked. Nothing to do is not the same as done.
+    const empty = index({ ...base, entries: [] });
+    expect(sessionsDone(empty, 3, WEEK_A)).toEqual([false, false, false]);
   });
 });

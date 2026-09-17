@@ -155,6 +155,7 @@ export const es: Record<Key, string> = {
   'train.addAnother': 'Añadir otra serie',
   'train.saveSet': 'Guardar serie {n}',
   'train.ofSets': '{done} de {total} series',
+  'train.rowDone': '{done} de {total} hechas',
   'train.nothingPlanned': 'Todavía no hay nada previsto para este día.',
   'train.deleteSet': '¿Eliminar la serie?',
   'train.deleteSetBody': 'Se quita de tu registro.',

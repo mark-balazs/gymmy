@@ -152,6 +152,7 @@ export const de: Record<Key, string> = {
   'train.addAnother': 'Noch einen Satz',
   'train.saveSet': 'Satz {n} speichern',
   'train.ofSets': '{done} von {total} Sätzen',
+  'train.rowDone': '{done} von {total} erledigt',
   'train.nothingPlanned': 'Für diesen Tag ist noch nichts geplant.',
   'train.deleteSet': 'Satz löschen?',
   'train.deleteSetBody': 'Damit verschwindet er aus deinem Verlauf.',

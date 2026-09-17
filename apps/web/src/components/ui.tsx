@@ -136,10 +136,18 @@ export function Segmented<T extends string | number>({
   value,
   options,
   onChange,
+  doneLabel,
 }: {
   value: T;
-  options: { value: T; label: string }[];
+  options: {
+    value: T;
+    label: string;
+    /** Finished. Ticked and recessed, so a glance says which are left. */
+    done?: boolean;
+  }[];
   onChange: (v: T) => void;
+  /** The word a screen reader hears for a ticked option; the tick is decorative. */
+  doneLabel?: string;
 }) {
   return (
     <div className="flex gap-1.5 rounded-xl bg-[var(--color-surface-2)] p-1">
@@ -153,12 +161,28 @@ export function Segmented<T extends string | number>({
             'min-h-[38px] flex-1 cursor-pointer rounded-[10px] text-sm font-semibold',
             'transition-[background-color,color,box-shadow,transform] duration-200 ease-[var(--ease-out-soft)]',
             'active:scale-[0.97]',
+            'inline-flex items-center justify-center gap-1',
             o.value === value
               ? 'bg-[var(--color-surface)] text-[var(--color-accent)] shadow-[var(--shadow-card)]'
-              : 'text-[var(--color-muted)] hover:text-[var(--color-ink)]',
+              : o.done
+                ? // Finished and not selected: recede. The point of ticking days
+                  // off is that the unfinished ones are what stands out.
+                  'text-[var(--color-muted)]/70 hover:text-[var(--color-ink)]'
+                : 'text-[var(--color-muted)] hover:text-[var(--color-ink)]',
           )}
         >
           {o.label}
+          {o.done && (
+            <>
+              {/* Never colour alone: the tick is the signal and the fade is
+                  only reinforcement, because a muted label and a normal one are
+                  the same label to plenty of people. */}
+              <span aria-hidden className="text-[var(--color-accent)]">
+                ✓
+              </span>
+              {doneLabel && <span className="sr-only">{doneLabel}</span>}
+            </>
+          )}
         </button>
       ))}
     </div>

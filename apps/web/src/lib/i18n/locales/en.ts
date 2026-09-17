@@ -143,6 +143,7 @@ export const en = {
   'train.addAnother': 'Add another set',
   'train.saveSet': 'Save set {n}',
   'train.ofSets': '{done} of {total} sets',
+  'train.rowDone': '{done} of {total} done',
   'train.nothingPlanned': 'Nothing planned for this day yet.',
   'train.deleteSet': 'Delete set?',
   'train.deleteSetBody': 'This removes it from your log.',

@@ -22,7 +22,7 @@ test.describe('Deleting your account', () => {
       history: { split: 'sevenPattern', weeksBack: 3, exercises: ['Goblet Squat'] },
     });
 
-    await logSet(page, 0, 60, 8);
+    await logSet(page, 60, 8);
     await expect(page.getByText('60 kg × 8').first()).toBeVisible();
     // Wait for the push, so what is deleted is an account the server knows about.
     await page.getByRole('link', { name: 'Settings', exact: true }).click();

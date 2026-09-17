@@ -751,6 +751,37 @@ export function sessionPlan(
   });
 }
 
+/**
+ * Which of the week's sessions are finished, so the day tabs can tick them off.
+ *
+ * Week-wide rather than date-scoped, which is the difference between this and
+ * `sessionPlan`. "Has Day B been done?" is a question about the week — you
+ * trained it on Tuesday and you are looking at the app on Thursday — so
+ * counting only the selected date would show every day as unfinished the moment
+ * you paged the date forward.
+ *
+ * A day with nothing planned is **not** finished. Nothing to do is not the same
+ * as done, and `done >= target` is trivially true when the target is zero, so
+ * an empty day would otherwise arrive pre-ticked.
+ */
+export function sessionsDone(ix: Indexed, sessions: number, weekOf: string): boolean[] {
+  const rows = programRows(ix, sessions);
+  const weekLogs = allLogs(ix).filter((l) => l.weekOf === weekOf);
+
+  return Array.from({ length: sessions }, (_, session) => {
+    const label = sessionLabel(session);
+    const planned = rows.filter(
+      (r) => r.session === session && r.exercise && num(r.entry?.sets) > 0,
+    );
+    if (!planned.length) return false;
+
+    const logs = weekLogs.filter((l) => l.session === label);
+    return planned.every(
+      (r) => logs.filter((l) => l.exerciseId === r.exercise!.id).length >= num(r.entry?.sets),
+    );
+  });
+}
+
 export interface DecoratedRef extends RefSet {
   exercise: Exercise | null;
   pattern: Pattern | null;

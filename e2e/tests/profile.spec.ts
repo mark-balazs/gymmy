@@ -58,7 +58,7 @@ test.describe('Your profile', () => {
      * upward for age, so the same lifting with an older birth year must not
      * produce the same number — and if it does, the field is decoration. */
     await signInAs(page, context, baseURL!, seeded);
-    await logSet(page, 0, 100, 5);
+    await logSet(page, 100, 5);
     await expect(page.getByText('100 kg × 5').first()).toBeVisible();
 
     await page.goto('/settings');

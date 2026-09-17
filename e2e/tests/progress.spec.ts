@@ -39,7 +39,7 @@ test.describe('Progress covers the training, not the block', () => {
     await signInAs(page, context, baseURL!, seeded);
 
     // A second week of data, so there are two points to draw a line between.
-    await logSet(page, 0, 60, 8);
+    await logSet(page, 60, 8);
     await expect(page.getByText('60 kg × 8').first()).toBeVisible();
 
     await page.getByRole('link', { name: 'Progress', exact: true }).click();
@@ -70,7 +70,7 @@ test.describe('Progress covers the training, not the block', () => {
     // Tooltips enhance, they never gate: every plotted value is readable
     // without hovering anything.
     await signInAs(page, context, baseURL!, seeded);
-    await logSet(page, 0, 60, 8);
+    await logSet(page, 60, 8);
     await expect(page.getByText('60 kg × 8').first()).toBeVisible();
 
     await page.goto('/progress');

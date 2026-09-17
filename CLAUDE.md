@@ -13,6 +13,13 @@ run once, loads keyed on the wrong thing, a form posting where the framework was
 reading from somewhere else. None of those were caught by writing the code more
 carefully; they were caught by thinking about the shape first.
 
+**Grill me when the decision is not settled yet.** There is a `grill-me` skill
+available — use it to interview me about a technical decision or the scope of a
+change, before any code exists, rather than guessing at what I meant and
+building the wrong shape. "Grill me about X", "let's spec out X" or "poke holes
+in this" are all requests for it, and it is the right move whenever a plan has
+more than one defensible direction in it.
+
 **Extend the tests as you go, not afterwards.** A change without a test that
 would have failed before it is not finished. The discipline that has actually
 caught things here is stronger than "add a test": **break the fix and watch the

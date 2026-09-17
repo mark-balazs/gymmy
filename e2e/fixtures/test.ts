@@ -143,28 +143,112 @@ export async function completeOnboarding(
 }
 
 /**
- * Logs one set of whichever exercise sits at `index` on the current day.
+ * Logs one set of the exercise currently open on Train.
  *
- * Everything is on the card itself — there is no sheet to open — so each
- * locator is scoped with `.nth(index)` to that exercise's card.
+ * There is nothing to disambiguate: Train is an accordion, one exercise open at
+ * a time, and a collapsed card renders no inputs at all. So these locators are
+ * deliberately *unscoped* — Playwright's strict mode then fails loudly if two
+ * cards are ever open at once, which is a bug worth a failing test.
+ *
+ * This used to take an `index` and scope every locator with `.nth(index)`.
+ * Every one of its thirty-five call sites passed 0, and the argument became a
+ * lie rather than a limitation the moment the cards started collapsing.
+ *
+ * Note that finishing an exercise's planned sets collapses it and opens the
+ * next, so a test logging a fourth set to the same exercise must reopen it —
+ * see `openCard`.
  */
 export async function logSet(
   page: Page,
-  index: number,
   weight: number,
   reps: number,
   effort: 'Maxed' | '1 more' | '2 more' | 'Easy' = '2 more',
 ): Promise<void> {
   // Exact, because the stepper's − and + buttons are labelled "weight −"/"weight +"
   // and a substring match would hit all three.
-  await page.getByLabel('weight', { exact: true }).nth(index).fill(String(weight));
-  await page.getByLabel('reps', { exact: true }).nth(index).fill(String(reps));
+  await page.getByLabel('weight', { exact: true }).fill(String(weight));
+  await page.getByLabel('reps', { exact: true }).fill(String(reps));
 
-  await page.getByRole('button', { name: effort, exact: true }).nth(index).click();
-  await page
-    .getByRole('button', { name: /^Log set|Add another set/ })
-    .nth(index)
-    .click();
+  await page.getByRole('button', { name: effort, exact: true }).click();
+  await page.getByRole('button', { name: /^Log set|Add another set/ }).click();
+}
+
+/**
+ * Opens a named exercise's card, if it is not already the open one.
+ *
+ * A collapsed card is a button showing the exercise name; the open one shows
+ * the name as a heading. So "is it already open" is exactly "is there a heading
+ * with that name", and tapping otherwise is what a person would do.
+ */
+export async function openCard(page: Page, name: string): Promise<void> {
+  const heading = page.getByRole('heading', { name, exact: true });
+  if (await heading.isVisible().catch(() => false)) return;
+  // Not exact: a collapsed row also announces its set count, so its accessible
+  // name is "Goblet Squat 2 of 3" rather than the bare exercise name.
+  await page.getByRole('button', { name, exact: false }).first().click();
+  await expect(heading).toBeVisible();
+}
+
+/** The open exercise's name, read off its heading. */
+export async function openExercise(page: Page): Promise<string> {
+  return (await page.locator('main h2').first().innerText()).trim();
+}
+
+/**
+ * Logs sets until the open exercise is finished, and waits for it to fold away.
+ *
+ * The waiting is the whole point. Clicking the log button resolves before the
+ * IndexedDB write and the re-render that follows it, so a test that reads the
+ * page immediately afterwards sees the *previous* state — which is how the
+ * first version of the accordion tests failed: the heading of a just-finished
+ * exercise was still on screen, so reopening it was a no-op and the assertion
+ * ran against the next exercise instead.
+ *
+ * So each set waits for the button it just clicked to stop existing, which is
+ * true whether the next set's button replaced it or the card collapsed.
+ */
+export async function finishOpenExercise(page: Page): Promise<string> {
+  const name = await openExercise(page);
+  const heading = page.getByRole('heading', { name, exact: true });
+
+  for (let guard = 0; guard < 12; guard++) {
+    /* Stop the moment *this* exercise folds away. Looping on "is there a log
+       button" instead ran straight past the collapse and into the next
+       exercise's first set, quietly finishing the whole day — which made a test
+       about one exercise pass for the wrong reason. */
+    if (!(await heading.count())) break;
+
+    const log = page.getByRole('button', { name: /^Log set \d+$/ });
+    if (!(await log.count())) break;
+    const label = (await log.innerText()).trim();
+    await log.click();
+    await expect(page.getByRole('button', { name: label, exact: true })).toHaveCount(0);
+  }
+
+  await expect(heading).toHaveCount(0);
+  return name;
+}
+
+/** Finishes every exercise of the open day, in order. Returns their names. */
+export async function finishDay(page: Page): Promise<string[]> {
+  const done: string[] = [];
+  for (let guard = 0; guard < 12; guard++) {
+    if (!(await page.locator('main h2').count())) break;
+    done.push(await finishOpenExercise(page));
+  }
+  return done;
+}
+
+/** The names of the collapsed rows, in the order the session runs. */
+export async function collapsedExercises(page: Page): Promise<string[]> {
+  const rows = page.getByRole('button', { expanded: false });
+  const out: string[] = [];
+  for (let i = 0; i < (await rows.count()); i++) {
+    // The row's text is the name, then its progress on its own line.
+    const label = (await rows.nth(i).innerText()).trim();
+    out.push(label.split(/\r?\n/)[0]!.trim());
+  }
+  return out;
 }
 
 /**
@@ -180,12 +264,12 @@ export async function exerciseNameAt(page: Page, index = 0): Promise<string> {
 }
 
 /**
- * Logs a set taking everything the coach suggested — the one-tap path, and the
+ * Logs a set taking the numbers already in the card — the one-tap path, and the
  * one almost every real set goes through.
+ *
+ * Unscoped for the same reason as `logSet`: one card is open, so there is one
+ * button, and two would be a bug worth failing on.
  */
-export async function logSuggested(page: Page, index: number): Promise<void> {
-  await page
-    .getByRole('button', { name: /^Log set|Add another set/ })
-    .nth(index)
-    .click();
+export async function logSuggested(page: Page): Promise<void> {
+  await page.getByRole('button', { name: /^Log set|Add another set/ }).click();
 }

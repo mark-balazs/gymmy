@@ -26,7 +26,7 @@ test.describe('A plan somebody shared with you', () => {
     });
 
     // Something of their own, logged before any of this.
-    await logSet(page, 0, 72.5, 6);
+    await logSet(page, 72.5, 6);
     await expect(page.getByText('72.5 kg × 6').first()).toBeVisible();
 
     await shareAPlanWith(user.id, { name: 'Coach block', exerciseName: 'Barbell Bench Press' });

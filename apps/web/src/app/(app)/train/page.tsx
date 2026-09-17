@@ -21,7 +21,14 @@ import { useProfile, useSnapshot, useT, useToday, type Translator } from '@/lib/
 import { fireAndForget, logSet, removeSet } from '@/lib/client/mutations';
 import { EFFORTS, fmtDay } from '@/lib/client/format';
 import { DEFAULT_PREFS, lastSession } from '@athletic/domain';
-import { allLogs, mondayOf, sessionLabel, sessionPlan, type Indexed } from '@athletic/domain';
+import {
+  allLogs,
+  mondayOf,
+  sessionLabel,
+  sessionPlan,
+  sessionsDone,
+  type Indexed,
+} from '@athletic/domain';
 import type { Key } from '@/lib/i18n';
 import type { LastSession, PlanRow } from '@athletic/domain';
 
@@ -75,6 +82,30 @@ export default function TrainPage() {
   }
 
   const plan = useMemo(() => sessionPlan(ix, days, date, day), [ix, days, date, day]);
+  const finished = useMemo(() => sessionsDone(ix, days, mondayOf(date)), [ix, days, date]);
+
+  /**
+   * One exercise open at a time, because that is how a session is actually
+   * done: three sets, ticked off, on to the next. Five cards each carrying
+   * steppers, an effort control, a button and a dot row is a screen you have to
+   * scroll to use.
+   *
+   * `openKey` follows the app's own idea of what is next, and stops following
+   * it the moment you choose something else. `autoKey` is what makes that work:
+   * it records the last first-unfinished exercise, so opening a *finished* card
+   * to add a fourth set sticks — logging that set does not change which card is
+   * first-unfinished, so nothing overrides you.
+   *
+   * Nothing is open once every exercise is finished. A session you have
+   * completed should read as a list of ticks, not re-open its first card.
+   */
+  const nextUp = plan.find((r) => r.exercise && !(r.target > 0 && r.done >= r.target))?.key ?? null;
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  const [autoKey, setAutoKey] = useState<string | null>(null);
+  if (autoKey !== nextUp) {
+    setAutoKey(nextUp);
+    setOpenKey(nextUp);
+  }
 
   const done = plan.reduce((a, p) => a + p.done, 0);
   const total = plan.reduce((a, p) => a + p.target, 0);
@@ -90,9 +121,11 @@ export default function TrainPage() {
             setDay(next);
             setPickedFor(date);
           }}
+          doneLabel={tr.t('common.done')}
           options={Array.from({ length: days }, (_, i) => ({
             value: i,
             label: tr.t('common.day', { n: sessionLabel(i) }),
+            done: finished[i] ?? false,
           }))}
         />
         <div className="flex items-center justify-between gap-3">
@@ -121,9 +154,10 @@ export default function TrainPage() {
       {plan.map((row) =>
         row.exercise ? (
           <ExerciseCard
-            // Remounting on any of these re-seeds the inputs from the coach.
-            // Deliberately *not* keyed on the logs: the numbers must hold still
-            // between sets, or every set after the first costs taps again.
+            // Remounting on any of these re-seeds the inputs from history.
+            // Deliberately *not* keyed on the logs, nor on whether the card is
+            // open: the numbers must hold still between sets and across a
+            // collapse, or every set after the first costs taps again.
             key={`${row.key}|${date}|${row.exercise.id}`}
             row={row}
             ix={ix}
@@ -131,6 +165,8 @@ export default function TrainPage() {
             date={date}
             day={day}
             unit={unit}
+            open={openKey === row.key}
+            onOpen={() => setOpenKey(row.key)}
           />
         ) : null,
       )}
@@ -138,7 +174,7 @@ export default function TrainPage() {
   );
 }
 
-/** Identity of a suggestion, for spotting when the coach has changed its mind. */
+/** Identity of a past session, for spotting when the history behind it moved. */
 const seedOf = (s: LastSession | null): string => `${s?.date}|${s?.weight}|${s?.reps}`;
 
 function ExerciseCard({
@@ -148,6 +184,8 @@ function ExerciseCard({
   date,
   day,
   unit,
+  open,
+  onOpen,
 }: {
   row: PlanRow;
   ix: Indexed;
@@ -155,6 +193,8 @@ function ExerciseCard({
   date: string;
   day: number;
   unit: string;
+  open: boolean;
+  onOpen: () => void;
 }) {
   const exercise = row.exercise!;
 
@@ -188,6 +228,30 @@ function ExerciseCard({
   const complete = row.target > 0 && row.done >= row.target;
   const dots = Math.max(row.target, row.done) || 3;
 
+  /**
+   * Progress as dots: filled for a set done, hollow for one still to do.
+   *
+   * Shared by both states, which is the point — closed, it is the only thing on
+   * the row besides the name, and open, it sits beside the log button. The same
+   * mark means the same thing in both, so collapsing a card loses nothing you
+   * were reading.
+   */
+  const dotRow = (
+    <div aria-hidden className="flex shrink-0 gap-1.5">
+      {Array.from({ length: dots }, (_, i) => (
+        <span
+          key={i}
+          className={cn(
+            'h-2.5 w-2.5 rounded-full transition-all duration-300 ease-[var(--ease-spring)]',
+            i < row.done
+              ? 'scale-110 bg-[var(--color-accent)] shadow-[0_0_10px_-1px_var(--color-accent)]'
+              : 'bg-[var(--color-line)]',
+          )}
+        />
+      ))}
+    </div>
+  );
+
   const save = async () => {
     if (saving) return;
     // Guarded because the button stays put after a tap — on a laggy phone a
@@ -211,6 +275,55 @@ function ExerciseCard({
       setSaving(false);
     }
   };
+
+  /**
+   * Closed: the name and the dots, and nothing else.
+   *
+   * The component stays mounted rather than being swapped out — a weight you
+   * typed and have not logged yet lives in this component's state, and
+   * unmounting would throw it away and then re-seed from history on the way
+   * back, silently changing the number under somebody mid-session.
+   */
+  if (!open) {
+    return (
+      <Card className={cn('transition-opacity duration-300', complete && 'opacity-60')}>
+        <button
+          type="button"
+          onClick={onOpen}
+          aria-expanded={false}
+          className="flex min-h-[var(--spacing-tap)] w-full cursor-pointer items-center gap-3 text-left"
+        >
+          <span
+            className={cn(
+              'min-w-0 flex-1 truncate text-[15px] font-semibold',
+              complete && 'text-[var(--color-muted)]',
+            )}
+          >
+            {tr.exercise(exercise)}
+          </span>
+          {/* The tick is the signal and the fade only reinforces it — a muted
+              name and a normal one are the same name to a lot of people. */}
+          {complete && (
+            <span aria-hidden className="shrink-0 text-sm text-[var(--color-accent)]">
+              ✓
+            </span>
+          )}
+          {/* The dots are a picture of the count, so the count is also said.
+              Without this the row announces as a bare exercise name and a
+              screen reader learns nothing about progress from it.
+
+              Its own phrasing rather than `train.ofSets`, which is the *day's*
+              counter at the top of the screen — the same words on both would
+              have the page saying "0 of 3 sets" six times with nothing to say
+              which one is the whole day. */}
+          <span className="sr-only">
+            {tr.t('train.rowDone', { done: row.done, total: row.target })}
+          </span>
+          {dotRow}
+        </button>
+      </Card>
+    );
+  }
 
   return (
     <Card
@@ -288,19 +401,7 @@ function ExerciseCard({
         >
           {complete ? tr.t('train.addAnother') : tr.t('train.logSet', { n: row.done + 1 })}
         </Button>
-        <div className="flex gap-1.5" aria-label={`${row.done}/${row.target}`}>
-          {Array.from({ length: dots }, (_, i) => (
-            <span
-              key={i}
-              className={cn(
-                'h-2.5 w-2.5 rounded-full transition-all duration-300 ease-[var(--ease-spring)]',
-                i < row.done
-                  ? 'scale-110 bg-[var(--color-accent)] shadow-[0_0_10px_-1px_var(--color-accent)]'
-                  : 'bg-[var(--color-line)]',
-              )}
-            />
-          ))}
-        </div>
+        {dotRow}
       </div>
 
       {detail && <ExerciseSheet exercise={exercise} onClose={() => setDetail(false)} />}

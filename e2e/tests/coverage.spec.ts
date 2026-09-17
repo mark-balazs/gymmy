@@ -10,7 +10,7 @@ test.describe('Weekly coverage', () => {
 
   test('one logged pattern ticks exactly one box', async ({ onboardedApp: app }) => {
     // Day A slot 1 is always a lower-body pattern, so this fills exactly one tile.
-    await logSet(app, 0, 60, 8);
+    await logSet(app, 60, 8);
 
     await app.getByRole('link', { name: 'Week', exact: true }).click();
     await app.waitForURL('**/week');

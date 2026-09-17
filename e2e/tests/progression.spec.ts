@@ -49,8 +49,8 @@ async function setDate(page: Page, daysAhead: number): Promise<void> {
 
 test.describe('The card shows what you did last time', () => {
   test('prefills last session, so repeating it costs one tap', async ({ onboardedApp: app }) => {
-    await logSet(app, 0, 60, 8, '2 more');
-    await logSet(app, 0, 60, 8, '2 more');
+    await logSet(app, 60, 8, '2 more');
+    await logSet(app, 60, 8, '2 more');
 
     await setDate(app, 3);
 
@@ -59,7 +59,7 @@ test.describe('The card shows what you did last time', () => {
   });
 
   test('states it as history, with the date it happened', async ({ onboardedApp: app }) => {
-    await logSet(app, 0, 60, 8, '2 more');
+    await logSet(app, 60, 8, '2 more');
     await setDate(app, 3);
 
     await expect(app.getByText(/Last time 60 kg × 8 · /).first()).toBeVisible();
@@ -67,8 +67,8 @@ test.describe('The card shows what you did last time', () => {
 
   test('takes the working set, not the easiest one', async ({ onboardedApp: app }) => {
     // 60×10 then 60×8: what you would repeat is the eight.
-    await logSet(app, 0, 60, 10, '2 more');
-    await logSet(app, 0, 60, 8, 'Maxed');
+    await logSet(app, 60, 10, '2 more');
+    await logSet(app, 60, 8, 'Maxed');
 
     await setDate(app, 3);
 
@@ -87,9 +87,9 @@ test.describe('The app no longer says what to lift', () => {
      test that only checked the old function was gone. */
 
   test('never tells you to add weight or chase a rep', async ({ onboardedApp: app }) => {
-    await logSet(app, 0, 60, 12, '2 more');
-    await logSet(app, 0, 60, 12, '2 more');
-    await logSet(app, 0, 60, 12, '2 more');
+    await logSet(app, 60, 12, '2 more');
+    await logSet(app, 60, 12, '2 more');
+    await logSet(app, 60, 12, '2 more');
 
     await setDate(app, 3);
 
@@ -103,7 +103,7 @@ test.describe('The app no longer says what to lift', () => {
   });
 
   test('does not comment on a set taken to failure', async ({ onboardedApp: app }) => {
-    await logSet(app, 0, 60, 12, 'Maxed');
+    await logSet(app, 60, 12, 'Maxed');
 
     await setDate(app, 3);
 
@@ -114,9 +114,14 @@ test.describe('The app no longer says what to lift', () => {
 
   test('does not decide your sets are too easy', async ({ onboardedApp: app }) => {
     /* Six sets finishing with four reps in reserve used to trip a banner
-       reading "your sets may be too easy" — a judgement about how hard
-       somebody should be training, which is not the app's to make. */
-    for (let i = 0; i < 6; i++) await logSet(app, 0, 40, 10, 'Easy');
+       reading "your sets may be too easy" — a judgement about how hard somebody
+       should be training, which is not the app's to make.
+
+       The sets land across exercises rather than all on one, because finishing
+       three collapses that card and opens the next. Written as a loop on one
+       exercise it would still have passed, but only because the app had quietly
+       moved on — a test passing for a reason it does not state. */
+    for (let i = 0; i < 6; i++) await logSet(app, 40, 10, 'Easy');
 
     await expect(app.getByText(/too easy/i)).toHaveCount(0);
   });

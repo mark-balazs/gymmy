@@ -139,7 +139,7 @@ test.describe('Swiping between tabs', () => {
       history: { split: 'sevenPattern', weeksBack: 3, exercises: ['Goblet Squat'] },
     });
     const lift = await exerciseNameAt(page);
-    await logSet(page, 0, 60, 8);
+    await logSet(page, 60, 8);
     await expect(page.getByText('60 kg × 8').first()).toBeVisible();
 
     await page.goto('/progress');

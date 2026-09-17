@@ -64,7 +64,7 @@ test.describe('A full journey', () => {
 
     // 3. Train. A real generated exercise, a real set.
     const lift = await exerciseNameAt(page);
-    await logSet(page, 0, 60, 8);
+    await logSet(page, 60, 8);
     await expect(page.getByText('60 kg × 8').first()).toBeVisible();
 
     // 4. The week scores it against the split that was chosen, not a default.
@@ -112,7 +112,7 @@ test.describe('A full journey', () => {
     ).toBeVisible({ timeout: 30_000 });
     await completeOnboarding(page, { days: '3 days' });
 
-    await logSet(page, 0, 72.5, 6);
+    await logSet(page, 72.5, 6);
     await expect(page.getByText('72.5 kg × 6').first()).toBeVisible();
     await expect(page.getByText('All saved')).toBeVisible({ timeout: 30_000 });
 

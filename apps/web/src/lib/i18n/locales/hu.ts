@@ -143,6 +143,7 @@ export const hu: Record<Key, string> = {
   'train.addAnother': 'Még egy sorozat',
   'train.saveSet': '{n}. sorozat mentése',
   'train.ofSets': '{done} / {total} sorozat',
+  'train.rowDone': '{done} / {total} kész',
   'train.nothingPlanned': 'Erre a napra még nincs terv.',
   'train.deleteSet': 'Törlöd a sorozatot?',
   'train.deleteSetBody': 'Ezzel kikerül a naplóból.',

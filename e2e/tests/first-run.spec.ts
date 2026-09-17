@@ -69,7 +69,7 @@ test.describe('First run', () => {
        the app's headline number only worked for people who went looking for
        a field in Settings. */
     await completeOnboarding(app, { weight: 78.5 });
-    await logSet(app, 0, 60, 8);
+    await logSet(app, 60, 8);
     // Waited for: the set has to be in the local store before Progress can
     // read it, and a bare goto races that.
     await expect(app.getByText('60 kg × 8').first()).toBeVisible();
@@ -88,7 +88,7 @@ test.describe('First run', () => {
        leaves the score genuinely unavailable, and the page says so rather
        than inventing a denominator. */
     await completeOnboarding(app, { weight: null });
-    await logSet(app, 0, 60, 8);
+    await logSet(app, 60, 8);
     // Waited for: the set has to be in the local store before Progress can
     // read it, and a bare goto races that.
     await expect(app.getByText('60 kg × 8').first()).toBeVisible();

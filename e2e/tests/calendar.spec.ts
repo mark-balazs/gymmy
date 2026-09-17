@@ -43,7 +43,7 @@ test.describe('The calendar on Home', () => {
     await signInAs(page, context, baseURL!, { onboarded: true });
 
     const lift = await exerciseNameAt(page);
-    await logSet(page, 0, 62.5, 8);
+    await logSet(page, 62.5, 8);
     await expect(page.getByText('62.5 kg × 8').first()).toBeVisible();
 
     await page.getByRole('link', { name: 'Home', exact: true }).click();
