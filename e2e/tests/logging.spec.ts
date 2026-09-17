@@ -34,8 +34,10 @@ test.describe('Logging a session', () => {
   test('logs a set and shows it back', async ({ onboardedApp: app }) => {
     await expect(app.getByText(/0 of \d+ sets/)).toBeVisible();
 
-    // With no history the app asks for a starting weight rather than inventing one.
-    await expect(app.getByText(/First time — find a weight/).first()).toBeVisible();
+    /* With no history the card says it has none. It used to suggest a starting
+       weight and a rep target here; the app no longer proposes a load it has no
+       basis for — see progression.spec.ts. */
+    await expect(app.getByText('Nothing logged for this yet').first()).toBeVisible();
 
     await logSet(app, 0, 60, 8, '2 more');
 

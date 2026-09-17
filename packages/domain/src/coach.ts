@@ -1,12 +1,18 @@
 /**
- * The part that used to be the user's job.
+ * Building the week, and reading back what was done in it.
  *
  *  1. Build a whole week from three plain answers, guaranteeing that every
  *     counted pattern is covered.
- *  2. Work out what to lift today by applying double progression to history.
+ *  2. Report the last session on a lift, so the Train screen can show it.
+ *
+ * **There is deliberately nothing here that says what to lift next.** This file
+ * used to apply double progression and hand out a target — add weight, chase a
+ * rep — and that is advice about load given to somebody training alone by
+ * software that cannot see them. See `lastSession` below, and Decision log
+ * D-014.
  *
  * Everything here returns structured data, never a finished sentence — the UI
- * owns the wording so both languages read naturally rather than being
+ * owns the wording so every language reads naturally rather than being
  * assembled from fragments.
  */
 
@@ -19,7 +25,7 @@ import {
   slotsForSession,
   type Indexed,
 } from './model';
-import type { Bias, Exercise, Pattern, ProgramEntry, Slot, Suggestion, Where } from './types';
+import type { Bias, Exercise, Pattern, ProgramEntry, Slot, Where } from './types';
 
 export interface BuildInput {
   days: number;
@@ -38,10 +44,10 @@ const pick = <T>(list: T[], i: number): T | null =>
  *
  * The library is about to gain conditioning work — thrusters, wall balls,
  * burpees, box jumps — so that a CrossFit class can be logged at all. Every one
- * of those is a legitimate thing to have done and a terrible thing to be
- * *prescribed*: the generator hands a slot a rep range of 6-12 and double
- * progression tells you to add weight when it felt easy, which is meaningless
- * advice about a medicine ball that weighs nine kilos forever.
+ * of those is a legitimate thing to have done and a poor thing to be
+ * *prescribed*: a generated slot arrives asking for three sets of six to twelve,
+ * which is not what anybody does with a medicine ball, and a week built out of
+ * them would read as a programme nobody wrote.
  *
  * It is a tag rather than a column because `tags` is already a string array on
  * the wire, in Dexie and in Postgres — so this costs no migration, no schema
@@ -287,93 +293,56 @@ const isTimed = (repRange: string | undefined): boolean => {
 };
 
 /**
- * Double progression, applied for you.
+ * What you did last time. Not what to do next.
  *
- * Reach the top of the rep range on every set with something left in the tank
- * and the weight goes up while reps drop back to the bottom. Otherwise chase one
- * more rep at the same weight. The rule is never shown to the user; the target is.
+ * This replaces a double-progression engine that told people to add weight or
+ * chase another rep. The rule itself was defensible — it only ever said "add
+ * weight" after *you* reported reps left in the tank at the top of the range —
+ * and it still had to go, because a defensible rule is not the same thing as
+ * standing to give the instruction.
+ *
+ * gymmy cannot see your form breaking down, cannot see that you slept badly,
+ * did not know about the shoulder, and is not qualified to say "put more on the
+ * bar" to somebody training alone. Load is the one variable where being
+ * confidently wrong hurts a person rather than a number. So the app records
+ * what happened, measures what it honestly can, and stops there.
+ *
+ * What remains is a fact with a date on it: the heaviest set of your last
+ * session on this lift, and how many reps it took. The Train screen prefills it
+ * so repeating a session costs no typing, and captions it as history rather
+ * than as a target. **Prefilling last time's number is a record; telling you to
+ * beat it is advice.** That distinction is the whole of this change.
+ *
+ * See Decision log D-014.
  */
-export function suggest(
-  ix: Indexed,
-  exerciseId: string,
-  entry: { repRange?: string; startWeight?: number | null } | null,
-): Suggestion {
-  const [lo, hi] = parseRange(entry?.repRange);
-  const timed = isTimed(entry?.repRange);
+export interface LastSession {
+  date: string;
+  /** The heaviest weight in that session, or null if none was recorded. */
+  weight: number | null;
+  /** The fewest reps at that weight — the working set, not the easiest one. */
+  reps: number | null;
+}
+
+export function lastSession(ix: Indexed, exerciseId: string): LastSession | null {
   const logs = allLogs(ix).filter((l) => l.exerciseId === exerciseId);
+  if (!logs.length) return null;
 
-  if (!logs.length) {
-    return {
-      kind: 'first',
-      weight: entry?.startWeight ?? null,
-      reps: timed ? null : lo,
-      detail: { targetReps: lo, timed },
-    };
-  }
-
-  const lastDate = logs
+  const date = logs
     .map((l) => l.date)
     .sort()
     .at(-1)!;
-  const lastSets = logs.filter((l) => l.date === lastDate);
-  const topWeight = Math.max(...lastSets.map((l) => num(l.weight)));
-  const atTop = lastSets.filter((l) => num(l.weight) === topWeight);
-  const minReps = Math.min(...atTop.map((l) => num(l.reps)));
-  const minRir = Math.min(...atTop.map((l) => num(l.rir)));
-  const detail = { lastWeight: topWeight, lastReps: minReps, timed };
+  const sets = logs.filter((l) => l.date === date);
 
-  if (timed) return { kind: 'hold', weight: topWeight || null, reps: null, detail };
+  const weights = sets.map((l) => num(l.weight)).filter((w) => w > 0);
+  const weight = weights.length ? Math.max(...weights) : null;
 
-  if (minReps >= hi && minRir >= 2) {
-    return {
-      kind: 'up',
-      weight: Math.round((topWeight + 2.5) * 10) / 10,
-      reps: lo,
-      detail: { ...detail, targetReps: lo },
-    };
-  }
+  /* The fewest reps at the top weight, matching what the old engine read. A
+     back-off set is not what you would repeat, and the max would flatter a
+     session whose first set was its easiest. */
+  const atTop = weight === null ? sets : sets.filter((l) => num(l.weight) === weight);
+  const reps = atTop.length ? Math.min(...atTop.map((l) => num(l.reps))) || null : null;
 
-  // Nothing left in the tank means the weight is already at its limit; repeating
-  // it beats adding load onto a set that already failed.
-  if (minRir === 0) return { kind: 'hold', weight: topWeight, reps: minReps, detail };
-
-  return { kind: 'rep', weight: topWeight, reps: Math.min(hi, minReps + 1), detail };
-}
-
-export interface Progression {
-  exercise: Exercise;
-  suggestion: Suggestion;
-}
-
-/**
- * Everything in the current plan that has earned more weight.
- *
- * Double progression already decides this per exercise the moment you open it;
- * this only gathers the verdicts up so the home screen can say so before you go
- * looking. Nothing new is computed — if this and the Train card ever disagreed,
- * one of them would be lying.
- */
-export function readyToProgress(ix: Indexed, sessions: number): Progression[] {
-  const seen = new Set<string>();
-  const out: Progression[] = [];
-
-  for (const row of programRows(ix, sessions)) {
-    if (!row.exercise || seen.has(row.exercise.id)) continue;
-    seen.add(row.exercise.id);
-    const suggestion = suggest(ix, row.exercise.id, row.entry);
-    if (suggestion.kind === 'up') out.push({ exercise: row.exercise, suggestion });
-  }
-  return out;
-}
-
-/** Are the working sets actually hard enough? The method's central complaint. */
-export function effortCheck(ix: Indexed): boolean {
-  const recent = allLogs(ix)
-    .filter((l) => l.rir !== null)
-    .slice(-15);
-  if (recent.length < 6) return false;
-  const easy = recent.filter((l) => num(l.rir) >= 4).length;
-  return easy / recent.length >= 0.5;
+  return { date, weight, reps };
 }
 
 /** Convenience for callers holding a raw snapshot rather than an index. */

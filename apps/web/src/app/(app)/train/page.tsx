@@ -5,10 +5,12 @@
  *
  * Everything needed to record a set is on the card itself. Logging used to open
  * a sheet, which meant five interactions per set — open, weight, reps, effort,
- * save — and around seventy-five across a session. The weight and reps are
- * already known (that is what the coach is for), so the common case should cost
- * one tap and nothing else. Adjusting is there when the numbers are wrong, not
- * as a toll on every set.
+ * save — and around seventy-five across a session. So the card starts filled in
+ * with **what you did last time**, and repeating a session costs one tap.
+ *
+ * That prefill is a record, not a recommendation. The card used to show a
+ * target worked out by double progression — "add weight, back to 5" — and the
+ * app no longer tells anybody what to lift. See Decision log D-014.
  */
 
 import { useMemo, useState } from 'react';
@@ -17,11 +19,11 @@ import { Page } from '@/components/page';
 import { ExerciseSheet } from '@/components/exercise-sheet';
 import { useProfile, useSnapshot, useT, useToday, type Translator } from '@/lib/client/hooks';
 import { fireAndForget, logSet, removeSet } from '@/lib/client/mutations';
-import { EFFORTS, suggestionText } from '@/lib/client/format';
-import { DEFAULT_PREFS, effortCheck, suggest } from '@athletic/domain';
+import { EFFORTS, fmtDay } from '@/lib/client/format';
+import { DEFAULT_PREFS, lastSession } from '@athletic/domain';
 import { allLogs, mondayOf, sessionLabel, sessionPlan, type Indexed } from '@athletic/domain';
 import type { Key } from '@/lib/i18n';
-import type { PlanRow, Suggestion } from '@athletic/domain';
+import type { LastSession, PlanRow } from '@athletic/domain';
 
 export default function TrainPage() {
   const { ix } = useSnapshot();
@@ -73,7 +75,6 @@ export default function TrainPage() {
   }
 
   const plan = useMemo(() => sessionPlan(ix, days, date, day), [ix, days, date, day]);
-  const tooEasy = useMemo(() => effortCheck(ix), [ix]);
 
   const done = plan.reduce((a, p) => a + p.done, 0);
   const total = plan.reduce((a, p) => a + p.target, 0);
@@ -111,13 +112,6 @@ export default function TrainPage() {
         </div>
       </Card>
 
-      {tooEasy && (
-        <Card className="border-[var(--color-warn)]/45">
-          <h3 className="text-sm font-semibold">{tr.t('train.tooEasy')}</h3>
-          <p className="mt-1 text-sm text-[var(--color-muted)]">{tr.t('train.tooEasyBody')}</p>
-        </Card>
-      )}
-
       {!plan.some((p) => p.exercise) && (
         <Card>
           <p className="text-[var(--color-muted)]">{tr.t('train.nothingPlanned')}</p>
@@ -145,7 +139,7 @@ export default function TrainPage() {
 }
 
 /** Identity of a suggestion, for spotting when the coach has changed its mind. */
-const seedOf = (s: Suggestion): string => `${s.kind}|${s.weight}|${s.reps}`;
+const seedOf = (s: LastSession | null): string => `${s?.date}|${s?.weight}|${s?.reps}`;
 
 function ExerciseCard({
   row,
@@ -164,30 +158,31 @@ function ExerciseCard({
 }) {
   const exercise = row.exercise!;
 
-  const s = useMemo(() => suggest(ix, exercise.id, row.entry), [ix, exercise.id, row.entry]);
+  const s = useMemo(() => lastSession(ix, exercise.id), [ix, exercise.id]);
 
-  const [weight, setWeight] = useState<number | null>(() => s.weight);
-  const [reps, setReps] = useState<number | null>(() => s.reps);
+  const [weight, setWeight] = useState<number | null>(() => s?.weight ?? null);
+  const [reps, setReps] = useState<number | null>(() => s?.reps ?? null);
   const [rir, setRir] = useState<number>(2);
   const [saving, setSaving] = useState(false);
   const [detail, setDetail] = useState(false);
   const [seeded, setSeeded] = useState(() => seedOf(s));
 
   /**
-   * The inputs follow the coach right up until the first set, then hold still.
+   * The inputs follow last time's numbers up until the first set, then hold
+   * still.
    *
    * Both halves matter. Holding still is the whole point of the redesign — if
    * the numbers moved after every set, straight sets would cost taps again. But
-   * holding from *mount* was too early: the suggestion is derived from logs in
+   * holding from *mount* was too early: the history comes from logs in
    * IndexedDB, which arrive a tick after the first paint, so the card would
-   * freeze onto "first time, pick a weight" and stay there for an exercise with
-   * months of history behind it.
+   * freeze onto empty inputs and stay there for an exercise with months behind
+   * it.
    */
   const seed = seedOf(s);
   if (row.done === 0 && seeded !== seed) {
     setSeeded(seed);
-    setWeight(s.weight);
-    setReps(s.reps);
+    setWeight(s?.weight ?? null);
+    setReps(s?.reps ?? null);
   }
 
   const complete = row.target > 0 && row.done >= row.target;
@@ -242,7 +237,18 @@ function ExerciseCard({
               i
             </span>
           </button>
-          <p className="mt-0.5 text-xs text-[var(--color-muted)]">{suggestionText(tr, s, unit)}</p>
+          {/* History, stated as history. The numbers in the steppers below are
+              these numbers, so repeating a session is one tap — but nothing
+              here says to beat them. */}
+          <p className="mt-0.5 text-xs text-[var(--color-muted)]">
+            {s
+              ? tr.t('train.lastTime', {
+                  w: s.weight ? `${s.weight} ${unit}` : '—',
+                  r: s.reps ?? 0,
+                  d: fmtDay(s.date),
+                })
+              : tr.t('train.noHistory')}
+          </p>
         </div>
         {complete && <Chip tone="ok">✓</Chip>}
       </div>
@@ -262,9 +268,11 @@ function ExerciseCard({
         </label>
       </div>
 
-      {/* Kept visible rather than tucked behind a tap. It is the one input the
-          progression rule genuinely needs, and anything hidden gets left at its
-          default — which would quietly feed the coach a guess every set. */}
+      {/* Kept visible rather than tucked behind a tap. The estimate behind the
+          strength score and every chart reads it — a set at nothing-left and a
+          set with three to spare are different measurements — and anything
+          hidden gets left at its default, which would quietly feed that
+          estimate a guess every set. */}
       <Segmented
         value={rir}
         onChange={setRir}

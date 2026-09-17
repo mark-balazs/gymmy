@@ -166,9 +166,9 @@ plan; the generator will not put it in anybody's week.
 
 This exists because the library is gaining conditioning work — thrusters, wall
 balls, burpees, box jumps — so that a class can be logged at all. Each is fine to
-have done and wrong to be *handed*: a slot arrives with a 6-12 rep range and
-double progression telling you to add weight when it felt easy, which is
-meaningless advice about a medicine ball that weighs nine kilos forever.
+have done and poor to be *handed*: a generated slot arrives asking for three
+sets of six to twelve, which is not what anybody does with a medicine ball, and
+a week built out of them reads as a programme nobody wrote.
 
 It is a tag rather than a column because `tags` is already a string array on the
 wire, in Dexie and in Postgres — so it costs no migration and no version bump,
@@ -283,21 +283,44 @@ most of your training needs a look is a page nobody acts on.
 Results are then taken **a kind at a time** rather than strictly worst-first, so
 three stalls cannot bury the one lift you stopped doing.
 
-## Double progression
+## What the Train card offers you
 
-```mermaid
-flowchart TD
-    last["Your last session on this lift"] --> q{"How did the last set feel?"}
-    q -->|"Nothing left"| hold["Repeat this weight<br/>before adding"]
-    q -->|"1 more"| rep["Same weight,<br/>go for one more rep"]
-    q -->|"2 more"| mid{"At the top of<br/>the rep range?"}
-    q -->|"Easy"| up["Add weight"]
-    mid -->|"no"| climb["Same weight,<br/>work up the range"]
-    mid -->|"yes"| up
-    up --> reset["Back to the bottom<br/>of the rep range"]
-```
+`lastSession(ix, exerciseId)` in `coach.ts` — the heaviest weight of the most
+recent session on that lift, the fewest reps at that weight, and the date. The
+Train card prefills those numbers so repeating a session costs one tap, and
+captions them as history: *"Last time 60 kg × 8 · 12/09/2026"*.
 
-`suggest()` is the rule, and it is never shown to the user — the *target* is.
-Reach the top of the rep range on every set with something left in the tank and
-the weight goes up while reps drop to the bottom. Nothing left in the tank means
-repeat before adding. Otherwise chase one more rep.
+**There is no rule here, and that is the design.** This section used to describe
+double progression: `suggest()` read your last session, and if you had hit the
+top of the rep range with reps to spare it told you to add 2.5 kg and drop back
+to the bottom; if you had nothing left it told you to repeat; otherwise it told
+you to chase one more rep. Home carried a *Ready for more weight* card listing
+every lift the rule had decided had earned it, and Train warned you when your
+recent sets looked too easy.
+
+All of it is gone. See **Decision log D-014**, but the short version:
+
+- The rule was defensible and still had to go. It only ever said "add weight"
+  after *you* reported reps left in the tank at the top of the range — that is a
+  conservative, mainstream reading of double progression, and it was not a bug.
+- Being defensible is not the same as standing to give the instruction. gymmy
+  cannot see your form breaking down, does not know you slept badly, has never
+  heard about the shoulder, and is not qualified to tell somebody training alone
+  to put more on the bar. **Load is the one variable where being confidently
+  wrong hurts a person rather than a number.**
+- So the app records, measures what it honestly can, and stops. Prefilling last
+  time's number is a record; telling you to beat it is advice.
+
+What survives, and why it is not advice:
+
+- **The prefill.** It is what you did, not what to do. `e2e/progression.spec.ts`
+  asserts both halves — that the record is there and usable, and that none of
+  the old copy is.
+- **The effort question.** Still asked, still in words. It feeds `est1RM`, which
+  every chart and the strength score read; a set at nothing-left and a set with
+  three to spare are different measurements. It no longer feeds any suggestion.
+- **Rep ranges and set counts** on a generated or shared plan. Those are the
+  shape of the week, which is a different claim from "add weight now" — and a
+  range written by a *trainer* is a human prescribing, which is what a trainer
+  is for.
+

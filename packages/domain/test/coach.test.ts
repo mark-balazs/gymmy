@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { OFF_PLAN, buildProgram, suggest, swapOptions } from '../src/coach';
+import { OFF_PLAN, buildProgram, lastSession, swapOptions } from '../src/coach';
 import { index, programCoverage, programRows, type Indexed } from '../src/model';
 import { BIASES, type Bias, type PatternKey, type Where } from '../src/types';
 import { logsFor, seedIndex, seedSnapshot, withEntries } from './fixture';
@@ -70,10 +70,10 @@ describe('program generation', () => {
 
 describe('movements the app records but never prescribes', () => {
   /* The library is gaining conditioning work so a CrossFit class can be logged
-     at all. Every one of those is fine to have done and wrong to be handed: a
-     slot comes with a 6-12 rep range and double progression telling you to add
-     weight when it felt easy, which is meaningless advice about a medicine ball
-     that weighs nine kilos forever.
+     at all. Every one of those is fine to have done and poor to be handed: a
+     generated slot asks for three sets of six to twelve, which is not what
+     anybody does with a medicine ball, and a week built out of them reads as a
+     programme nobody wrote.
 
      Every test here tags **the exercise the generator actually chose**, read
      back from an untagged run, rather than tagging a pool and asserting the
@@ -171,84 +171,76 @@ describe('movements the app records but never prescribes', () => {
   });
 });
 
-describe('double progression', () => {
-  const ix = seedIndex();
-  const squat = ix.exercises.find((e) => e.name === 'Goblet Squat')!;
-  const entry = { repRange: '6-12', startWeight: null };
-  const withLogs = (sets: { weight: number; reps: number; rir: number }[]) =>
-    index({ ...seedSnapshot(), logs: logsFor(squat.id, sets) });
+describe('what you did last time', () => {
+  /* The replacement for a double-progression engine that handed out targets.
+     Everything here is a question about the past, and there is deliberately no
+     test asserting what to do next — that is the point of the change, and a
+     test named "suggests more weight" reappearing here would undo it. */
+  const base = seedSnapshot();
+  const squat = index(base).exercises.find((e) => e.name === 'Goblet Squat')!;
 
-  it('asks for a starting weight when there is no history', () => {
-    const s = suggest(ix, squat.id, entry);
-    expect(s.kind).toBe('first');
-    expect(s.reps).toBe(6);
+  const withLogs = (sets: { weight: number; reps: number; rir: number }[], date?: string) =>
+    index({ ...base, logs: logsFor(squat.id, sets, date) });
+
+  it('has nothing to say about a lift never trained', () => {
+    // Not a zero and not a starting weight to aim at. Nothing.
+    expect(lastSession(index(base), squat.id)).toBeNull();
   });
 
-  it('chases one more rep mid-range', () => {
-    const base = seedSnapshot();
-    const ex = index(base).exercises.find((e) => e.name === 'Goblet Squat')!;
-    const s = suggest(
-      index({ ...base, logs: logsFor(ex.id, [{ weight: 60, reps: 8, rir: 2 }]) }),
-      ex.id,
-      entry,
-    );
-    expect(s).toMatchObject({ kind: 'rep', weight: 60, reps: 9 });
+  it('reports the heaviest weight of the most recent session', () => {
+    const ix = index({
+      ...base,
+      logs: [
+        ...logsFor(squat.id, [{ weight: 80, reps: 5, rir: 0 }], '2026-08-01'),
+        ...logsFor(squat.id, [{ weight: 60, reps: 8, rir: 2 }], '2026-09-10'),
+      ],
+    });
+    const last = lastSession(ix, squat.id);
+    // The recent session, not the best one — this is history, not a record book.
+    expect(last).toEqual({ date: '2026-09-10', weight: 60, reps: 8 });
   });
 
-  it('adds weight and drops to the bottom of the range at the top with reps to spare', () => {
-    const base = seedSnapshot();
-    const ex = index(base).exercises.find((e) => e.name === 'Goblet Squat')!;
-    const s = suggest(
-      index({
-        ...base,
-        logs: logsFor(ex.id, [
-          { weight: 60, reps: 12, rir: 2 },
-          { weight: 60, reps: 12, rir: 2 },
-        ]),
-      }),
-      ex.id,
-      entry,
+  it('takes the fewest reps at the top weight, not the easiest set', () => {
+    /* A session of 60×10, 60×8, 50×12 is repeated as 60×8. The max reps would
+       flatter the session and the back-off set is not what you would repeat. */
+    const last = lastSession(
+      withLogs([
+        { weight: 60, reps: 10, rir: 2 },
+        { weight: 60, reps: 8, rir: 0 },
+        { weight: 50, reps: 12, rir: 2 },
+      ]),
+      squat.id,
     );
-    expect(s).toMatchObject({ kind: 'up', weight: 62.5, reps: 6 });
+    expect(last).toMatchObject({ weight: 60, reps: 8 });
   });
 
-  it('repeats rather than adding load after a set taken to failure', () => {
-    const base = seedSnapshot();
-    const ex = index(base).exercises.find((e) => e.name === 'Goblet Squat')!;
-    const s = suggest(
-      index({ ...base, logs: logsFor(ex.id, [{ weight: 60, reps: 12, rir: 0 }]) }),
-      ex.id,
-      entry,
-    );
-    expect(s.kind).toBe('hold');
+  it('survives a set logged without a weight', () => {
+    // Bodyweight work, or a set somebody half-filled in. Neither should throw
+    // and neither should invent a number.
+    const last = lastSession(withLogs([{ weight: 0, reps: 12, rir: 2 }]), squat.id);
+    expect(last?.weight).toBeNull();
+    expect(last?.reps).toBe(12);
   });
 
-  it('judges the whole session by its weakest set, not its best', () => {
-    const base = seedSnapshot();
-    const ex = index(base).exercises.find((e) => e.name === 'Goblet Squat')!;
-    const s = suggest(
-      index({
-        ...base,
-        logs: logsFor(ex.id, [
-          { weight: 60, reps: 12, rir: 2 },
-          { weight: 60, reps: 9, rir: 1 },
-        ]),
-      }),
-      ex.id,
-      entry,
-    );
-    expect(s).toMatchObject({ kind: 'rep', reps: 10 });
-  });
+  it('finds the latest session without relying on the logs being sorted', () => {
+    /* IndexedDB hands rows back in UUID order, so "the last session" cannot be
+       "the last row". `index()` does sort, which means a test going through it
+       cannot tell whether this function is order-independent on its own — it
+       would need both to break before it failed. So the index is built and then
+       its logs are deliberately scrambled, bypassing that sort.
 
-  it('does not prescribe reps for a timed carry', () => {
-    const base = seedSnapshot();
-    const ex = index(base).exercises.find((e) => e.name === "Farmer's Carry")!;
-    const s = suggest(
-      index({ ...base, logs: logsFor(ex.id, [{ weight: 24, reps: 30, rir: 3 }]) }),
-      ex.id,
-      { repRange: '30-40m', startWeight: null },
-    );
-    expect(s.kind).toBe('hold');
-    expect(s.reps).toBeNull();
+       It matters because this is what prefills the weight on the Train card. A
+       wrong answer here is not a wrong chart; it is somebody being handed a
+       heavier bar than they lifted last time, which is the exact class of
+       mistake this whole change exists to remove. */
+    const ordered = [
+      ...logsFor(squat.id, [{ weight: 50, reps: 8, rir: 2 }], '2026-07-01'),
+      ...logsFor(squat.id, [{ weight: 70, reps: 6, rir: 1 }], '2026-09-01'),
+    ];
+    const unsorted: Indexed = {
+      ...index({ ...base, logs: ordered }),
+      logs: [...ordered].reverse(),
+    };
+    expect(lastSession(unsorted, squat.id)).toEqual({ date: '2026-09-01', weight: 70, reps: 6 });
   });
 });

@@ -354,21 +354,6 @@ export interface WeekCoverage {
   split: SplitKey | null;
 }
 
-export type SuggestionKind = 'first' | 'rep' | 'up' | 'hold';
-
-export interface Suggestion {
-  kind: SuggestionKind;
-  weight: number | null;
-  reps: number | null;
-  /** Structured so the UI can translate it; never a pre-built sentence. */
-  detail: {
-    lastWeight?: number;
-    lastReps?: number;
-    targetReps?: number;
-    timed?: boolean;
-  };
-}
-
 export type TrendDir = 'up' | 'down' | 'flat' | 'none';
 
 export interface Trend {

@@ -60,7 +60,7 @@ second implementation to disagree with the first.
 | --- | --- |
 | `packages/domain/src/types.ts` | Every record shape, and the `TABLES` list the sync layer is generated from |
 | `packages/domain/src/model.ts` | Pure derived values — coverage, progress, the strength score, `index()` |
-| `packages/domain/src/coach.ts` | Program generation and double progression |
+| `packages/domain/src/coach.ts` | Program generation, and reading back the last session on a lift |
 | `packages/domain/src/insights.ts` | What Progress and the calendar *say* — session series, drawdowns, the triage, a day |
 | `packages/domain/src/splits.ts` | Split presets, slot materialisation, coverage sets |
 | `packages/domain/src/plans.ts` | A plan as a portable thing: no ids from any account, exercises by name |

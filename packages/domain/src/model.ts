@@ -22,7 +22,6 @@ import type {
   Snapshot,
   SplitPeriod,
   Sex,
-  Suggestion,
   Trend,
   Unit,
   WeekCoverage,
@@ -165,10 +164,10 @@ export function index(snap: Snapshot): Indexed {
      * Chronological, and that is load-bearing rather than tidy.
      *
      * These arrive in IndexedDB primary-key order — which is to say in order of
-     * random UUID, which is no order at all. Anything reading "the last N" off
-     * this array was reading an arbitrary N: `effortCheck` asks whether your
-     * *recent* sets have been too easy and was sampling the whole history at
-     * random, so its verdict could not improve when your training did.
+     * random UUID, which is no order at all. Anything reading "the last N" or
+     * "the latest" off this array was reading an arbitrary sample: the bug that
+     * exposed it has since been removed with the progression advice, but the
+     * invariant outlived it and `ordering.test.ts` now asserts it directly.
      */
     logs: live(snap.logs).sort(
       (a, b) =>

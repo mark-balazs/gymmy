@@ -4,13 +4,15 @@
  * The first screen, and the only one that answers "what now?".
  *
  * Landing straight on Train assumed you had already decided to train. This asks
- * nothing and reports three things you would otherwise have to go and find:
- * what today's session is, whether the week is on track, and which lifts have
- * earned more weight.
+ * nothing and reports what you would otherwise have to go and find: what
+ * today's session is, whether the week is on track, and what you have done
+ * lately.
  *
- * The last of those is not a new calculation. Double progression already
- * decides it per exercise the moment you open one; surfacing it here only means
- * you no longer have to scroll the whole session to discover it.
+ * It used to carry a third card, "Ready for more weight", listing the lifts
+ * double progression had decided had earned it. That card and the rule behind
+ * it are gone: it was the one place the app volunteered advice about load
+ * before being asked, which is the last thing an app should be confident about
+ * on behalf of somebody it cannot see. See Decision log D-014.
  */
 
 import Link from 'next/link';
@@ -23,7 +25,6 @@ import { fmtDay } from '@/lib/client/format';
 import {
   mondayOf,
   nextSession,
-  readyToProgress,
   sessionPlan,
   slotsForSession,
   weekCoverage,
@@ -37,12 +38,10 @@ export default function HomePage() {
   const tr = useT();
   const today = useToday();
   const days = profile?.days ?? DEFAULT_PREFS.days;
-  const unit = profile?.unit ?? DEFAULT_PREFS.unit;
 
   const session = useMemo(() => nextSession(ix, today, days), [ix, today, days]);
   const plan = useMemo(() => sessionPlan(ix, days, today, session), [ix, days, today, session]);
   const cov = useMemo(() => weekCoverage(ix, mondayOf(today)), [ix, today]);
-  const progress = useMemo(() => readyToProgress(ix, days), [ix, days]);
 
   const dayKey = slotsForSession(ix, session)[0]?.dayKey ?? null;
   const done = plan.reduce((a, p) => a + p.done, 0);
@@ -93,30 +92,6 @@ export default function HomePage() {
           </>
         )}
       </Card>
-
-      {progress.length > 0 && (
-        <Card className="flex flex-col gap-2.5">
-          <h2 className="text-[17px] font-semibold">{tr.t('home.readyTitle')}</h2>
-          <p className="text-sm text-[var(--color-muted)]">{tr.t('home.readyBody')}</p>
-          <div className="flex flex-col gap-1.5">
-            {progress.map(({ exercise, suggestion }) => (
-              <div
-                key={exercise.id}
-                /* Violet, like the strength score: this is a statement about
-                   what you are capable of, not about work already ticked off. */
-                className="flex items-center justify-between gap-2 rounded-[11px] bg-[var(--color-accent-2-bg)] px-3 py-2"
-              >
-                <span className="flex-1 truncate text-sm font-semibold">
-                  {tr.exercise(exercise)}
-                </span>
-                <span className="num text-sm font-semibold text-[var(--color-accent-2)]">
-                  {tr.t('home.goTo', { w: `${suggestion.weight ?? 0} ${unit}` })}
-                </span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
 
       <Card className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between gap-2">
