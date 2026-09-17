@@ -38,7 +38,7 @@
  * history, which is what lets the whole seed be safely re-run — see seed-user.
  */
 
-import { est1RM, sessionLabel } from '@athletic/domain';
+import { est1RM, loadRuleOf, sessionLabel } from '@athletic/domain';
 import { BY_PATTERN, DEMO_LOADS, type DemoArc, type DemoLoad } from './demo-loads';
 
 /** Roughly five months. Long enough for the progress charts to have a shape
@@ -337,7 +337,14 @@ export function demoHistory(
             session: sessionLabel(session),
             exerciseId: entry.exerciseId,
             setNo,
-            weight,
+            /* `demo-loads` is written the way a person writes a training log —
+               what you pick up, per implement — so a 26 kg dumbbell bench press
+               reads as 26 kg dumbbells. Storage wants the combined load, and the
+               conversion belongs here rather than in that table: doubling the
+               fourteen dumbbell entries by hand would leave the file meaning two
+               different things depending on the row, and the next person to add
+               one would have no way of telling which. */
+            weight: weight * loadRuleOf(entry.name).factor,
             reps,
             rir,
           });

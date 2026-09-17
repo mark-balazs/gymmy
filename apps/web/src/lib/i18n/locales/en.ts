@@ -144,6 +144,16 @@ export const en = {
   'train.saveSet': 'Save set {n}',
   'train.ofSets': '{done} of {total} sets',
   'train.rowDone': '{done} of {total} done',
+  /* How to measure this exercise. The app asked for a 'weight' for months
+     without ever saying what it was counting, which for two dumbbells is a
+     factor of two and unrecoverable once stored. See `load.ts`. */
+  'load.barbell': 'Count the bar and the plates together.',
+  'load.dumbbellPair': 'One dumbbell — recorded as {w}, both together.',
+  'load.dumbbellPairEmpty': 'Enter one dumbbell. Both get recorded.',
+  'load.dumbbellOne': 'The one weight you are holding.',
+  'load.machine': 'The setting on the stack. Machines differ, so this only compares with itself.',
+  'load.bodyweight': 'Leave this empty unless you added weight.',
+  'load.partial': 'What you loaded — not what reaches your hands.',
   'train.nothingPlanned': 'Nothing planned for this day yet.',
   'train.deleteSet': 'Delete set?',
   'train.deleteSetBody': 'This removes it from your log.',

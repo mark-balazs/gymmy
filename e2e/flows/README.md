@@ -13,6 +13,7 @@ before the test that covers it. Every file maps to one spec in `../tests`.
 | [06 — Language](./06-language.md) | `language.spec.ts` | Hungarian is complete and grammatically correct |
 | [07 — Choosing a split](./07-choosing-a-split.md) | `splits.spec.ts`, `custom-split.spec.ts` | Familiar splits are available without giving up coverage, and you can build your own |
 | [08 — A full journey](./08-a-full-journey.md) | `journey.spec.ts` | A stranger can sign up, train, leave and come back |
+| [09 — What the weight box is counting](./09-load-convention.md) | `load-convention.spec.ts` | The app says what it measures, and a dumbbell pair is stored combined |
 
 Other specs cover narrower ground against the same fixtures: `settings`,
 `exercise-detail`, `email-signin`, `sync-paging`, `write-failure`, `recovery`,

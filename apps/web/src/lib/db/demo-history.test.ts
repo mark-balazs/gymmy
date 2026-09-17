@@ -3,6 +3,8 @@ import {
   SEED_EXERCISES,
   SEED_PATTERNS,
   addDays,
+  toEntered,
+  loadClassOf,
   attention,
   buildProgram,
   buildSlots,
@@ -272,11 +274,46 @@ describe('the demo history', () => {
   });
 
   it('keeps the weights plausible for the movement', () => {
-    // A deadlift and a lateral raise sharing a number is the tell that the
-    // generator lost track of what it was filling.
-    const top = (name: string) => byName(name)?.topSet?.weight ?? 0;
+    /* A deadlift and a lateral raise sharing a number is the tell that the
+       generator lost track of what it was filling.
+
+       Compared per implement — what you actually pick up — rather than on the
+       stored figure, because those are not the same question once a pair of
+       dumbbells is stored combined. Two 18 kg dumbbells really do out-weigh a
+       36 kg goblet squat as a *total*, and this test used to read that true
+       fact as the generator having gone wrong. What it means to check is that
+       the thing in your hand for a curl is lighter than the thing in your hands
+       for a squat. */
+    const top = (name: string) => toEntered(name, byName(name)?.topSet?.weight ?? 0) ?? 0;
     expect(top('Trap Bar Deadlift')).toBeGreaterThan(top('Goblet Squat'));
     expect(top('Goblet Squat')).toBeGreaterThan(top('Hammer Curl'));
+
+    // And the stored side stays ordered where the numbers are commensurable:
+    // a loaded barbell hinge outweighs everything a pair of dumbbells can do.
+    const stored = (name: string) => byName(name)?.topSet?.weight ?? 0;
+    expect(stored('Trap Bar Deadlift')).toBeGreaterThan(stored('DB Bench Press'));
+  });
+
+  it('stores a pair of dumbbells combined', () => {
+    /* The convention, asserted on generated history rather than on a unit
+       fixture — `demo-loads` is authored per implement, so this is the only
+       place that proves the generator applies the conversion on the way out.
+       Without it the demo would quietly be the one account in the app still
+       logging the old meaning. */
+    /* Found rather than named: which exercises the generator puts in the demo's
+       week depends on the split and has drifted before. Hard-coding one here
+       gave a test that failed with "cannot read topSet of undefined", which
+       says nothing about the convention it was meant to be checking. */
+    const pairs = summary.filter((p) => loadClassOf(p.exercise.name) === 'dumbbellPair');
+    expect(pairs.length).toBeGreaterThan(0);
+    for (const p of pairs) {
+      const stored = p.topSet?.weight ?? 0;
+      expect(stored % 2).toBe(0);
+      expect(toEntered(p.exercise.name, stored)).toBe(stored / 2);
+    }
+    // A single implement is untouched, which is the other half of the rule.
+    const goblet = byName('Goblet Squat')!.topSet!.weight!;
+    expect(toEntered('Goblet Squat', goblet)).toBe(goblet);
   });
 });
 

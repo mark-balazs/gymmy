@@ -20,7 +20,7 @@ import { ExerciseSheet } from '@/components/exercise-sheet';
 import { useProfile, useSnapshot, useT, useToday, type Translator } from '@/lib/client/hooks';
 import { fireAndForget, logSet, removeSet } from '@/lib/client/mutations';
 import { EFFORTS, fmtDay } from '@/lib/client/format';
-import { DEFAULT_PREFS, lastSession } from '@athletic/domain';
+import { DEFAULT_PREFS, lastSession, loadClassOf, toEntered, toStored } from '@athletic/domain';
 import {
   allLogs,
   mondayOf,
@@ -200,7 +200,23 @@ function ExerciseCard({
 
   const s = useMemo(() => lastSession(ix, exercise.id), [ix, exercise.id]);
 
-  const [weight, setWeight] = useState<number | null>(() => s?.weight ?? null);
+  /**
+   * The weight box holds **what you type**, which is not always what is
+   * stored: for a pair of dumbbells you enter one and both are recorded. See
+   * `load.ts` for why that is the convention and where it comes from.
+   *
+   * The conversion lives at this boundary and nowhere else. Every other surface
+   * — the history line below, the calendar, the charts, the score — reads the
+   * stored load, so there is exactly one number in the system and exactly one
+   * place it is converted, in view of the caption that explains it.
+   */
+  const load = loadClassOf(exercise.name);
+  /** Ties the measuring note to the weight box, so a screen reader hears it on
+   *  focus rather than only if it happens to read past the control. */
+  const howId = `how-${exercise.id}`;
+  const [weight, setWeight] = useState<number | null>(() =>
+    toEntered(exercise.name, s?.weight ?? null),
+  );
   const [reps, setReps] = useState<number | null>(() => s?.reps ?? null);
   const [rir, setRir] = useState<number>(2);
   const [saving, setSaving] = useState(false);
@@ -221,7 +237,7 @@ function ExerciseCard({
   const seed = seedOf(s);
   if (row.done === 0 && seeded !== seed) {
     setSeeded(seed);
-    setWeight(s?.weight ?? null);
+    setWeight(toEntered(exercise.name, s?.weight ?? null));
     setReps(s?.reps ?? null);
   }
 
@@ -265,7 +281,7 @@ function ExerciseCard({
         session: sessionLabel(day),
         exerciseId: exercise.id,
         setNo: row.done + 1,
-        weight,
+        weight: toStored(exercise.name, weight),
         reps,
         rir,
       });
@@ -371,7 +387,13 @@ function ExerciseCard({
           <span className="mb-1 block text-[10.5px] font-bold tracking-wider text-[var(--color-muted)] uppercase">
             {unit}
           </span>
-          <Stepper value={weight} onChange={setWeight} step={2.5} label="weight" />
+          <Stepper
+            value={weight}
+            onChange={setWeight}
+            step={2.5}
+            label="weight"
+            describedBy={howId}
+          />
         </label>
         <label className="min-w-0 flex-1">
           <span className="mb-1 block text-[10.5px] font-bold tracking-wider text-[var(--color-muted)] uppercase">
@@ -380,6 +402,25 @@ function ExerciseCard({
           <Stepper value={reps} onChange={setReps} step={1} max={100} label="reps" />
         </label>
       </div>
+
+      {/* What the number in the box actually means.
+
+          The app asked for a "weight" for months without ever saying what it was
+          counting — which for two dumbbells is a factor of two, and once stored
+          there is nothing to say which side of it a row is on. This is the line
+          that fixes it, and it is attached to the input rather than hidden in
+          the exercise sheet because it is only useful at the moment of typing.
+
+          For a pair it names the figure that will be recorded, so the doubling
+          happens in view: type 30 and it says 60. That is what every other
+          screen will show, so nothing is a surprise later. */}
+      <p id={howId} className="-mt-1 text-xs text-[var(--color-muted)]">
+        {load === 'dumbbellPair'
+          ? weight === null
+            ? tr.t('load.dumbbellPairEmpty')
+            : tr.t('load.dumbbellPair', { w: `${toStored(exercise.name, weight)} ${unit}` })
+          : tr.t(`load.${load}` as Key)}
+      </p>
 
       {/* Kept visible rather than tucked behind a tap. The estimate behind the
           strength score and every chart reads it — a set at nothing-left and a

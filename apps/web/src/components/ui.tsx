@@ -196,6 +196,7 @@ export function Stepper({
   min = 0,
   max = 9999,
   label,
+  describedBy,
 }: {
   value: number | null;
   onChange: (v: number | null) => void;
@@ -203,6 +204,9 @@ export function Stepper({
   min?: number;
   max?: number;
   label: string;
+  /** Id of a note explaining what the number means — read out on focus. The
+   *  label stays the plain noun so the control is still addressable by it. */
+  describedBy?: string;
 }) {
   const bump = (d: number) => {
     const next = Math.min(max, Math.max(min, Math.round(((value ?? 0) + d * step) * 100) / 100));
@@ -222,6 +226,7 @@ export function Stepper({
         type="number"
         inputMode="decimal"
         aria-label={label}
+        aria-describedby={describedBy}
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
         className="num min-h-[var(--spacing-tap)] w-full min-w-0 rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] text-center text-[17px] font-semibold"

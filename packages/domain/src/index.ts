@@ -11,6 +11,7 @@ export * from './types';
 export * from './model';
 export * from './coach';
 export * from './details';
+export * from './load';
 export * from './exercise-names';
 export * from './insights';
 export * from './prefs';

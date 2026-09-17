@@ -95,6 +95,84 @@ survives the user renaming a pattern.
 that removes the only slot capable of holding a carry stops demanding one — a box
 that can never be ticked is worse than no box.
 
+## What the weight box is counting
+
+Every number below this line is arithmetic on one figure a person typed, so what
+that figure *means* is load-bearing. The app asked for a "weight" for months and
+never said. On a barbell that is nearly harmless. On two dumbbells it is a
+**factor of two**, and nothing stored says which side of it a row is on.
+
+`packages/domain/src/load.ts` gives every seeded exercise a **load class**, and
+`load.test.ts` asserts the two lists agree in both directions so a new exercise
+cannot arrive without one. The class is per exercise, not per equipment type —
+"a dumbbell number means both" would define every single-arm row and suitcase
+carry in the library wrongly.
+
+| Class | You enter | Stored | A mass? |
+| --- | --- | --- | --- |
+| `barbell` | The bar and the plates together | as typed | yes |
+| `dumbbellPair` | **One dumbbell** | **×2** | yes |
+| `dumbbellOne` | The one implement you hold | as typed | yes |
+| `machine` | The setting on the stack | as typed | **no** |
+| `bodyweight` | Only what you added | as typed | **no** |
+| `partial` | What you loaded, not what reaches your hands | as typed | **no** |
+
+**Entered per hand, stored combined.** The entry side is what people already do
+and can read off the implement — Strength Level, Fitbod and Strong are all
+per-hand. The stored side is what the literature means: Farias et al. 2017 say
+"the sum of the 2 dumbbells combined", Heinecke et al. 2021 give both halves in
+one protocol, and every same-subject dumbbell-to-barbell ratio (0.79–0.93) only
+makes sense read that way — doubled, they would put dumbbells above the barbell,
+inverting the one thing that literature agrees on. No standards body defines it,
+though: we are picking a convention and citing precedent, not inheriting one.
+
+The conversion happens at **exactly one boundary**, the weight box on the Train
+card, and it happens in view: type 20 and the line under the box says it will be
+recorded as 40. Everywhere else in the app — the logged rows, the calendar, the
+charts, the score — shows the stored load, so there is one number in the system.
+
+### `mass: false` is the honest half
+
+It is false more often than is comfortable, and it is what keeps a stack setting
+out of anything absolute:
+
+- **Machines.** McMillin 2024 measured **−48% to +70%** at the handle across a
+  single stroke. The pin number is a position.
+- **Cables.** The pulley ratio is not readable by the user and is not reported
+  anywhere — "pulley ratio" returns no exercise-science papers at all.
+- **Sleds.** The resistance is surface friction, which nobody measures.
+- **Landmines.** What reaches the hands is a fraction of the sleeve, set by the
+  bar's angle.
+
+False does not mean "do not log it". Charting a stack setting against itself is
+sound — the machine does not change between Tuesdays. It means the number must
+not be summed with a barbell load or used to compare two people.
+
+Two barbell caveats nothing can fix: **hex bar** mass is unstandardised and never
+reported (the two comparison studies disagree by ~8% and neither states it), and
+**Smith machine** carriage mass is never reported either, which is why
+`Smith Machine Squat` is classed `machine`.
+
+### History before the convention
+
+`LOAD_CONVENTION_FROM` is a **dated constant, not a column on the profile.** The
+convention ships in the client bundle, so every account crosses over in the same
+deploy and a per-account column would have carried one value in every row — the
+full migration, sync-field, spec and diagram cost for data with one possible
+value. (A device on the previous build keeps writing the old meaning for a day or
+two; a column would not have fixed that, since it would be written server-side at
+deploy time.)
+
+Nothing is rewritten. `conventionKnown(name, date)` is false only for a
+dumbbell-pair row dated before the cutover — the one class whose meaning moved.
+A retroactive doubling would be right for some rows and wrong by two for others,
+with nothing stored to separate them.
+
+What that false must gate is narrow: **the convention cancels in any
+same-exercise comparison**, so somebody's own dumbbell bench trend is sound on
+either reading. It is the absolute, cross-person figure that has nothing left to
+cancel it.
+
 ## The strength score
 
 One number for "how much do I move, relative to me", in
