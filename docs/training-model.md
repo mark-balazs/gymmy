@@ -47,17 +47,50 @@ the pattern, so the repair cannot create the violation it exists to prevent.
 > asserted but not *proven*. A case that forces the repair to matter would be a
 > genuine addition.
 
-> **Known gap, and the one to read before growing the library:** `pick()`
-> indexes a pattern's pool by day-plus-position, a number that never exceeds 9,
-> so the generator **saturates**. Measured across every preset, legal day count,
-> location and bias: **59 of the current 70 exercises are ever programmed
-> automatically, 87 of 150, and still 87 of 230.** Eleven of the seventy we ship
-> are already unreachable unless somebody picks them by hand.
+### How far into the library a week reaches
+
+`pick()` indexes a pattern's pool by day-plus-position, a small number, so any
+one account only ever reaches a subset of the library. In the pool's own order,
+across all 144 preset × day-count × location × bias configurations, that is
+**59 of 70**. That figure was once documented as the whole story; it is not.
+
+- **The main cause at this size was a shared seed, not the small index.** The
+  pattern and the exercise in a slot were chosen with the *same* number. Where a
+  slot alternates between two patterns by parity — the finisher's rotation and
+  carry — each pattern only ever received even, or only odd, indexes, so three
+  of the eight gym rotation movements could never be reached by anybody.
+- **Real accounts never saw 59, by accident.** Their exercise rows had hashed
+  ids, the device returns rows in id order, so each account's pool came out
+  shuffled differently: 55–65 of 70 each, and every exercise reachable by
+  *somebody*. The shared catalogue gives every account the same ids in the same
+  order, which would have silently collapsed everybody onto the same 59.
+
+So `buildProgram` takes a **`variety`** — `varietyFor(profile.id)`, a stable
+per-account offset applied to the exercise choice only, never to the pattern
+choice. The week's layout, its coverage and every slot constraint are exactly
+what they were; which exercise fills each slot differs between accounts. The
+repair pass selects the same way instead of always forcing the head of the pool.
+
+- **Zero is the old generator exactly.** The demo seed passes 0, as do every
+  test fixture and the e2e suite, because the demo's history is authored against
+  one specific week. `coach.test.ts` holds variety zero to 59 of 70.
+- **Across forty accounts every programmable exercise is reached**; one account
+  still reaches 55–62. That is the honest shape of it: this restores the
+  per-account spread the storage accident provided, rather than giving any one
+  account the whole library.
+- **Nothing moves on the day it ships.** A stored week is never regenerated on
+  its own; `buildProgram` only runs at onboarding, on an explicit rebuild, on a
+  split change and when a plan is applied.
+
+> **Deliberately not done:** preferring exercises you have not done recently.
+> Measured, it takes a user who rebuilds six times from 15 distinct exercises to
+> 62. It is also a product decision rather than a fix — a rebuild to switch to
+> training at home would rotate out a lift somebody is progressing on, including
+> one with a live goal — and it needs rules about which slots it may touch. It
+> waits for that decision.
 >
-> Adding exercises therefore changes nobody's week. It only lengthens the swap
-> sheet, which is an uncapped list of full-width buttons with no search and no
-> grouping. Selection has to be fixed alongside any library growth, or the work
-> is invisible.
+> The swap sheet remains the way to reach everything, and it has to gain search
+> and grouping as the library grows.
 
 ## Historisation
 

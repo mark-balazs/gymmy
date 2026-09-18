@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { OFF_PLAN, buildProgram, lastSession, swapOptions } from '../src/coach';
+import { OFF_PLAN, buildProgram, lastSession, swapOptions, varietyFor } from '../src/coach';
+import { SPLITS } from '../src/splits';
 import { index, programCoverage, programRows, type Indexed } from '../src/model';
-import { BIASES, type Bias, type PatternKey, type Where } from '../src/types';
+import { BIASES, type Bias, type PatternKey, type SplitKey, type Where } from '../src/types';
 import { logsFor, seedIndex, seedSnapshot, withEntries } from './fixture';
 
 describe('program generation', () => {
@@ -23,6 +24,113 @@ describe('program generation', () => {
       }
     }
   }
+
+  describe('reach across the library', () => {
+    /* Every preset, every legal day count, both locations, every bias — the same
+       144 configurations the saturation figure in the docs was measured over. */
+    const configs = SPLITS.flatMap((s) =>
+      Array.from({ length: s.maxDays - s.minDays + 1 }, (_, i) => s.minDays + i).flatMap((days) =>
+        (['gym', 'home'] as const).flatMap((where) =>
+          BIASES.map((bias) => ({
+            split: s.key as Exclude<SplitKey, 'custom'>,
+            days,
+            where,
+            bias,
+          })),
+        ),
+      ),
+    );
+    /* Cached per (split, days), and the snapshot with it: `seedSnapshot` mints
+       fresh ids on every call, so a draft checked against a *second* snapshot
+       matches nothing and reports every pattern missing — which is how the first
+       version of the coverage test below failed at variety zero. */
+    const built = new Map<string, { snap: ReturnType<typeof seedSnapshot>; ix: Indexed }>();
+    const at = (split: Exclude<SplitKey, 'custom'>, days: number) => {
+      const key = `${split}:${days}`;
+      if (!built.has(key)) {
+        const s = seedSnapshot(split, days);
+        built.set(key, { snap: s, ix: index(s) });
+      }
+      return built.get(key)!;
+    };
+    const ixFor = (split: Exclude<SplitKey, 'custom'>, days: number): Indexed => at(split, days).ix;
+    const reachedWith = (variety: number): Set<string> => {
+      const names = new Set<string>();
+      for (const c of configs) {
+        const cix = ixFor(c.split, c.days);
+        for (const e of buildProgram(cix, {
+          days: c.days,
+          where: c.where,
+          bias: c.bias,
+          variety,
+        })) {
+          const ex = e.exerciseId ? cix.exerciseById.get(e.exerciseId) : null;
+          if (ex) names.add(ex.name);
+        }
+      }
+      return names;
+    };
+    const programmable = ixFor('sevenPattern', 3)
+      .exercises.filter((e) => !e.tags.includes(OFF_PLAN))
+      .map((e) => e.name);
+
+    it('is unchanged at variety zero, which the demo and every fixture use', () => {
+      /* 59 of 70 is the figure measured on the generator before variety
+         existed. Holding it here is what makes zero mean "exactly the old
+         behaviour" rather than merely "roughly" — the demo's authored history
+         and the e2e suite's named lifts both depend on it. */
+      expect(configs).toHaveLength(144);
+      expect(reachedWith(0).size).toBe(59);
+      // Omitting it is the same as zero.
+      const cix = ixFor('sevenPattern', 3);
+      expect(buildProgram(cix, { days: 3, where: 'gym', bias: 'none' })).toEqual(
+        buildProgram(cix, { days: 3, where: 'gym', bias: 'none', variety: 0 }),
+      );
+    });
+
+    it('reaches every programmable exercise across accounts', () => {
+      /* The point of it. One account still reaches a subset — 55 to 62 of 70 —
+         but different accounts reach different subsets, and between forty of
+         them the whole library is programmed somewhere. Before, the shared
+         catalogue would have put every account on the same 59. */
+      const all = new Set<string>();
+      for (let v = 0; v < 40; v++) for (const n of reachedWith(v)) all.add(n);
+      expect(programmable.filter((n) => !all.has(n))).toEqual([]);
+    });
+
+    it('never costs a week its coverage, whatever the offset', () => {
+      /* The offset only moves which exercise fills a slot, never which pattern
+         the slot gets — so coverage has to hold for every variety, not just
+         the one the other tests happen to exercise. */
+      for (const v of [0, 1, 2, 3, 7, 13, 96, 500, 996]) {
+        for (const c of configs) {
+          const cix = ixFor(c.split, c.days);
+          const draft = buildProgram(cix, {
+            days: c.days,
+            where: c.where,
+            bias: c.bias,
+            variety: v,
+          });
+          const week = withEntries(at(c.split, c.days).snap, draft);
+          const missing = programCoverage(week, c.days).filter((m) => m.sets === 0);
+          expect(
+            missing.map((m) => `${v}:${c.split}:${c.days}:${c.where}:${m.pattern.key}`),
+          ).toEqual([]);
+        }
+      }
+    });
+
+    it('derives the offset deterministically from the profile', () => {
+      // The onboarding preview and the install both compute it; if it were not
+      // a pure function of the row, the preview would show a different week.
+      expect(varietyFor('profile-abc')).toBe(varietyFor('profile-abc'));
+      expect(varietyFor(null)).toBe(0);
+      expect(varietyFor(undefined)).toBe(0);
+      expect(varietyFor('')).toBe(0);
+      const spread = new Set(Array.from({ length: 50 }, (_, i) => varietyFor(`user-${i}`)));
+      expect(spread.size).toBeGreaterThan(40);
+    });
+  });
 
   it('fills every slot', () => {
     const draft = buildProgram(ix, { days: 3, where: 'gym', bias: 'none' });

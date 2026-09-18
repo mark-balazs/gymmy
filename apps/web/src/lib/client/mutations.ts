@@ -30,6 +30,7 @@ import type { DraftEntry, SlotDraft } from '@athletic/domain';
 import {
   DEFAULT_PREFS,
   buildProgram,
+  varietyFor,
   buildSlots,
   coversFor,
   findSplit,
@@ -415,6 +416,9 @@ async function installSkeleton(
     days: opts.days,
     where: opts.where,
     bias: opts.bias,
+    // From the profile row, exactly as the onboarding preview computes it — the
+    // preview has to show the week this installs.
+    variety: varietyFor(snap.profile?.id),
   });
   /* A plan's choices land on top of the generated week, keyed by where the slot
      sits rather than by any id — ids are what cannot cross between accounts.

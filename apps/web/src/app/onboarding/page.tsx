@@ -39,6 +39,7 @@ import {
   type SplitKey,
   type Where,
   sessionLabel,
+  varietyFor,
 } from '@athletic/domain';
 
 /**
@@ -151,7 +152,9 @@ export default function Onboarding() {
     ];
 
     const previewIx = index({ ...snap, slots, splitPeriods, entries: [] });
-    const draft = buildProgram(previewIx, { days, where, bias });
+    // The same offset the install below uses, from the same row, or the preview
+    // would show one week and the account would be given another.
+    const draft = buildProgram(previewIx, { days, where, bias, variety: varietyFor(profile?.id) });
 
     const withEntries = index({
       ...snap,
@@ -171,7 +174,7 @@ export default function Onboarding() {
       slots,
       covered: programCoverage(withEntries, days).every((c) => c.sets > 0),
     };
-  }, [step, snap, split, days, where, bias]);
+  }, [step, snap, split, days, where, bias, profile?.id]);
 
   if (!profile) {
     return (

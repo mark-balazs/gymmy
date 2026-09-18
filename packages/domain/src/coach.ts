@@ -31,6 +31,43 @@ export interface BuildInput {
   days: number;
   where: Where;
   bias: Bias;
+  /**
+   * A stable per-account offset into each pattern's pool, from `varietyFor`.
+   *
+   * Zero reproduces the generator exactly as it was, which is what the demo
+   * account, every test fixture and the e2e suite pass, so none of their weeks
+   * move. See `varietyFor` for why real accounts pass something else.
+   */
+  variety?: number;
+}
+
+/**
+ * The per-account offset a real account builds its week with.
+ *
+ * **Why this exists at all.** The generator picks an exercise by a small index
+ * into the pattern's pool — day plus slot position, never more than about nine
+ * — so each account only ever reaches a fixed subset of the library. In the
+ * pool's own order that is 59 of the 70 exercises, and adding more exercises
+ * barely moves it (87 of 150, still 87 of 230).
+ *
+ * Real accounts never actually saw that, by accident: their exercise rows had
+ * hashed ids, the device returns rows in id order, and so every account's pool
+ * came out in a different shuffled order — 55 to 65 of 70 each, with every
+ * exercise reachable by *somebody*. The shared catalogue gives every account the
+ * same ids in the same order, which would quietly collapse everybody onto the
+ * same 59. So the variety that was an accident of storage becomes deliberate
+ * here, before the catalogue removes it.
+ *
+ * Deterministic, which matters: the onboarding preview and the install must
+ * build the same week, and they both have the profile row. Never seed this from
+ * a slot id, the clock or `Math.random` — the preview and the install use
+ * different slot ids.
+ */
+export function varietyFor(key: string | null | undefined): number {
+  if (!key) return 0;
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) % 997;
+  return h;
 }
 
 /** An entry without its sync fields; the caller stamps those on. */
@@ -114,6 +151,7 @@ export function buildProgram(ix: Indexed, input: BuildInput): DraftEntry[] {
   const slots = ix.slots;
   const entries = new Map<string, DraftEntry>();
   const used = new Set<string>();
+  const variety = input.variety ?? 0;
 
   /** Patterns a slot will accept. A pattern constraint beats a role constraint:
    *  a push day needs a push, not merely something upper-body. */
@@ -161,7 +199,14 @@ export function buildProgram(ix: Indexed, input: BuildInput): DraftEntry[] {
       const pattern = missing ?? pick(candidates, d + position);
 
       const tag = slot.key === 'isolation' && input.bias !== 'none' ? input.bias : null;
-      const exercise = choose(pattern, tag, d + position);
+      /* The exercise gets its own seed rather than sharing the pattern's. With
+         one seed for both, a slot that alternates between two patterns by parity
+         only ever handed each pattern even — or only odd — indexes, which is
+         why three of the eight gym rotation movements could never be reached.
+         The pattern choice above is deliberately untouched, so the week's
+         layout, its coverage and every slot constraint are exactly what they
+         were. */
+      const exercise = choose(pattern, tag, d + position + variety);
 
       entries.set(`${d}:${slot.id}`, {
         sessionIndex: d,
@@ -211,7 +256,13 @@ function repair(
     let list = pool(ix, pattern, input.where, null);
     if (!list.length) list = pool(ix, pattern, null, null);
     if (!list.length) continue;
-    const exercise = list.find((e) => !used.has(e.id)) ?? list[0]!;
+    /* The same selector as the main pass, rather than "the first one not yet
+       used". At a variety of zero the two are identical — `pick(fresh, 0)` is
+       the head of `fresh` — so nothing that exists today changes; above zero,
+       the repair stops being the one path that always forces the head of the
+       pool into somebody's week. */
+    const fresh = list.filter((e) => !used.has(e.id));
+    const exercise = pick(fresh.length ? fresh : list, input.variety ?? 0)!;
 
     // Every slot across the week that would legally take this pattern.
     const candidates: { day: number; slot: Slot }[] = [];

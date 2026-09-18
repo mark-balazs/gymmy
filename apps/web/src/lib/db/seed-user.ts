@@ -189,6 +189,11 @@ export async function seedNewUser(userId: string, email?: string | null): Promis
     days: defaultSplit.defaultDays,
     where: 'gym',
     bias: 'none',
+    /* Zero, deliberately, and not the account's own offset. The demo's history
+       is authored against exactly this week — `demo-loads` names the lifts and
+       `demo-history.test.ts` asserts which one stalled and which slid — so the
+       demo has to get the pool's own order, not a per-account shuffle of it. */
+    variety: 0,
   });
 
   await db
