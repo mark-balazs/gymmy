@@ -111,7 +111,7 @@ export const es: Record<Key, string> = {
   'onboard.q3.sub': 'Una zona recibe algo extra. El resto sigue equilibrado.',
   'onboard.q4.title': '¿Cuánto pesas?',
   'onboard.q4.sub':
-    'La puntuación de fuerza es una proporción: sin esto no hay ninguna puntuación. Puedes cambiarlo cuando quieras.',
+    'Las dos medidas de fuerza dependen del peso corporal: sin esto no se puede mostrar ninguna. Puedes cambiarlo cuando quieras.',
   'onboard.q4.placeholder': 'p. ej. 78,5',
   'onboard.q4.skip': 'Omitir por ahora',
   'onboard.done.title': 'Esta es tu semana',
@@ -129,13 +129,9 @@ export const es: Record<Key, string> = {
 
   'effort.q': '¿Cómo se sintió?',
   'effort.0': 'No quedaba nada',
-  'effort.0h': 'No te salía ni una rep más',
   'effort.1': '1 más',
-  'effort.1h': 'Te quedaba una rep dentro',
   'effort.2': '2 más',
-  'effort.2h': 'El punto justo',
   'effort.4': 'Fácil',
-  'effort.4h': 'Te quedaban varias: sube el peso',
   'effort.0s': 'Al límite',
   'effort.1s': '1 más',
   'effort.2s': '2 más',

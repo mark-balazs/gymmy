@@ -402,8 +402,9 @@ A catalogue entry tagged `offPlan` (`OFF_PLAN` in `catalogue.ts`) is excluded
 from `pool()` and from `swapOptions()`. It can be logged, and a trainer can still
 name one in a plan; the generator will not put it in anybody's week.
 
-This exists because the library is gaining conditioning work — thrusters, wall
-balls, burpees, box jumps — so that a class can be logged at all. Each is fine to
+This exists because the library has conditioning work — thrusters, wall balls,
+box jumps, the Olympic lifts — so that a class can be logged at all. (Not
+burpees, running or rowing: monostructural work has no load to measure.) Each is fine to
 have done and poor to be *handed*: a generated slot arrives asking for three
 sets of six to twelve, which is not what anybody does with a medicine ball, and
 a week built out of them reads as a programme nobody wrote.

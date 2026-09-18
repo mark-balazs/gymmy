@@ -259,9 +259,16 @@ export async function finishDay(page: Page): Promise<string[]> {
   return done;
 }
 
-/** The names of the collapsed rows, in the order the session runs. */
+/**
+ * The names of the collapsed rows, in the order the session runs.
+ *
+ * Waits for the first row: `count()` does not, and read before Train has
+ * rendered it answers an empty list — whose `[0]!` is undefined, which a
+ * `getByRole('heading', { name })` then treats as "any heading".
+ */
 export async function collapsedExercises(page: Page): Promise<string[]> {
   const rows = page.getByRole('button', { expanded: false });
+  await expect(rows.first()).toBeVisible();
   const out: string[] = [];
   for (let i = 0; i < (await rows.count()); i++) {
     // The row's text is the name, then its progress on its own line.

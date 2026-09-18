@@ -189,8 +189,8 @@ mid-request. `SKIP_ENV_VALIDATION=1` bypasses it for builds that only typecheck.
 Signing in as `demo-gymmy@yopmail.com` (override with `DEMO_EMAIL`) creates an
 account that arrives already onboarded, on the seven-movement-pattern split,
 with six weeks of history behind it. An empty account demonstrates nothing: no
-coverage ticks, no progress line, and "ready for more weight" cannot appear at
-all without history to derive it from.
+coverage ticks, no progress line, no strength numbers, and no goal that can be
+judged without history to judge it against.
 
 Seeding happens at account creation, through the same `seedNewUser` path as
 everyone else — a demo running on code you do not ship is a demo of the wrong

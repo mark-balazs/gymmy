@@ -99,7 +99,7 @@ export const hu: Record<Key, string> = {
   'onboard.q3.sub': 'Egy területet kicsit többet edzel. A többi kiegyensúlyozott marad.',
   'onboard.q4.title': 'Mennyi a testsúlyod?',
   'onboard.q4.sub':
-    'Az erőpontszám egy arányszám, enélkül egyáltalán nincs pontszám. Bármikor módosíthatod.',
+    'Mindkét erőmutató a testsúlyhoz viszonyít, enélkül egyik sem jeleníthető meg. Bármikor módosíthatod.',
   'onboard.q4.placeholder': 'pl. 78,5',
   'onboard.q4.skip': 'Most kihagyom',
   'onboard.done.title': 'Íme a heted',
@@ -117,13 +117,9 @@ export const hu: Record<Key, string> = {
 
   'effort.q': 'Milyen volt?',
   'effort.0': 'Semmi sem maradt',
-  'effort.0h': 'Egy ismétlés sem ment volna még',
   'effort.1': 'Még 1 ment volna',
-  'effort.1h': 'Egy ismétlés maradt benned',
   'effort.2': 'Még 2 ment volna',
-  'effort.2h': 'Ez az ideális',
   'effort.4': 'Könnyű volt',
-  'effort.4h': 'Több is maradt – emelj nehezebbet',
   'effort.0s': 'Kimax',
   'effort.1s': 'Még 1',
   'effort.2s': 'Még 2',

@@ -108,7 +108,7 @@ export const fr: Record<Key, string> = {
   'onboard.q3.sub': 'Une zone en reçoit un peu plus. Le reste reste équilibré.',
   'onboard.q4.title': 'Combien pèses-tu ?',
   'onboard.q4.sub':
-    'Le score de force est un rapport : sans cela il n’y a aucun score. Tu peux le changer à tout moment.',
+    'Les deux mesures de force dépendent du poids de corps : sans cela, aucune ne peut s’afficher. Tu peux le changer à tout moment.',
   'onboard.q4.placeholder': 'p. ex. 78,5',
   'onboard.q4.skip': 'Passer pour l’instant',
   'onboard.done.title': 'Voilà ta semaine',
@@ -126,13 +126,9 @@ export const fr: Record<Key, string> = {
 
   'effort.q': 'C’était comment ?',
   'effort.0': 'Plus rien',
-  'effort.0h': 'Pas une rep de plus',
   'effort.1': 'Encore 1',
-  'effort.1h': 'Il te restait une rep',
   'effort.2': 'Encore 2',
-  'effort.2h': 'Le bon niveau',
   'effort.4': 'Facile',
-  'effort.4h': 'Il t’en restait plusieurs — mets plus lourd',
   'effort.0s': 'À fond',
   'effort.1s': 'Encore 1',
   'effort.2s': 'Encore 2',

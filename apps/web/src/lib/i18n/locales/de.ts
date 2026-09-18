@@ -108,7 +108,7 @@ export const de: Record<Key, string> = {
   'onboard.q3.sub': 'Ein Bereich bekommt etwas mehr. Der Rest bleibt ausgewogen.',
   'onboard.q4.title': 'Was wiegst du?',
   'onboard.q4.sub':
-    'Der Kraftwert ist ein Verhältnis — ohne das gibt es gar keinen Wert. Du kannst es jederzeit ändern.',
+    'Beide Kraftwerte werden am Körpergewicht gemessen — ohne das kann keiner angezeigt werden. Du kannst es jederzeit ändern.',
   'onboard.q4.placeholder': 'z. B. 78,5',
   'onboard.q4.skip': 'Erst mal überspringen',
   'onboard.done.title': 'Das ist deine Woche',
@@ -126,13 +126,9 @@ export const de: Record<Key, string> = {
 
   'effort.q': 'Wie war das?',
   'effort.0': 'Nichts mehr drin',
-  'effort.0h': 'Keine Wiederholung mehr möglich',
   'effort.1': 'Noch 1',
-  'effort.1h': 'Eine Wiederholung war noch drin',
   'effort.2': 'Noch 2',
-  'effort.2h': 'Genau richtig',
   'effort.4': 'Leicht',
-  'effort.4h': 'Da war einiges übrig – nimm mehr Gewicht',
   'effort.0s': 'Am Limit',
   'effort.1s': 'Noch 1',
   'effort.2s': 'Noch 2',

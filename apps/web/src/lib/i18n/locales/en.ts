@@ -100,7 +100,7 @@ export const en = {
   'onboard.q3.sub': 'One area gets a little extra. Everything else stays balanced.',
   'onboard.q4.title': 'What do you weigh?',
   'onboard.q4.sub':
-    'The strength score is a ratio, so without this there is no score at all. You can change it any time, and it is asked again whenever you want.',
+    'Both strength numbers are measured against bodyweight, so without this neither can be shown. You can change it any time, and it is asked again whenever you want.',
   'onboard.q4.placeholder': 'e.g. 78.5',
   'onboard.q4.skip': 'Skip for now',
   'onboard.done.title': 'Here is your week',
@@ -117,13 +117,9 @@ export const en = {
 
   'effort.q': 'How did that feel?',
   'effort.0': 'Nothing left',
-  'effort.0h': 'Could not do another rep',
   'effort.1': '1 more',
-  'effort.1h': 'One rep left in the tank',
   'effort.2': '2 more',
-  'effort.2h': 'The sweet spot',
   'effort.4': 'Easy',
-  'effort.4h': 'Several left — go heavier',
   'effort.0s': 'Maxed',
   'effort.1s': '1 more',
   'effort.2s': '2 more',
