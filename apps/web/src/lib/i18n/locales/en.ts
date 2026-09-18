@@ -277,6 +277,8 @@ export const en = {
   'prog.dotsNeed': 'Needs a barbell squat, bench press and deadlift. Still missing: {what}.',
   'prog.dotsFrom': '{total} across the three lifts',
   'prog.prs': '★ marks a personal best',
+  'prog.conventionChanged':
+    'From {date}, a dumbbell in each hand is recorded as both together. A jump on that day is bookkeeping, not training.',
 
   'set.you': 'You',
   'set.app': 'The app',

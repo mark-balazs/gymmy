@@ -282,6 +282,8 @@ export const fr: Record<Key, string> = {
     'Demande un squat, un développé couché et un soulevé de terre à la barre. Il manque encore : {what}.',
   'prog.dotsFrom': '{total} sur les trois mouvements',
   'prog.prs': '★ signale un record personnel',
+  'prog.conventionChanged':
+    'Depuis le {date}, un haltère dans chaque main est enregistré comme les deux ensemble. Un saut ce jour-là est comptable, pas sportif.',
 
   'set.you': 'Toi',
   'set.app': 'L’application',

@@ -339,20 +339,6 @@ function dotsFrom(
 export const dotsAt = (ix: Indexed, weekOf: string, who: StrengthOf): DotsPoint =>
   dotsFrom(allLogs(ix), bodyWeightOn(ix, addDays(weekOf, 6)), weekOf, who);
 
-/** DOTS week by week across a block. Decorates the logs once rather than once
- *  per week, which is the difference between instant and noticeable. */
-export function dotsSeries(
-  ix: Indexed,
-  blockStart: string,
-  weeks: number,
-  who: StrengthOf,
-): DotsPoint[] {
-  const logs = allLogs(ix);
-  return blockWeeks(blockStart, weeks).map((weekOf) =>
-    dotsFrom(logs, bodyWeightOn(ix, addDays(weekOf, 6)), weekOf, who),
-  );
-}
-
 /* --------------------------------------------------------- gymmy's index */
 
 export interface StrengthPoint {
@@ -433,27 +419,6 @@ export function strengthSeries(
     indexFrom(logs, patterns, bodyWeightOn(ix, addDays(weekOf, 6)), weekOf, who),
   );
 }
-
-/* ------------------------------------------------- the convention caveat */
-
-/**
- * Whether an exercise's history straddles the day the load convention changed.
- *
- * The narrow, checkable version of a problem that could have been a mechanism.
- * A dumbbell-pair movement logged before the cutover was written under no
- * convention at all, so a step appears in its chart at that date which is about
- * bookkeeping rather than training. Somebody should be told that, once, on the
- * chart where it is visible.
- *
- * It takes the dates actually logged rather than a cutover flag on the account,
- * so it is true only for a history that really does cross over. The demo's
- * generated past is entirely on one side of the date and correctly says
- * nothing; somebody who trained through the change is told.
- */
-export const conventionChanged = (name: string, dates: string[], cutover: string): boolean =>
-  loadClassOf(name) === 'dumbbellPair' &&
-  dates.some((d) => d < cutover) &&
-  dates.some((d) => d >= cutover);
 
 /** Guard: nothing whose stored number is not an external mass may reach the one
  *  score that compares people. Held by `strength.test.ts`. */

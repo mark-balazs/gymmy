@@ -283,6 +283,8 @@ export const de: Record<Key, string> = {
     'Braucht Kniebeuge, Bankdrücken und Kreuzheben mit der Stange. Fehlt noch: {what}.',
   'prog.dotsFrom': '{total} aus den drei Übungen',
   'prog.prs': '★ steht für eine Bestleistung',
+  'prog.conventionChanged':
+    'Seit {date} wird eine Hantel in jeder Hand als beide zusammen erfasst. Ein Sprung an diesem Tag ist Buchhaltung, kein Training.',
 
   'set.you': 'Du',
   'set.app': 'Die App',

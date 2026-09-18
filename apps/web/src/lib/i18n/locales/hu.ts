@@ -273,6 +273,8 @@ export const hu: Record<Key, string> = {
     'Rúddal végzett guggolás, fekvenyomás és felhúzás kell hozzá. Még hiányzik: {what}.',
   'prog.dotsFrom': '{total} a három emelésből',
   'prog.prs': 'A ★ egyéni csúcsot jelöl',
+  'prog.conventionChanged':
+    '{date} óta a két kézben tartott kézisúlyzó a kettő együttes súlyával kerül be. Az aznapi ugrás könyvelés, nem edzés.',
 
   'set.you': 'Te',
   'set.app': 'Az alkalmazás',

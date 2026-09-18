@@ -3,7 +3,7 @@ import {
   EXERCISE_LOADS,
   LOAD_CONVENTION_FROM,
   LOAD_RULES,
-  conventionKnown,
+  conventionChanged,
   SEED_EXERCISES,
   loadClassOf,
   loadRuleOf,
@@ -104,27 +104,32 @@ describe('load conventions', () => {
     expect(loadClassOf('Chest-Supported Row')).toBe('dumbbellPair');
   });
 
-  it('knows which rows predate the convention, and only those', () => {
-    /* The narrow claim, which is the point: exactly one class changed meaning,
-       so exactly one class has an ambiguous past. Widening this to "dumbbells"
-       or to "everything before the date" would quarantine rows that were never
-       in doubt — a barbell was always the bar and the plates.
-
-       Note what a false does not license. The convention cancels in any
-       same-exercise comparison, so somebody's own dumbbell bench trend is sound
-       on either reading. It is the absolute, cross-person figure that has
-       nothing left to cancel it. */
+  it('speaks only for a history that really crosses the cutover', () => {
+    /* The narrow version of a problem that could have been a mechanism. True
+       only when the dates on the chart actually straddle the change, so the
+       demo — whose generated past sits entirely on one side — correctly says
+       nothing, while somebody who trained through it is told once. */
     const before = '2020-01-01';
     const after = '2030-01-01';
 
-    expect(conventionKnown('DB Bench Press', before)).toBe(false);
-    expect(conventionKnown('DB Bench Press', after)).toBe(true);
-    expect(conventionKnown('DB Bench Press', LOAD_CONVENTION_FROM)).toBe(true);
+    expect(conventionChanged('DB Bench Press', [before, after])).toBe(true);
+    expect(conventionChanged('DB Bench Press', [before, before])).toBe(false);
+    expect(conventionChanged('DB Bench Press', [after, after])).toBe(false);
+    expect(conventionChanged('DB Bench Press', [])).toBe(false);
 
-    // Never doubled, so never in doubt — on either side of the date.
+    // The cutover day itself is already on the new side. A set logged that day
+    // was typed under the new label, so it is not ambiguous.
+    expect(conventionChanged('DB Bench Press', [LOAD_CONVENTION_FROM])).toBe(false);
+    expect(conventionChanged('DB Bench Press', [before, LOAD_CONVENTION_FROM])).toBe(true);
+  });
+
+  it('says nothing about a class whose meaning never moved', () => {
+    /* Exactly one class changed meaning, so exactly one class has an ambiguous
+       past. Widening this to "dumbbells", or to "everything before the date",
+       would put a note under charts that were never in doubt — a barbell was
+       always the bar and the plates, and a single dumbbell was always one. */
     for (const name of ['Barbell Bench Press', 'DB Row', 'Lat Pulldown', 'Pull-Up']) {
-      expect(conventionKnown(name, before)).toBe(true);
-      expect(conventionKnown(name, after)).toBe(true);
+      expect(conventionChanged(name, ['2020-01-01', '2030-01-01'])).toBe(false);
     }
   });
 

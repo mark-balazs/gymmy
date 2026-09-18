@@ -51,6 +51,8 @@ import {
   growingExercises,
   progressSummary,
   recentWeeks,
+  LOAD_CONVENTION_FROM,
+  conventionChanged,
   dotsAt,
   strengthSeries,
   type Attention,
@@ -650,6 +652,20 @@ function DetailSheet({
             <p className="text-[11px] text-[var(--color-muted)]">{tr.t('prog.prs')}</p>
           )}
           <p className="text-[11px] text-[var(--color-muted)]">{tr.t('prog.gapNote')}</p>
+          {/* The one place the dumbbell cutover is visible to anybody. Logged per
+              hand before it and combined after, a pair shows a jump on that day
+              that is bookkeeping rather than training — so the chart says so,
+              under the chart, and only when the dates on it actually cross. */}
+          {conventionChanged(
+            progress.exercise.name,
+            points.map((p) => p.date),
+          ) && (
+            <p className="text-[11px] text-[var(--color-muted)]">
+              {tr.t('prog.conventionChanged', {
+                date: shortDay(LOAD_CONVENTION_FROM, tr.lang),
+              })}
+            </p>
+          )}
         </>
       )}
 

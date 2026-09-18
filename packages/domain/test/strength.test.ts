@@ -5,7 +5,6 @@ import {
   SCORED_PATTERNS,
   addDays,
   competitionLiftsAreMasses,
-  conventionChanged,
   dotsAt,
   dotsCoefficient,
   index,
@@ -17,12 +16,15 @@ import type { BodyLog, PatternKey, SetLog, Snapshot } from '../src/types';
 import { seedSnapshot } from './fixture';
 
 /**
- * The strength score is the one number in the app that compares you to a
- * reference rather than to yourself, so the properties it must hold are worth
- * pinning down: it has to be fair across bodyweights, honest about what it has
- * not seen, and completely indifferent to which unit you happen to read in.
+ * gymmy's own index — and, in the first half of this block, the properties both
+ * numbers share, because they were one number when these tests were written.
+ *
+ * It has to be fair across bodyweights, honest about what it has not seen, and
+ * completely indifferent to which unit you happen to read in. What it no longer
+ * is: a comparison with a reference. That job moved to DOTS, below, and only
+ * DOTS may make it.
  */
-describe('strength score', () => {
+describe('strength index', () => {
   const snap = seedSnapshot('sevenPattern', 3);
   const thisWeek = mondayOf(new Date());
 
@@ -462,28 +464,5 @@ describe('gymmy own index', () => {
        in the hundreds; the index is in the tens, with a decimal. */
     expect(idxOf(100, 83)).toBeLessThan(100);
     expect(Math.round(450 * dotsCoefficient(83, 'male'))).toBeGreaterThan(100);
-  });
-});
-
-describe('the load convention caveat', () => {
-  const CUT = '2026-09-17';
-
-  it('speaks only for a history that really crosses the date', () => {
-    /* The narrow version of a problem that could have been a mechanism. It is
-       true only when the dates logged actually straddle the change, so the
-       demo — whose generated past sits entirely on one side — correctly says
-       nothing, while somebody who trained through it is told once. */
-    expect(conventionChanged('DB Bench Press', ['2026-08-01', '2026-10-01'], CUT)).toBe(true);
-    expect(conventionChanged('DB Bench Press', ['2026-08-01', '2026-09-01'], CUT)).toBe(false);
-    expect(conventionChanged('DB Bench Press', ['2026-10-01', '2026-11-01'], CUT)).toBe(false);
-    expect(conventionChanged('DB Bench Press', [], CUT)).toBe(false);
-  });
-
-  it('says nothing about a class whose meaning never moved', () => {
-    // Only the doubled class changed. A barbell was always the bar and the
-    // plates, so straddling the date means nothing for it.
-    for (const name of ['Barbell Bench Press', 'DB Row', 'Lat Pulldown', 'Pull-Up']) {
-      expect(conventionChanged(name, ['2026-08-01', '2026-10-01'], CUT)).toBe(false);
-    }
   });
 });

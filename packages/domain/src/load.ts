@@ -268,17 +268,32 @@ export const toEntered = (name: string, stored: number | null): number | null =>
 export const LOAD_CONVENTION_FROM = '2026-09-17';
 
 /**
- * Whether a row's load can be taken at face value.
+ * Whether an exercise's history straddles the day its convention changed.
  *
- * False only for the case that actually moved: a pair of dumbbells logged
- * before the cutover. Everything else is either unambiguous (a barbell is a
- * barbell) or was already stored exactly as typed.
+ * The only place the cutover is visible to anybody is a chart: a dumbbell-pair
+ * movement logged per hand before the date and combined after it shows a jump
+ * on that day which is bookkeeping, not training. This is what lets the detail
+ * sheet say so, once, under the chart where the jump is.
  *
- * What to do with a false is *not* to hide the row. The convention cancels in
- * any same-exercise comparison — your own dumbbell bench trend is intact either
- * way, because both ends of it are on the same side of the factor. What it must
- * not do is cross into an absolute figure or anything that compares one person
- * with another, where there is nothing left to cancel it.
+ * It takes the dates actually on the chart rather than a flag on the account, so
+ * it is true only for a history that really crosses over. The demo's generated
+ * past sits entirely on one side of the date and correctly says nothing;
+ * somebody who trained through the change is told.
+ *
+ * Nothing is hidden or corrected because of it. The convention cancels in any
+ * same-exercise comparison — both ends of a trend that sits entirely on one side
+ * are on the same side of the factor — so the only honest intervention is to
+ * say what happened at the join.
+ *
+ * (This replaced a per-row `conventionKnown`, written for a gate on the strength
+ * index that was designed and then not built: the index never leaves its owner,
+ * and every same-exercise comparison inside it cancels the factor anyway.)
  */
-export const conventionKnown = (name: string, date: string): boolean =>
-  loadClassOf(name) !== 'dumbbellPair' || date >= LOAD_CONVENTION_FROM;
+export const conventionChanged = (
+  name: string,
+  dates: string[],
+  cutover: string = LOAD_CONVENTION_FROM,
+): boolean =>
+  loadClassOf(name) === 'dumbbellPair' &&
+  dates.some((d) => d < cutover) &&
+  dates.some((d) => d >= cutover);

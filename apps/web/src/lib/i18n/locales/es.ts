@@ -287,6 +287,8 @@ export const es: Record<Key, string> = {
     'Necesita sentadilla, press de banca y peso muerto con barra. Todavía falta: {what}.',
   'prog.dotsFrom': '{total} en los tres levantamientos',
   'prog.prs': '★ marca un récord personal',
+  'prog.conventionChanged':
+    'Desde el {date}, una mancuerna en cada mano se registra como las dos juntas. Un salto ese día es contabilidad, no entrenamiento.',
 
   'set.you': 'Tú',
   'set.app': 'La aplicación',
