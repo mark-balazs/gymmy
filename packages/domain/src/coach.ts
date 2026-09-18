@@ -16,6 +16,7 @@
  * assembled from fragments.
  */
 
+import { OFF_PLAN } from './catalogue';
 import {
   allLogs,
   coveragePatterns,
@@ -47,8 +48,8 @@ export interface BuildInput {
  * **Why this exists at all.** The generator picks an exercise by a small index
  * into the pattern's pool — day plus slot position, never more than about nine
  * — so each account only ever reaches a fixed subset of the library. In the
- * pool's own order that is 59 of the 70 exercises, and adding more exercises
- * barely moves it (87 of 150, still 87 of 230).
+ * pool's own order that was 59 of the 70 exercises the library first had, and
+ * adding exercises barely moved it (87 of 150, still 87 of 230).
  *
  * Real accounts never actually saw that, by accident: their exercise rows had
  * hashed ids, the device returns rows in id order, and so every account's pool
@@ -76,25 +77,11 @@ export type DraftEntry = Omit<ProgramEntry, keyof import('./types').Synced>;
 const pick = <T>(list: T[], i: number): T | null =>
   list.length ? (list[((i % list.length) + list.length) % list.length] as T) : null;
 
-/**
- * A movement the app will record but will never put in somebody's week.
- *
- * The library is about to gain conditioning work — thrusters, wall balls,
- * burpees, box jumps — so that a CrossFit class can be logged at all. Every one
- * of those is a legitimate thing to have done and a poor thing to be
- * *prescribed*: a generated slot arrives asking for three sets of six to twelve,
- * which is not what anybody does with a medicine ball, and a week built out of
- * them would read as a programme nobody wrote.
- *
- * It is a tag rather than a column because `tags` is already a string array on
- * the wire, in Dexie and in Postgres — so this costs no migration, no schema
- * change and no version bump, and an older row that has never heard of it
- * simply does not carry it.
- *
- * It bounds the *generator* and nothing else. A trainer may still name one of
- * these in a plan deliberately, and anybody may log one.
- */
-export const OFF_PLAN = 'offPlan';
+/* `OFF_PLAN` — the tag for a movement the app records but never programs — is
+   defined in `catalogue.ts`, beside the entries that carry it. It lived here
+   until the library moved into code: the catalogue builds its entries when it
+   loads, and importing the tag from here would have been a cycle that handed
+   it `undefined`. */
 
 /** Matched on pattern identity, never on name — names are translated and
  *  renameable, so name matching would break the generator in any non-English UI. */

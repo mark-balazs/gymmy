@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { OFF_PLAN, buildProgram, lastSession, swapOptions, varietyFor } from '../src/coach';
+import { buildProgram, lastSession, swapOptions, varietyFor } from '../src/coach';
 import { SPLITS } from '../src/splits';
-import { CATALOGUE } from '../src/catalogue';
+import { CATALOGUE, OFF_PLAN } from '../src/catalogue';
 import { index, programCoverage, programRows, type Indexed } from '../src/model';
 import { BIASES, type Bias, type PatternKey, type SplitKey, type Where } from '../src/types';
 import { logsFor, seedIndex, seedSnapshot, withEntries } from './fixture';
@@ -76,12 +76,14 @@ describe('program generation', () => {
       .map((e) => e.name);
 
     it('is unchanged at variety zero, which the demo and every fixture use', () => {
-      /* 59 of 70 is the figure measured on the generator before variety
-         existed. Holding it here is what makes zero mean "exactly the old
-         behaviour" rather than merely "roughly" — the demo's authored history
-         and the e2e suite's named lifts both depend on it. */
+      /* A pin on the algorithm at zero, not on the library. It was 59 of 70 —
+         the figure measured before variety existed — and became 68 of 85 when
+         the conventional gaps were added, because a bigger pool is a different
+         input rather than a different rule. If it moves with no change to the
+         library, the generator changed. The demo's specific week is pinned
+         separately, by `demo-history.test.ts` and the e2e suite's named lifts. */
       expect(configs).toHaveLength(144);
-      expect(reachedWith(0).size).toBe(59);
+      expect(reachedWith(0).size).toBe(68);
       // Omitting it is the same as zero.
       const cix = ixFor('sevenPattern', 3);
       expect(buildProgram(cix, { days: 3, where: 'gym', bias: 'none' })).toEqual(
@@ -90,10 +92,11 @@ describe('program generation', () => {
     });
 
     it('reaches every programmable exercise across accounts', () => {
-      /* The point of it. One account still reaches a subset — 55 to 62 of 70 —
-         but different accounts reach different subsets, and between forty of
-         them the whole library is programmed somewhere. Before, the shared
-         catalogue would have put every account on the same 59. */
+      /* The point of it. One account still reaches a subset — 62 to 74 of the
+         85 programmable exercises — but different accounts reach different
+         subsets, and between forty of them the whole library is programmed
+         somewhere. Without the offset, the shared catalogue would have put every
+         account on the same week. */
       const all = new Set<string>();
       for (let v = 0; v < 40; v++) for (const n of reachedWith(v)) all.add(n);
       expect(programmable.filter((n) => !all.has(n))).toEqual([]);

@@ -47,6 +47,26 @@
 
 import type { PatternKey, Where } from './types';
 
+/**
+ * A movement the app will record but will never put in somebody's week.
+ *
+ * The library carries conditioning work — thrusters, wall balls, box jumps —
+ * so that a CrossFit class can be logged at all. Every one
+ * of those is a legitimate thing to have done and a poor thing to be
+ * *prescribed*: a generated slot arrives asking for three sets of six to twelve,
+ * which is not what anybody does with a medicine ball, and a week built out of
+ * them would read as a programme nobody wrote.
+ *
+ * It is a tag rather than a column because `tags` is already a string array on
+ * the wire, in Dexie and in Postgres — so this costs no migration, no schema
+ * change and no version bump, and an older row that has never heard of it
+ * simply does not carry it.
+ *
+ * It bounds the *generator* and nothing else. A trainer may still name one of
+ * these in a plan deliberately, and anybody may log one.
+ */
+export const OFF_PLAN = 'offPlan';
+
 export interface CatalogueExercise {
   /** `ex-` plus a slug, written out literally. Never computed, never changed. */
   readonly id: string;
@@ -86,6 +106,8 @@ export const CATALOGUE: readonly CatalogueExercise[] = [
   c('ex-zercher-squat', 'Zercher Squat', 'squat', 'gym', 'legs'),
   c('ex-box-squat', 'Box Squat', 'squat', 'gym', 'legs'),
   c('ex-smith-machine-squat', 'Smith Machine Squat', 'squat', 'gym', 'legs'),
+  c('ex-bodyweight-squat', 'Bodyweight Squat', 'squat', 'home', 'legs'),
+  c('ex-db-squat', 'DB Squat', 'squat', 'home', 'legs'),
 
   /* hinge */
   c('ex-romanian-deadlift', 'Romanian Deadlift', 'hinge', 'home', 'glutes', 'legs'),
@@ -97,6 +119,8 @@ export const CATALOGUE: readonly CatalogueExercise[] = [
   c('ex-kettlebell-swing', 'Kettlebell Swing', 'hinge', 'home', 'glutes'),
   c('ex-single-leg-rdl', 'Single-Leg RDL', 'hinge', 'home', 'glutes'),
   c('ex-cable-pull-through', 'Cable Pull-Through', 'hinge', 'gym', 'glutes'),
+  c('ex-sumo-deadlift', 'Sumo Deadlift', 'hinge', 'gym', 'glutes', 'legs'),
+  c('ex-nordic-curl', 'Nordic Curl', 'hinge', 'home', 'legs'),
 
   /* lunge */
   c('ex-walking-lunge', 'Walking Lunge', 'lunge', 'home', 'legs', 'glutes'),
@@ -106,6 +130,7 @@ export const CATALOGUE: readonly CatalogueExercise[] = [
   c('ex-split-squat', 'Split Squat', 'lunge', 'home', 'legs'),
   c('ex-curtsy-lunge', 'Curtsy Lunge', 'lunge', 'home', 'glutes'),
   c('ex-lateral-lunge', 'Lateral Lunge', 'lunge', 'home', 'legs'),
+  c('ex-barbell-reverse-lunge', 'Barbell Reverse Lunge', 'lunge', 'gym', 'legs'),
 
   /* push */
   c('ex-db-bench-press', 'DB Bench Press', 'push', 'home', 'chest'),
@@ -117,6 +142,9 @@ export const CATALOGUE: readonly CatalogueExercise[] = [
   c('ex-dip', 'Dip', 'push', 'gym', 'chest', 'arms'),
   c('ex-machine-chest-press', 'Machine Chest Press', 'push', 'gym', 'chest'),
   c('ex-landmine-press', 'Landmine Press', 'push', 'gym', 'shoulders'),
+  c('ex-close-grip-bench-press', 'Close-Grip Bench Press', 'push', 'gym', 'chest', 'arms'),
+  c('ex-incline-barbell-press', 'Incline Barbell Press', 'push', 'gym', 'chest'),
+  c('ex-push-press', 'Push Press', 'push', 'gym', 'shoulders'),
 
   /* pull */
   c('ex-lat-pulldown', 'Lat Pulldown', 'pull', 'gym', 'back'),
@@ -128,6 +156,8 @@ export const CATALOGUE: readonly CatalogueExercise[] = [
   c('ex-chest-supported-row', 'Chest-Supported Row', 'pull', 'gym', 'back'),
   c('ex-face-pull', 'Face Pull', 'pull', 'gym', 'shoulders', 'back'),
   c('ex-inverted-row', 'Inverted Row', 'pull', 'home', 'back'),
+  c('ex-t-bar-row', 'T-Bar Row', 'pull', 'gym', 'back'),
+  c('ex-weighted-pull-up', 'Weighted Pull-Up', 'pull', 'gym', 'back'),
 
   /* rotate */
   c('ex-pallof-press', 'Pallof Press', 'rotate', 'gym'),
@@ -138,6 +168,7 @@ export const CATALOGUE: readonly CatalogueExercise[] = [
   c('ex-bird-dog', 'Bird Dog', 'rotate', 'home'),
   c('ex-dead-bug', 'Dead Bug', 'rotate', 'home'),
   c('ex-side-plank', 'Side Plank', 'rotate', 'home'),
+  c('ex-hanging-knee-raise', 'Hanging Knee Raise', 'rotate', 'home'),
 
   /* carry */
   c('ex-farmer-s-carry', "Farmer's Carry", 'carry', 'home'),
@@ -162,6 +193,33 @@ export const CATALOGUE: readonly CatalogueExercise[] = [
   c('ex-glute-kickback', 'Glute Kickback', 'isolation', 'home', 'glutes'),
   c('ex-rear-delt-fly', 'Rear Delt Fly', 'isolation', 'home', 'shoulders', 'back'),
   c('ex-chest-fly', 'Chest Fly', 'isolation', 'home', 'chest'),
+  c('ex-barbell-shrug', 'Barbell Shrug', 'isolation', 'gym', 'back'),
+  c('ex-preacher-curl', 'Preacher Curl', 'isolation', 'gym', 'arms'),
+  c('ex-skull-crusher', 'Skull Crusher', 'isolation', 'home', 'arms'),
+  c('ex-seated-calf-raise', 'Seated Calf Raise', 'isolation', 'gym', 'legs'),
+  /* conditioning — logged, never programmed. The movements a class is made
+     of. Tagged `OFF_PLAN`, so the generator never puts one in a week and
+     their place in this list cannot move anybody's generated week. */
+  c('ex-power-clean', 'Power Clean', 'hinge', 'gym', OFF_PLAN),
+  c('ex-power-snatch', 'Power Snatch', 'hinge', 'gym', OFF_PLAN),
+  c('ex-clean-and-jerk', 'Clean and Jerk', 'hinge', 'gym', OFF_PLAN),
+  c('ex-push-jerk', 'Push Jerk', 'push', 'gym', OFF_PLAN),
+  c('ex-overhead-squat', 'Overhead Squat', 'squat', 'gym', OFF_PLAN),
+  c('ex-front-rack-lunge', 'Front Rack Lunge', 'lunge', 'gym', OFF_PLAN),
+  c('ex-thruster', 'Thruster', 'squat', 'gym', OFF_PLAN),
+  c('ex-db-snatch', 'DB Snatch', 'hinge', 'home', OFF_PLAN),
+  c('ex-devils-press', "Devil's Press", 'hinge', 'home', OFF_PLAN),
+  c('ex-kettlebell-snatch', 'Kettlebell Snatch', 'hinge', 'home', OFF_PLAN),
+  c('ex-wall-ball', 'Wall Ball', 'squat', 'home', OFF_PLAN),
+  c('ex-box-jump', 'Box Jump', 'squat', 'home', OFF_PLAN),
+  c('ex-chest-to-bar-pull-up', 'Chest-to-Bar Pull-Up', 'pull', 'home', OFF_PLAN),
+  c('ex-ring-row', 'Ring Row', 'pull', 'home', OFF_PLAN),
+  c('ex-handstand-push-up', 'Handstand Push-Up', 'push', 'home', OFF_PLAN),
+  c('ex-ring-dip', 'Ring Dip', 'push', 'gym', OFF_PLAN),
+  c('ex-toes-to-bar', 'Toes-to-Bar', 'rotate', 'home', OFF_PLAN),
+  c('ex-ghd-sit-up', 'GHD Sit-Up', 'rotate', 'gym', OFF_PLAN),
+  c('ex-turkish-get-up', 'Turkish Get-Up', 'carry', 'home', OFF_PLAN),
+  c('ex-sandbag-carry', 'Sandbag Carry', 'carry', 'home', OFF_PLAN),
 ];
 
 /** Every catalogue entry by id, retired ones included — history has to resolve. */

@@ -338,4 +338,181 @@ export const EXERCISE_DETAILS: Record<string, ExerciseDetail> = Object.fromEntri
     'Chest Fly',
     'Open your arms wide with a slight bend at the elbow, then bring them back together. Chase the stretch, not the weight.',
   ),
+
+  /* ----------------------------------------------- added without photographs */
+  d(
+    'Bodyweight Squat',
+    'Arms out in front for balance, sit down between your knees and stand back up. Keep your heels on the floor the whole way down.',
+    false,
+  ),
+  d(
+    'DB Squat',
+    'Dumbbells hanging at your sides, sit straight down between your knees and stand back up. Keep your chest tall so the weights stay beside you, not in front.',
+    false,
+  ),
+  d(
+    'Sumo Deadlift',
+    'Feet wide with toes turned out, hands inside your knees, stand up with the bar. Push your knees out over your toes the whole way; letting them cave in is the usual fault.',
+    false,
+  ),
+  d(
+    'Nordic Curl',
+    'Kneel with your ankles held down and lower yourself forward, fighting the fall with your hamstrings. Keep a straight line from knees to head; bending at the hips is how it gets cheated.',
+    false,
+  ),
+  d(
+    'Barbell Reverse Lunge',
+    'Bar across your upper back, step backwards into the lunge and drive back up through the front foot. Stay tall, because the bar pulls you forward if you let it.',
+    false,
+  ),
+  d(
+    'Close-Grip Bench Press',
+    'A bench press with your hands shoulder-width apart and elbows tucked to your sides, which shifts the work onto the triceps. Any narrower only strains your wrists.',
+    false,
+  ),
+  d(
+    'Incline Barbell Press',
+    'Bench set at about thirty degrees, lower the bar to just below your collarbone and press it back up over your shoulders. The steeper the bench, the more it becomes a shoulder press.',
+    false,
+  ),
+  d(
+    'Push Press',
+    'Bar on your shoulders, dip briefly at the knees and drive up, pressing the bar overhead as your legs finish. Dip straight down; letting your chest tip forward sends the bar out in front.',
+    false,
+  ),
+  d(
+    'T-Bar Row',
+    'Straddle the bar, hinge over with a flat back and row the handle to your stomach. Keep your chest still; standing up to move the weight is the usual cheat.',
+    false,
+  ),
+  d(
+    'Weighted Pull-Up',
+    'A pull-up with extra weight hung from a belt or held between your feet. Same rules: start every rep from a dead hang and pull your chest towards the bar.',
+    false,
+  ),
+  d(
+    'Hanging Knee Raise',
+    'Hang from a bar and draw your knees up towards your chest, then lower them without swinging. Curl your hips up at the top; lifting only the knees leaves your abs out of it.',
+    false,
+  ),
+  d(
+    'Barbell Shrug',
+    "Hold the bar at arm's length and lift your shoulders towards your ears, then lower them. Straight up and down; rolling your shoulders adds nothing.",
+    false,
+  ),
+  d(
+    'Preacher Curl',
+    'Upper arms flat on the angled pad, curl the bar up and lower it until your arms are nearly straight. The pad stops you swinging, so the biceps do all the work.',
+    false,
+  ),
+  d(
+    'Skull Crusher',
+    'Lying on a bench, lower the weight towards your forehead by bending only at the elbows, then straighten your arms. Keep your upper arms still, pointing at the ceiling.',
+    false,
+  ),
+  d(
+    'Seated Calf Raise',
+    'Sit with your knees under the pad, lower your heels as far as they go, then rise onto your toes. Bent knees take the big calf muscle out of it, so the deeper one underneath does the work.',
+    false,
+  ),
+  d(
+    'Power Clean',
+    'Pull the bar from the floor, jump as it reaches the top of your thighs, and catch it on the front of your shoulders above a full squat. Arms stay straight until the jump is done; bending them early steals the power.',
+    false,
+  ),
+  d(
+    'Power Snatch',
+    'Wide grip, pull the bar from the floor and jump as it reaches your hips, catching it overhead on locked arms above a full squat. Keep it brushing your body: a bar that swings out in front has to be chased.',
+    false,
+  ),
+  d(
+    'Clean and Jerk',
+    'Two lifts: clean the bar from the floor to your shoulders and stand up, then dip, drive and lock it out overhead. Settle the bar and your feet before the jerk rather than rushing it out of the clean.',
+    false,
+  ),
+  d(
+    'Push Jerk',
+    'Bar on the front of your shoulders, dip at the knees, drive up and push yourself under it, catching it on locked arms with your knees still bent. Dip straight down; if your chest tips forward, so does the bar.',
+    false,
+  ),
+  d(
+    'Overhead Squat',
+    'Wide grip, bar locked out overhead, squat down and stand back up. Keep pushing up into the bar the whole way down — the moment your arms go soft, it drifts forward.',
+    false,
+  ),
+  d(
+    'Front Rack Lunge',
+    'Bar on the front of your shoulders, elbows high, step into a lunge and stand back up. Keep the elbows up — when they drop, your chest follows and the bar rolls forward.',
+    false,
+  ),
+  d(
+    'Thruster',
+    'Front squat the bar and use the drive out of the bottom to send it straight overhead in one motion. If you stand first and then press, it is two lifts rather than one.',
+    false,
+  ),
+  d(
+    'DB Snatch',
+    'Pull one dumbbell from between your feet and snap your hips to send it overhead, catching it on a straight arm in one movement. Your hips throw it; the arm only keeps it close and punches up at the end.',
+    false,
+  ),
+  d(
+    "Devil's Press",
+    'Do a burpee with your hands on two dumbbells, then swing both from between your legs to overhead in one go. The swing is a hinge: back flat, hips doing the throwing.',
+    false,
+  ),
+  d(
+    'Kettlebell Snatch',
+    'Swing the bell back between your legs, then snap your hips and guide it straight up to lock out overhead in one movement. Punch your hand through as it rises, so the bell rolls onto your forearm instead of crashing into it.',
+    false,
+  ),
+  d(
+    'Wall Ball',
+    'Hold a medicine ball at your chest, squat, and drive up to throw it at a mark high on the wall. The throw comes from your legs — your arms only steer it.',
+    false,
+  ),
+  d(
+    'Box Jump',
+    'Jump from both feet onto a box, land softly, and stand all the way up on top. Step back down rather than jumping off — it spares your ankles and Achilles.',
+    false,
+  ),
+  d(
+    'Chest-to-Bar Pull-Up',
+    'A pull-up that finishes with your chest touching the bar, not just your chin clearing it. Drive your elbows down and back, and lead with your chest rather than craning your neck.',
+    false,
+  ),
+  d(
+    'Ring Row',
+    'Lean back under a pair of rings, body straight from head to heels, and row your chest up between your hands. Keep your hips in line, so your whole body rises together.',
+    false,
+  ),
+  d(
+    'Handstand Push-Up',
+    'Upside down with your feet against a wall, lower until your head touches the floor, then press back up. Your head lands a little in front of your hands, so the three make a triangle rather than a line.',
+    false,
+  ),
+  d(
+    'Ring Dip',
+    'A dip on gymnastic rings. They move where bars stay put, so keep them pressed close to your sides and turn your palms forward at the top to stop them drifting apart.',
+    false,
+  ),
+  d(
+    'Toes-to-Bar',
+    'Hang from a bar and lift your feet until your toes touch it between your hands. Curl your hips up towards the bar rather than just kicking your legs — your trunk does the lifting.',
+    false,
+  ),
+  d(
+    'GHD Sit-Up',
+    'Feet locked into a glute-ham developer, lean back until your torso is past parallel, then sit up and reach for your feet. Snap your knees straight to come up, rather than heaving with your neck.',
+    false,
+  ),
+  d(
+    'Turkish Get-Up',
+    'Lie down with a kettlebell pressed straight up over one shoulder, then get up to standing and back down. Keep your arm locked and your eyes on the bell the whole way.',
+    false,
+  ),
+  d(
+    'Sandbag Carry',
+    'Hug a sandbag high against your chest and walk. It shifts and sags as you go, so the job is keeping it high and staying upright instead of leaning back under it.',
+    false,
+  ),
 ]);

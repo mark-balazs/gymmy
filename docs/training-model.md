@@ -73,9 +73,11 @@ repair pass selects the same way instead of always forcing the head of the pool.
 
 - **Zero is the old generator exactly.** The demo seed passes 0, as do every
   test fixture and the e2e suite, because the demo's history is authored against
-  one specific week. `coach.test.ts` holds variety zero to 59 of 70.
+  one specific week. `coach.test.ts` holds variety zero to 68 of 85 — it was
+  59 of 70 before the library grew; a bigger pool is a different input, not a
+  different rule.
 - **Across forty accounts every programmable exercise is reached**; one account
-  still reaches 55–62. That is the honest shape of it: this restores the
+  still reaches 62–74 of the 85. That is the honest shape of it: this restores the
   per-account spread the storage accident provided, rather than giving any one
   account the whole library.
 - **Nothing moves on the day it ships.** A stored week is never regenerated on

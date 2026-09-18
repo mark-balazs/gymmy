@@ -103,6 +103,12 @@ test.describe('Logging something outside the plan', () => {
        blank sheet, and the library is grouped by pattern in the app's order. */
     await logOther(app).click();
     const sheet = app.getByRole('dialog');
+
+    // A thruster is tagged off-plan: the generator will never put one in a
+    // week, and this is the one place somebody who did a class can log it.
+    await sheet.getByLabel('Search exercises').fill('thrus');
+    await expect(sheet.getByRole('button', { name: 'Thruster', exact: true })).toBeVisible();
+
     await sheet.getByLabel('Search exercises').fill('zzzz');
     await expect(sheet.getByText('Nothing matches “zzzz”.')).toBeVisible();
 
