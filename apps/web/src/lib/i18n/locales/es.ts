@@ -215,16 +215,16 @@ export const es: Record<Key, string> = {
   'goal.flat': 'Este no se movió. Es información, no un fracaso.',
   'goal.again': 'Otro objetivo',
   'goal.tooSmall':
-    'Demasiado pequeño para medirse. Repetir la misma prueba ya varía un 4% por sí solo, así que un objetivo necesita al menos un 5%. {n} {unit} servirían.',
+    'Demasiado pequeño para medirlo: el mismo ejercicio puede variar un 4 % de un día a otro. Apunta al menos a un 5 %: {n} {unit}.',
   'goal.tooShort':
-    'Dale al menos {n} semanas. La fuerza se añade cuando una sesión sale bien, no por calendario, y en menos tiempo no caben suficientes.',
+    'Dale al menos {n} semanas. La fuerza se gana a lo largo de muchas buenas sesiones, y un objetivo más corto no da cabida a suficientes.',
   'goal.tooLong': 'Que no pase de un año. Más allá es una esperanza, no un objetivo.',
   'goal.tooMany': 'Tres a la vez. Empujar todo junto es la forma de que no avance nada.',
   'goal.ambitious':
-    'Eso sale a un {pct}% por semana. Quien ya entrena suele sumar un 7–12% en todo un año. Mantenlo si lo dices en serio: esto es solo para que sepas qué asumes.',
+    'Eso es un {pct} % por semana. Quien ya entrena suele ganar un 7–12 % en todo un año. Mantenlo si quieres: es solo para que sepas a qué te comprometes.',
   'goal.why': 'De dónde salen estos límites',
   'goal.whyBody':
-    'Dos números de la investigación, y uno que no existe. Repetir una prueba de fuerza varía por sí sola alrededor de un 4%, así que por debajo no se distingue el progreso del ruido. Quien ya está entrenado gana en torno a un 7–12% en un año, y la curva se aplana con los años de entrenamiento. Y ningún organismo importante publica un porcentaje semanal seguro: toda cifra publicada es un aumento aplicado tras una sesión que salió bien, nunca un ritmo que te deba el calendario. La app comprueba que un objetivo sea medible y tenga tiempo, y por lo demás se aparta.',
+    'El mismo ejercicio puede variar un 4 % de un día a otro, así que un objetivo más pequeño no se distingue de un día normal. Quien ya entrena suele ganar un 7–12 % en un año, y cuanto más tiempo entrenas, más despacio va. Nadie puede prometer una cantidad segura por semana: la fuerza sube tras buenas sesiones, no según el calendario. Por eso la app solo comprueba que un objetivo se pueda medir y tenga tiempo para cumplirse.',
   'prog.needsLook': 'Vale saberlo',
   'prog.allClear': 'Nada que señalar.',
   'prog.kregressed': 'A la baja',
@@ -247,7 +247,7 @@ export const es: Record<Key, string> = {
   'prog.noMetric':
     'Esto se registra en metros y segundos, así que no hay peso que dibujar. Las series siguen contando para tu semana.',
   'prog.oneSession': 'Una sesión por ahora. Con dos ya hay línea.',
-  'prog.overTime': 'Mejor 1RM estimado, sesión a sesión',
+  'prog.overTime': 'Tu mejor levantamiento estimado, sesión a sesión',
   'prog.overTimeWeight': 'Serie más pesada, sesión a sesión',
   'prog.session': 'Sesión',
   'prog.gapNote': 'Un tramo punteado es tiempo en el que no entrenaste esto.',
@@ -257,14 +257,14 @@ export const es: Record<Key, string> = {
   'prog.lastTrained': 'Último entrenamiento',
   'prog.best': 'Tu récord',
   'prog.unrated':
-    'En algunas de estas series no consta el esfuerzo, así que salen más bajas de lo que fueron. Esas comparaciones se omiten en lugar de adivinarlas.',
+    'Algunas de estas series no tienen esfuerzo registrado, así que pueden parecer más flojas de lo que fueron. Se dejan fuera de las comparaciones.',
   'prog.empty': 'Registra unas sesiones y aquí aparecerá tu progreso.',
   'prog.strength': 'Índice de fuerza',
   'prog.strengthWhat': 'Qué es este número',
   'prog.strengthBody':
-    'Tu mejor levantamiento en cada uno de los cinco movimientos con carga, sumados y comparados con tu peso corporal — elevado a dos tercios, porque la fuerza no escala uno a uno con el peso. Solo cuenta los últimos dos meses, porque debe decir lo que puedes hacer ahora.',
+    'Tus mejores levantamientos en sentadilla, bisagra, zancada, empuje y tirón, sumados y comparados con tu peso corporal. Solo cuenta los dos últimos meses, así que muestra lo fuerte que eres ahora.',
   'prog.strengthNot':
-    'Es la escala propia de gymmy y no se puede comparar con la de nadie más — sin clasificación, nadie más dentro. Un movimiento sin nada con qué estimarlo cuenta como cero: sin entrenar, o solo con muchas repeticiones. Cubrir los cinco es la mitad del asunto.',
+    'Es solo para ti: muestra si te estás haciendo más fuerte y no sirve para compararte con nadie. Un movimiento cuenta en cuanto haces una serie de 10 repeticiones o menos, así que entrenar los cinco hace subir el número.',
   'prog.needWeight': 'Añade tu peso corporal y esto empieza a medirse.',
   'prog.needLifts': 'Registra unas sesiones y esto empieza a medirse.',
   'prog.deltaUp': '{by} más que {ago}',
@@ -282,19 +282,19 @@ export const es: Record<Key, string> = {
   'prog.dots': 'DOTS',
   'prog.dotsWhat': 'Qué es el DOTS',
   'prog.dotsBody':
-    'La escala del powerlifting de competición: sentadilla, press de banca y peso muerto sumados y ajustados por peso corporal y sexo. Es el único número aquí que significa algo para otra persona — cualquier calculadora de DOTS dará lo mismo.',
+    'La puntuación que usan los powerlifters: tu sentadilla, press de banca y peso muerto sumados y ajustados a tu peso corporal y sexo. A diferencia del índice, puedes compararla con otras personas.',
   'prog.dotsNot':
-    'No es un total de competición. Un total real son tres levantamientos únicos en un día con jueces; este se estima con dos meses de entrenamiento, así que sale más alto de lo que levantarías ese día.',
+    'No es un total de competición. Se calcula a partir de tu entrenamiento, así que suele salir algo más alto de lo que levantarías en una competición.',
   'prog.dotsNeed':
     'Necesita sentadilla, press de banca y peso muerto con barra. Todavía falta: {what}.',
   'prog.dotsEstimate':
-    'Todavía no hay con qué estimar {what}: hace falta una serie de diez repeticiones o menos hasta el fallo.',
+    'Aún no hay número para {what}: hace falta una serie de 10 repeticiones o menos.',
   'prog.dotsNeedsSex':
-    'El DOTS usa una curva distinta para hombres y mujeres. Indícalo en tu perfil para verlo.',
+    'DOTS se calcula de forma distinta para hombres y mujeres. Elige el tuyo en Ajustes para verlo.',
   'prog.dotsFrom': '{total} en los tres levantamientos',
   'prog.prs': '★ marca un récord personal',
   'prog.conventionChanged':
-    'Desde el {date}, una mancuerna en cada mano se registra como las dos juntas. Un salto ese día es contabilidad, no entrenamiento.',
+    'Desde el {date}, los ejercicios con mancuernas registran las dos mancuernas, no una. Si la gráfica salta ese día, es por eso: tu fuerza no cambió.',
 
   'set.you': 'Tú',
   'set.app': 'La aplicación',
@@ -302,8 +302,7 @@ export const es: Record<Key, string> = {
   'set.namePlaceholder': '¿Cómo te llamamos?',
   'set.birthYear': 'Año de nacimiento',
   'set.birthYearPlaceholder': 'por ejemplo 1990',
-  'set.birthYearWhy':
-    'Sirve para tener en cuenta tu edad en tu índice de fuerza, a partir de los 40. Opcional: sin ello el índice no aplica ningún ajuste. DOTS nunca lo usa.',
+  'set.birthYearWhy': 'Opcional. A partir de los 40, tu índice de fuerza tiene en cuenta tu edad.',
   'set.yearBad': 'Introduce un año entre {from} y {to}.',
   'set.picAdd': 'Añadir una foto',
   'set.picChange': 'Cambiar la foto',
@@ -316,7 +315,7 @@ export const es: Record<Key, string> = {
   'set.aboutYou': 'Sobre ti',
   'set.sex': 'Sexo',
   'set.sexWhy':
-    'Sirve para una sola cosa: el DOTS, que tiene una curva distinta para hombres y mujeres. Si no lo dices, simplemente no hay DOTS — nada más cambia.',
+    'Opcional, y solo se usa para DOTS. Si prefieres no decirlo, DOTS simplemente no se muestra.',
   'sex.unspecified': 'Prefiero no decirlo',
   'sex.female': 'Mujer',
   'sex.male': 'Hombre',

@@ -205,16 +205,16 @@ export const en = {
   'goal.flat': 'This one did not move. That is information, not a failure.',
   'goal.again': 'Set another',
   'goal.tooSmall':
-    'Too small to measure. Retesting the same lift varies by about 4% on its own, so a goal needs at least 5% to mean anything. {n} {unit} would.',
+    'Too small to measure — the same lift can vary by about 4% from one day to the next. Aim for at least 5%: {n} {unit}.',
   'goal.tooShort':
-    'Give it at least {n} weeks. Strength is added when a session goes well rather than on a schedule, so a shorter run cannot hold enough of them.',
+    'Give it at least {n} weeks. Strength builds over many good sessions, and a shorter goal cannot fit enough of them.',
   'goal.tooLong': 'Keep it under a year. Longer than that is a hope, not a goal.',
   'goal.tooMany': 'Three at a time. Pushing everything at once is how nothing moves.',
   'goal.ambitious':
-    'That works out at about {pct}% a week. Lifters who are already trained tend to add 7–12% over a whole year. Keep it if you mean it — this is just so you know what you are taking on.',
+    'That is about {pct}% a week. Experienced lifters usually add 7–12% over a whole year. Keep it if you want — it is just so you know what you are taking on.',
   'goal.why': 'Where these limits come from',
   'goal.whyBody':
-    'Two numbers from the research, and one thing it does not say. A repeated one-rep-max test varies by about 4% on its own, so a smaller change cannot be told from noise. Already-trained lifters add roughly 7–12% in a year, and the curve flattens with training age. And no major body publishes a safe percent-per-week — every published figure is an increase applied after a session that went well, never a rate the calendar owes you. So the app checks that a goal is measurable and has room to happen, and otherwise stays out of it.',
+    'The same lift can vary by about 4% from day to day, so a smaller goal can’t be told apart from a normal day. Experienced lifters usually add 7–12% in a year, and it gets slower the longer you train. Nobody can promise a safe amount per week — strength goes up after good sessions, not on a schedule. So the app only checks that a goal can be measured and has time to happen.',
   'prog.needsLook': 'Worth knowing',
   'prog.allClear': 'Nothing to flag.',
   'prog.kregressed': 'Down',
@@ -237,7 +237,7 @@ export const en = {
   'prog.noMetric':
     'This is logged in metres and seconds, so there is no weight to plot. The sets still count towards your week.',
   'prog.oneSession': 'One session so far. Two makes a line.',
-  'prog.overTime': 'Best estimated 1RM, session by session',
+  'prog.overTime': 'Your estimated best single lift, session by session',
   'prog.overTimeWeight': 'Heaviest set, session by session',
   'prog.session': 'Session',
   'prog.gapNote': 'A dotted stretch is time you did not train this.',
@@ -247,14 +247,14 @@ export const en = {
   'prog.lastTrained': 'Last trained',
   'prog.best': 'Your best',
   'prog.unrated':
-    'Some of these sets have no effort recorded, which makes them read lower than they were. Comparisons across them are left out rather than guessed.',
+    'Some of these sets have no effort recorded, so they may look weaker than they were. They are left out of comparisons.',
   'prog.empty': 'Log a few sessions and your progress shows up here.',
   'prog.strength': 'Strength index',
   'prog.strengthWhat': 'What this number is',
   'prog.strengthBody':
-    'Your best lift in each of the five loaded movements, added up and set against your bodyweight — raised to the two-thirds power, because strength does not scale with weight one for one. It only counts the last two months, because it is meant to say what you can do now.',
+    'Your best lifts in squat, hinge, lunge, push and pull, added up and compared with your bodyweight. It only looks at the last two months, so it shows how strong you are now.',
   'prog.strengthNot':
-    'It is gymmy’s own scale and it is not comparable with anybody else’s — no ranking, nobody else in it. A movement with nothing to estimate from counts as zero: not trained, or only trained for high reps. Covering all five is half the point.',
+    'It is just for you: it shows whether you are getting stronger, and it is not for comparing with anyone else. A movement counts once you have done a set of 10 reps or fewer in it, so training all five pushes the number up.',
   'prog.needWeight': 'Add your bodyweight and this starts tracking.',
   'prog.needLifts': 'Log a few sessions and this starts tracking.',
   'prog.deltaUp': 'Up {by} on {ago}',
@@ -275,18 +275,17 @@ export const en = {
   'prog.dots': 'DOTS',
   'prog.dotsWhat': 'What DOTS is',
   'prog.dotsBody':
-    'The scale competitive powerlifting uses: your squat, bench press and deadlift added together and adjusted for bodyweight and sex. It is the one number here that means something to somebody else — any DOTS calculator will agree with the arithmetic.',
+    'The score powerlifters use: your squat, bench press and deadlift added up and adjusted for your bodyweight and sex. Unlike the index, you can compare it with other people.',
   'prog.dotsNot':
-    'It is not a meet total. A real total is three single lifts on one day under judging; this is estimated from your training over two months, so it reads higher than you would lift on the day.',
+    'It is not a meet total. It is worked out from your training, so it usually comes out a little higher than what you would lift in a competition.',
   'prog.dotsNeed': 'Needs a barbell squat, bench press and deadlift. Still missing: {what}.',
-  'prog.dotsEstimate':
-    'Nothing to estimate {what} from yet: an estimate needs a set of ten reps or fewer to failure.',
+  'prog.dotsEstimate': 'No number for {what} yet — it needs a set of 10 reps or fewer.',
   'prog.dotsNeedsSex':
-    'DOTS uses a different curve for men and women. Set yours in your profile to see it.',
+    'DOTS is worked out differently for men and women. Choose yours in Settings to see it.',
   'prog.dotsFrom': '{total} across the three lifts',
   'prog.prs': '★ marks a personal best',
   'prog.conventionChanged':
-    'From {date}, a dumbbell in each hand is recorded as both together. A jump on that day is bookkeeping, not training.',
+    'From {date}, dumbbell exercises record both dumbbells, not one. If the chart jumps on that day, that is why — your strength did not change.',
 
   'set.you': 'You',
   'set.app': 'The app',
@@ -294,8 +293,7 @@ export const en = {
   'set.namePlaceholder': 'What should we call you?',
   'set.birthYear': 'Year of birth',
   'set.birthYearPlaceholder': 'e.g. 1990',
-  'set.birthYearWhy':
-    'Used to allow for age in your strength index, from 40. Optional — without it the index simply makes no allowance. DOTS never uses it.',
+  'set.birthYearWhy': 'Optional. From 40, your strength index takes your age into account.',
   'set.yearBad': 'Enter a year between {from} and {to}.',
   'set.picAdd': 'Add a picture',
   'set.picChange': 'Change picture',
@@ -308,7 +306,7 @@ export const en = {
   'set.aboutYou': 'About you',
   'set.sex': 'Sex',
   'set.sexWhy':
-    'Used for one thing: DOTS, which has a separate curve for men and women. Prefer not to say, and there is simply no DOTS — nothing else changes.',
+    'Optional, and only used for DOTS. If you prefer not to say, DOTS is simply not shown.',
   'sex.unspecified': 'Prefer not to say',
   'sex.female': 'Female',
   'sex.male': 'Male',

@@ -210,16 +210,16 @@ export const fr: Record<Key, string> = {
   'goal.flat': 'Celui-ci n’a pas bougé. C’est une information, pas un échec.',
   'goal.again': 'Un autre objectif',
   'goal.tooSmall':
-    'Trop petit pour être mesurable. Refaire le même test varie déjà d’environ 4%, donc un objectif doit faire au moins 5%. {n} {unit} suffiraient.',
+    'Trop petit pour être mesuré : un même exercice varie d’environ 4 % d’un jour à l’autre. Vise au moins 5 % : {n} {unit}.',
   'goal.tooShort':
-    'Donne-lui au moins {n} semaines. La force s’ajoute quand une séance se passe bien, pas selon le calendrier — en moins de temps, il n’y en a pas assez.',
+    'Donne-toi au moins {n} semaines. La force se construit sur beaucoup de bonnes séances, et un objectif plus court n’en contient pas assez.',
   'goal.tooLong': 'Reste sous un an. Au-delà, c’est un espoir, pas un objectif.',
   'goal.tooMany': 'Trois à la fois. Tout pousser en même temps, c’est comment rien n’avance.',
   'goal.ambitious':
-    'Cela fait environ {pct}% par semaine. Les pratiquants déjà entraînés prennent plutôt 7–12% sur une année entière. Garde-le si tu le veux — c’est juste pour que tu saches ce que tu prends.',
+    'Ça fait environ {pct} % par semaine. Les pratiquants confirmés gagnent en général 7 à 12 % sur toute une année. Garde-le si tu veux : c’est juste pour que tu saches dans quoi tu te lances.',
   'goal.why': 'D’où viennent ces limites',
   'goal.whyBody':
-    'Deux chiffres issus de la recherche, et un qui n’existe pas. Un test de force répété varie d’environ 4% à lui seul : en dessous, on ne distingue pas le progrès du bruit. Les pratiquants déjà entraînés gagnent environ 7–12% en un an, et la courbe s’aplatit avec les années. Et aucun organisme majeur ne publie de pourcentage hebdomadaire sûr — chaque chiffre publié est une augmentation appliquée après une séance réussie, jamais un rythme que le calendrier te devrait. L’app vérifie donc qu’un objectif est mesurable et a le temps d’arriver, et se tait pour le reste.',
+    'Un même exercice varie d’environ 4 % d’un jour à l’autre, donc un objectif plus petit ne se distingue pas d’une journée normale. Les pratiquants confirmés gagnent en général 7 à 12 % par an, et plus tu t’entraînes depuis longtemps, plus ça ralentit. Personne ne peut promettre une progression sûre par semaine : la force monte après de bonnes séances, pas selon le calendrier. L’app vérifie donc seulement qu’un objectif est mesurable et a le temps de se réaliser.',
   'prog.needsLook': 'Bon à savoir',
   'prog.allClear': 'Rien à signaler.',
   'prog.kregressed': 'En baisse',
@@ -242,7 +242,7 @@ export const fr: Record<Key, string> = {
   'prog.noMetric':
     'Cela se note en mètres et en secondes : il n’y a pas de charge à tracer. Les séries comptent quand même pour ta semaine.',
   'prog.oneSession': 'Une seule séance pour l’instant. À deux, cela fera une courbe.',
-  'prog.overTime': 'Meilleur 1RM estimé, séance par séance',
+  'prog.overTime': 'Ta meilleure charge estimée sur une répétition, séance par séance',
   'prog.overTimeWeight': 'Série la plus lourde, séance par séance',
   'prog.session': 'Séance',
   'prog.gapNote': 'Un tracé en pointillés, c’est une période sans entraînement de ce mouvement.',
@@ -252,14 +252,14 @@ export const fr: Record<Key, string> = {
   'prog.lastTrained': 'Dernière séance',
   'prog.best': 'Ton record',
   'prog.unrated':
-    'Sur certaines de ces séries, l’effort n’est pas renseigné : elles ressortent plus basses qu’elles ne l’étaient. On préfère écarter ces comparaisons plutôt que de deviner.',
+    'Certaines de ces séries n’ont pas d’effort noté, elles peuvent donc paraître plus faibles qu’elles ne l’étaient. Elles sont laissées de côté dans les comparaisons.',
   'prog.empty': 'Note quelques séances et tes progrès apparaîtront ici.',
   'prog.strength': 'Indice de force',
   'prog.strengthWhat': 'Ce que dit ce chiffre',
   'prog.strengthBody':
-    'Votre meilleure charge dans chacun des cinq mouvements chargés, additionnée et rapportée à votre poids de corps — élevé à la puissance deux tiers, car la force ne suit pas le poids un pour un. Seuls les deux derniers mois comptent : le chiffre doit dire ce que vous pouvez faire maintenant.',
+    'Tes meilleures charges en squat, charnière, fente, poussée et tirage, additionnées et comparées à ton poids de corps. Seuls les deux derniers mois comptent, donc il montre ta force actuelle.',
   'prog.strengthNot':
-    'C’est l’échelle propre à gymmy, comparable à celle de personne d’autre — aucun classement, personne d’autre dedans. Un mouvement sans rien pour l’estimer compte pour zéro : non entraîné, ou seulement en séries longues. Couvrir les cinq est la moitié de l’idée.',
+    'C’est juste pour toi : il montre si tu progresses, pas de quoi te comparer aux autres. Un mouvement compte dès que tu as fait une série de 10 répétitions ou moins, donc travailler les cinq fait monter le chiffre.',
   'prog.needWeight': 'Renseigne ton poids de corps et le suivi démarre.',
   'prog.needLifts': 'Note quelques séances et le suivi démarre.',
   'prog.deltaUp': '{by} de plus qu’{ago}',
@@ -277,19 +277,19 @@ export const fr: Record<Key, string> = {
   'prog.dots': 'DOTS',
   'prog.dotsWhat': 'Ce qu’est le DOTS',
   'prog.dotsBody':
-    'L’échelle de la force athlétique de compétition : squat, développé couché et soulevé de terre additionnés, ajustés au poids de corps et au sexe. C’est le seul chiffre ici qui signifie quelque chose pour quelqu’un d’autre — n’importe quel calculateur DOTS donnera le même résultat.',
+    'Le score des powerlifters : ton squat, ton développé couché et ton soulevé de terre additionnés, ajustés à ton poids de corps et à ton sexe. Contrairement à l’indice, tu peux le comparer à celui des autres.',
   'prog.dotsNot':
-    'Ce n’est pas un total de compétition. Un vrai total, c’est trois levers uniques le même jour devant des juges ; celui-ci est estimé sur deux mois d’entraînement, donc plus élevé que ce que vous souleveriez le jour même.',
+    'Ce n’est pas un total de compétition. Il est calculé à partir de ton entraînement, donc il est souvent un peu plus haut que ce que tu soulèverais en compétition.',
   'prog.dotsNeed':
     'Demande un squat, un développé couché et un soulevé de terre à la barre. Il manque encore : {what}.',
   'prog.dotsEstimate':
-    'Rien pour estimer {what} pour l’instant : il faut une série de dix répétitions ou moins jusqu’à l’échec.',
+    'Pas encore de chiffre pour {what} : il faut une série de 10 répétitions ou moins.',
   'prog.dotsNeedsSex':
-    'Le DOTS utilise une courbe différente pour les hommes et les femmes. Renseignez-le dans votre profil pour le voir.',
+    'Le DOTS se calcule différemment pour les hommes et les femmes. Choisis le tien dans les Réglages pour le voir.',
   'prog.dotsFrom': '{total} sur les trois mouvements',
   'prog.prs': '★ signale un record personnel',
   'prog.conventionChanged':
-    'Depuis le {date}, un haltère dans chaque main est enregistré comme les deux ensemble. Un saut ce jour-là est comptable, pas sportif.',
+    'Depuis le {date}, les exercices avec haltères comptent les deux haltères, pas une. Si la courbe saute ce jour-là, c’est pour ça : ta force n’a pas changé.',
 
   'set.you': 'Toi',
   'set.app': 'L’application',
@@ -298,7 +298,7 @@ export const fr: Record<Key, string> = {
   'set.birthYear': 'Année de naissance',
   'set.birthYearPlaceholder': 'par exemple 1990',
   'set.birthYearWhy':
-    'Sert à tenir compte de ton âge dans ton indice de force, à partir de 40 ans. Facultatif : sans cela, l’indice n’applique aucun ajustement. DOTS ne l’utilise jamais.',
+    'Facultatif. À partir de 40 ans, ton indice de force tient compte de ton âge.',
   'set.yearBad': 'Saisis une année entre {from} et {to}.',
   'set.picAdd': 'Ajouter une photo',
   'set.picChange': 'Changer la photo',
@@ -311,7 +311,7 @@ export const fr: Record<Key, string> = {
   'set.aboutYou': 'À propos de toi',
   'set.sex': 'Sexe',
   'set.sexWhy':
-    'Sert à une seule chose : le DOTS, qui a une courbe différente pour les hommes et les femmes. Sans réponse, il n’y a simplement pas de DOTS — rien d’autre ne change.',
+    'Facultatif, et utilisé seulement pour le DOTS. Si tu préfères ne pas le dire, le DOTS n’est simplement pas affiché.',
   'sex.unspecified': 'Je préfère ne pas dire',
   'sex.female': 'Femme',
   'sex.male': 'Homme',

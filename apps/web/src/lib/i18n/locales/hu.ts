@@ -201,16 +201,16 @@ export const hu: Record<Key, string> = {
   'goal.flat': 'Ez nem mozdult. Ez információ, nem kudarc.',
   'goal.again': 'Új cél',
   'goal.tooSmall':
-    'Túl kicsi ahhoz, hogy mérhető legyen. Ugyanannak a gyakorlatnak az újramérése magában is kb. 4%-ot ingadozik, ezért egy célnak legalább 5%-nak kell lennie. {n} {unit} már az.',
+    'Túl kicsi ahhoz, hogy mérni lehessen – ugyanaz a gyakorlat napról napra kb. 4%-ot ingadozik. Legalább 5% legyen: {n} {unit}.',
   'goal.tooShort':
-    'Adj neki legalább {n} hetet. Az erő akkor nő, ha egy alkalom jól sikerül, nem menetrend szerint — rövidebb idő alatt nem gyűlik össze elég.',
+    'Adj neki legalább {n} hetet. Az erő sok jó edzés alatt épül fel, és egy rövidebb célba nem fér bele elég.',
   'goal.tooLong': 'Maradj egy éven belül. Annál hosszabb már inkább remény, mint cél.',
   'goal.tooMany': 'Egyszerre három. Ha mindent nyomsz, semmi nem mozdul.',
   'goal.ambitious':
-    'Ez kb. heti {pct}%. A már edzett emberek jellemzően egy teljes év alatt tesznek hozzá 7–12%-ot. Tartsd meg, ha komolyan gondolod — csak hogy tudd, mit vállalsz.',
+    'Ez kb. heti {pct}%. A rutinos edzők általában egy egész év alatt adnak hozzá 7–12%-ot. Maradhat, ha szeretnéd – csak hogy tudd, mire vállalkozol.',
   'goal.why': 'Honnan jönnek ezek a korlátok',
   'goal.whyBody':
-    'Két szám a kutatásból, és egy dolog, amit nem mond ki. Egy ismételt egyismétléses teszt magában kb. 4%-ot ingadozik, ennél kisebb változást nem lehet a zajtól elválasztani. A már edzett emberek egy év alatt kb. 7–12%-ot adnak hozzá, és a görbe az edzésévekkel lelapul. És egyetlen nagy szervezet sem ad ki biztonságos heti százalékot — minden publikált szám egy jól sikerült alkalom utáni emelés, nem olyan ütem, amivel a naptár tartozik neked. Az app tehát azt ellenőrzi, hogy a cél mérhető-e és van-e rá idő, egyébként nem szól bele.',
+    'Ugyanaz a gyakorlat napról napra kb. 4%-ot ingadozik, így egy kisebb cél nem különböztethető meg egy átlagos naptól. A rutinos edzők általában évente 7–12%-ot fejlődnek, és minél régebben edzel, annál lassabban megy. Biztonságos heti fejlődést senki sem ígérhet – az erő jó edzések után nő, nem a naptár szerint. Ezért az app csak azt nézi, hogy a cél mérhető-e, és van-e rá idő.',
   'prog.needsLook': 'Érdemes tudni',
   'prog.allClear': 'Nincs mit kiemelni.',
   'prog.kregressed': 'Vissza',
@@ -233,7 +233,7 @@ export const hu: Record<Key, string> = {
   'prog.noMetric':
     'Ezt méterben és másodpercben rögzíted, így nincs mit ábrázolni. A sorozatok ettől még beleszámítanak a hetedbe.',
   'prog.oneSession': 'Eddig egy edzés. Kettőből lesz vonal.',
-  'prog.overTime': 'Becsült 1RM csúcs, edzésről edzésre',
+  'prog.overTime': 'A becsült legjobb egyismétléses súlyod, edzésről edzésre',
   'prog.overTimeWeight': 'Legnehezebb sorozat, edzésről edzésre',
   'prog.session': 'Edzés',
   'prog.gapNote': 'A szaggatott szakasz olyan időszak, amikor ezt nem edzetted.',
@@ -243,14 +243,14 @@ export const hu: Record<Key, string> = {
   'prog.lastTrained': 'Utoljára edzve',
   'prog.best': 'A csúcsod',
   'prog.unrated':
-    'Néhány sorozatnál nincs rögzítve a nehézség, ezért a kelleténél alacsonyabbnak számítanak. Az ilyen összevetéseket inkább kihagyjuk, mint hogy találgassunk.',
+    'Ezeknél a sorozatoknál nincs megadva az erőfeszítés, ezért gyengébbnek tűnhetnek, mint amilyenek voltak. Kimaradnak az összehasonlításból.',
   'prog.empty': 'Rögzíts pár edzést, és itt megjelenik a fejlődésed.',
   'prog.strength': 'Erőindex',
   'prog.strengthWhat': 'Mit jelent ez a szám',
   'prog.strengthBody':
-    'Az öt terhelt mozgásminta legjobb emelése összeadva, a testsúlyodhoz mérve — annak kétharmad hatványához, mert az erő nem egy az egyben skálázódik a súllyal. Csak az elmúlt két hónapot számolja, mert azt hivatott megmutatni, amit most tudsz.',
+    'A legjobb emeléseid guggolásban, csípőhajlításban, kitörésben, nyomásban és húzásban, összeadva és a testsúlyodhoz mérve. Csak az utolsó két hónapot nézi, így azt mutatja, most mennyire vagy erős.',
   'prog.strengthNot':
-    'Ez a gymmy saját skálája, és senki máséval nem összevethető — nincs rangsor, nincs benne más. Nullaként számít az a mozgás, amiből nincs mit becsülni: amit nem edzettél, vagy csak sok ismétléssel. Mind az öt lefedése a dolog fele.',
+    'Ez csak neked szól: azt mutatja, erősödsz-e, és nem arra való, hogy másokhoz mérd magad. Egy mozgás akkor számít, ha már csináltál benne legfeljebb 10 ismétléses sorozatot, így mind az öt edzése felfelé viszi a számot.',
   'prog.needWeight': 'Add meg a testsúlyodat, és ez is követni kezdi.',
   'prog.needLifts': 'Rögzíts pár edzést, és ez is követni kezdi.',
   'prog.deltaUp': '{by} felfelé {ago}',
@@ -268,19 +268,19 @@ export const hu: Record<Key, string> = {
   'prog.dots': 'DOTS',
   'prog.dotsWhat': 'Mi az a DOTS',
   'prog.dotsBody':
-    'A versenyerőemelés skálája: a guggolásod, fekvenyomásod és felhúzásod összege, testsúlyra és nemre korrigálva. Ez az egyetlen szám itt, ami másnak is jelent valamit — bármelyik DOTS-kalkulátor ugyanezt adja ki.',
+    'Az erőemelők pontszáma: a guggolásod, fekvenyomásod és felhúzásod összege, a testsúlyodhoz és a nemedhez igazítva. Az indexszel ellentétben ezt össze lehet vetni másokéval.',
   'prog.dotsNot':
-    'Ez nem versenyösszeg. Egy igazi összeg három egyszeri emelés egy napon, bírói ítélettel; ez két hónap edzéséből becsült, ezért magasabb, mint amit aznap megemelnél.',
+    'Ez nem versenyösszetett. Az edzéseidből számoljuk, ezért általában kicsit magasabb, mint amit versenyen emelnél.',
   'prog.dotsNeed':
     'Rúddal végzett guggolás, fekvenyomás és felhúzás kell hozzá. Még hiányzik: {what}.',
   'prog.dotsEstimate':
-    'Ebből még nincs mit becsülni: {what}. A becsléshez legfeljebb tíz ismétléses sorozat kell a kifáradásig.',
+    'Még nincs szám ehhez: {what} – kell hozzá egy legfeljebb 10 ismétléses sorozat.',
   'prog.dotsNeedsSex':
-    'A DOTS külön görbét használ nőkre és férfiakra. Add meg a profilodban, és megjelenik.',
+    'A DOTS-ot férfiaknál és nőknél másképp számoljuk. Válaszd ki a Beállításokban, hogy lásd.',
   'prog.dotsFrom': '{total} a három emelésből',
   'prog.prs': 'A ★ egyéni csúcsot jelöl',
   'prog.conventionChanged':
-    '{date} óta a két kézben tartott kézisúlyzó a kettő együttes súlyával kerül be. Az aznapi ugrás könyvelés, nem edzés.',
+    '{date} óta a kézisúlyzós gyakorlatoknál mindkét súlyzó számít, nem csak egy. Ha aznap ugrik a görbe, ez az oka – az erőd nem változott.',
 
   'set.you': 'Te',
   'set.app': 'Az alkalmazás',
@@ -288,8 +288,7 @@ export const hu: Record<Key, string> = {
   'set.namePlaceholder': 'Hogy szólítsunk?',
   'set.birthYear': 'Születési év',
   'set.birthYearPlaceholder': 'például 1990',
-  'set.birthYearWhy':
-    'Az erőindexben 40 éves kortól figyelembe vesszük az életkorodat. Nem kötelező – nélküle az index egyszerűen nem számol vele. A DOTS sosem használja.',
+  'set.birthYearWhy': 'Nem kötelező. 40 éves kortól az erőindexed figyelembe veszi az életkorodat.',
   'set.yearBad': 'Adj meg egy évet {from} és {to} között.',
   'set.picAdd': 'Kép hozzáadása',
   'set.picChange': 'Kép cseréje',
@@ -302,7 +301,7 @@ export const hu: Record<Key, string> = {
   'set.aboutYou': 'Rólad',
   'set.sex': 'Nem',
   'set.sexWhy':
-    'Egyetlen dologra kell: a DOTS-ra, amely külön görbét használ nőkre és férfiakra. Ha nem adod meg, egyszerűen nincs DOTS — más nem változik.',
+    'Nem kötelező, és csak a DOTS-hoz kell. Ha nem szeretnéd megadni, a DOTS egyszerűen nem jelenik meg.',
   'sex.unspecified': 'Inkább nem mondom meg',
   'sex.female': 'Nő',
   'sex.male': 'Férfi',

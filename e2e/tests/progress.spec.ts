@@ -247,7 +247,7 @@ test.describe('The two strength numbers', () => {
     await page.goto('/progress');
     await weighIn(page, 83);
 
-    await expect(page.getByText(/DOTS uses a different curve for men and women/)).toBeVisible();
+    await expect(page.getByText(/worked out differently for men and women/)).toBeVisible();
     await expect(
       page.getByText('DOTS', { exact: true }).locator('xpath=following-sibling::span[1]'),
     ).toHaveText('—');
@@ -266,7 +266,7 @@ test.describe('The two strength numbers', () => {
     await weighIn(page, 83);
 
     await page.getByRole('button', { name: 'What this number is' }).click();
-    await expect(page.getByText(/not comparable with anybody else/)).toBeVisible();
+    await expect(page.getByText(/not for comparing with anyone else/)).toBeVisible();
     await page.getByRole('button', { name: 'Close' }).click();
 
     await page.getByRole('button', { name: 'What DOTS is' }).click();

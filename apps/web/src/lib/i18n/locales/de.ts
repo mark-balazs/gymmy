@@ -210,16 +210,16 @@ export const de: Record<Key, string> = {
   'goal.flat': 'Hier hat sich nichts bewegt. Das ist eine Information, kein Scheitern.',
   'goal.again': 'Neues Ziel',
   'goal.tooSmall':
-    'Zu klein, um messbar zu sein. Ein wiederholter Maximaltest schwankt schon von sich aus um etwa 4%, ein Ziel braucht also mindestens 5%. {n} {unit} wären genug.',
+    'Zu klein zum Messen – dieselbe Übung schwankt von Tag zu Tag um etwa 4 %. Nimm dir mindestens 5 % vor: {n} {unit}.',
   'goal.tooShort':
-    'Gib ihm mindestens {n} Wochen. Kraft kommt dazu, wenn eine Einheit gut läuft, nicht nach Kalender — in kürzerer Zeit kommen nicht genug davon zusammen.',
+    'Gib dir mindestens {n} Wochen. Kraft wächst über viele gute Einheiten, und ein kürzeres Ziel hat dafür nicht genug Platz.',
   'goal.tooLong': 'Bleib unter einem Jahr. Länger ist eine Hoffnung, kein Ziel.',
   'goal.tooMany': 'Drei gleichzeitig. Alles auf einmal zu schieben ist der Weg, dass nichts geht.',
   'goal.ambitious':
-    'Das sind etwa {pct}% pro Woche. Wer schon trainiert ist, legt in einem ganzen Jahr typischerweise 7–12% zu. Behalt es, wenn du es ernst meinst — das hier ist nur, damit du weißt, worauf du dich einlässt.',
+    'Das sind etwa {pct} % pro Woche. Erfahrene Sportler legen meist 7–12 % im ganzen Jahr zu. Behalte es, wenn du willst – nur damit du weißt, worauf du dich einlässt.',
   'goal.why': 'Woher diese Grenzen kommen',
   'goal.whyBody':
-    'Zwei Zahlen aus der Forschung und eine, die es nicht gibt. Ein wiederholter Maximaltest schwankt um etwa 4%, kleinere Veränderungen sind von Rauschen nicht zu unterscheiden. Bereits trainierte Personen legen in einem Jahr rund 7–12% zu, und die Kurve flacht mit den Trainingsjahren ab. Und keine große Fachgesellschaft veröffentlicht einen sicheren Wochenprozentsatz — jede publizierte Zahl ist eine Steigerung nach einer gut gelaufenen Einheit, nie eine Rate, die der Kalender dir schuldet. Die App prüft also, ob ein Ziel messbar ist und Zeit hat, und hält sich sonst heraus.',
+    'Dieselbe Übung schwankt von Tag zu Tag um etwa 4 %, ein kleineres Ziel lässt sich also nicht von einem normalen Tag unterscheiden. Erfahrene Sportler legen meist 7–12 % im Jahr zu, und je länger du trainierst, desto langsamer geht es. Eine sichere Menge pro Woche kann niemand versprechen – Kraft wächst nach guten Einheiten, nicht nach Kalender. Deshalb prüft die App nur, ob ein Ziel messbar ist und genug Zeit hat.',
   'prog.needsLook': 'Gut zu wissen',
   'prog.allClear': 'Nichts hervorzuheben.',
   'prog.kregressed': 'Zurück',
@@ -242,7 +242,7 @@ export const de: Record<Key, string> = {
   'prog.noMetric':
     'Das wird in Metern und Sekunden erfasst, es gibt also kein Gewicht zum Zeichnen. Die Sätze zählen trotzdem für deine Woche.',
   'prog.oneSession': 'Bisher eine Einheit. Ab zwei wird daraus eine Linie.',
-  'prog.overTime': 'Bestes geschätztes 1RM, Einheit für Einheit',
+  'prog.overTime': 'Dein geschätztes bestes Einzelgewicht, Einheit für Einheit',
   'prog.overTimeWeight': 'Schwerster Satz, Einheit für Einheit',
   'prog.session': 'Einheit',
   'prog.gapNote': 'Ein gestrichelter Abschnitt ist Zeit, in der du das nicht trainiert hast.',
@@ -252,14 +252,14 @@ export const de: Record<Key, string> = {
   'prog.lastTrained': 'Zuletzt trainiert',
   'prog.best': 'Deine Bestleistung',
   'prog.unrated':
-    'Bei einigen dieser Sätze ist die Anstrengung nicht erfasst, dadurch fallen sie niedriger aus, als sie waren. Solche Vergleiche lassen wir lieber weg, als zu raten.',
+    'Bei einigen Sätzen fehlt die Anstrengung, deshalb wirken sie schwächer, als sie waren. Sie werden nicht verglichen.',
   'prog.empty': 'Trag ein paar Einheiten ein, dann erscheint hier dein Fortschritt.',
   'prog.strength': 'Kraftindex',
   'prog.strengthWhat': 'Was diese Zahl ist',
   'prog.strengthBody':
-    'Deine beste Leistung in jedem der fünf belasteten Muster, summiert und deinem Körpergewicht gegenübergestellt — hoch zwei Drittel, weil Kraft nicht eins zu eins mit dem Gewicht skaliert. Es zählen nur die letzten zwei Monate, denn die Zahl soll sagen, was du jetzt kannst.',
+    'Deine besten Gewichte in Kniebeuge, Hüftbeuge, Ausfallschritt, Drücken und Ziehen, zusammengezählt und mit deinem Körpergewicht verglichen. Es zählen nur die letzten zwei Monate – so zeigt der Wert, wie stark du jetzt bist.',
   'prog.strengthNot':
-    'Es ist gymmys eigene Skala und mit niemandem sonst vergleichbar — keine Rangliste, niemand anderes darin. Ein Muster, aus dem sich nichts schätzen lässt, zählt als null: nicht trainiert oder nur mit vielen Wiederholungen. Alle fünf abzudecken ist die halbe Idee.',
+    'Der Wert ist nur für dich: Er zeigt, ob du stärker wirst, und ist nicht zum Vergleichen mit anderen gedacht. Eine Bewegung zählt, sobald du einen Satz mit höchstens 10 Wiederholungen gemacht hast – wer alle fünf trainiert, bringt den Wert nach oben.',
   'prog.needWeight': 'Trag dein Körpergewicht ein, dann läuft das hier mit.',
   'prog.needLifts': 'Trag ein paar Einheiten ein, dann läuft das hier mit.',
   'prog.deltaUp': '{by} mehr als {ago}',
@@ -277,19 +277,19 @@ export const de: Record<Key, string> = {
   'prog.dots': 'DOTS',
   'prog.dotsWhat': 'Was DOTS ist',
   'prog.dotsBody':
-    'Die Skala des Wettkampf-Kraftdreikampfs: Kniebeuge, Bankdrücken und Kreuzheben addiert und um Körpergewicht und Geschlecht bereinigt. Es ist die einzige Zahl hier, die auch für andere etwas bedeutet — jeder DOTS-Rechner kommt auf dasselbe Ergebnis.',
+    'Der Wert, den Powerlifter nutzen: Kniebeuge, Bankdrücken und Kreuzheben zusammengezählt und an Körpergewicht und Geschlecht angepasst. Anders als der Index lässt er sich mit anderen vergleichen.',
   'prog.dotsNot':
-    'Es ist kein Wettkampftotal. Ein echtes Total sind drei Einzelversuche an einem Tag unter Kampfrichtern; dies ist aus zwei Monaten Training geschätzt und liegt daher höher, als du am Tag heben würdest.',
+    'Es ist keine Wettkampf-Summe. Er wird aus deinem Training berechnet und liegt deshalb meist etwas über dem, was du im Wettkampf heben würdest.',
   'prog.dotsNeed':
     'Braucht Kniebeuge, Bankdrücken und Kreuzheben mit der Stange. Fehlt noch: {what}.',
   'prog.dotsEstimate':
-    'Noch nichts, woraus sich {what} schätzen lässt: Dafür braucht es einen Satz mit höchstens zehn Wiederholungen bis zum Muskelversagen.',
+    'Noch kein Wert für {what} – dafür braucht es einen Satz mit höchstens 10 Wiederholungen.',
   'prog.dotsNeedsSex':
-    'DOTS hat eine eigene Kurve für Männer und für Frauen. Trag deins im Profil ein, dann erscheint der Wert.',
+    'DOTS wird für Männer und Frauen unterschiedlich berechnet. Wähle deins in den Einstellungen, um es zu sehen.',
   'prog.dotsFrom': '{total} aus den drei Übungen',
   'prog.prs': '★ steht für eine Bestleistung',
   'prog.conventionChanged':
-    'Seit {date} wird eine Hantel in jeder Hand als beide zusammen erfasst. Ein Sprung an diesem Tag ist Buchhaltung, kein Training.',
+    'Ab {date} zählen bei Kurzhantelübungen beide Hanteln, nicht eine. Springt die Kurve an diesem Tag, liegt es daran – deine Kraft hat sich nicht verändert.',
 
   'set.you': 'Du',
   'set.app': 'Die App',
@@ -297,8 +297,7 @@ export const de: Record<Key, string> = {
   'set.namePlaceholder': 'Wie sollen wir dich nennen?',
   'set.birthYear': 'Geburtsjahr',
   'set.birthYearPlaceholder': 'z. B. 1990',
-  'set.birthYearWhy':
-    'Damit dein Kraftindex ab 40 dein Alter berücksichtigt. Freiwillig – ohne Angabe rechnet der Index einfach ohne Altersausgleich. DOTS nutzt es nie.',
+  'set.birthYearWhy': 'Freiwillig. Ab 40 berücksichtigt dein Kraftindex dein Alter.',
   'set.yearBad': 'Gib ein Jahr zwischen {from} und {to} ein.',
   'set.picAdd': 'Bild hinzufügen',
   'set.picChange': 'Bild ändern',
@@ -311,7 +310,7 @@ export const de: Record<Key, string> = {
   'set.aboutYou': 'Über dich',
   'set.sex': 'Geschlecht',
   'set.sexWhy':
-    'Nur für eines nötig: DOTS, das für Männer und Frauen eine eigene Kurve hat. Ohne Angabe gibt es einfach keinen DOTS-Wert — sonst ändert sich nichts.',
+    'Freiwillig und nur für DOTS. Wenn du es nicht angeben möchtest, wird DOTS einfach nicht angezeigt.',
   'sex.unspecified': 'Keine Angabe',
   'sex.female': 'Weiblich',
   'sex.male': 'Männlich',
