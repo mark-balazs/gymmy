@@ -162,6 +162,11 @@ export const de: Record<Key, string> = {
   'load.bodyweight': 'Leer lassen, außer du hast Gewicht zugelegt.',
   'load.partial': 'Was du aufgeladen hast — nicht, was an deinen Händen ankommt.',
   'train.nothingPlanned': 'Für diesen Tag ist noch nichts geplant.',
+  'train.logOther': 'Etwas anderes eintragen',
+  'train.offPlan': 'Außerhalb des Plans',
+  'train.offPlanNote': 'Kein Tag deines Plans — zählt aber trotzdem als Training in dieser Woche.',
+  'picker.search': 'Übungen suchen',
+  'picker.none': 'Nichts passt zu „{q}“.',
   'train.deleteSet': 'Satz löschen?',
   'train.deleteSetBody': 'Damit verschwindet er aus deinem Verlauf.',
 

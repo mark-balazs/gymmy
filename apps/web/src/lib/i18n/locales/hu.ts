@@ -153,6 +153,12 @@ export const hu: Record<Key, string> = {
   'load.bodyweight': 'Hagyd üresen, hacsak nem tettél rá súlyt.',
   'load.partial': 'Amennyit felpakoltál — nem az, ami a kezedig ér.',
   'train.nothingPlanned': 'Erre a napra még nincs terv.',
+  'train.logOther': 'Valami mást csináltam',
+  'train.offPlan': 'A terven kívül',
+  'train.offPlanNote':
+    'Nem része egyik tervezett napodnak sem — de ettől még edzésnek számít ezen a héten.',
+  'picker.search': 'Gyakorlat keresése',
+  'picker.none': 'Nincs találat erre: „{q}”.',
   'train.deleteSet': 'Törlöd a sorozatot?',
   'train.deleteSetBody': 'Ezzel kikerül a naplóból.',
 

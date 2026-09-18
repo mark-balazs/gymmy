@@ -162,6 +162,12 @@ export const fr: Record<Key, string> = {
   'load.bodyweight': 'Laissez vide, sauf si vous avez ajouté du poids.',
   'load.partial': 'Ce que vous avez chargé — pas ce qui arrive à vos mains.',
   'train.nothingPlanned': 'Rien de prévu ce jour-là.',
+  'train.logOther': 'Noter autre chose',
+  'train.offPlan': 'Hors programme',
+  'train.offPlanNote':
+    'Ce n’est aucun jour de votre programme — ça compte quand même comme entraînement cette semaine.',
+  'picker.search': 'Rechercher un exercice',
+  'picker.none': 'Rien ne correspond à « {q} ».',
   'train.deleteSet': 'Supprimer la série ?',
   'train.deleteSetBody': 'Elle disparaît de ton journal.',
 

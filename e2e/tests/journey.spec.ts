@@ -3,7 +3,14 @@
 import { randomUUID } from 'node:crypto';
 import type { Page } from '@playwright/test';
 import { seedSignInCode } from '../fixtures/auth';
-import { completeOnboarding, exerciseNameAt, expect, logSet, test } from '../fixtures/test';
+import {
+  completeOnboarding,
+  exerciseNameAt,
+  expect,
+  logSet,
+  recordedSet,
+  test,
+} from '../fixtures/test';
 
 /**
  * The whole thing, walked the way a person walks it.
@@ -63,9 +70,18 @@ test.describe('A full journey', () => {
     await completeOnboarding(page, { split: 'Push / Pull / Legs', days: '3 days' });
 
     // 3. Train. A real generated exercise, a real set.
+    //
+    //    Which exercise, and so what "60" gets recorded as, is not something
+    //    this test can know. A real account gets its own offset into the
+    //    library, so the first lift differs between accounts — and if it is a
+    //    pair of dumbbells, 60 per hand is recorded as 120. The first version
+    //    of this step asserted "60 kg × 8" and passed only because every new
+    //    account used to get the same week. So the recorded line is read off
+    //    the screen here and carried to step 7, which is the assertion that
+    //    matters: the same set, back on an emptied device.
     const lift = await exerciseNameAt(page);
     await logSet(page, 60, 8);
-    await expect(page.getByText('60 kg × 8').first()).toBeVisible();
+    const recorded = await recordedSet(page, 8);
 
     // 4. The week scores it against the split that was chosen, not a default.
     await tab(page, 'Week').click();
@@ -94,7 +110,7 @@ test.describe('A full journey', () => {
     await expect(page.getByRole('heading', { name: 'Train', exact: true })).toBeVisible({
       timeout: 30_000,
     });
-    await expect(page.getByText('60 kg × 8').first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(recorded).first()).toBeVisible({ timeout: 30_000 });
   });
 
   test('the same account on a second device shows the same training', async ({
@@ -112,8 +128,12 @@ test.describe('A full journey', () => {
     ).toBeVisible({ timeout: 30_000 });
     await completeOnboarding(page, { days: '3 days' });
 
+    // Read back rather than assumed, for the same reason as the journey above:
+    // each new account gets its own first lift, and a dumbbell pair records
+    // 72.5 per hand as 145. Asserting "72.5 kg × 6" passed only on the runs
+    // where this account's random id happened not to open on a pair.
     await logSet(page, 72.5, 6);
-    await expect(page.getByText('72.5 kg × 6').first()).toBeVisible();
+    const recorded = await recordedSet(page, 6);
     await expect(page.getByText('All saved')).toBeVisible({ timeout: 30_000 });
 
     // A genuinely separate browser: its own storage, its own service worker,
@@ -126,7 +146,7 @@ test.describe('A full journey', () => {
       await expect(other.getByRole('heading', { name: 'Train', exact: true })).toBeVisible({
         timeout: 30_000,
       });
-      await expect(other.getByText('72.5 kg × 6').first()).toBeVisible({ timeout: 30_000 });
+      await expect(other.getByText(recorded).first()).toBeVisible({ timeout: 30_000 });
     } finally {
       await second.close();
     }

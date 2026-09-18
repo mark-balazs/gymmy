@@ -17,16 +17,20 @@ import { useMemo, useState } from 'react';
 import { Button, Card, Chip, Segmented, Stepper, cn } from '@/components/ui';
 import { Page } from '@/components/page';
 import { ExerciseSheet } from '@/components/exercise-sheet';
+import { ExercisePicker } from '@/components/exercise-picker';
 import { useProfile, useSnapshot, useT, useToday, type Translator } from '@/lib/client/hooks';
 import { fireAndForget, logSet, removeSet } from '@/lib/client/mutations';
 import { EFFORTS, fmtDay } from '@/lib/client/format';
 import { DEFAULT_PREFS, lastSession, loadClassOf, toEntered, toStored } from '@athletic/domain';
 import {
-  allLogs,
+  OFF_PLAN_SESSION,
   mondayOf,
+  nextSession,
+  oneOffs,
   sessionLabel,
   sessionPlan,
   sessionsDone,
+  type Exercise,
   type Indexed,
 } from '@athletic/domain';
 import type { Key } from '@/lib/i18n';
@@ -45,27 +49,15 @@ export default function TrainPage() {
   /** Which date the default was chosen for, so it is chosen once and not re-run. */
   const [pickedFor, setPickedFor] = useState<string | null>(null);
 
-  /** Which session to open on, given what has already been logged. Pure. */
-  const suggestedDay = useMemo(() => {
-    const logs = allLogs(ix);
-
-    // Resuming beats advancing. If something was already logged on this date,
-    // go back to that session — a locked phone or a reload mid-workout must not
-    // abandon a half-finished day.
-    const startedToday = logs.filter((l) => l.date === date).map((l) => l.session);
-    if (startedToday.length) {
-      const earliest = Math.min(...startedToday.map((s) => s.charCodeAt(0) - 65));
-      return Math.min(earliest, days - 1);
-    }
-
-    // Otherwise offer the first session not yet trained this week.
-    const week = mondayOf(date);
-    const trained = new Set(logs.filter((l) => l.weekOf === week).map((l) => l.session));
-    for (let i = 0; i < days; i++) {
-      if (!trained.has(sessionLabel(i))) return i;
-    }
-    return 0;
-  }, [ix, date, days]);
+  /**
+   * Which session to open on, given what has already been logged.
+   *
+   * `nextSession`, the same function Home uses. This page used to keep its own
+   * copy of that rule — despite `nextSession`'s docstring saying that two copies
+   * "would drift and quietly disagree about what today is" — and the copy is
+   * exactly where an off-plan set would have been misread as day 23.
+   */
+  const suggestedDay = useMemo(() => nextSession(ix, date, days), [ix, date, days]);
 
   /**
    * Applied once per date, during render rather than in an effect.
@@ -109,6 +101,50 @@ export default function TrainPage() {
 
   const done = plan.reduce((a, p) => a + p.done, 0);
   const total = plan.reduce((a, p) => a + p.target, 0);
+
+  /**
+   * Training that is not a day of the plan: a class, a test, anything else.
+   *
+   * What has been logged comes from the logs — so it survives a reload and
+   * shows on every device — and `picked` holds only what was chosen in the last
+   * few seconds and has no set yet. It is keyed by date so that switching date
+   * cannot carry a half-started card into a different day.
+   *
+   * Kept apart from `plan` rather than merged into it. A merged row with no
+   * target is never "complete", so it would become `nextUp` and re-open itself
+   * after the day was finished, and it would push the day's counter to "13 of
+   * 12 sets". It still shares `openKey`, so only one card is ever open.
+   */
+  const [picked, setPicked] = useState<{ date: string; ids: string[] }>({ date, ids: [] });
+  const [picking, setPicking] = useState(false);
+  const offPlan = useMemo(() => {
+    const logged = oneOffs(ix, date);
+    const seen = new Set(logged.map((o) => o.exercise.id));
+    const fresh = (picked.date === date ? picked.ids : [])
+      .filter((id) => !seen.has(id))
+      .flatMap((id) => {
+        const exercise = ix.exerciseById.get(id);
+        return exercise ? [{ exercise, done: 0, logs: [] }] : [];
+      });
+    return [...logged, ...fresh];
+  }, [ix, date, picked]);
+
+  const pick = (exercise: Exercise) => {
+    setPicking(false);
+    /* Picking a lift that is already on the open day means the planned card,
+       not an off-plan copy of it: the sets belong to the day, and logging them
+       outside it would leave the day's own card unticked. */
+    const planned = plan.find((r) => r.exercise?.id === exercise.id);
+    if (planned) {
+      setOpenKey(planned.key);
+      return;
+    }
+    setPicked((p) => ({
+      date,
+      ids: p.date === date ? [...new Set([...p.ids, exercise.id])] : [exercise.id],
+    }));
+    setOpenKey(`off:${exercise.id}`);
+  };
 
   return (
     <Page>
@@ -163,12 +199,57 @@ export default function TrainPage() {
             ix={ix}
             tr={tr}
             date={date}
-            day={day}
+            session={sessionLabel(day)}
             unit={unit}
             open={openKey === row.key}
             onOpen={() => setOpenKey(row.key)}
           />
         ) : null,
+      )}
+
+      {/* Below the planned cards, where the decision put it: the screen that is
+          already open in the gym, with its date picker already there for
+          logging a past session. Labelled rather than headed — a heading here
+          would be the first h2 on the page after a finished day, and the page's
+          own tooling reads that as the open exercise. */}
+      {offPlan.length > 0 && (
+        <div className="flex flex-col gap-1 px-1">
+          <p className="text-[10.5px] font-bold tracking-wider text-[var(--color-muted)] uppercase">
+            {tr.t('train.offPlan')}
+          </p>
+          <p className="text-xs text-[var(--color-muted)]">{tr.t('train.offPlanNote')}</p>
+        </div>
+      )}
+      {offPlan.map((row) => (
+        <ExerciseCard
+          key={`off:${row.exercise.id}|${date}`}
+          row={{ ...row, target: 0 }}
+          ix={ix}
+          tr={tr}
+          date={date}
+          session={OFF_PLAN_SESSION}
+          unit={unit}
+          open={openKey === `off:${row.exercise.id}`}
+          onOpen={() => setOpenKey(`off:${row.exercise.id}`)}
+        />
+      ))}
+
+      <Button variant="ghost" className="w-full" onClick={() => setPicking(true)}>
+        + {tr.t('train.logOther')}
+      </Button>
+
+      {picking && (
+        <ExercisePicker
+          title={tr.t('train.logOther')}
+          /* The whole library, including the movements the generator never
+             programs — thrusters, wall balls, the things a class is made of.
+             Logging those is precisely what this is for, which is why the swap
+             sheet's filter is not reused here: it excludes exactly them. */
+          exercises={ix.exercises}
+          patterns={ix.patterns}
+          onPick={pick}
+          onClose={() => setPicking(false)}
+        />
       )}
     </Page>
   );
@@ -177,25 +258,37 @@ export default function TrainPage() {
 /** Identity of a past session, for spotting when the history behind it moved. */
 const seedOf = (s: LastSession | null): string => `${s?.date}|${s?.weight}|${s?.reps}`;
 
+/**
+ * What a card needs from its row — and all it needs.
+ *
+ * Narrower than `PlanRow` on purpose, so an off-plan exercise can be a card
+ * without pretending to be a row of the program: it has no slot, no entry and no
+ * target, and a fake one would put "0 of 0 sets" on screen.
+ */
+type CardRow = Pick<PlanRow, 'exercise' | 'done' | 'target' | 'logs'>;
+
 function ExerciseCard({
   row,
   ix,
   tr,
   date,
-  day,
+  session,
   unit,
   open,
   onOpen,
 }: {
-  row: PlanRow;
+  row: CardRow;
   ix: Indexed;
   tr: Translator;
   date: string;
-  day: number;
+  /** The label each set is logged under: the open day's letter, or
+   *  `OFF_PLAN_SESSION` for training that is not a day of the plan. */
+  session: string;
   unit: string;
   open: boolean;
   onOpen: () => void;
 }) {
+  const offPlan = session === OFF_PLAN_SESSION;
   const exercise = row.exercise!;
 
   const s = useMemo(() => lastSession(ix, exercise.id), [ix, exercise.id]);
@@ -242,7 +335,10 @@ function ExerciseCard({
   }
 
   const complete = row.target > 0 && row.done >= row.target;
-  const dots = Math.max(row.target, row.done) || 3;
+  /* An off-plan card has no target, so it shows only what was done — hollow
+     dots would be a promise of sets nobody asked for. A planned card keeps its
+     old rule, including the three-dot fallback. */
+  const dots = offPlan ? row.done : Math.max(row.target, row.done) || 3;
 
   /**
    * Progress as dots: filled for a set done, hollow for one still to do.
@@ -278,7 +374,7 @@ function ExerciseCard({
       // again so the set can be tried once more.
       await logSet({
         date,
-        session: sessionLabel(day),
+        session,
         exerciseId: exercise.id,
         setNo: row.done + 1,
         weight: toStored(exercise.name, weight),
@@ -333,7 +429,9 @@ function ExerciseCard({
               have the page saying "0 of 3 sets" six times with nothing to say
               which one is the whole day. */}
           <span className="sr-only">
-            {tr.t('train.rowDone', { done: row.done, total: row.target })}
+            {offPlan
+              ? tr.plural(row.done, 'set')
+              : tr.t('train.rowDone', { done: row.done, total: row.target })}
           </span>
           {dotRow}
         </button>

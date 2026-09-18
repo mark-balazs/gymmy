@@ -8,12 +8,13 @@ before the test that covers it. Every file maps to one spec in `../tests`.
 | [01 — First run](./01-first-run.md) | `first-run.spec.ts` | Four questions produce a complete, covered week |
 | [02 — Logging a session](./02-logging-a-session.md) | `logging.spec.ts` | A set can be logged and shows the right derived numbers |
 | [03 — Weekly coverage](./03-weekly-coverage.md) | `coverage.spec.ts` | Gaps are visible, and isolation never fills one |
-| [04 — Progressive overload](./04-progression.md) | `progression.spec.ts` | The app tells you what to lift next, and the rule is right |
+| [04 — What the card offers you](./04-progression.md) | `progression.spec.ts` | The card shows last time as history, and gives no advice about what to lift |
 | [05 — Training offline](./05-offline.md) | `offline.spec.ts` | The core action works with no network, and recovers |
 | [06 — Language](./06-language.md) | `language.spec.ts` | Hungarian is complete and grammatically correct |
 | [07 — Choosing a split](./07-choosing-a-split.md) | `splits.spec.ts`, `custom-split.spec.ts` | Familiar splits are available without giving up coverage, and you can build your own |
 | [08 — A full journey](./08-a-full-journey.md) | `journey.spec.ts` | A stranger can sign up, train, leave and come back |
 | [09 — What the weight box is counting](./09-load-convention.md) | `load-convention.spec.ts` | The app says what it measures, and a dumbbell pair is stored combined |
+| [10 — Logging something outside the plan](./10-something-else.md) | `one-off.spec.ts` | A class or a test can be logged without ticking, or moving, a planned day |
 
 Other specs cover narrower ground against the same fixtures: `settings`,
 `exercise-detail`, `email-signin`, `sync-paging`, `write-failure`, `recovery`,

@@ -1,6 +1,6 @@
 /** Flow 01 — see ../flows/01-first-run.md */
 
-import { completeOnboarding, expect, logSet, test } from '../fixtures/test';
+import { completeOnboarding, expect, logSet, recordedSet, test } from '../fixtures/test';
 
 test.describe('First run', () => {
   test('five questions produce a complete week', async ({ app }) => {
@@ -71,16 +71,26 @@ test.describe('First run', () => {
     await completeOnboarding(app, { weight: 78.5 });
     await logSet(app, 60, 8);
     // Waited for: the set has to be in the local store before Progress can
-    // read it, and a bare goto races that.
-    await expect(app.getByText('60 kg × 8').first()).toBeVisible();
+    // read it, and a bare goto races that. Read back rather than assumed — see
+    // `recordedSet` for why "60 kg × 8" is not a safe thing to expect here.
+    await recordedSet(app, 8);
 
     await app.goto('/progress');
     await expect(app.getByRole('heading', { name: 'Strength index' })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(app.getByText('Add your bodyweight and this starts tracking.')).toBeHidden();
-    // A real number rather than a dash.
-    await expect(app.locator('span').filter({ hasText: /^\d+$/ }).first()).toBeVisible();
+    // Both numbers wait on bodyweight, so neither may still be asking for it.
+    await expect(app.getByText('Add your bodyweight and this starts tracking.')).toHaveCount(0);
+    /* The index, as a real number rather than a dash. Matched on its own shape —
+       always one decimal place. This used to be "any span that is only digits",
+       which stopped meaning the index the day the index gained its decimal: it
+       went on passing, matching some other number on the page. */
+    await expect(
+      app
+        .locator('span')
+        .filter({ hasText: /^\d+\.\d$/ })
+        .first(),
+    ).toBeVisible();
   });
 
   test('says what is missing when the weight question is skipped', async ({ app }) => {
@@ -91,7 +101,7 @@ test.describe('First run', () => {
     await logSet(app, 60, 8);
     // Waited for: the set has to be in the local store before Progress can
     // read it, and a bare goto races that.
-    await expect(app.getByText('60 kg × 8').first()).toBeVisible();
+    await recordedSet(app, 8);
 
     await app.goto('/progress');
     await expect(app.getByText('Add your bodyweight and this starts tracking.')).toBeVisible({

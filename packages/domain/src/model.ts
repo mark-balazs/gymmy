@@ -34,6 +34,44 @@ export const live = <T extends { deletedAt: string | null }>(rows: T[]): T[] =>
 
 export const sessionLabel = (i: number): string => String.fromCharCode(65 + i);
 
+/**
+ * The session label a one-off set is logged under: training that is not a day
+ * of the plan.
+ *
+ * **An ordinary `set_logs` row, not a new table or column.** A new synced table
+ * opens a window where a device on the previous build silently misses rows, and
+ * a new column is the documented trap where adding a field does not move the
+ * change sequence. A reserved label needs neither, and everything that reads
+ * logs without caring about the session — coverage, the strength numbers,
+ * goals, the charts, "last time" — picks these sets up with no change at all,
+ * which is the decision ("training is training") working as intended.
+ *
+ * What does care is anything that turns a label back into a day number, and
+ * both of those go through `planDayOf`, which says no to this one. It also
+ * counts as a session in the week's session count. That was a deliberate choice
+ * and the inflation it causes was accepted: extra sets on each of three planned
+ * days read as six sessions.
+ *
+ * `X` because it can never be a plan day — plans top out at six days, `A`–`F` —
+ * and because it is one character, well inside the four the wire allows. Never
+ * change it: every set ever logged off-plan carries it.
+ */
+export const OFF_PLAN_SESSION = 'X';
+
+/**
+ * Which day of the plan a stored label names, or null if it names none.
+ *
+ * The only sanctioned way back from a label to a number. There used to be two
+ * hand-rolled copies of `charCodeAt(0) - 65`, and a label outside `A`–`Z` would
+ * have produced a negative day — Train selecting no tab at all, Home offering
+ * "Day *".
+ */
+export function planDayOf(label: string): number | null {
+  if (label.length !== 1 || label === OFF_PLAN_SESSION) return null;
+  const day = label.charCodeAt(0) - 65;
+  return day >= 0 && day < 26 ? day : null;
+}
+
 export function num(v: unknown): number {
   if (v === '' || v === null || v === undefined) return 0;
   const n = Number(String(v).replace(',', '.'));
@@ -309,10 +347,16 @@ export function slotsForSession(ix: Indexed, session: number): Slot[] {
 export function nextSession(ix: Indexed, date: string, days: number): number {
   const logs = allLogs(ix);
 
-  const startedToday = logs.filter((l) => l.date === date).map((l) => l.session);
+  /* Only sets logged against a day of the plan say which day you were on. An
+     off-plan set is training, but it is not Day anything — and read back as a
+     letter it would have been day 23, clamped to the last day, so one extra set
+     logged first thing would have opened the wrong session all morning. */
+  const startedToday = logs
+    .filter((l) => l.date === date)
+    .map((l) => planDayOf(l.session))
+    .filter((d): d is number => d !== null);
   if (startedToday.length) {
-    const earliest = Math.min(...startedToday.map((l) => l.charCodeAt(0) - 65));
-    return Math.min(earliest, days - 1);
+    return Math.min(Math.min(...startedToday), days - 1);
   }
 
   const week = mondayOf(date);
@@ -522,6 +566,46 @@ export function sessionPlan(
     const logs = dayLogs.filter((l) => l.exerciseId === r.exercise?.id);
     return { ...r, done: logs.length, target: num(r.entry?.sets), logs };
   });
+}
+
+/** One exercise trained outside the plan on a given date, with its sets. */
+export interface OneOff {
+  exercise: Exercise;
+  done: number;
+  logs: DecoratedLog[];
+}
+
+/**
+ * What was trained on `date` outside the plan: every exercise with sets logged
+ * under `OFF_PLAN_SESSION`, in the order they were first logged.
+ *
+ * Read from the logs alone, never from the program. That is deliberate and it is
+ * the thing an earlier design got wrong: deriving "unplanned" from "not in any
+ * program entry" would reclassify history the moment somebody rebuilt their
+ * week — last month's extra deadlifts would turn into planned ones. Here a set is
+ * off-plan because of how it was logged, and that never changes afterwards.
+ *
+ * Grouped by exercise across the whole date rather than by day tab, because an
+ * off-plan set has no day tab. Which tab happens to be open when you look is
+ * irrelevant to it.
+ */
+export function oneOffs(ix: Indexed, date: string): OneOff[] {
+  const byExercise = new Map<string, OneOff>();
+  // Oldest write first, so the exercises appear in the order they were started;
+  // a Map keeps first-insertion order.
+  const logs = allLogs(ix)
+    .filter((l) => l.date === date && l.session === OFF_PLAN_SESSION && l.exercise)
+    .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt));
+  for (const log of logs) {
+    const exercise = log.exercise!;
+    const entry = byExercise.get(exercise.id) ?? { exercise, done: 0, logs: [] };
+    entry.logs.push(log);
+    entry.done += 1;
+    byExercise.set(exercise.id, entry);
+  }
+  // Within one exercise, by set number — which is what the card lists them by.
+  for (const entry of byExercise.values()) entry.logs.sort((a, b) => a.setNo - b.setNo);
+  return [...byExercise.values()];
 }
 
 /**

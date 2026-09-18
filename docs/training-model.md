@@ -399,6 +399,40 @@ and a row that has never heard of it simply does not carry it. The filter sits i
 null tag whenever a bias empties a pattern, and that fallback is exactly where an
 off-plan movement would otherwise reappear.
 
+### Training outside the plan
+
+"Log something else", below the planned cards on Train, logs any exercise in the
+library — including the off-plan ones above — as **ordinary `set_logs` rows under
+the reserved session label `OFF_PLAN_SESSION` (`X`)**. No new table, no new
+column: a synced table opens a window where a device on the previous build
+silently misses rows, and a column is the documented trap where adding a field
+does not move the change sequence.
+
+What it counts for, deliberately:
+
+- **Coverage — yes.** Everything that reads logs without caring about the
+  session picks these up unchanged: coverage, both strength numbers, goals, the
+  charts, "last time". That was the decision — training is training.
+- **The week's session count — yes, and the inflation is accepted.** Extra sets
+  on a day that also has a planned session read as two sessions that day.
+- **A planned day — never.** Not even when the off-plan exercise is the one the
+  day plans. That is why these sets cannot simply be logged under whichever day
+  tab is open: it would tick the day. Picking a lift the open day already plans
+  opens the day's own card instead.
+
+**The one thing that had to be fixed for this to be safe:** turning a label back
+into a day number. `planDayOf()` is now the only way to do it, and it answers
+null for `X`. The alternative was `charCodeAt(0) - 65`, which reads `X` as day
+23 and clamps it to the last day — so one extra set logged first thing would
+have opened the last day of the week all morning. There were two copies of that
+arithmetic, one in `nextSession` and one inlined in the Train page despite
+`nextSession`'s own docstring warning that two copies would drift. Train uses
+`nextSession` now.
+
+`oneOffs(ix, date)` reads a date's off-plan training back from the logs alone —
+never from "not in any program entry", which would reclassify last month's
+extra sets as planned the day somebody rebuilt their week.
+
 ## Goals, and the permission they grant
 
 `attention()` produces two of its three verdicts **only for a lift the user has

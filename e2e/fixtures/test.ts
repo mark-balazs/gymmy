@@ -174,6 +174,26 @@ export async function logSet(
 }
 
 /**
+ * The line for a set just logged, exactly as the app recorded it — read off the
+ * screen, never assumed from what was typed.
+ *
+ * Two things make "I typed 60, so it says 60" untrue. A pair of dumbbells is
+ * entered per hand and recorded as both, so 60 becomes 120. And a real account
+ * gets its own offset into the library, so which lift opens Day A differs from
+ * account to account. Tests that asserted "60 kg × 8" after onboarding a fresh
+ * account passed only on the runs where that account's first lift was not a
+ * pair — which is a test that fails at random, not a test.
+ *
+ * Waits for the row, so it also serves as "the set has reached the local store".
+ */
+export async function recordedSet(page: Page, reps: number): Promise<string> {
+  const pattern = new RegExp(`^\\d+(\\.\\d+)? kg × ${reps}`);
+  const row = page.locator('main .num').filter({ hasText: pattern }).first();
+  await expect(row).toBeVisible();
+  return (await row.innerText()).match(pattern)![0];
+}
+
+/**
  * Opens a named exercise's card, if it is not already the open one.
  *
  * A collapsed card is a button showing the exercise name; the open one shows

@@ -155,6 +155,14 @@ export const en = {
   'load.bodyweight': 'Leave this empty unless you added weight.',
   'load.partial': 'What you loaded — not what reaches your hands.',
   'train.nothingPlanned': 'Nothing planned for this day yet.',
+  /* Training outside the plan. Plain and unapologetic on purpose — a class
+     that counts toward nothing in particular still has to read as training,
+     not as a failure to follow the plan. */
+  'train.logOther': 'Log something else',
+  'train.offPlan': 'Outside the plan',
+  'train.offPlanNote': 'Not a day of your plan — it still counts as training this week.',
+  'picker.search': 'Search exercises',
+  'picker.none': 'Nothing matches “{q}”.',
   'train.deleteSet': 'Delete set?',
   'train.deleteSetBody': 'This removes it from your log.',
 
