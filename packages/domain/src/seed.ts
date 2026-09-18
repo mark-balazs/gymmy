@@ -6,6 +6,7 @@
  * breaks for home users — `seed.test.ts` asserts it.
  */
 
+import { CATALOGUE } from './catalogue';
 import { EXERCISE_DETAILS } from './details';
 import type { PatternKey, Role, SlotKey, SlotRole, Where } from './types';
 
@@ -49,94 +50,24 @@ export interface SeedExercise {
   images: string[];
 }
 
-/* Details live in their own file purely for length — a paragraph and two image
- * paths inline would bury the pattern and equipment, which is what this list is
- * actually for. `seed.test.ts` asserts every exercise here has an entry. */
-const e = (name: string, pattern: PatternKey, where: Where, ...tags: string[]): SeedExercise => ({
-  name,
-  pattern,
-  where,
-  tags,
-  description: EXERCISE_DETAILS[name]?.description ?? '',
-  images: EXERCISE_DETAILS[name]?.images ?? [],
-});
-
-export const SEED_EXERCISES: SeedExercise[] = [
-  e('Goblet Squat', 'squat', 'home', 'legs'),
-  e('Leg Press', 'squat', 'gym', 'legs'),
-  e('Barbell Back Squat', 'squat', 'gym', 'legs'),
-  e('Barbell Front Squat', 'squat', 'gym', 'legs'),
-  e('Hack Squat', 'squat', 'gym', 'legs'),
-  e('Zercher Squat', 'squat', 'gym', 'legs'),
-  e('Box Squat', 'squat', 'gym', 'legs'),
-  e('Smith Machine Squat', 'squat', 'gym', 'legs'),
-
-  e('Romanian Deadlift', 'hinge', 'home', 'glutes', 'legs'),
-  e('Conventional Deadlift', 'hinge', 'gym', 'back'),
-  e('Trap Bar Deadlift', 'hinge', 'gym', 'legs'),
-  e('Hip Thrust', 'hinge', 'home', 'glutes'),
-  e('Good Morning', 'hinge', 'gym', 'glutes'),
-  e('Back Extension', 'hinge', 'gym', 'back'),
-  e('Kettlebell Swing', 'hinge', 'home', 'glutes'),
-  e('Single-Leg RDL', 'hinge', 'home', 'glutes'),
-  e('Cable Pull-Through', 'hinge', 'gym', 'glutes'),
-
-  e('Walking Lunge', 'lunge', 'home', 'legs', 'glutes'),
-  e('Reverse Lunge', 'lunge', 'home', 'legs'),
-  e('Bulgarian Split Squat', 'lunge', 'home', 'legs', 'glutes'),
-  e('Step-Up', 'lunge', 'home', 'legs'),
-  e('Split Squat', 'lunge', 'home', 'legs'),
-  e('Curtsy Lunge', 'lunge', 'home', 'glutes'),
-  e('Lateral Lunge', 'lunge', 'home', 'legs'),
-
-  e('DB Bench Press', 'push', 'home', 'chest'),
-  e('Barbell Bench Press', 'push', 'gym', 'chest'),
-  e('Overhead Press', 'push', 'gym', 'shoulders'),
-  e('DB Shoulder Press', 'push', 'home', 'shoulders'),
-  e('Incline DB Press', 'push', 'home', 'chest'),
-  e('Push-Up', 'push', 'home', 'chest'),
-  e('Dip', 'push', 'gym', 'chest', 'arms'),
-  e('Machine Chest Press', 'push', 'gym', 'chest'),
-  e('Landmine Press', 'push', 'gym', 'shoulders'),
-
-  e('Lat Pulldown', 'pull', 'gym', 'back'),
-  e('Pull-Up', 'pull', 'home', 'back'),
-  e('Chin-Up', 'pull', 'home', 'back', 'arms'),
-  e('Seated Cable Row', 'pull', 'gym', 'back'),
-  e('Barbell Row', 'pull', 'gym', 'back'),
-  e('DB Row', 'pull', 'home', 'back'),
-  e('Chest-Supported Row', 'pull', 'gym', 'back'),
-  e('Face Pull', 'pull', 'gym', 'shoulders', 'back'),
-  e('Inverted Row', 'pull', 'home', 'back'),
-
-  e('Pallof Press', 'rotate', 'gym'),
-  e('Cable Woodchop', 'rotate', 'gym'),
-  e('Landmine Rotation', 'rotate', 'gym'),
-  e('Half-Kneeling Chop', 'rotate', 'gym'),
-  e('Russian Twist', 'rotate', 'home'),
-  e('Bird Dog', 'rotate', 'home'),
-  e('Dead Bug', 'rotate', 'home'),
-  e('Side Plank', 'rotate', 'home'),
-
-  e("Farmer's Carry", 'carry', 'home'),
-  e('Suitcase Carry', 'carry', 'home'),
-  e('Front Rack Carry', 'carry', 'home'),
-  e('Overhead Carry', 'carry', 'home', 'shoulders'),
-  e('Sled Push', 'carry', 'gym', 'legs'),
-  e('Sled Drag', 'carry', 'gym', 'legs'),
-  e("Waiter's Walk", 'carry', 'home', 'shoulders'),
-
-  e('Lateral Raise', 'isolation', 'home', 'shoulders'),
-  e('Cable Curl', 'isolation', 'gym', 'arms'),
-  e('DB Curl', 'isolation', 'home', 'arms'),
-  e('Hammer Curl', 'isolation', 'home', 'arms'),
-  e('Tricep Pushdown', 'isolation', 'gym', 'arms'),
-  e('Overhead Tricep Extension', 'isolation', 'home', 'arms'),
-  e('Leg Extension', 'isolation', 'gym', 'legs'),
-  e('Leg Curl', 'isolation', 'gym', 'legs'),
-  e('Calf Raise', 'isolation', 'home', 'legs'),
-  e('Cable Abduction', 'isolation', 'gym', 'glutes'),
-  e('Glute Kickback', 'isolation', 'home', 'glutes'),
-  e('Rear Delt Fly', 'isolation', 'home', 'shoulders', 'back'),
-  e('Chest Fly', 'isolation', 'home', 'chest'),
-];
+/**
+ * The catalogue, in the shape the older seeding code and fixtures expect.
+ *
+ * A view, not a second list. It used to *be* the library — seventy entries typed
+ * out here and copied into every new account — which is what made adding an
+ * exercise reach nobody who already had one. The library is `CATALOGUE` now, and
+ * this derives from it so the two cannot disagree. Retired entries are left out:
+ * nothing new should ever be built against one.
+ *
+ * Details are joined in from their own file purely for length — a paragraph and
+ * two image paths inline would bury the pattern and equipment. `seed.test.ts`
+ * asserts every exercise has an entry.
+ */
+export const SEED_EXERCISES: SeedExercise[] = CATALOGUE.filter((x) => !x.retired).map((x) => ({
+  name: x.name,
+  pattern: x.pattern,
+  where: x.where,
+  tags: [...x.tags],
+  description: EXERCISE_DETAILS[x.name]?.description ?? '',
+  images: EXERCISE_DETAILS[x.name]?.images ?? [],
+}));

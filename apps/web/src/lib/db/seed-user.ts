@@ -1,6 +1,12 @@
 /**
  * Creates the default content for a new account: the seven patterns, the slot
- * skeleton, the exercise library and an un-onboarded profile.
+ * skeleton and an un-onboarded profile.
+ *
+ * **Not the exercise library.** That is the catalogue now, in code, and every
+ * account reads it — so an exercise added to it reaches everybody on the next
+ * release, which copying seventy rows into each new account never could.
+ * Accounts created before this still have their copied rows; `index()` reads
+ * them as aliases, and nothing here touches them.
  *
  * Runs server-side on first sign-in so a brand-new device syncs down a usable
  * app rather than an empty one.
@@ -18,15 +24,8 @@
 import { createHash } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import {
-  exercises,
-  patterns,
-  profiles,
-  programEntries,
-  slots,
-  splitPeriods,
-} from '@/lib/db/schema';
-import { SEED_EXERCISES, SEED_PATTERNS, buildSlots, findSplit } from '@athletic/domain';
+import { patterns, profiles, programEntries, slots, splitPeriods } from '@/lib/db/schema';
+import { SEED_PATTERNS, buildSlots, findSplit } from '@athletic/domain';
 import { addDays, buildProgram, index, mondayOf } from '@athletic/domain';
 import type { Snapshot } from '@athletic/domain';
 import { DEMO_HEIGHT_CM, DEMO_SEX, DEMO_WEEKS } from './demo-history';
@@ -67,7 +66,6 @@ export async function seedNewUser(userId: string, email?: string | null): Promis
     counts: p.counts,
     position: i,
   }));
-  const patternIdByKey = new Map(patternRows.map((p) => [p.key, p.id]));
 
   // Seeded with the default split at its default length. Onboarding replaces
   // these the moment the user picks a split, so this only has to be valid.
@@ -80,26 +78,6 @@ export async function seedNewUser(userId: string, email?: string | null): Promis
     deletedAt: null,
     seq: 0,
   }));
-
-  const exerciseRows = SEED_EXERCISES.flatMap((x) => {
-    const patternId = patternIdByKey.get(x.pattern);
-    if (!patternId) return [];
-    return [
-      {
-        id: seedId(userId, 'exercise', x.name),
-        userId,
-        updatedAt: now,
-        deletedAt: null,
-        seq: 0,
-        name: x.name,
-        patternId,
-        where: x.where,
-        tags: x.tags,
-        description: x.description,
-        images: x.images,
-      },
-    ];
-  });
 
   /* The block a new account starts in. The demo arrives mid-block with months
    * of training behind it, so its block has to reach back far enough that the
@@ -136,10 +114,6 @@ export async function seedNewUser(userId: string, email?: string | null): Promis
     .values(slotRows.map((r) => ({ ...r, seq: nextSeq })))
     .onConflictDoNothing();
   await db
-    .insert(exercises)
-    .values(exerciseRows.map((r) => ({ ...r, seq: nextSeq })))
-    .onConflictDoNothing();
-  await db
     .insert(profiles)
     .values({
       id: userId,
@@ -174,7 +148,8 @@ export async function seedNewUser(userId: string, email?: string | null): Promis
    * guarantee holds for the same reason everyone else's does. */
   const snapshot: Snapshot = {
     patterns: patternRows.map((r) => ({ ...r, updatedAt: now.toISOString(), deletedAt: null })),
-    exercises: exerciseRows.map((r) => ({ ...r, updatedAt: now.toISOString(), deletedAt: null })),
+    // None: the library is the catalogue, which `index()` supplies.
+    exercises: [],
     slots: slotRows.map((r) => ({ ...r, updatedAt: now.toISOString(), deletedAt: null })),
     splitPeriods: [{ ...periodRow, updatedAt: now.toISOString(), deletedAt: null }],
     entries: [],

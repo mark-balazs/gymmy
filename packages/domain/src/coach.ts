@@ -374,7 +374,8 @@ export interface LastSession {
   reps: number | null;
 }
 
-export function lastSession(ix: Indexed, exerciseId: string): LastSession | null {
+export function lastSession(ix: Indexed, rawId: string): LastSession | null {
+  const exerciseId = ix.exerciseIdOf(rawId);
   const logs = allLogs(ix).filter((l) => l.exerciseId === exerciseId);
   if (!logs.length) return null;
 

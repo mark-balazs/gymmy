@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { OFF_PLAN, buildProgram, lastSession, swapOptions, varietyFor } from '../src/coach';
 import { SPLITS } from '../src/splits';
+import { CATALOGUE } from '../src/catalogue';
 import { index, programCoverage, programRows, type Indexed } from '../src/model';
 import { BIASES, type Bias, type PatternKey, type SplitKey, type Where } from '../src/types';
 import { logsFor, seedIndex, seedSnapshot, withEntries } from './fixture';
@@ -203,14 +204,11 @@ describe('movements the app records but never prescribes', () => {
       .filter((e): e is NonNullable<typeof e> => !!e && e.patternId === patternId);
   };
 
-  /** The same library with `names` marked off-plan. */
-  const tagging = (names: string[]) =>
-    index({
-      ...base,
-      exercises: base.exercises.map((e) =>
-        names.includes(e.name) ? { ...e, tags: [...e.tags, OFF_PLAN] } : e,
-      ),
-    });
+  /** The catalogue with `names` marked off-plan. Tags live in the catalogue
+   *  now, not on an account's rows — tagging a row would do nothing at all. */
+  const offPlanCatalogue = (names: string[]) =>
+    CATALOGUE.map((c) => (names.includes(c.name) ? { ...c, tags: [...c.tags, OFF_PLAN] } : c));
+  const tagging = (names: string[]) => index(base, offPlanCatalogue(names));
 
   it('picks something else once the movement it wanted is off-plan', () => {
     for (const days of [2, 3, 4]) {
@@ -252,8 +250,9 @@ describe('movements the app records but never prescribes', () => {
 
     const taggedIx = tagging([victim.name]);
     const builtTagged = withEntries(
-      { ...base, exercises: taggedIx.exercises },
+      base,
       buildProgram(taggedIx, { days: 3, where: 'gym', bias: 'none' }),
+      offPlanCatalogue([victim.name]),
     );
     const rowTagged = programRows(builtTagged, 3).find((r) => r.pattern?.key === 'squat')!;
     const after = swapOptions(builtTagged, 3, rowTagged.session, rowTagged.slot.id, 'gym');

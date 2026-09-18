@@ -57,7 +57,7 @@ referencing column carries only the id half.
 | Table | Notes |
 | --- | --- |
 | `patterns` | The seven, plus isolation. `counts: false` means "not a coverage box" |
-| `exercises` | The library. `description` and `images` were added later — see the normalisation note below |
+| `exercises` | **Legacy rows only.** The library is the catalogue in code — see *The exercise library* below. Accounts created before it still hold their copied rows, which `index()` reads as aliases; new accounts get none. Never delete one: sets point at its id |
 | `slots` | The week's skeleton. Editing these by hand is what makes a split custom |
 | `splitPeriods` | Append-only. The whole historisation model |
 | `entries` (`program_entries`) | The generated plan: which exercise fills which slot |
@@ -91,12 +91,15 @@ this row and is the only one who edits it" — and a plan breaks both halves. In
 the sync set, a trainer closing their account would destroy plans other people
 train on, and last-write-wins would be refereeing edits between two people.
 
-**Exercises travel by name.** An exercise id is `seedId(userId, 'exercise',
-name)` — a SHA-256 of the user id — so a trainer's id for a bench press matches
-nothing in any other account. A plan built on ids would apply cleanly, resolve to
-nothing, and leave somebody with an empty week and no error. Names are resolved
-against the athlete's own library at the moment of applying; one they do not have
-costs them that exercise and not that session.
+**Plans carry exercises by name, not by id.** Exercise ids used to be per
+account — `seedId(userId, 'exercise', name)`, and a random UUID before that — so a
+trainer's id for a bench press matched nothing in any other account, and a plan
+built on ids would have applied cleanly and left an empty week. The shared
+catalogue changes that for new data: every account now reads the same `ex-…`
+ids. Plans still travel by name all the same (D-011), because an account created
+before the catalogue still has its own ids on every row it stored — read as
+aliases by `index()`, but still its own. A name resolves against either. One the
+athlete lacks costs them that exercise and not that session.
 
 `plan_events` is the deliberate exception to the cascade. Deleting a plan, a
 group or the person who acted sets the reference to null and keeps the event,
@@ -164,11 +167,51 @@ So a table is retired in two steps:
 
 `ref_sets` is between the two right now: step 1 has shipped, step 2 has not.
 
+## The exercise library
+
+`packages/domain/src/catalogue.ts` is the library: one list, authored in code,
+that every account gets. It replaced copying seventy rows into each account at
+sign-up, which meant an exercise added to the library reached nobody who already
+had one — seeding only ever runs for a new, empty account.
+
+**No stored id was rewritten to get here, and none ever will be.** That was the
+design ruled out, for a specific reason: a bad id migration is the one failure
+that looks to the user like their training was deleted, and it would have run
+behind no foreign key while devices were still pushing old ids from their
+outboxes. Instead:
+
+- **Accounts from before the catalogue keep their rows, as aliases.** `index()`
+  matches each row to a catalogue entry by name and reads every set, plan entry
+  and goal pointing at the old id as pointing at the catalogue's. It builds the
+  aliases from soft-deleted rows too, because their sets still exist. A row the
+  catalogue does not know stays an exercise in its own right. Nothing is written;
+  every write path takes its rows from the store, never from `index()`.
+- **`ix.exerciseIdOf(id)`** maps any id an exercise has ever had to the one in
+  use, for ids that arrive from outside `index()`. The goal and history
+  functions apply it at their entry.
+- **Ids are written out, never computed** — `ex-` plus a slug of the name when
+  it was added, then frozen. `catalogue-ids.ts` is the append-only record of
+  every id ever published, and `catalogue.test.ts` fails if one stops resolving
+  or if a catalogue id was never registered.
+- **`retired` is the only way to remove an exercise.** It stays in
+  `exerciseById`, so history keeps its name and chart, and leaves `exercises`,
+  so nothing offers it again. Anything reading *history* must go through
+  `exerciseById`, not `exercises` — Progress and the strength numbers do.
+- **Order is behaviour.** The generator indexes into each pattern's pool, so the
+  catalogue's order decides which exercise a week gets. It used to be the
+  device's id order — per-account hashes, so a different order for everybody by
+  accident; that variety is now deliberate, via `varietyFor`.
+
+Descriptions, photographs, load classes and translations are still keyed by the
+English name, and their tests hold every table to the catalogue — so names are
+frozen as well, for now, and a rename fails the suite rather than quietly losing
+a description.
+
 ## Seeding
 
 `lib/db/seed-user.ts` creates a new account's default content: the patterns, the
-slot skeleton, the 70 exercises, the opening `SplitPeriod` and an un-onboarded
-profile.
+slot skeleton, the opening `SplitPeriod` and an un-onboarded profile. **Not the
+exercise library** — that is the catalogue, below, and every account reads it.
 
 **It is idempotent, and that is load-bearing.** Auth.js fires `createUser`
 exactly once per account, so a failure there used to be permanent: the user row

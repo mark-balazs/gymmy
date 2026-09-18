@@ -64,9 +64,12 @@ describe('seeding is safe to run again', () => {
     await db.delete(schema.users).where(sql`${schema.users.id} = ${userId}`);
   });
 
-  it('wrote a library the first time', () => {
+  it('wrote the account’s structure the first time — and no library', () => {
     expect(first.patterns).toBe(8);
-    expect(first.exercises).toBeGreaterThan(50);
+    /* Zero, deliberately. The library is the catalogue in code, which every
+       account reads; copying it into each new account is what used to stop an
+       added exercise from reaching anybody who already had one. */
+    expect(first.exercises).toBe(0);
     expect(first.slots).toBeGreaterThan(0);
     expect(first.profiles).toBe(1);
   });

@@ -100,8 +100,11 @@ describe('dayDetail', () => {
 
   it('still shows an exercise that has since left the plan', () => {
     // The plan is rebuilt on every split change; the history is not.
-    const day = dayDetail(on('2026-09-07'), '2026-09-07')!;
-    expect(day.exercises.map((e) => e.exercise.id)).toContain(bench.id);
+    const ix = on('2026-09-07');
+    const day = dayDetail(ix, '2026-09-07')!;
+    // Compared by the id the library knows it by now: the fixture's rows are
+    // an account's pre-catalogue rows, which `index()` reads as aliases.
+    expect(day.exercises.map((e) => e.exercise.id)).toContain(ix.exerciseIdOf(bench.id));
   });
 });
 

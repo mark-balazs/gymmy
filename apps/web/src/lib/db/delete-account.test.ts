@@ -43,6 +43,23 @@ describe('deleting an account', () => {
 
     await db.insert(schema.users).values({ id: userId, name: 'Delete test', email });
     await seedNewUser(userId, email);
+    /* A library row of the kind every account created before the catalogue
+       still carries. Seeding no longer writes them, but those accounts will be
+       deleted too, and their rows have to go with them — so this test keeps
+       asserting it rather than quietly dropping the check. */
+    await db.insert(schema.exercises).values({
+      id: 'legacy-row',
+      userId,
+      updatedAt: new Date(),
+      deletedAt: null,
+      seq: sql`nextval('change_seq')`,
+      name: 'Goblet Squat',
+      patternId: 'legacy-pattern',
+      where: 'home',
+      tags: [],
+      description: '',
+      images: [],
+    });
 
     /* The two tables that hold the address without hanging off the user row. Neither
        is written by seeding — a sign-in code is issued before anyone knows
@@ -154,7 +171,7 @@ describe('deleting an account', () => {
     expect(before['user']).toBe(1);
     expect(before['set_logs.user_id']).toBeGreaterThan(100);
     expect(before['profiles.user_id']).toBe(1);
-    expect(before['exercises.user_id']).toBeGreaterThan(10);
+    expect(before['exercises.user_id']).toBe(1);
     // The two that do not cascade, and so are the ones worth proving.
     expect(before['verificationToken.identifier']).toBe(1);
     expect(before['sign_in_attempts.email']).toBe(1);

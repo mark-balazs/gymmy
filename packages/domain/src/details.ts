@@ -12,7 +12,7 @@
  * are same-origin — which means the service worker caches them and they survive
  * a basement with no signal, like everything else here.
  *
- * Twelve exercises carry a description and no photographs. The dataset has no
+ * Thirteen exercises carry a description and no photographs. The dataset has no
  * faithful match for them, and showing a picture of a *different* movement
  * would be worse than showing none: the whole point of the picture is to settle
  * what the movement is.

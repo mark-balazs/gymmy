@@ -375,7 +375,10 @@ export default function Onboarding() {
                       <div key={x.slotId} className="flex items-center gap-2">
                         <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
                         <span className="truncate text-sm">
-                          {preview.ix.exerciseById.get(x.exerciseId!)?.name ?? ''}
+                          {/* Through the translator, like every other exercise
+                              name: this printed the English name in every
+                              language — the first list a new user ever reads. */}
+                          {tr.exercise(preview.ix.exerciseById.get(x.exerciseId!))}
                         </span>
                       </div>
                     ))}

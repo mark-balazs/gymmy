@@ -222,7 +222,9 @@ export function progressSummary(
   const inPlan = new Set(planned.map((e) => e.id));
   const ordered = [
     ...planned,
-    ...ix.exercises.filter((e) => byExercise.has(e.id) && !inPlan.has(e.id)),
+    // Every exercise that can resolve, not just the ones still offered: a
+    // retired movement is no longer in the library, and its history still is.
+    ...[...ix.exerciseById.values()].filter((e) => byExercise.has(e.id) && !inPlan.has(e.id)),
   ];
 
   return ordered.map((exercise) => {

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Card, Chip, Sheet, Summary, cn } from '@/components/ui';
+import { Button, Card, Chip, Summary, cn } from '@/components/ui';
 import { Page } from '@/components/page';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import { setEntryExercise } from '@/lib/client/mutations';
@@ -10,6 +10,7 @@ import { DEFAULT_PREFS, swapOptions, type Exercise } from '@athletic/domain';
 import { blockWeeks, mondayOf, programRows, sessionLabel, weekCoverage } from '@athletic/domain';
 import { fmtDay } from '@/lib/client/format';
 import { ExerciseSheet } from '@/components/exercise-sheet';
+import { ExercisePicker } from '@/components/exercise-picker';
 
 export default function WeekPage() {
   const { ix } = useSnapshot();
@@ -187,26 +188,22 @@ export default function WeekPage() {
 
       {detail && <ExerciseSheet exercise={detail} onClose={() => setDetail(null)} />}
 
+      {/* The shared picker, so the swap list gets search and grouping. It was an
+          uncapped column of buttons in store order, which was bearable while
+          the library was seventy per-account rows and is not once it grows —
+          and `swapOptions` is still what decides what is legal here. */}
       {swap && (
-        <Sheet
+        <ExercisePicker
           title={tr.t('week.swapTitle', { name: swap.name })}
-          open
+          note={tr.t('week.swapBody')}
+          exercises={swapOptions(ix, days, swap.session, swap.slotId, where)}
+          patterns={ix.patterns}
+          onPick={async (e) => {
+            await setEntryExercise(swap.session, swap.slotId, e.id);
+            setSwap(null);
+          }}
           onClose={() => setSwap(null)}
-        >
-          <p className="text-sm text-[var(--color-muted)]">{tr.t('week.swapBody')}</p>
-          {swapOptions(ix, days, swap.session, swap.slotId, where).map((e) => (
-            <Button
-              key={e.id}
-              className="w-full justify-start"
-              onClick={async () => {
-                await setEntryExercise(swap.session, swap.slotId, e.id);
-                setSwap(null);
-              }}
-            >
-              {tr.exercise(e)}
-            </Button>
-          ))}
-        </Sheet>
+        />
       )}
     </Page>
   );

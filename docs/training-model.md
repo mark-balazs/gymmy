@@ -89,8 +89,9 @@ repair pass selects the same way instead of always forcing the head of the pool.
 > one with a live goal — and it needs rules about which slots it may touch. It
 > waits for that decision.
 >
-> The swap sheet remains the way to reach everything, and it has to gain search
-> and grouping as the library grows.
+> The swap sheet remains the way to reach everything. It now has search and
+> grouping, through the same picker as "Log something else", which it needed
+> before the library could grow.
 
 ## Historisation
 
@@ -135,7 +136,7 @@ that figure *means* is load-bearing. The app asked for a "weight" for months and
 never said. On a barbell that is nearly harmless. On two dumbbells it is a
 **factor of two**, and nothing stored says which side of it a row is on.
 
-`packages/domain/src/load.ts` gives every seeded exercise a **load class**, and
+`packages/domain/src/load.ts` gives every catalogue exercise a **load class**, and
 `load.test.ts` asserts the two lists agree in both directions so a new exercise
 cannot arrive without one. The class is per exercise, not per equipment type —
 "a dumbbell number means both" would define every single-arm row and suitcase

@@ -9,7 +9,7 @@ app has failed at the thing it exists to do.
 ## Preconditions
 
 - A signed-in user whose profile has `onboarded = false`
-- The default library seeded (7 patterns, 5 slots, 70 exercises)
+- The account seeded (7 patterns and isolation, 5 slots); the exercise library is the shared catalogue
 
 ## Steps
 

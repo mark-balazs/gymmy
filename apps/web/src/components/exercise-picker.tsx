@@ -31,12 +31,16 @@ const fold = (s: string): string =>
 
 export function ExercisePicker({
   title,
+  note,
   exercises,
   patterns,
   onPick,
   onClose,
 }: {
   title: string;
+  /** A line above the search, for what the list means — the swap sheet says
+   *  why these are the options and not others. */
+  note?: string;
   exercises: Exercise[];
   patterns: Pattern[];
   onPick: (exercise: Exercise) => void;
@@ -68,6 +72,7 @@ export function ExercisePicker({
 
   return (
     <Sheet title={title} open onClose={onClose}>
+      {note && <p className="text-sm text-[var(--color-muted)]">{note}</p>}
       <input
         type="search"
         value={query}

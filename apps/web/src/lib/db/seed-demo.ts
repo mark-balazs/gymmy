@@ -24,7 +24,7 @@ import {
   programEntries,
   setLogs,
 } from '@/lib/db/schema';
-import { mondayOf } from '@athletic/domain';
+import { CATALOGUE, mondayOf, type PatternKey } from '@athletic/domain';
 import { demoGoals, demoHistory, type DemoPlanEntry } from './demo-history';
 import { nextSeq, seedId } from './seed-user';
 
@@ -68,11 +68,29 @@ export async function seedDemoHistory(userId: string): Promise<void> {
   if (!plan.length) return;
 
   const keyByPattern = new Map(patternRows.map((p) => [p.id, p.key]));
-  /** Exercise → what it is called and what it trains, which is what decides a
-   *  sane weight. A deadlift and a lateral raise have nothing in common. */
-  const byId = new Map(
-    library.map((e) => [e.id, { name: e.name, patternKey: keyByPattern.get(e.patternId) ?? null }]),
-  );
+  /**
+   * Exercise → what it is called and what it trains, which is what decides a
+   * sane weight. A deadlift and a lateral raise have nothing in common.
+   *
+   * The catalogue first, because a demo account created now has no library rows
+   * of its own and its plan points at catalogue ids. Then any rows it does have,
+   * for a demo account created before the catalogue: its plan still points at
+   * those ids, and reading it back unchanged is what keeps this seed idempotent
+   * across the release — every log id below is derived from the plan's own
+   * exercise id, so the same account gets the same ids and inserts nothing twice.
+   */
+  const byId = new Map<string, { name: string; patternKey: PatternKey | null }>([
+    ...CATALOGUE.map((c) => [c.id, { name: c.name, patternKey: c.pattern }] as const),
+    ...library.map(
+      (e) =>
+        [
+          e.id,
+          // The column is plain text; the domain's pattern keys are the only
+          // values ever written to it.
+          { name: e.name, patternKey: (keyByPattern.get(e.patternId) as PatternKey) ?? null },
+        ] as const,
+    ),
+  ]);
 
   const entries: DemoPlanEntry[] = plan.flatMap((p) => {
     const exercise = p.exerciseId ? byId.get(p.exerciseId) : null;

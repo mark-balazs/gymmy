@@ -25,6 +25,8 @@ import type {
   Unit,
   WeekCoverage,
 } from './types';
+import { CATALOGUE, type CatalogueExercise } from './catalogue';
+import { EXERCISE_DETAILS } from './details';
 
 /* --------------------------------------------------------------- helpers */
 
@@ -194,20 +196,97 @@ export interface Indexed {
   patternById: Map<string, Pattern>;
   exerciseById: Map<string, Exercise>;
   slotById: Map<string, Slot>;
+  /**
+   * The id an exercise is known by now, given any id it has ever had.
+   *
+   * Every row `index()` returns is already canonical. This is for ids that
+   * arrive from outside it — a goal read straight from the store, an id carried
+   * in from another screen — so that an account's pre-catalogue id and the
+   * catalogue id it maps to find the same history. Identity for anything it does
+   * not recognise.
+   */
+  exerciseIdOf: (id: string) => string;
 }
 
-export function index(snap: Snapshot): Indexed {
+/** How a stored name is matched to a catalogue name: case and edge spaces
+ *  ignored, which is the same rule plans use to match names across accounts. */
+const nameKey = (name: string): string => name.trim().toLowerCase();
+
+/** One fixed stamp for rows that come from code rather than from sync. */
+const CATALOGUE_STAMP = '1970-01-01T00:00:00.000Z';
+
+/**
+ * Everything a screen reads, from one snapshot of the store.
+ *
+ * `catalogue` is a parameter only so a test can hand in a variant — the library
+ * with one movement tagged off-plan, say. Every real caller takes the default.
+ */
+export function index(
+  snap: Snapshot,
+  catalogue: readonly CatalogueExercise[] = CATALOGUE,
+): Indexed {
   const patterns = live(snap.patterns).sort((a, b) => a.position - b.position);
-  /* Fields added after a device last synced are simply absent from the rows
-   * already in its IndexedDB — the server only re-sends rows whose seq moved,
-   * and adding a column does not move it. Defaulting them here, at the single
-   * point every consumer reads through, is what stops `images.length` throwing
-   * on a row written before images existed. */
-  const exercises = live(snap.exercises).map((e) => ({
-    ...e,
-    description: e.description ?? '',
-    images: e.images ?? [],
-  }));
+  const patternIdByKey = new Map(patterns.flatMap((p) => (p.key ? [[p.key, p.id] as const] : [])));
+
+  /* The library is the catalogue, in this account's own pattern ids — so the
+     `Exercise` shape, and every one of the places that reads `patternId`, is
+     unchanged. A catalogue entry whose pattern this account does not have is
+     left out rather than attached to nothing. */
+  const fromCatalogue: Exercise[] = catalogue.flatMap((c) => {
+    const patternId = patternIdByKey.get(c.pattern);
+    if (!patternId) return [];
+    const details = EXERCISE_DETAILS[c.name];
+    return [
+      {
+        id: c.id,
+        updatedAt: CATALOGUE_STAMP,
+        deletedAt: null,
+        name: c.name,
+        patternId,
+        where: c.where,
+        tags: [...c.tags],
+        description: details?.description ?? '',
+        images: details?.images ?? [],
+      },
+    ];
+  });
+
+  /* The account's own rows, from before the catalogue, become aliases: each one
+     the catalogue knows by name maps its old id to the catalogue's. Built from
+     every row, soft-deleted ones included — a deleted row's sets still exist
+     and still have to resolve. Nothing is written: this is read-side only, and
+     every write path takes its rows from the store, never from here. */
+  const catalogueIdByName = new Map(catalogue.map((c) => [nameKey(c.name), c.id]));
+  const alias = new Map<string, string>();
+  for (const row of snap.exercises) {
+    const id = catalogueIdByName.get(nameKey(row.name));
+    if (id && id !== row.id) alias.set(row.id, id);
+  }
+  const canon = <T extends { exerciseId: string | null }>(row: T): T =>
+    row.exerciseId !== null && alias.has(row.exerciseId)
+      ? { ...row, exerciseId: alias.get(row.exerciseId)! }
+      : row;
+
+  /* A row the catalogue does not know stays an exercise in its own right, so its
+     history can never be orphaned. None exist today — nothing in the app has
+     ever created one — but a guess about "none" is not something to build a
+     silent data loss on.
+
+     Fields added after a device last synced are simply absent from the rows
+     already in its IndexedDB — the server only re-sends rows whose seq moved,
+     and adding a column does not move it — so they are defaulted here, at the
+     single point every consumer reads through. */
+  const own = live(snap.exercises)
+    .filter((e) => !catalogueIdByName.has(nameKey(e.name)))
+    .map((e) => ({ ...e, description: e.description ?? '', images: e.images ?? [] }));
+
+  /* Retired entries resolve — their history keeps its name and its chart — but
+     are never offered: not to the generator, the swap sheet or the picker, all
+     of which read `exercises`. */
+  const retired = new Set(catalogue.filter((c) => c.retired).map((c) => c.id));
+  const resolvable = [...fromCatalogue, ...own];
+  const exercises = resolvable.filter((e) => !retired.has(e.id));
+
   const slots = live(snap.slots).sort((a, b) => a.position - b.position);
   return {
     patterns,
@@ -216,8 +295,8 @@ export function index(snap: Snapshot): Indexed {
     splitPeriods: live(snap.splitPeriods ?? []).sort((a, b) =>
       a.startWeek < b.startWeek ? -1 : a.startWeek > b.startWeek ? 1 : 0,
     ),
-    entries: live(snap.entries),
-    goals: live(snap.goals ?? []),
+    entries: live(snap.entries).map(canon),
+    goals: live(snap.goals ?? []).map(canon),
     /**
      * Chronological, and that is load-bearing rather than tidy.
      *
@@ -227,15 +306,20 @@ export function index(snap: Snapshot): Indexed {
      * exposed it has since been removed with the progression advice, but the
      * invariant outlived it and `ordering.test.ts` now asserts it directly.
      */
-    logs: live(snap.logs).sort(
-      (a, b) =>
-        a.date.localeCompare(b.date) || a.session.localeCompare(b.session) || a.setNo - b.setNo,
-    ),
+    logs: live(snap.logs)
+      .map(canon)
+      .sort(
+        (a, b) =>
+          a.date.localeCompare(b.date) || a.session.localeCompare(b.session) || a.setNo - b.setNo,
+      ),
     bodyLogs: live(snap.bodyLogs ?? []).sort((a, b) =>
       a.date < b.date ? -1 : a.date > b.date ? 1 : 0,
     ),
     patternById: new Map(patterns.map((p) => [p.id, p])),
-    exerciseById: new Map(exercises.map((e) => [e.id, e])),
+    // Everything that can resolve, retired entries included: a lift you stopped
+    // being offered is still a lift you have history for.
+    exerciseById: new Map(resolvable.map((e) => [e.id, e])),
+    exerciseIdOf: (id: string) => alias.get(id) ?? id,
     slotById: new Map(slots.map((s) => [s.id, s])),
   };
 }

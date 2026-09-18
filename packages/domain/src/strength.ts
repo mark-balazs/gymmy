@@ -286,7 +286,8 @@ const patternOfExercise = (ix: Indexed): Map<string, PatternKey> => {
   const byId = new Map<string, PatternKey>();
   for (const p of ix.patterns) if (p.key) byId.set(p.id, p.key);
   const out = new Map<string, PatternKey>();
-  for (const e of ix.exercises) {
+  // All resolvable exercises, retired ones included: their sets still count.
+  for (const e of ix.exerciseById.values()) {
     const key = byId.get(e.patternId);
     if (key) out.set(e.patternId, key);
   }

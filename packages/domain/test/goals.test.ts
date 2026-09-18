@@ -86,9 +86,15 @@ describe('the permission a goal grants', () => {
 
   it('names the lifts the app may judge, and nothing else', () => {
     const ix = ixWith({ goals: [goal()] });
-    expect([...growingExercises(ix, '2026-09-14')]).toEqual([bench.id]);
+    /* By canonical id. The fixture's rows are an account's pre-catalogue rows,
+       and the set holds the ids `index()` reads them as — so comparing against
+       the raw id would not merely fail here, it would make the next line pass
+       whatever the code did: a raw id is never in a set of canonical ones. */
+    expect([...growingExercises(ix, '2026-09-14')]).toEqual([ix.exerciseIdOf(bench.id)]);
     // The second exercise is trained just as hard and was never volunteered.
-    expect(growingExercises(ix, '2026-09-14').has(snap.exercises[1]!.id)).toBe(false);
+    expect(growingExercises(ix, '2026-09-14').has(ix.exerciseIdOf(snap.exercises[1]!.id))).toBe(
+      false,
+    );
     // And after the date, nothing at all.
     expect(growingExercises(ix, '2026-11-01').size).toBe(0);
   });

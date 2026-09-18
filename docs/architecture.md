@@ -64,7 +64,8 @@ second implementation to disagree with the first.
 | `packages/domain/src/insights.ts` | What Progress and the calendar *say* — session series, drawdowns, the triage, a day |
 | `packages/domain/src/splits.ts` | Split presets, slot materialisation, coverage sets |
 | `packages/domain/src/plans.ts` | A plan as a portable thing: no ids from any account, exercises by name |
-| `packages/domain/src/seed.ts` `details.ts` | The default library: 7 patterns, 70 exercises, their photos and descriptions |
+| `packages/domain/src/catalogue.ts` `catalogue-ids.ts` `details.ts` | The exercise library, shared by every account and authored in code; the append-only record of published ids; photos and descriptions |
+| `packages/domain/src/seed.ts` | A new account's patterns and slot skeleton. `SEED_EXERCISES` is a view of the catalogue kept for older seeding code |
 | `apps/web/src/lib/client/` | IndexedDB, the sync engine, every mutation |
 | `apps/web/src/lib/db/` | Drizzle schema, per-account seeding, the demo |
 | `apps/web/src/lib/db/demo-history.ts` | Pure: the demo account's training, as data points |
@@ -153,11 +154,14 @@ week somebody is standing in.
 
 Two traps worth knowing before touching any of it:
 
-- **Exercises travel by name.** An exercise id is
-  `sha256(userId, 'exercise', name)`, so a trainer's id matches nothing in
-  anybody else's library. A plan built on ids applies without an error and
-  leaves an empty week. A name the athlete lacks costs them that exercise and
-  not that session — the generator still fills the slot.
+- **Plans carry exercises by name.** Catalogue ids are shared, but an account
+  created before the catalogue still has its own ids on every stored row, read
+  as aliases by `index()` — so a plan built on ids would still miss for them.
+  A name resolves against either; one the athlete lacks costs them that
+  exercise and not that session.
+- **Read history through `exerciseById`, offer through `exercises`.** A
+  retired catalogue entry is in the first and not the second. Listing history
+  from `exercises` makes a retired movement's training vanish.
 - **Read the plan through `planOf(profile)`.** The server does not re-send a row
   because a column was added, so a device that synced before `planId` existed
   has no such key and `profile.planId !== null` is `true` for an account that

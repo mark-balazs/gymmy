@@ -314,7 +314,9 @@ function GoalRow({
   const { ix } = useSnapshot();
   const tr = useT();
   const { goal, current, share, daysLeft, achieved, moved } = progress;
-  const exercise = ix.exercises.find((e) => e.id === goal.exerciseId) ?? null;
+  // By id from everything that resolves: a goal on a movement since retired
+  // from the library still has to say what it was on.
+  const exercise = ix.exerciseById.get(goal.exerciseId) ?? null;
   const ended = daysLeft < 0;
 
   return (

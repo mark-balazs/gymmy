@@ -28,8 +28,11 @@ walks the rest.
 
 1. Open `/sign-in`, enter an address, ask for a code.
 2. Enter the code. The account does not exist yet, so this request is what
-   creates the user *and* seeds the seven patterns, the slot skeleton and the
-   seventy exercises.
+   creates the user *and* seeds the patterns and the slot skeleton. It seeds no
+   exercises: the library is the shared catalogue. So this is also the one flow
+   that runs an account with **no library rows of its own** end to end — every
+   other spec's fixture writes the old per-account rows, which exercises the
+   alias path instead.
 3. Land in setup rather than on an empty Train tab. Answer the four questions.
 4. Log a real set against a real generated exercise.
 5. Check the Week tab: it is scored against the split that was chosen, not a

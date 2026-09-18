@@ -19,7 +19,7 @@ what it is *for*.
 ## Preconditions
 
 - A signed-in user
-- The default library seeded (7 patterns, 5 slots per day, 70 exercises)
+- The account seeded (7 patterns and isolation, 5 slots per day); the exercise library is the shared catalogue
 
 ## The presets
 

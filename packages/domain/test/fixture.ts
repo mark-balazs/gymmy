@@ -106,11 +106,15 @@ export const seedIndex = (): Indexed => index(seedSnapshot());
 export function withEntries(
   snap: Snapshot,
   drafts: Omit<import('../src/types').ProgramEntry, 'id' | 'updatedAt' | 'deletedAt'>[],
+  catalogue?: Parameters<typeof index>[1],
 ): Indexed {
-  return index({
-    ...snap,
-    entries: drafts.map((d) => ({ ...d, id: id('entry'), updatedAt: now, deletedAt: null })),
-  });
+  return index(
+    {
+      ...snap,
+      entries: drafts.map((d) => ({ ...d, id: id('entry'), updatedAt: now, deletedAt: null })),
+    },
+    catalogue,
+  );
 }
 
 /** A split period, for testing how a week is scored at a point in time. */

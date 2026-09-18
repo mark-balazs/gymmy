@@ -12,6 +12,8 @@ export * from './model';
 export * from './coach';
 export * from './details';
 export * from './load';
+export * from './catalogue';
+export * from './catalogue-ids';
 export * from './strength';
 export * from './exercise-names';
 export * from './insights';

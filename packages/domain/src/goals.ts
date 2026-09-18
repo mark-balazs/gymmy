@@ -88,7 +88,9 @@ export interface GoalProgress {
 
 export function goalProgress(goal: Goal, ix: Indexed, today: string): GoalProgress {
   const since = ix.logs.filter((l) => l.date >= goal.startedOn);
-  const current = Math.max(bestE1RM(since, goal.exerciseId), goal.baseline);
+  // Canonical, so a goal handed in straight from the store — still carrying an
+  // account's pre-catalogue id — finds the same sets `index()` renamed.
+  const current = Math.max(bestE1RM(since, ix.exerciseIdOf(goal.exerciseId)), goal.baseline);
 
   const distance = goal.target - goal.baseline;
   const share = distance > 0 ? (current - goal.baseline) / distance : 1;
@@ -270,7 +272,8 @@ export function checkGoal(req: GoalRequest): GoalCheck {
  * Null when there is not enough to go on: two sessions is not a rate, and
  * guessing one would put a number in front of somebody that the app invented.
  */
-export function recentGainOf(ix: Indexed, exerciseId: string, today: string): number | null {
+export function recentGainOf(ix: Indexed, rawId: string, today: string): number | null {
+  const exerciseId = ix.exerciseIdOf(rawId);
   const from = addDays(today, -168); // Six months.
   const logs = ix.logs.filter((l) => l.exerciseId === exerciseId && l.date >= from);
   const dates = [...new Set(logs.map((l) => l.date))].sort();
@@ -321,7 +324,8 @@ export const MIN_BASELINE_SESSIONS = 3;
  * know where that is, in which case the answer is to train it a few more times
  * rather than to offer a baseline it would then hold somebody to.
  */
-export function suggestBaseline(ix: Indexed, exerciseId: string, today: string): number {
+export function suggestBaseline(ix: Indexed, rawId: string, today: string): number {
+  const exerciseId = ix.exerciseIdOf(rawId);
   // Eight weeks, matching the window the strength score uses: long enough that
   // one bad session does not set the bar low, recent enough to be true now.
   const from = addDays(today, -56);
