@@ -16,7 +16,6 @@ import type {
   Pattern,
   ProgramEntry,
   Profile,
-  RefSet,
   SetLog,
   Slot,
   TableName,
@@ -99,22 +98,6 @@ export async function removeSet(setId: string): Promise<void> {
   await put<SetLog>('logs', { ...row, deletedAt: now(), updatedAt: now() });
 }
 
-export async function addRefSet(input: {
-  date: string;
-  exerciseId: string;
-  weight: number | null;
-  reps: number | null;
-  note?: string;
-}): Promise<RefSet> {
-  return put<RefSet>('refSets', {
-    id: id(),
-    updatedAt: now(),
-    deletedAt: null,
-    note: '',
-    ...input,
-  });
-}
-
 /* ----------------------------------------------------------- bodyweight */
 
 /**
@@ -139,12 +122,6 @@ export async function logBodyWeight(date: string, weight: number): Promise<void>
 
 export const setSex = (sex: Profile['sex']) => patchProfile({ sex });
 export const setHeight = (heightCm: number | null) => patchProfile({ heightCm });
-
-export async function removeRefSet(refId: string): Promise<void> {
-  const row = await local.refSets.get(refId);
-  if (!row) return;
-  await put<RefSet>('refSets', { ...row, deletedAt: now(), updatedAt: now() });
-}
 
 /* --------------------------------------------------------------- program */
 

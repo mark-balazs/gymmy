@@ -62,7 +62,7 @@ referencing column carries only the id half.
 | `splitPeriods` | Append-only. The whole historisation model |
 | `entries` (`program_entries`) | The generated plan: which exercise fills which slot |
 | `logs` (`set_logs`) | The dominant write. One row per set |
-| `refSets` | Reference sets, outside the plan |
+| `refSets` | **Retired — awaiting its drop.** Never had a reader or a writer; no longer synced, validated or held on the device (Dexie v5 deletes the store). One-off logging covers what it was for, as ordinary `logs` rows under `OFF_PLAN_SESSION`. The table and its `schema.ts` declaration stay for exactly one deploy — see below |
 | `bodyLogs` | Bodyweight, dated. Denominator of the strength score |
 | `goals` | One lift the user has asked to be judged on, until a date. Nothing else in the app evaluates progression without one |
 | `profile` | One row per user; `id` equals `userId` |
@@ -142,6 +142,27 @@ position in the change order. Every row is validated per table by
 Use the *unpooled* URL for migrations. A pooler in transaction mode can reject or
 mis-sequence DDL, and `drizzle.config.ts` prefers `DATABASE_URL_UNPOOLED` for
 exactly that reason.
+
+### Dropping a table takes two deploys
+
+`vercel-build` runs `drizzle-kit migrate` **before** it builds, so a migration
+lands while the previous deployment is still serving traffic. If that migration
+drops a table the previous code still queries — `pull()` reads every table in
+`SYNC_TABLES` — every sync answers 500 until the new deployment is live. Nothing
+is lost (the outbox holds on to unsent rows), but every device stalls for the
+length of the build.
+
+So a table is retired in two steps:
+
+1. **Remove every use.** Take it out of `SYNC_TABLES`, `TABLES`, `rows.ts`, the
+   spec and the client, and delete its Dexie store with a new version that maps
+   it to `null` — but leave its `schema.ts` declaration, so no migration is
+   generated.
+2. **Next deploy: drop it.** Count its rows in production first. Then delete the
+   declaration, run `npm run db:generate` for the `DROP TABLE`, regenerate the
+   ER diagram and paste it onto Confluence.
+
+`ref_sets` is between the two right now: step 1 has shipped, step 2 has not.
 
 ## Seeding
 

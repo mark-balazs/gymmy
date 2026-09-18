@@ -179,7 +179,6 @@ export async function seedNewUser(userId: string, email?: string | null): Promis
     splitPeriods: [{ ...periodRow, updatedAt: now.toISOString(), deletedAt: null }],
     entries: [],
     logs: [],
-    refSets: [],
     bodyLogs: [],
     goals: [],
     profile: null,

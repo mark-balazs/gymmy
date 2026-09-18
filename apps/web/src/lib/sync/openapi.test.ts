@@ -41,7 +41,6 @@ const SCHEMA_FOR: Record<(typeof TABLES)[number], string> = {
   splitPeriods: 'SplitPeriod',
   entries: 'ProgramEntry',
   logs: 'SetLog',
-  refSets: 'RefSet',
   bodyLogs: 'BodyLog',
   goals: 'Goal',
   profile: 'Profile',

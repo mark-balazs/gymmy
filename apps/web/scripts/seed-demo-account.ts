@@ -184,7 +184,6 @@ async function strengthOf(userId: string): Promise<(number | null)[]> {
     splitPeriods: [],
     entries: [],
     logs: live(logs),
-    refSets: [],
     bodyLogs: live(weights),
     profile: null,
   } as never);

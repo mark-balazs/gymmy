@@ -102,7 +102,6 @@ function demoAccount(): { ix: Indexed; plan: DemoPlanEntry[] } {
     ],
     entries: [],
     logs: [],
-    refSets: [],
     bodyLogs: [],
     goals: [],
     profile: null,

@@ -293,7 +293,6 @@ export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser
         ],
         entries: [],
         logs: [],
-        refSets: [],
         bodyLogs: [],
         goals: [],
         profile: null,

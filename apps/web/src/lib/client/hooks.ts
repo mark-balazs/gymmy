@@ -44,7 +44,6 @@ const EMPTY: Snapshot = {
   splitPeriods: [],
   entries: [],
   logs: [],
-  refSets: [],
   bodyLogs: [],
   goals: [],
   profile: null,

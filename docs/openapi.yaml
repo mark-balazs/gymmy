@@ -795,8 +795,7 @@ components:
 
     TableName:
       type: string
-      enum:
-        [patterns, exercises, slots, splitPeriods, entries, logs, refSets, bodyLogs, goals, profile]
+      enum: [patterns, exercises, slots, splitPeriods, entries, logs, bodyLogs, goals, profile]
 
     Mutation:
       type: object
@@ -819,7 +818,6 @@ components:
             - { $ref: '#/components/schemas/SplitPeriod' }
             - { $ref: '#/components/schemas/ProgramEntry' }
             - { $ref: '#/components/schemas/SetLog' }
-            - { $ref: '#/components/schemas/RefSet' }
             - { $ref: '#/components/schemas/BodyLog' }
             - { $ref: '#/components/schemas/Goal' }
             - { $ref: '#/components/schemas/Profile' }
@@ -856,7 +854,6 @@ components:
             splitPeriods: { type: array, items: { $ref: '#/components/schemas/SplitPeriod' } }
             entries: { type: array, items: { $ref: '#/components/schemas/ProgramEntry' } }
             logs: { type: array, items: { $ref: '#/components/schemas/SetLog' } }
-            refSets: { type: array, items: { $ref: '#/components/schemas/RefSet' } }
             bodyLogs: { type: array, items: { $ref: '#/components/schemas/BodyLog' } }
             goals: { type: array, items: { $ref: '#/components/schemas/Goal' } }
             profile: { type: array, items: { $ref: '#/components/schemas/Profile' } }
@@ -1038,19 +1035,6 @@ components:
                 without that term, a set taken to failure and a set with three
                 left look identical, which makes the whole progress view lie.
             note: { type: string, maxLength: 500 }
-
-    RefSet:
-      allOf:
-        - { $ref: '#/components/schemas/Synced' }
-        - type: object
-          description: A reference set, logged outside the plan.
-          required: [date, exerciseId, note]
-          properties:
-            date: { type: string, format: date, pattern: '^\d{4}-\d{2}-\d{2}$' }
-            exerciseId: { type: string, minLength: 1, maxLength: 64 }
-            weight: { type: [number, 'null'], minimum: 0, maximum: 2000, default: null }
-            reps: { type: [integer, 'null'], minimum: 0, maximum: 1000, default: null }
-            note: { type: string, maxLength: 2000 }
 
     BodyLog:
       allOf:

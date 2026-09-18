@@ -15,7 +15,6 @@ import type {
   PatternKey,
   ProgramEntry,
   ProgramRow,
-  RefSet,
   Goal,
   SetLog,
   Slot,
@@ -189,7 +188,6 @@ export interface Indexed {
   splitPeriods: SplitPeriod[];
   entries: ProgramEntry[];
   logs: SetLog[];
-  refSets: RefSet[];
   /** Lifts the user has asked to be held to, live ones and expired alike;
    *  `liveGoals()` narrows to the ones still running. */
   goals: Goal[];
@@ -233,7 +231,6 @@ export function index(snap: Snapshot): Indexed {
       (a, b) =>
         a.date.localeCompare(b.date) || a.session.localeCompare(b.session) || a.setNo - b.setNo,
     ),
-    refSets: live(snap.refSets),
     bodyLogs: live(snap.bodyLogs ?? []).sort((a, b) =>
       a.date < b.date ? -1 : a.date > b.date ? 1 : 0,
     ),
@@ -637,24 +634,4 @@ export function sessionsDone(ix: Indexed, sessions: number, weekOf: string): boo
       (r) => logs.filter((l) => l.exerciseId === r.exercise!.id).length >= num(r.entry?.sets),
     );
   });
-}
-
-export interface DecoratedRef extends RefSet {
-  exercise: Exercise | null;
-  pattern: Pattern | null;
-  e1rm: number | null;
-}
-
-export function refSetRows(ix: Indexed): DecoratedRef[] {
-  return ix.refSets
-    .map((r) => {
-      const exercise = ix.exerciseById.get(r.exerciseId) ?? null;
-      return {
-        ...r,
-        exercise,
-        pattern: exercise ? (ix.patternById.get(exercise.patternId) ?? null) : null,
-        e1rm: est1RM(r.weight, r.reps, 0),
-      };
-    })
-    .sort((a, b) => (a.date < b.date ? 1 : -1));
 }

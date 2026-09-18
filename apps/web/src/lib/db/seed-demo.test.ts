@@ -91,7 +91,6 @@ describe('seeding the demo account', () => {
       splitPeriods: [],
       entries: [],
       logs: logs.map((l) => ({ ...l, updatedAt: iso(l.updatedAt), deletedAt: null })),
-      refSets: [],
       bodyLogs: weights.map((b) => ({
         ...b,
         updatedAt: new Date().toISOString(),

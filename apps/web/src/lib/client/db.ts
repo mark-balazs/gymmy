@@ -13,7 +13,6 @@ import type {
   Pattern,
   ProgramEntry,
   Profile,
-  RefSet,
   SetLog,
   Slot,
   SplitPeriod,
@@ -44,7 +43,6 @@ class AppDb extends Dexie {
   splitPeriods!: EntityTable<SplitPeriod, 'id'>;
   entries!: EntityTable<ProgramEntry, 'id'>;
   logs!: EntityTable<SetLog, 'id'>;
-  refSets!: EntityTable<RefSet, 'id'>;
   bodyLogs!: EntityTable<BodyLog, 'id'>;
   goals!: EntityTable<Goal, 'id'>;
   profile!: EntityTable<Profile, 'id'>;
@@ -81,6 +79,16 @@ class AppDb extends Dexie {
     this.version(4).stores({
       goals: 'id, exerciseId',
     });
+
+    /* Retires the reference-sets store. It never had a reader or a writer —
+       `addRefSet` and `refSetRows` arrived in the first commit and were never
+       called — and one-off logging now covers what it was for, as ordinary sets
+       under `OFF_PLAN_SESSION`. `null` deletes the store on upgrade. Version 1
+       above still declares it, and must: Dexie replays the whole history to
+       open a device that is several versions behind. */
+    this.version(5).stores({
+      refSets: null,
+    });
   }
 }
 
@@ -93,7 +101,6 @@ export const DOMAIN_TABLES: TableName[] = [
   'splitPeriods',
   'entries',
   'logs',
-  'refSets',
   'bodyLogs',
   'goals',
   'profile',
@@ -112,29 +119,18 @@ export async function setMeta(key: string, value: unknown): Promise<void> {
 
 /** Everything the domain layer needs, read in one pass. */
 export async function snapshot(): Promise<Snapshot> {
-  const [
-    patterns,
-    exercises,
-    slots,
-    splitPeriods,
-    entries,
-    logs,
-    refSets,
-    bodyLogs,
-    goals,
-    profiles,
-  ] = await Promise.all([
-    local.patterns.toArray(),
-    local.exercises.toArray(),
-    local.slots.toArray(),
-    local.splitPeriods.toArray(),
-    local.entries.toArray(),
-    local.logs.toArray(),
-    local.refSets.toArray(),
-    local.bodyLogs.toArray(),
-    local.goals.toArray(),
-    local.profile.toArray(),
-  ]);
+  const [patterns, exercises, slots, splitPeriods, entries, logs, bodyLogs, goals, profiles] =
+    await Promise.all([
+      local.patterns.toArray(),
+      local.exercises.toArray(),
+      local.slots.toArray(),
+      local.splitPeriods.toArray(),
+      local.entries.toArray(),
+      local.logs.toArray(),
+      local.bodyLogs.toArray(),
+      local.goals.toArray(),
+      local.profile.toArray(),
+    ]);
   return {
     patterns,
     exercises,
@@ -142,7 +138,6 @@ export async function snapshot(): Promise<Snapshot> {
     splitPeriods,
     entries,
     logs,
-    refSets,
     bodyLogs,
     goals,
     profile: profiles[0] ?? null,

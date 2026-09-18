@@ -228,6 +228,19 @@ export const setLogs = pgTable(
   ],
 );
 
+/**
+ * **Retired, awaiting its drop.** Nothing reads or writes this table any more:
+ * it left `SYNC_TABLES` in the same change that removed every use of it, and
+ * one-off logging now records what it was meant for as ordinary sets under
+ * `OFF_PLAN_SESSION`.
+ *
+ * It is still declared here, deliberately, for one deploy. `vercel-build` runs
+ * migrations before it builds, so a `DROP TABLE` shipped in the same deploy as
+ * the code change would drop the table while the previous deployment is still
+ * serving — and that deployment's pull queries it, so every sync would answer
+ * 500 for the length of the build. Removing this definition generates the drop
+ * migration; do that in the next deploy, after counting its rows in production.
+ */
 export const refSets = pgTable(
   'ref_sets',
   {
@@ -321,7 +334,6 @@ export const SYNC_TABLES = {
   splitPeriods,
   entries: programEntries,
   logs: setLogs,
-  refSets,
   bodyLogs,
   goals,
   profile: profiles,

@@ -74,7 +74,6 @@ export function seedSnapshot(
     splitPeriods,
     entries: [],
     logs: [],
-    refSets: [],
     bodyLogs: [],
     goals: [],
     profile: {

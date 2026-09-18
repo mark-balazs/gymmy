@@ -93,15 +93,6 @@ export const rowSchemas = {
     note: z.string().max(500),
   }),
 
-  refSets: z.object({
-    ...base,
-    date: isoDay,
-    exerciseId: z.string().min(1).max(64),
-    weight: z.number().min(0).max(2000).nullable().default(null),
-    reps: z.number().int().min(0).max(1000).nullable().default(null),
-    note: z.string().max(2000),
-  }),
-
   bodyLogs: z.object({
     ...base,
     date: isoDay,

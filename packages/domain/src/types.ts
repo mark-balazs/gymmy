@@ -172,14 +172,6 @@ export interface SetLog extends Synced {
   note: string;
 }
 
-export interface RefSet extends Synced {
-  date: string;
-  exerciseId: string;
-  weight: number | null;
-  reps: number | null;
-  note: string;
-}
-
 /**
  * What you weighed on a given day.
  *
@@ -295,7 +287,6 @@ export interface Snapshot {
   splitPeriods: SplitPeriod[];
   entries: ProgramEntry[];
   logs: SetLog[];
-  refSets: RefSet[];
   bodyLogs: BodyLog[];
   goals: Goal[];
   profile: Profile | null;
@@ -308,7 +299,6 @@ export const TABLES = [
   'splitPeriods',
   'entries',
   'logs',
-  'refSets',
   'bodyLogs',
   'goals',
   'profile',
