@@ -298,7 +298,7 @@ export const de: Record<Key, string> = {
   'set.birthYear': 'Geburtsjahr',
   'set.birthYearPlaceholder': 'z. B. 1990',
   'set.birthYearWhy':
-    'Damit dein Kraftwert dein Alter berücksichtigen kann. Freiwillig – ohne Angabe rechnet der Wert einfach ohne Altersbonus.',
+    'Damit dein Kraftindex ab 40 dein Alter berücksichtigt. Freiwillig – ohne Angabe rechnet der Index einfach ohne Altersausgleich. DOTS nutzt es nie.',
   'set.yearBad': 'Gib ein Jahr zwischen {from} und {to} ein.',
   'set.picAdd': 'Bild hinzufügen',
   'set.picChange': 'Bild ändern',

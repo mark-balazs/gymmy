@@ -289,7 +289,7 @@ export const hu: Record<Key, string> = {
   'set.birthYear': 'Születési év',
   'set.birthYearPlaceholder': 'például 1990',
   'set.birthYearWhy':
-    'Az erőpontszámban vesszük figyelembe az életkorodat. Nem kötelező – nélküle a pontszám egyszerűen nem számol vele.',
+    'Az erőindexben 40 éves kortól figyelembe vesszük az életkorodat. Nem kötelező – nélküle az index egyszerűen nem számol vele. A DOTS sosem használja.',
   'set.yearBad': 'Adj meg egy évet {from} és {to} között.',
   'set.picAdd': 'Kép hozzáadása',
   'set.picChange': 'Kép cseréje',

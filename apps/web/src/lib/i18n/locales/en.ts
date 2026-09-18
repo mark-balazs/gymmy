@@ -295,7 +295,7 @@ export const en = {
   'set.birthYear': 'Year of birth',
   'set.birthYearPlaceholder': 'e.g. 1990',
   'set.birthYearWhy':
-    'Used to allow for age in your strength score. Optional — without it the score simply makes no allowance.',
+    'Used to allow for age in your strength index, from 40. Optional — without it the index simply makes no allowance. DOTS never uses it.',
   'set.yearBad': 'Enter a year between {from} and {to}.',
   'set.picAdd': 'Add a picture',
   'set.picChange': 'Change picture',

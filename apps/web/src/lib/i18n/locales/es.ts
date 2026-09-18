@@ -303,7 +303,7 @@ export const es: Record<Key, string> = {
   'set.birthYear': 'Año de nacimiento',
   'set.birthYearPlaceholder': 'por ejemplo 1990',
   'set.birthYearWhy':
-    'Sirve para tener en cuenta tu edad en la puntuación de fuerza. Opcional: sin ello la puntuación simplemente no aplica ningún ajuste.',
+    'Sirve para tener en cuenta tu edad en tu índice de fuerza, a partir de los 40. Opcional: sin ello el índice no aplica ningún ajuste. DOTS nunca lo usa.',
   'set.yearBad': 'Introduce un año entre {from} y {to}.',
   'set.picAdd': 'Añadir una foto',
   'set.picChange': 'Cambiar la foto',

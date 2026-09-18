@@ -42,7 +42,7 @@ info:
     url: https://github.com/mark-balazs/gymmy
 
 servers:
-  - url: https://gymmy.vercel.app
+  - url: https://gymmy-ten.vercel.app
     description: Production
   - url: http://localhost:3000
     description: Local development

@@ -298,7 +298,7 @@ export const fr: Record<Key, string> = {
   'set.birthYear': 'Année de naissance',
   'set.birthYearPlaceholder': 'par exemple 1990',
   'set.birthYearWhy':
-    'Sert à tenir compte de ton âge dans ton score de force. Facultatif : sans cela, le score n’applique tout simplement aucun ajustement.',
+    'Sert à tenir compte de ton âge dans ton indice de force, à partir de 40 ans. Facultatif : sans cela, l’indice n’applique aucun ajustement. DOTS ne l’utilise jamais.',
   'set.yearBad': 'Saisis une année entre {from} et {to}.',
   'set.picAdd': 'Ajouter une photo',
   'set.picChange': 'Changer la photo',

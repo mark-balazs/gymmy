@@ -67,8 +67,7 @@ referencing column carries only the id half.
 | `splitPeriods` | Append-only. The whole historisation model |
 | `entries` (`program_entries`) | The generated plan: which exercise fills which slot |
 | `logs` (`set_logs`) | The dominant write. One row per set |
-| `refSets` | **Retired — awaiting its drop.** Never had a reader or a writer; no longer synced, validated or held on the device (Dexie v5 deletes the store). One-off logging covers what it was for, as ordinary `logs` rows under `OFF_PLAN_SESSION`. The table and its `schema.ts` declaration stay for exactly one deploy — see below |
-| `bodyLogs` | Bodyweight, dated. Denominator of the strength score |
+| `bodyLogs` | Bodyweight, dated. The denominator of both strength numbers |
 | `goals` | One lift the user has asked to be judged on, until a date. Nothing else in the app evaluates progression without one |
 | `profile` | One row per user; `id` equals `userId` |
 
@@ -170,7 +169,7 @@ So a table is retired in two steps:
    declaration, run `npm run db:generate` for the `DROP TABLE`, regenerate the
    ER diagram and paste it onto Confluence.
 
-`ref_sets` is between the two right now: step 1 has shipped, step 2 has not.
+`ref_sets` was retired this way: every use removed in one deploy, the table dropped in the next, after production showed it had never held a row.
 
 ## The exercise library
 

@@ -96,18 +96,6 @@ erDiagram
     int rir "nullable"
     text note
   }
-  ref_sets {
-    text id PK
-    text user_id PK
-    timestamp updated_at
-    timestamp deleted_at "nullable"
-    bigint seq
-    text date
-    text exercise_id FK
-    float weight "nullable"
-    int reps "nullable"
-    text note
-  }
   body_logs {
     text id PK
     text user_id PK
@@ -158,7 +146,6 @@ erDiagram
 
   exercises }o..o| goals : "is set on"
   exercises }o..o| program_entries : "programmes"
-  exercises }o..o| ref_sets : "records"
   exercises }o..o| set_logs : "records"
   patterns ||--o{ exercises : "is classified by"
   slots ||--o{ program_entries : "fills"
@@ -167,7 +154,6 @@ erDiagram
   user ||--o{ goals : "owns"
   user ||--o{ patterns : "owns"
   user ||--o{ program_entries : "owns"
-  user ||--o{ ref_sets : "owns"
   user ||--o{ set_logs : "owns"
   user ||--o{ slots : "owns"
   user ||--o{ split_periods : "owns"

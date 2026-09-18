@@ -72,7 +72,6 @@ export const GROUPS: Group[] = [
       'split_periods',
       'program_entries',
       'set_logs',
-      'ref_sets',
       'body_logs',
       'goals',
       'profiles',
@@ -148,7 +147,6 @@ export const LINKS: Link[] = [
     snapshot: true,
   },
   { from: 'set_logs', column: 'exercise_id', to: 'exercises', label: 'records', snapshot: true },
-  { from: 'ref_sets', column: 'exercise_id', to: 'exercises', label: 'records', snapshot: true },
   { from: 'goals', column: 'exercise_id', to: 'exercises', label: 'is set on', snapshot: true },
   {
     from: 'profiles',
