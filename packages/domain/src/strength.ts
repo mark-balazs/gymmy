@@ -39,13 +39,22 @@
  * our scale, our justification.
  *
  * **The index uses one exponent, not one per lift.** An earlier plan here was
- * to follow the lift-specific exponents a federation analysis gives for the
- * squat, bench and deadlift. It cannot be followed, for a reason that has
- * nothing to do with whether those figures are right: there is nothing
- * comparable published for a lunge or a row. Inventing two of five would be the
- * same mistake as the twelve-rep ceiling — a number justified by our own
- * programming rather than by evidence. So the index uses the conventional
- * two-thirds exponent once, over the sum.
+ * to follow per-lift exponents for the squat, bench and deadlift. Two reasons
+ * it does not, and the second is the stronger:
+ *
+ *  - **No exponent has been derived for a lunge or a row.** The one row study
+ *    found applies an *assumed* two-thirds rather than deriving anything, and
+ *    inventing two of five would be the same mistake as the twelve-rep ceiling.
+ *  - **The per-lift figures are not solid enough to build on.** The ones first
+ *    considered — squat 0.515, bench 0.345, deadlift 0.394 — are Table 3 of
+ *    Montenegro, Wicker & Donath 2026 (Front Physiol 17:1847605): an academic
+ *    study, not a federation analysis as this comment once said, and each value
+ *    comes from the twenty all-time strongest lifters per sex, chosen by the
+ *    very quantity being fitted, with no confidence intervals. The women's
+ *    deadlift in the same table is 0.691 against the men's 0.394, and other
+ *    studies disagree (Dooman & Vanderburgh 2000: bench 0.57, squat 0.60).
+ *
+ * So the index uses the conventional two-thirds, once, over the sum.
  *
  * ## What neither of them is
  *
@@ -163,27 +172,30 @@ export function dotsCoefficient(bodyWeightKg: number, sex: Sex): number {
  *
  * Two-thirds, from geometric similarity: muscle force goes with
  * cross-sectional area, which is a length squared, while mass is a length
- * cubed — so strength should scale with mass to the two-thirds. It is the
- * conventional allometric normalisation in the exercise-science literature
- * rather than anything of ours.
+ * cubed — so strength should scale with mass to the two-thirds.
  *
- * **This is the weakest-sourced number in this file, and it is labelled as
- * such.** The DOTS coefficients above were checked digit by digit against a
- * reference implementation and against live scores. This one was not: the
- * verification pass that was meant to pin it down never ran. What is known is
- * that it is contested — measured exponents in trained populations do not land
- * neatly on 0.667, and whether a single exponent can serve every movement is an
- * open argument.
+ * **Established precedent, verified.** The theory is Åstrand & Rodahl
+ * (*Textbook of Work Physiology*, 3rd ed., 1986, pp. 399–405). Jaric 2002
+ * (Sports Med 32:615–631) recommends b = 0.67 for force measures in routine
+ * strength testing, as do Jaric, Mirkov & Markovic 2005 (JSCR 19:467–474);
+ * Vanderburgh 1999 (JEPonline 2(4)) calls strength ÷ mass^(2/3) "probably the
+ * single best adjustment technique". Citing it is following the literature.
+ * (Not Hill 1950, which is sometimes credited with it and is about speed and
+ * jump height; and Batterham & George 1997 is weightlifting, not powerlifting.)
  *
- * It is still the right choice here, because the alternatives are worse rather
- * than because it is settled: a plain bodyweight multiple is wrong at both ends,
- * and five per-lift exponents would mean inventing two. It also only ever
- * touches the index, which is explicitly not comparable between people — so an
- * exponent that is off does not make anybody's number wrong against a
- * reference, it only bends our own scale. That is the entire reason the
- * unverified constant is on this side of the split.
+ * **What it is not: the measured value for trained lifters.** Those come out
+ * lower — about 0.45 to 0.60 for totals. Montenegro, Wicker & Donath 2026 fit
+ * 0.550 for men and 0.500 for women across 308,530 tested raw powerlifters;
+ * Dooman & Vanderburgh 2000 give bench 0.57 and squat 0.60. Against those, two
+ * thirds over-corrects a little: it divides a heavier lifter by slightly more
+ * than the data says it should.
  *
- * Recorded as a known gap in `docs/README.md`.
+ * Why it stays anyway: this only touches the index, which is never compared
+ * between people. The one place the over-correction shows is somebody's own
+ * chart when their bodyweight moves — putting on weight costs the index a
+ * little more than it should — and a measured exponent would trade a
+ * well-understood default for a population-specific fit that the same
+ * literature says changes with sex, level, body composition and the lift.
  */
 export const ALLOMETRIC_EXPONENT = 2 / 3;
 

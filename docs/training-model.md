@@ -265,10 +265,14 @@ decimal place.
 - **Two-thirds, not one.** From geometric similarity: force goes with
   cross-sectional area (length squared) while mass is a length cubed. A plain
   bodyweight multiple is wrong at both ends.
-- **One exponent, not one per lift.** Following the lift-specific exponents a
-  federation analysis gives for squat, bench and deadlift was the earlier plan.
-  It cannot be done: nothing comparable is published for a lunge or a row, and
-  inventing two of five would repeat the twelve-rep mistake exactly.
+- **One exponent, not one per lift.** No exponent has been *derived* for a lunge
+  or a row — the one row study applies an assumed two-thirds — so per-lift
+  exponents would mean inventing two of five. And the per-lift figures first
+  considered (squat 0.515, bench 0.345, deadlift 0.394) are not solid enough to
+  build on anyway: they are Table 3 of Montenegro, Wicker & Donath 2026, an
+  academic study rather than the "federation analysis" this page once called
+  it, fitted to the twenty all-time strongest lifters per sex with no
+  confidence intervals, and other studies disagree with them.
 - **Its own scale, and it says so.** Not comparable between people, and the copy
   on screen says that rather than implying a ranking.
 - **Deliberately a different magnitude.** The index lands in the tens with a
@@ -277,19 +281,23 @@ decimal place.
   to one decimal *including a trailing zero* — otherwise the week it rounds even
   is the week it disguises itself as the other number.
 
-> **Known gap:** the two-thirds exponent is the **weakest-sourced constant in
-> the domain**, and unlike the DOTS coefficients it has not been verified. The
-> pass that was meant to pin it down — measured exponents in trained
-> populations, the published objections, and whether "strength ÷ mass^(2/3)" is
-> genuinely established practice rather than merely common — never ran. So it
-> stands on general knowledge and on the alternatives being worse, which is a
-> weaker footing than anything else in `strength.ts`.
->
-> It is deliberately on the *index* side of the split, and that is the
-> mitigation: the index is explicitly not comparable between people, so an
-> exponent that is off bends our own scale rather than making somebody's number
-> wrong against a reference. Verifying it, or replacing it with something
-> sourced, is a real piece of work that is still outstanding.
+**Where two-thirds comes from, verified.** Theory: Åstrand & Rodahl, *Textbook
+of Work Physiology* (1986). Recommended for routine strength testing by Jaric
+2002 (Sports Med 32:615–631) and Jaric, Mirkov & Markovic 2005 (JSCR
+19:467–474); Vanderburgh 1999 calls strength ÷ mass^(2/3) "probably the single
+best adjustment technique". Both of those conclusions survived an adversarial
+check against the primary abstracts.
+
+What it is **not** is the measured exponent for trained lifters, which comes out
+lower — 0.550 for men and 0.500 for women across 308,530 tested raw
+powerlifters (Montenegro, Wicker & Donath 2026), bench 0.57 and squat 0.60 in
+Dooman & Vanderburgh 2000. Against those, two-thirds over-corrects slightly: it
+divides by a little more than the data says for a heavier lifter. Since the
+index never compares people, the only place that shows is somebody's own chart
+when their bodyweight moves — gaining weight costs the index slightly more than
+it should. That trade is deliberate: a measured exponent is population-specific
+and, by the same literature, changes with sex, level, body composition and the
+lift.
 
 ### True of both
 
