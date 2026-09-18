@@ -253,12 +253,12 @@ export const de: Record<Key, string> = {
   'prog.unrated':
     'Bei einigen dieser Sätze ist die Anstrengung nicht erfasst, dadurch fallen sie niedriger aus, als sie waren. Solche Vergleiche lassen wir lieber weg, als zu raten.',
   'prog.empty': 'Trag ein paar Einheiten ein, dann erscheint hier dein Fortschritt.',
-  'prog.strength': 'Kraftwert',
+  'prog.strength': 'Kraftindex',
   'prog.strengthWhat': 'Was diese Zahl ist',
   'prog.strengthBody':
-    'Deine beste Leistung in jeder der fünf belasteten Bewegungen, addiert und an deinem Körpergewicht gemessen – mit der Kurve, die auch im Wettkampf benutzt wird. So bedeutet der Wert dasselbe, egal wie viel du wiegst. Gezählt werden nur die letzten zwei Monate, denn er soll zeigen, was du jetzt kannst.',
+    'Deine beste Leistung in jedem der fünf belasteten Muster, summiert und deinem Körpergewicht gegenübergestellt — hoch zwei Drittel, weil Kraft nicht eins zu eins mit dem Gewicht skaliert. Es zählen nur die letzten zwei Monate, denn die Zahl soll sagen, was du jetzt kannst.',
   'prog.strengthNot':
-    'Es ist keine Rangliste. Es ist sonst niemand darin, und eine Bewegung, die du nicht trainierst, zählt als null – alle fünf abzudecken ist die halbe Miete.',
+    'Es ist gymmys eigene Skala und mit niemandem sonst vergleichbar — keine Rangliste, niemand anderes darin. Ein Muster, das du nicht trainiert hast, zählt als null, denn alle fünf abzudecken ist die halbe Idee.',
   'prog.needWeight': 'Trag dein Körpergewicht ein, dann läuft das hier mit.',
   'prog.needLifts': 'Trag ein paar Einheiten ein, dann läuft das hier mit.',
   'prog.deltaUp': '{by} mehr als {ago}',
@@ -268,11 +268,20 @@ export const de: Record<Key, string> = {
   'prog.agoFirst': 'der ersten hier sichtbaren Einheit',
   'prog.bodyWeight': 'Körpergewicht',
   'prog.weightToday': 'Heute ({unit})',
-  'prog.scoreOverTime': 'Kraftwert, Woche für Woche',
+  'prog.scoreOverTime': 'Kraftindex, Woche für Woche',
   'prog.table': 'Zahlen anzeigen',
   'prog.week': 'Woche',
   'prog.value': 'Bestwert',
-  'prog.score': 'Wert',
+  'prog.score': 'Index',
+  'prog.dots': 'DOTS',
+  'prog.dotsWhat': 'Was DOTS ist',
+  'prog.dotsBody':
+    'Die Skala des Wettkampf-Kraftdreikampfs: Kniebeuge, Bankdrücken und Kreuzheben addiert und um Körpergewicht und Geschlecht bereinigt. Es ist die einzige Zahl hier, die auch für andere etwas bedeutet — jeder DOTS-Rechner kommt auf dasselbe Ergebnis.',
+  'prog.dotsNot':
+    'Es ist kein Wettkampftotal. Ein echtes Total sind drei Einzelversuche an einem Tag unter Kampfrichtern; dies ist aus zwei Monaten Training geschätzt und liegt daher höher, als du am Tag heben würdest.',
+  'prog.dotsNeed':
+    'Braucht Kniebeuge, Bankdrücken und Kreuzheben mit der Stange. Fehlt noch: {what}.',
+  'prog.dotsFrom': '{total} aus den drei Übungen',
   'prog.prs': '★ steht für eine Bestleistung',
 
   'set.you': 'Du',

@@ -173,30 +173,112 @@ same-exercise comparison**, so somebody's own dumbbell bench trend is sound on
 either reading. It is the absolute, cross-person figure that has nothing left to
 cancel it.
 
-## The strength score
+## The two strength numbers
 
-One number for "how much do I move, relative to me", in
-`model.ts` under `SCORED_PATTERNS`.
+Both live in `packages/domain/src/strength.ts`, which was split out of
+`model.ts` when the second one arrived.
 
-It is the sum of the best estimated one-rep max in each of the **five loaded**
-patterns, scaled by **DOTS** — the published bodyweight-and-sex curve used in
-competitive powerlifting.
+**There used to be one, and it was a category error.** It summed the best
+estimated one-rep max across **five** patterns and scaled the result with DOTS —
+a curve fitted to the **three**-lift powerlifting total. Changing the numerator
+while keeping the reference gives a ratio between two quantities that do not
+measure the same thing, and the error was not small: at 83 kg a real 450 kg
+squat/bench/deadlift total scores 304, while a five-pattern sum of 650 kg scores
+439. **Exactly 4/9 — 44% — of that came from counting more lifts**, and because
+the coefficient cancels, that inflation was bodyweight-independent. Anybody who
+checked us against a public calculator would have found us wrong.
 
-- **DOTS rather than a bodyweight multiple.** Strength does not scale linearly
-  with mass; dividing by bodyweight flatters a light lifter and punishes a heavy
-  one. The curve is published, stable and checkable.
-- **`sex` is asked for this and only this.** "Prefer not to say" takes the
+Keeping one of the two was not an option either, because they answer different
+questions. So:
+
+### `dotsAt` — a real DOTS
+
+Squat, bench and deadlift, on the bar, nothing else. `total × 500 / P(bw)` with
+the published per-sex polynomials. **The one number here that means anything to
+anybody else**, and every digit of it is verified against the OpenPowerlifting
+reference implementation.
+
+- **Strictly the three named lifts.** A front squat is not a competition squat
+  and a trap bar is not a competition deadlift. Null until all three are in the
+  window, because a total missing a lift is not a smaller total — it is not a
+  total, and a zero would report somebody who has never benched as weak rather
+  than as unmeasured.
+- **The strictness is ours, not the formula's.** DOTS will scale any total you
+  hand it; OpenPowerlifting scores a bench-only entry from the bench alone. That
+  keeps the arithmetic right and makes the number mean nothing, which is the
+  failure this whole split exists to undo.
+- **No age allowance.** Plain DOTS is a function of total, bodyweight and sex
+  and nothing else; masters coefficients (McCulloch, Foster) are a separate
+  multiplier that produces a separately *named* score. Public calculators do not
+  ask for age. Applying one would put us ~13% out at 50, ~34% at 60 and ~65% at
+  70 against anything somebody checks us with.
+- **Only masses reach it.** All three lifts are `barbell` in `load.ts`;
+  `competitionLiftsAreMasses()` is asserted, so adding a fourth lift or
+  swapping one for a machine variant fails the suite.
+
+"Published" deserves care, because this file used to overclaim it: DOTS has **no
+peer-reviewed derivation**, no stated sample size or fit statistics, and it is
+**not** the IPF's formula — IPF GL Points is. What it has is ubiquity and a fixed
+definition. That makes it checkable, not authoritative.
+
+### `strengthAt` — gymmy's own index
+
+All five loaded patterns, `total / bw^(2/3)`, times the age allowance, to one
+decimal place.
+
+- **A pattern never trained counts as zero**, so coverage moves the number.
+  That is the app's whole thesis and the reason this number exists next to a
+  three-lift one.
+- **Two-thirds, not one.** From geometric similarity: force goes with
+  cross-sectional area (length squared) while mass is a length cubed. A plain
+  bodyweight multiple is wrong at both ends.
+- **One exponent, not one per lift.** Following the lift-specific exponents a
+  federation analysis gives for squat, bench and deadlift was the earlier plan.
+  It cannot be done: nothing comparable is published for a lunge or a row, and
+  inventing two of five would repeat the twelve-rep mistake exactly.
+- **Its own scale, and it says so.** Not comparable between people, and the copy
+  on screen says that rather than implying a ranking.
+- **Deliberately a different magnitude.** The index lands in the tens with a
+  decimal; a DOTS lands in the hundreds as an integer. Two three-digit numbers
+  on one card get read as the same number twice, so the index is always rendered
+  to one decimal *including a trailing zero* — otherwise the week it rounds even
+  is the week it disguises itself as the other number.
+
+> **Known gap:** the two-thirds exponent is the **weakest-sourced constant in
+> the domain**, and unlike the DOTS coefficients it has not been verified. The
+> pass that was meant to pin it down — measured exponents in trained
+> populations, the published objections, and whether "strength ÷ mass^(2/3)" is
+> genuinely established practice rather than merely common — never ran. So it
+> stands on general knowledge and on the alternatives being worse, which is a
+> weaker footing than anything else in `strength.ts`.
+>
+> It is deliberately on the *index* side of the split, and that is the
+> mitigation: the index is explicitly not comparable between people, so an
+> exponent that is off bends our own scale rather than making somebody's number
+> wrong against a reference. Verifying it, or replacing it with something
+> sourced, is a real piece of work that is still outstanding.
+
+### True of both
+
+- **`sex` is asked for DOTS and only DOTS.** "Prefer not to say" takes the
   midpoint of the two curves and is a first-class answer.
-- **Five patterns, not seven.** A carry is logged by distance, so its "reps" are
-  metres and a 1RM estimated from them is not a number about strength. Rotation
-  is trained light and anti-rotational by design.
-- **An eight-week trailing window**, because it describes what you can do *now*.
-  A pattern never trained counts as zero, so coverage moves the score too.
-- **Null rather than a guess** when bodyweight is unknown. It is a ratio;
-  inventing the denominator invents the answer.
+- **Five patterns, not seven**, for the index. A carry is logged by distance, so
+  its "reps" are metres and a 1RM estimated from them is not a number about
+  strength. Rotation is trained light and anti-rotational by design.
+- **An eight-week trailing window**, because they describe what you can do
+  *now*.
+- **Null rather than a guess** when bodyweight is unknown. Both are ratios;
+  inventing the denominator invents the answer. They are null for two different
+  reasons and the screen distinguishes them — "still missing: …" for an absent
+  lift, "add your bodyweight" for an absent denominator. An e2e test caught that
+  conflation, not a reading of the code.
+- **Neither is a meet total.** A real total is three singles on one day under
+  judging; these are built from `est1RM` over eight weeks, so they read high of
+  what anybody would lift on the day. That caveat is on screen, in the DOTS
+  explainer, not only here.
 
 Bodyweight is its own dated record (`bodyLogs`) rather than a profile field: the
-score divides by what you weighed *that week*, and one current value would
+numbers divide by what you weighed *that week*, and one current value would
 rewrite what every past week meant every time you stepped on a scale.
 
 `est1RM` is Epley **adjusted for reps in reserve** — without the RIR term a set

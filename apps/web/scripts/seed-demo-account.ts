@@ -191,7 +191,7 @@ async function strengthOf(userId: string): Promise<(number | null)[]> {
 
   const from = mondayOf([...weights.map((w) => w.date)].sort()[0]!);
   return strengthSeries(ix, from, 22, { unit: 'kg', sex: 'male', birthYear: null }).map(
-    (p) => p.score,
+    (p) => p.index,
   );
 }
 

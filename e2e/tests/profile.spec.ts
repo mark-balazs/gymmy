@@ -1,10 +1,21 @@
 import type { Page } from '@playwright/test';
 import { expect, logSet, signInAs, test } from '../fixtures/test';
 
-/** The hero number on Progress: the only span on the page that is nothing but
- *  digits. The chips carry words, the delta reads "+6 vs 8 weeks ago", and the
- *  chart's axis labels are SVG text rather than spans. */
-const strengthScore = (page: Page) => page.locator('span').filter({ hasText: /^\d+$/ }).first();
+/**
+ * The hero number on Progress: gymmy's own index.
+ *
+ * Matched on the decimal, which is the thing that distinguishes it. It used to
+ * be "the only span that is nothing but digits" — true while there was one
+ * number on the card, and quietly wrong the moment a DOTS score appeared
+ * beside it, since that one *is* nothing but digits. The index is always
+ * rendered to one decimal place, deliberately and including a trailing zero,
+ * so this is exact rather than a near-enough guess.
+ */
+const strengthScore = (page: Page) =>
+  page
+    .locator('span')
+    .filter({ hasText: /^\d+\.\d$/ })
+    .first();
 
 /**
  * The profile section.

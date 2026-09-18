@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { expect, logSet, signInAs, test } from '../fixtures/test';
 
 /**
@@ -98,5 +99,153 @@ test.describe('Progress covers the training, not the block', () => {
     await expect(grid).toBeVisible();
     await expect(grid.getByRole('rowheader', { name: 'Squat' })).toBeVisible();
     await expect(grid.getByRole('rowheader', { name: 'Carry' })).toBeVisible();
+  });
+});
+
+/**
+ * The two numbers on Progress, and which of them travels.
+ *
+ * There used to be one, headed "Strength score", and it was a category error:
+ * a five-pattern sum fed into a curve fitted to the three-lift powerlifting
+ * total, which ran about 44% above the lifter's actual DOTS. Anybody who
+ * checked us against a public calculator would have found us wrong.
+ *
+ * So there are two now, and the reason these tests exist at the browser level
+ * rather than only in the domain is that the failure mode is a *reading*
+ * failure. Two numbers on one card get read as the same number twice unless the
+ * screen works to stop that: different sizes, a decimal on one and not the
+ * other, and separate explanations of what each one is not.
+ */
+test.describe('The two strength numbers', () => {
+  /** Squats only — so the index has something to say and DOTS does not. */
+  const oneLift = {
+    onboarded: true,
+    history: {
+      split: 'sevenPattern',
+      weeksBack: 3,
+      exercises: ['Goblet Squat'],
+      sessions: 3,
+    },
+  } as const;
+
+  /**
+   * Puts a bodyweight on record, through the form on the page.
+   *
+   * DOTS is a ratio and the sign-in fixture seeds no bodyweight at all, so
+   * without this both numbers are null however much has been lifted. Done
+   * through the UI rather than added to the fixture, because it is one field on
+   * the same screen and a test that reached around it would stop covering the
+   * one path a real account takes to a score.
+   */
+  const weighIn = async (page: Page, kg: number) => {
+    await page.getByLabel('Today (kg)').fill(String(kg));
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+  };
+
+  /** The three competition lifts, which is the only thing DOTS accepts. */
+  const theMeet = {
+    onboarded: true,
+    history: {
+      split: 'sevenPattern',
+      weeksBack: 3,
+      exercises: ['Barbell Back Squat', 'Barbell Bench Press', 'Conventional Deadlift'],
+      sessions: 3,
+    },
+  } as const;
+
+  test('names the lifts DOTS is still missing rather than going blank', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* A blank space teaches nobody what would fill it, and DOTS is null for
+       almost everybody — it needs all three competition lifts. So the empty
+       state is a sentence that says which ones. */
+    await signInAs(page, context, baseURL!, oneLift);
+    await page.goto('/progress');
+    await weighIn(page, 83);
+
+    await expect(page.getByText(/Still missing:/)).toBeVisible();
+    await expect(page.getByText(/Barbell Back Squat/)).toBeVisible();
+    await expect(page.getByText(/Conventional Deadlift/)).toBeVisible();
+
+    // The index, meanwhile, is perfectly happy with one lift — an untrained
+    // pattern counts as zero rather than blanking the number.
+    await expect(page.getByRole('heading', { name: 'Strength index' })).toBeVisible();
+    await expect(
+      page
+        .locator('span')
+        .filter({ hasText: /^\d+\.\d$/ })
+        .first(),
+    ).toBeVisible();
+  });
+
+  test('shows a DOTS score once all three lifts are there', async ({ page, context, baseURL }) => {
+    await signInAs(page, context, baseURL!, theMeet);
+    await page.goto('/progress');
+
+    // All three lifts are there, so nothing is missing — but the number still
+    // cannot exist yet, and it says which of the two reasons applies.
+    await expect(page.getByText(/Still missing:/)).toHaveCount(0);
+    // Twice, and that is right: both numbers divide by bodyweight, so both are
+    // waiting on the same one thing and both say so rather than one of them
+    // going quietly blank.
+    await expect(page.getByText('Add your bodyweight and this starts tracking.')).toHaveCount(2);
+
+    await weighIn(page, 83);
+
+    // "…across the three lifts" — the total it was computed from, stated, so
+    // the number is not just asserted at the reader.
+    await expect(page.getByText(/across the three lifts/)).toBeVisible();
+  });
+
+  test('keeps the two numbers visibly different kinds of thing', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* The reading failure, guarded directly. The index carries a decimal and
+       always will — including a trailing zero, so the week it happens to round
+       even is not the week it disguises itself as the other number. A DOTS is a
+       bare integer. Same card, two shapes.
+
+       This is the test that fails if somebody "tidies up" the formatting. */
+    await signInAs(page, context, baseURL!, theMeet);
+    await page.goto('/progress');
+    await weighIn(page, 83);
+
+    const card = page.locator('main > div').filter({ hasText: 'Strength index' }).first();
+    const index = card
+      .locator('span')
+      .filter({ hasText: /^\d+\.\d$/ })
+      .first();
+    const dots = card.locator('span').filter({ hasText: /^\d+$/ }).first();
+
+    await expect(index).toBeVisible();
+    await expect(dots).toBeVisible();
+    expect(await index.innerText()).not.toBe(await dots.innerText());
+  });
+
+  test('explains each number separately, including what it is not', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* Two numbers need two "what this is not" notes. The index's says it is
+       nobody else's business; DOTS's says it is not a meet total, which is the
+       more important one because DOTS is the number somebody might quote. */
+    await signInAs(page, context, baseURL!, theMeet);
+    await page.goto('/progress');
+    await weighIn(page, 83);
+
+    await page.getByRole('button', { name: 'What this number is' }).click();
+    await expect(page.getByText(/not comparable with anybody else/)).toBeVisible();
+    await page.getByRole('button', { name: 'Close' }).click();
+
+    await page.getByRole('button', { name: 'What DOTS is' }).click();
+    await expect(page.getByText(/It is not a meet total/)).toBeVisible();
+    // And the three lifts it was built from, so the figure is checkable by hand.
+    const sheet = page.getByRole('dialog');
+    await expect(sheet.getByText('Barbell Bench Press')).toBeVisible();
   });
 });

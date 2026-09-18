@@ -252,12 +252,12 @@ export const fr: Record<Key, string> = {
   'prog.unrated':
     'Sur certaines de ces séries, l’effort n’est pas renseigné : elles ressortent plus basses qu’elles ne l’étaient. On préfère écarter ces comparaisons plutôt que de deviner.',
   'prog.empty': 'Note quelques séances et tes progrès apparaîtront ici.',
-  'prog.strength': 'Score de force',
+  'prog.strength': 'Indice de force',
   'prog.strengthWhat': 'Ce que dit ce chiffre',
   'prog.strengthBody':
-    'Ton meilleur soulevé dans chacun des cinq mouvements chargés, additionnés puis rapportés à ton poids de corps avec la courbe utilisée en compétition — il veut donc dire la même chose quel que soit ton poids. Il ne compte que les deux derniers mois, parce qu’il est là pour dire ce que tu vaux maintenant.',
+    'Votre meilleure charge dans chacun des cinq mouvements chargés, additionnée et rapportée à votre poids de corps — élevé à la puissance deux tiers, car la force ne suit pas le poids un pour un. Seuls les deux derniers mois comptent : le chiffre doit dire ce que vous pouvez faire maintenant.',
   'prog.strengthNot':
-    'Ce n’est pas un classement. Personne d’autre n’y figure, et un mouvement que tu ne travailles pas compte pour zéro — couvrir les cinq, c’est la moitié de l’idée.',
+    'C’est l’échelle propre à gymmy, comparable à celle de personne d’autre — aucun classement, personne d’autre dedans. Un mouvement non entraîné compte pour zéro, car couvrir les cinq est la moitié de l’idée.',
   'prog.needWeight': 'Renseigne ton poids de corps et le suivi démarre.',
   'prog.needLifts': 'Note quelques séances et le suivi démarre.',
   'prog.deltaUp': '{by} de plus qu’{ago}',
@@ -267,11 +267,20 @@ export const fr: Record<Key, string> = {
   'prog.agoFirst': 'la première séance visible ici',
   'prog.bodyWeight': 'Poids de corps',
   'prog.weightToday': 'Aujourd’hui ({unit})',
-  'prog.scoreOverTime': 'Score de force, semaine par semaine',
+  'prog.scoreOverTime': 'Indice de force, semaine par semaine',
   'prog.table': 'Voir les chiffres',
   'prog.week': 'Semaine',
   'prog.value': 'Meilleur',
-  'prog.score': 'Score',
+  'prog.score': 'Indice',
+  'prog.dots': 'DOTS',
+  'prog.dotsWhat': 'Ce qu’est le DOTS',
+  'prog.dotsBody':
+    'L’échelle de la force athlétique de compétition : squat, développé couché et soulevé de terre additionnés, ajustés au poids de corps et au sexe. C’est le seul chiffre ici qui signifie quelque chose pour quelqu’un d’autre — n’importe quel calculateur DOTS donnera le même résultat.',
+  'prog.dotsNot':
+    'Ce n’est pas un total de compétition. Un vrai total, c’est trois levers uniques le même jour devant des juges ; celui-ci est estimé sur deux mois d’entraînement, donc plus élevé que ce que vous souleveriez le jour même.',
+  'prog.dotsNeed':
+    'Demande un squat, un développé couché et un soulevé de terre à la barre. Il manque encore : {what}.',
+  'prog.dotsFrom': '{total} sur les trois mouvements',
   'prog.prs': '★ signale un record personnel',
 
   'set.you': 'Toi',

@@ -75,7 +75,7 @@ test.describe('First run', () => {
     await expect(app.getByText('60 kg × 8').first()).toBeVisible();
 
     await app.goto('/progress');
-    await expect(app.getByRole('heading', { name: 'Strength score' })).toBeVisible({
+    await expect(app.getByRole('heading', { name: 'Strength index' })).toBeVisible({
       timeout: 15_000,
     });
     await expect(app.getByText('Add your bodyweight and this starts tracking.')).toBeHidden();

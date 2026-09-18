@@ -345,7 +345,7 @@ describe('the demo strength score', () => {
     sex: 'male',
     birthYear: null,
   })
-    .map((p) => p.score)
+    .map((p) => p.index)
     .filter((n): n is number => n !== null);
 
   it('has a couple of months in the middle where nothing moved', () => {

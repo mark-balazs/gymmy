@@ -9,7 +9,7 @@ folder says how it is *built*, and which parts will bite you.
 | Document | What it answers |
 | --- | --- |
 | [architecture.md](./architecture.md) | The layers, what may import what, and how a set gets from a thumb to Postgres |
-| [training-model.md](./training-model.md) | Patterns, splits, coverage, historisation, the strength score, the triage |
+| [training-model.md](./training-model.md) | Patterns, splits, coverage, historisation, load conventions, the two strength numbers, the triage |
 | [data.md](./data.md) | Tables, migrations, the sync protocol, the local store, seeding |
 | [openapi.yaml](./openapi.yaml) | **The HTTP contract.** Every endpoint, every row schema, every status code |
 | [testing.md](./testing.md) | The three test layers and which one a change belongs in |
@@ -54,7 +54,7 @@ own wording winning where they renamed something.
 **The database stores what happened, never what it means.** A set row carries the
 weight, the reps and the reps in reserve that were logged, and nothing else.
 Every derived number — the estimated 1RM, the per-session series, drawdowns, the
-strength score, the triage on Progress — is computed at read time from those
+strength numbers, the triage on Progress — is computed at read time from those
 rows. Nothing pre-aggregated is stored, synced or seeded beside them. This is
 why the demo generator emits sets rather than a curve: the Progress tab reads
 that account back exactly as it reads a real one, so the two cannot drift, and a

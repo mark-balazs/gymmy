@@ -245,12 +245,12 @@ export const en = {
   'prog.unrated':
     'Some of these sets have no effort recorded, which makes them read lower than they were. Comparisons across them are left out rather than guessed.',
   'prog.empty': 'Log a few sessions and your progress shows up here.',
-  'prog.strength': 'Strength score',
+  'prog.strength': 'Strength index',
   'prog.strengthWhat': 'What this number is',
   'prog.strengthBody':
-    'Your best lift in each of the five loaded movements, added up and weighed against your bodyweight using the curve competitive lifting uses — so it means the same thing whatever you weigh. It only counts the last two months, because it is meant to say what you can do now.',
+    'Your best lift in each of the five loaded movements, added up and set against your bodyweight — raised to the two-thirds power, because strength does not scale with weight one for one. It only counts the last two months, because it is meant to say what you can do now.',
   'prog.strengthNot':
-    'It is not a ranking. There is nobody else in it, and a movement you have not trained counts as zero — covering all five is half the point.',
+    'It is gymmy’s own scale and it is not comparable with anybody else’s — no ranking, nobody else in it. A movement you have not trained counts as zero, because covering all five is half the point.',
   'prog.needWeight': 'Add your bodyweight and this starts tracking.',
   'prog.needLifts': 'Log a few sessions and this starts tracking.',
   'prog.deltaUp': 'Up {by} on {ago}',
@@ -260,11 +260,22 @@ export const en = {
   'prog.agoFirst': 'its first session in view',
   'prog.bodyWeight': 'Bodyweight',
   'prog.weightToday': 'Today ({unit})',
-  'prog.scoreOverTime': 'Strength score, week by week',
+  'prog.scoreOverTime': 'Strength index, week by week',
   'prog.table': 'Show the numbers',
   'prog.week': 'Week',
   'prog.value': 'Best',
-  'prog.score': 'Score',
+  'prog.score': 'Index',
+  /* The second number: a real DOTS from the three competition lifts only.
+     Separate copy, and deliberately blunt about which one travels. See
+     `strength.ts`. */
+  'prog.dots': 'DOTS',
+  'prog.dotsWhat': 'What DOTS is',
+  'prog.dotsBody':
+    'The scale competitive powerlifting uses: your squat, bench press and deadlift added together and adjusted for bodyweight and sex. It is the one number here that means something to somebody else — any DOTS calculator will agree with the arithmetic.',
+  'prog.dotsNot':
+    'It is not a meet total. A real total is three single lifts on one day under judging; this is estimated from your training over two months, so it reads higher than you would lift on the day.',
+  'prog.dotsNeed': 'Needs a barbell squat, bench press and deadlift. Still missing: {what}.',
+  'prog.dotsFrom': '{total} across the three lifts',
   'prog.prs': '★ marks a personal best',
 
   'set.you': 'You',

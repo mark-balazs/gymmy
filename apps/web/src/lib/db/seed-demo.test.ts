@@ -102,7 +102,7 @@ describe('seeding the demo account', () => {
 
     const from = mondayOf([...weights.map((w) => w.date)].sort()[0]!);
     const series = strengthSeries(ix, from, 22, { unit: 'kg', sex: 'male', birthYear: null });
-    const scored = series.map((s) => s.score).filter((n): n is number => n !== null);
+    const scored = series.map((s) => s.index).filter((n): n is number => n !== null);
 
     // A history, not a number: most weeks scored, and the block went somewhere.
     expect(scored.length).toBeGreaterThan(15);

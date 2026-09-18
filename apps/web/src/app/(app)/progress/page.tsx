@@ -17,8 +17,9 @@
  *     account with no goals the card is usually absent entirely, which is the
  *     point of it — see below.
  *  2. **What you are pushing** — the live goals, only when there are any.
- *  3. **Strength score** — the one number that is about you rather than about a
- *     movement, and the only full chart on the page at rest.
+ *  3. **The two strength numbers** — gymmy's own index across the five loaded
+ *     patterns, plus a real DOTS from the three competition lifts. The only
+ *     full chart on the page at rest.
  *  4. **What you have trained** — twelve weeks by seven movements, which is the
  *     app's actual thesis on a time axis.
  *  5. **Every lift** — one compact row each, grouped by movement, with a
@@ -50,6 +51,7 @@ import {
   growingExercises,
   progressSummary,
   recentWeeks,
+  dotsAt,
   strengthSeries,
   type Attention,
   type ExerciseProgress,
@@ -81,6 +83,7 @@ export default function ProgressPage() {
 
   const [weight, setWeight] = useState('');
   const [explain, setExplain] = useState(false);
+  const [dots, setDots] = useState(false);
   const [allTime, setAllTime] = useState(false);
   const [detail, setDetail] = useState<string | null>(null);
 
@@ -172,12 +175,20 @@ export default function ProgressPage() {
     return out;
   }, [summary, ix.patterns, tr]);
 
-  const scored = strength.filter((s) => s.score !== null);
+  const scored = strength.filter((s) => s.index !== null);
   const current = scored.at(-1) ?? null;
-  // Eight weeks back is the same window the score itself looks over, so the
+  // Eight weeks back is the same window the index itself looks over, so the
   // comparison is against a genuinely different stretch of training.
   const earlier = scored.at(-9) ?? scored[0] ?? null;
-  const delta = current && earlier && earlier !== current ? current.score! - earlier.score! : null;
+  const delta = current && earlier && earlier !== current ? current.index! - earlier.index! : null;
+  /* The second number, and the only one that means anything to anybody else.
+     Almost always null on a real account — it needs all three competition
+     lifts — so it is a row inside the card rather than a card of its own, and
+     it says which lift is still missing instead of just going quiet. */
+  const dotsNow = useMemo(
+    () => dotsAt(ix, mondayOf(today), { unit, sex, birthYear }),
+    [ix, today, unit, sex, birthYear],
+  );
   const bodyWeight = bodyWeightOn(ix, today);
   const goals = useGoalCards();
   const open = summary.find((p) => p.exercise.id === detail) ?? null;
@@ -231,13 +242,20 @@ export default function ProgressPage() {
           <div className="flex items-baseline gap-3">
             {/* The one hero number on the page. Proportional figures: tabular
                 digits make a three-digit number look loose at this size. */}
+            {/* One decimal, always — including a trailing zero.
+
+                The index lands in the tens where a DOTS lands in the hundreds,
+                and the decimal is the other half of telling them apart at a
+                glance. Left to JavaScript, an index that rounds to 34.0 renders
+                as "34", so the one week it happens to be round is the week it
+                looks like the other number. */}
             <span className="text-[44px] leading-none font-bold text-[var(--color-accent-2)]">
-              {current.score}
+              {current.index!.toFixed(1)}
             </span>
             {delta !== null && (
               <Delta
-                value={Math.round(delta)}
-                label={deltaLabel(tr, Math.round(delta), tr.t('prog.agoWeeks', { n: 8 }))}
+                value={Math.round(delta * 10) / 10}
+                label={deltaLabel(tr, Math.round(delta * 10) / 10, tr.t('prog.agoWeeks', { n: 8 }))}
                 className="text-base"
               />
             )}
@@ -252,7 +270,7 @@ export default function ProgressPage() {
           <LineChart
             points={scored.map((s) => ({
               date: s.weekOf,
-              value: s.score!,
+              value: s.index!,
               label: shortDay(s.weekOf, tr.lang),
             }))}
             unit=""
@@ -263,6 +281,47 @@ export default function ProgressPage() {
             valueHeader={tr.t('prog.score')}
           />
         )}
+
+        {/* The second number.
+
+            Inside this card rather than beside it, because the two are the same
+            kind of thing measured two ways and separating them into cards would
+            invite reading one as more real than the other. Smaller than the
+            hero because it is the narrower claim: three lifts, not five.
+
+            It also never silently disappears. A DOTS needs all three
+            competition lifts and most people will not have them, so the empty
+            state names the ones still missing — a blank space teaches nobody
+            what would fill it. */}
+        <div className="flex items-center gap-2 border-t border-[var(--color-line)] pt-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline gap-2">
+              <span className="text-xs font-bold tracking-wider text-[var(--color-muted)] uppercase">
+                {tr.t('prog.dots')}
+              </span>
+              <span className="num text-[22px] leading-none font-bold">{dotsNow.score ?? '—'}</span>
+            </div>
+            {/* Null for two different reasons, and they want different
+                sentences — which a test caught rather than a reading of this
+                code. With all three lifts logged and no bodyweight on record,
+                the "still missing" line listed nothing at all: a sentence that
+                trails off into a full stop, telling somebody to go and do the
+                training they have already done. */}
+            <p className="mt-1 text-xs text-[var(--color-muted)]">
+              {dotsNow.total === null
+                ? tr.t('prog.dotsNeed', {
+                    what: dotsNow.lifts
+                      .filter((l) => l.best === 0)
+                      .map((l) => tr.exercise({ name: l.name }))
+                      .join(', '),
+                  })
+                : dotsNow.score === null
+                  ? tr.t('prog.needWeight')
+                  : tr.t('prog.dotsFrom', { total: `${Math.round(dotsNow.total)} ${unit}` })}
+            </p>
+          </div>
+          <InfoButton label={tr.t('prog.dotsWhat')} onClick={() => setDots(true)} />
+        </div>
 
         <form
           className="flex items-end gap-2 border-t border-[var(--color-line)] pt-3"
@@ -348,6 +407,26 @@ export default function ProgressPage() {
             ))}
           </div>
         )}
+      </Sheet>
+
+      {/* The DOTS explainer. Its "what this is not" paragraph is doing more
+          work than the index's: this is the number somebody might quote, and it
+          is estimated from training rather than totalled on a platform, so the
+          gap between it and a real meet total has to be stated where they read
+          the figure and not only in the code. */}
+      <Sheet title={tr.t('prog.dotsWhat')} open={dots} onClose={() => setDots(false)}>
+        <p className="text-sm leading-relaxed">{tr.t('prog.dotsBody')}</p>
+        <p className="text-sm leading-relaxed text-[var(--color-muted)]">{tr.t('prog.dotsNot')}</p>
+        <div className="flex flex-col gap-1">
+          {dotsNow.lifts.map((l) => (
+            <div key={l.name} className="flex items-baseline justify-between gap-3 text-sm">
+              <span>{tr.exercise({ name: l.name })}</span>
+              <span className={cn('num', l.best === 0 && 'text-[var(--color-bad)]')}>
+                {l.best ? `${Math.round(l.best)} ${unit}` : '—'}
+              </span>
+            </div>
+          ))}
+        </div>
       </Sheet>
     </Page>
   );

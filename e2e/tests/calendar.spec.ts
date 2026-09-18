@@ -67,7 +67,7 @@ test.describe('The calendar on Home', () => {
     await expect(sheet.getByText(lift)).toBeVisible();
     await expect(sheet.getByText('62.5 kg × 8')).toBeVisible();
     // The three numbers the day is summarised by.
-    await expect(sheet.getByText('Strength score')).toBeVisible();
+    await expect(sheet.getByText('Strength index')).toBeVisible();
     await expect(sheet.getByText('Bodyweight')).toBeVisible();
     await expect(sheet.getByText('Sets', { exact: true })).toBeVisible();
   });

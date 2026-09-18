@@ -257,12 +257,12 @@ export const es: Record<Key, string> = {
   'prog.unrated':
     'En algunas de estas series no consta el esfuerzo, así que salen más bajas de lo que fueron. Esas comparaciones se omiten en lugar de adivinarlas.',
   'prog.empty': 'Registra unas sesiones y aquí aparecerá tu progreso.',
-  'prog.strength': 'Puntuación de fuerza',
+  'prog.strength': 'Índice de fuerza',
   'prog.strengthWhat': 'Qué es este número',
   'prog.strengthBody':
-    'Tu mejor levantamiento en cada uno de los cinco movimientos con carga, sumados y medidos contra tu peso corporal con la curva que usa la competición, así que significa lo mismo peses lo que peses. Solo cuenta los dos últimos meses, porque está para decir lo que puedes hacer ahora.',
+    'Tu mejor levantamiento en cada uno de los cinco movimientos con carga, sumados y comparados con tu peso corporal — elevado a dos tercios, porque la fuerza no escala uno a uno con el peso. Solo cuenta los últimos dos meses, porque debe decir lo que puedes hacer ahora.',
   'prog.strengthNot':
-    'No es un ranking. No hay nadie más dentro, y un movimiento que no entrenas cuenta como cero: cubrir los cinco es la mitad del asunto.',
+    'Es la escala propia de gymmy y no se puede comparar con la de nadie más — sin clasificación, nadie más dentro. Un movimiento que no has entrenado cuenta como cero, porque cubrir los cinco es la mitad del asunto.',
   'prog.needWeight': 'Añade tu peso corporal y esto empieza a medirse.',
   'prog.needLifts': 'Registra unas sesiones y esto empieza a medirse.',
   'prog.deltaUp': '{by} más que {ago}',
@@ -272,11 +272,20 @@ export const es: Record<Key, string> = {
   'prog.agoFirst': 'la primera sesión visible aquí',
   'prog.bodyWeight': 'Peso corporal',
   'prog.weightToday': 'Hoy ({unit})',
-  'prog.scoreOverTime': 'Puntuación de fuerza, semana a semana',
+  'prog.scoreOverTime': 'Índice de fuerza, semana a semana',
   'prog.table': 'Ver los números',
   'prog.week': 'Semana',
   'prog.value': 'Mejor',
-  'prog.score': 'Puntuación',
+  'prog.score': 'Índice',
+  'prog.dots': 'DOTS',
+  'prog.dotsWhat': 'Qué es el DOTS',
+  'prog.dotsBody':
+    'La escala del powerlifting de competición: sentadilla, press de banca y peso muerto sumados y ajustados por peso corporal y sexo. Es el único número aquí que significa algo para otra persona — cualquier calculadora de DOTS dará lo mismo.',
+  'prog.dotsNot':
+    'No es un total de competición. Un total real son tres levantamientos únicos en un día con jueces; este se estima con dos meses de entrenamiento, así que sale más alto de lo que levantarías ese día.',
+  'prog.dotsNeed':
+    'Necesita sentadilla, press de banca y peso muerto con barra. Todavía falta: {what}.',
+  'prog.dotsFrom': '{total} en los tres levantamientos',
   'prog.prs': '★ marca un récord personal',
 
   'set.you': 'Tú',

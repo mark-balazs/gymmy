@@ -243,12 +243,12 @@ export const hu: Record<Key, string> = {
   'prog.unrated':
     'Néhány sorozatnál nincs rögzítve a nehézség, ezért a kelleténél alacsonyabbnak számítanak. Az ilyen összevetéseket inkább kihagyjuk, mint hogy találgassunk.',
   'prog.empty': 'Rögzíts pár edzést, és itt megjelenik a fejlődésed.',
-  'prog.strength': 'Erőpontszám',
+  'prog.strength': 'Erőindex',
   'prog.strengthWhat': 'Mit jelent ez a szám',
   'prog.strengthBody':
-    'Az öt terhelt mozgásformában elért legjobb emeléseid összege, a testsúlyodhoz mérve, azzal a görbével, amit a versenysport is használ – így bármennyit is nyomsz a mérlegen, ugyanazt jelenti. Csak az elmúlt két hónapot nézi, mert azt hivatott megmutatni, hol tartasz most.',
+    'Az öt terhelt mozgásminta legjobb emelése összeadva, a testsúlyodhoz mérve — annak kétharmad hatványához, mert az erő nem egy az egyben skálázódik a súllyal. Csak az elmúlt két hónapot számolja, mert azt hivatott megmutatni, amit most tudsz.',
   'prog.strengthNot':
-    'Ez nem rangsor. Senki más nincs benne, és amit nem edzel, az nullát ér – a lefedettség a fele az egésznek.',
+    'Ez a gymmy saját skálája, és senki máséval nem összevethető — nincs rangsor, nincs benne más. Amit nem edzettél, az nullaként számít, mert az mind az öt lefedése a dolog fele.',
   'prog.needWeight': 'Add meg a testsúlyodat, és ez is követni kezdi.',
   'prog.needLifts': 'Rögzíts pár edzést, és ez is követni kezdi.',
   'prog.deltaUp': '{by} felfelé {ago}',
@@ -258,11 +258,20 @@ export const hu: Record<Key, string> = {
   'prog.agoFirst': 'az itt látható első alkalomhoz képest',
   'prog.bodyWeight': 'Testsúly',
   'prog.weightToday': 'Ma ({unit})',
-  'prog.scoreOverTime': 'Erőpontszám hétről hétre',
+  'prog.scoreOverTime': 'Erőindex hetente',
   'prog.table': 'Mutasd a számokat',
   'prog.week': 'Hét',
   'prog.value': 'Legjobb',
-  'prog.score': 'Pontszám',
+  'prog.score': 'Index',
+  'prog.dots': 'DOTS',
+  'prog.dotsWhat': 'Mi az a DOTS',
+  'prog.dotsBody':
+    'A versenyerőemelés skálája: a guggolásod, fekvenyomásod és felhúzásod összege, testsúlyra és nemre korrigálva. Ez az egyetlen szám itt, ami másnak is jelent valamit — bármelyik DOTS-kalkulátor ugyanezt adja ki.',
+  'prog.dotsNot':
+    'Ez nem versenyösszeg. Egy igazi összeg három egyszeri emelés egy napon, bírói ítélettel; ez két hónap edzéséből becsült, ezért magasabb, mint amit aznap megemelnél.',
+  'prog.dotsNeed':
+    'Rúddal végzett guggolás, fekvenyomás és felhúzás kell hozzá. Még hiányzik: {what}.',
+  'prog.dotsFrom': '{total} a három emelésből',
   'prog.prs': 'A ★ egyéni csúcsot jelöl',
 
   'set.you': 'Te',
