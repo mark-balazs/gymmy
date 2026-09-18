@@ -1,0 +1,19 @@
+# LF everywhere, on every platform.
+#
+# Prettier writes LF (its default), the index already holds LF, and the CI
+# runners are Linux. Without this file, a Windows checkout with
+# core.autocrlf=true expects CRLF on disk, so every file Prettier had touched
+# showed as modified with no content change — ten or more of them at a time,
+# permanently, which buried real changes in `git status` and made `git add -A`
+# dangerous. This overrides autocrlf for this repository only.
+* text=auto eol=lf
+
+# Binary assets: never touched by line-ending conversion.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
