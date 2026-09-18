@@ -137,14 +137,10 @@ describe('strength index', () => {
     expect(heavy / light).toBeGreaterThan(0.5);
   });
 
-  it('uses a different reference per sex, with unspecified between them', () => {
-    const male = dotsCoefficient(80, 'male');
-    const female = dotsCoefficient(80, 'female');
-    const neither = dotsCoefficient(80, 'unspecified');
-
-    expect(female).toBeGreaterThan(male);
-    expect(neither).toBeGreaterThan(male);
-    expect(neither).toBeLessThan(female);
+  it('uses a different reference per sex', () => {
+    // "Prefer not to say" has no curve of its own: the type refuses it, and
+    // `dotsAt` answers `missing: 'sex'` — tested with the rest of `missing`.
+    expect(dotsCoefficient(80, 'female')).toBeGreaterThan(dotsCoefficient(80, 'male'));
   });
 
   it('reads the same whichever unit you happen to use', () => {
@@ -395,6 +391,53 @@ describe('DOTS', () => {
        or landmine variant, fails here. */
     expect(competitionLiftsAreMasses()).toBe(true);
     expect(COMPETITION_LIFTS).toHaveLength(3);
+  });
+
+  describe('when there is no score, it says which thing is missing', () => {
+    it('gives no score without a sex answer, rather than a midpoint no calculator makes', () => {
+      /* Every account starts at "prefer not to say", and onboarding never asks,
+         so the midpoint of the two curves was quietly the default: at 83 kg it
+         read 18% above a man's real DOTS and 14% below a woman's. A DOTS that
+         cannot be checked has lost the one property it exists to have. */
+      const point = scoreOf(meet(), { sex: 'unspecified' });
+      expect(point.score).toBeNull();
+      expect(point.missing).toBe('sex');
+      // Everything else was there — the total is still reported.
+      expect(point.total).toBeCloseTo(501.7, 1);
+    });
+
+    it('tells a lift trained too light to estimate apart from one never trained', () => {
+      /* Found by review. A bench done only at twelve reps with two in reserve
+         is above the ceiling, so it produces no estimate — and the screen said
+         "still missing: Barbell Bench Press" to somebody who benched that week.
+         Trained and estimable are two facts, and they get two sentences. */
+      const lightBench = [
+        lift('Barbell Back Squat', 150),
+        { ...lift('Barbell Bench Press', 60), reps: 12, rir: 2 },
+        lift('Conventional Deadlift', 180),
+      ];
+      const point = scoreOf(lightBench);
+      expect(point.missing).toBe('estimate');
+      const bench = point.lifts.find((l) => l.name === 'Barbell Bench Press')!;
+      expect(bench.trained).toBe(true);
+      expect(bench.best).toBe(0);
+
+      // Never trained at all is the other case, and it outranks this one.
+      const noBench = [lift('Barbell Back Squat', 150), lift('Conventional Deadlift', 180)];
+      expect(scoreOf(noBench).missing).toBe('lifts');
+      expect(scoreOf(noBench).lifts.find((l) => l.name === 'Barbell Bench Press')!.trained).toBe(
+        false,
+      );
+    });
+
+    it('asks for bodyweight only once the lifts are all there', () => {
+      const point = dotsAt(index({ ...snap, logs: meet(), bodyLogs: [] }), thisWeek, {
+        unit: 'kg',
+        sex: 'male',
+      });
+      expect(point.missing).toBe('bodyweight');
+      expect(scoreOf(meet()).missing).toBeNull();
+    });
   });
 });
 

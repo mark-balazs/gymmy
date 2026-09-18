@@ -43,6 +43,7 @@ keep in its lane:
 - **Coverage and the session count.** Held in the domain suite
   (`one-off.test.ts`), where the week can be built exactly; a browser adds
   nothing but time.
-- **Retiring `refSets`**, which this feature supersedes. That is its own change,
-  in two deploys, because dropping the table in the same deploy as the code would
-  fail every sync for the length of the build.
+- **Retiring `refSets`**, which this feature supersedes. That was its own change,
+  and takes two deploys because dropping the table in the same deploy as the
+  code would fail every sync for the length of the build. The part a browser can
+  see — the device deleting its store — is `device-upgrade.spec.ts`.

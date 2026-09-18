@@ -254,7 +254,7 @@ export const hu: Record<Key, string> = {
   'prog.strengthBody':
     'Az öt terhelt mozgásminta legjobb emelése összeadva, a testsúlyodhoz mérve — annak kétharmad hatványához, mert az erő nem egy az egyben skálázódik a súllyal. Csak az elmúlt két hónapot számolja, mert azt hivatott megmutatni, amit most tudsz.',
   'prog.strengthNot':
-    'Ez a gymmy saját skálája, és senki máséval nem összevethető — nincs rangsor, nincs benne más. Amit nem edzettél, az nullaként számít, mert az mind az öt lefedése a dolog fele.',
+    'Ez a gymmy saját skálája, és senki máséval nem összevethető — nincs rangsor, nincs benne más. Nullaként számít az a mozgás, amiből nincs mit becsülni: amit nem edzettél, vagy csak sok ismétléssel. Mind az öt lefedése a dolog fele.',
   'prog.needWeight': 'Add meg a testsúlyodat, és ez is követni kezdi.',
   'prog.needLifts': 'Rögzíts pár edzést, és ez is követni kezdi.',
   'prog.deltaUp': '{by} felfelé {ago}',
@@ -277,6 +277,10 @@ export const hu: Record<Key, string> = {
     'Ez nem versenyösszeg. Egy igazi összeg három egyszeri emelés egy napon, bírói ítélettel; ez két hónap edzéséből becsült, ezért magasabb, mint amit aznap megemelnél.',
   'prog.dotsNeed':
     'Rúddal végzett guggolás, fekvenyomás és felhúzás kell hozzá. Még hiányzik: {what}.',
+  'prog.dotsEstimate':
+    'Ebből még nincs mit becsülni: {what}. A becsléshez legfeljebb tíz ismétléses sorozat kell a kifáradásig.',
+  'prog.dotsNeedsSex':
+    'A DOTS külön görbét használ nőkre és férfiakra. Add meg a profilodban, és megjelenik.',
   'prog.dotsFrom': '{total} a három emelésből',
   'prog.prs': 'A ★ egyéni csúcsot jelöl',
   'prog.conventionChanged':
@@ -302,7 +306,7 @@ export const hu: Record<Key, string> = {
   'set.aboutYou': 'Rólad',
   'set.sex': 'Nem',
   'set.sexWhy':
-    'Egyetlen dologra kell: melyik referenciagörbéhez mérjük az erőpontszámodat. Ha nem adod meg, a kettő átlagát használjuk.',
+    'Egyetlen dologra kell: a DOTS-ra, amely külön görbét használ nőkre és férfiakra. Ha nem adod meg, egyszerűen nincs DOTS — más nem változik.',
   'sex.unspecified': 'Inkább nem mondom meg',
   'sex.female': 'Nő',
   'sex.male': 'Férfi',

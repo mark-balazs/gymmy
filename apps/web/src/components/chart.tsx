@@ -124,6 +124,7 @@ export function LineChart({
   labelHeader,
   valueHeader,
   tone = 'primary',
+  decimals,
 }: {
   points: ChartPoint[];
   /** Appended to values in labels and the tooltip. Empty for a unitless score. */
@@ -138,6 +139,10 @@ export function LineChart({
    *  violet is what it measured. One hue per chart either way — a single
    *  series has no identity to encode. */
   tone?: 'primary' | 'secondary';
+  /** Fixed decimal places, trailing zero kept. Unset, values round to one place
+   *  and drop it — which is right for kilos and wrong for the strength index,
+   *  whose one decimal is part of what tells it apart from a DOTS score. */
+  decimals?: number;
 }) {
   const [active, setActive] = useState<number | null>(null);
   const svg = useRef<SVGSVGElement>(null);
@@ -150,7 +155,8 @@ export function LineChart({
 
   const last = points[points.length - 1]!;
   const shown = active === null ? null : (points[active] ?? null);
-  const fmt = (v: number) => `${Math.round(v * 10) / 10}${unit ? ` ${unit}` : ''}`;
+  const fmt = (v: number) =>
+    `${decimals === undefined ? Math.round(v * 10) / 10 : v.toFixed(decimals)}${unit ? ` ${unit}` : ''}`;
 
   /** Nearest point to the pointer, in the chart's own coordinates. Scaling is
    *  read off the rendered box, so it survives the SVG being any width, and the

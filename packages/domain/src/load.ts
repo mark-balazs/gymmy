@@ -306,32 +306,52 @@ export const toEntered = (name: string, stored: number | null): number | null =>
 export const LOAD_CONVENTION_FROM = '2026-09-17';
 
 /**
- * Whether an exercise's history straddles the day its convention changed.
+ * How big a step across the cutover has to be before it is the convention's.
  *
- * The only place the cutover is visible to anybody is a chart: a dumbbell-pair
- * movement logged per hand before the date and combined after it shows a jump
- * on that day which is bookkeeping, not training. This is what lets the detail
- * sheet say so, once, under the chart where the jump is.
- *
- * It takes the dates actually on the chart rather than a flag on the account, so
- * it is true only for a history that really crosses over. The demo's generated
- * past sits entirely on one side of the date and correctly says nothing;
- * somebody who trained through the change is told.
- *
- * Nothing is hidden or corrected because of it. The convention cancels in any
- * same-exercise comparison — both ends of a trend that sits entirely on one side
- * are on the same side of the factor — so the only honest intervention is to
- * say what happened at the join.
- *
- * (This replaced a per-row `conventionKnown`, written for a gate on the strength
- * index that was designed and then not built: the index never leaves its owner,
- * and every same-exercise comparison inside it cancels the factor anyway.)
+ * The convention doubles a pair's stored figure overnight, so the step it
+ * causes is two to one. Real training does not do that between one week and the
+ * next; a new personal best is a few percent. One and a half sits well clear of
+ * both, so neither the noise of training nor a deload can pass for it.
  */
-export const conventionChanged = (
+const CONVENTION_STEP = 1.5;
+
+/**
+ * Whether an exercise's chart shows the jump the dumbbell convention causes.
+ *
+ * A pair logged per hand before `LOAD_CONVENTION_FROM` and combined after it
+ * draws a step on that day which is bookkeeping, not training. This is what lets
+ * a chart say so, once, where the step is.
+ *
+ * **Decided by the step itself, not by the dates.** The first version was true
+ * whenever the history merely crossed the cutover, and its docstring promised
+ * the demo "correctly says nothing" because its generated past sat on one side.
+ * That held for four days. The demo's history is dated relative to today, so
+ * from the following week it straddles the cutover too — and it would have
+ * claimed a convention change on data that was generated under the new
+ * convention throughout. The same is true of anybody who was already entering
+ * both dumbbells before the change: they crossed the date and saw no jump.
+ *
+ * So it compares the few sessions either side of the cutover and answers yes
+ * only when the later ones sit at least half as high again as the earlier ones —
+ * the step the doubling actually produces. No jump, nothing to explain.
+ *
+ * Nothing is hidden or corrected because of it; the history stays exactly as
+ * stored. The note is information, not a repair.
+ */
+export function conventionChanged(
   name: string,
-  dates: string[],
+  points: { date: string; value: number }[],
   cutover: string = LOAD_CONVENTION_FROM,
-): boolean =>
-  loadClassOf(name) === 'dumbbellPair' &&
-  dates.some((d) => d < cutover) &&
-  dates.some((d) => d >= cutover);
+): boolean {
+  if (loadClassOf(name) !== 'dumbbellPair') return false;
+  const median = (xs: number[]): number => {
+    const s = [...xs].sort((a, b) => a - b);
+    const m = Math.floor(s.length / 2);
+    return s.length % 2 ? s[m]! : (s[m - 1]! + s[m]!) / 2;
+  };
+  const sorted = [...points].sort((a, b) => a.date.localeCompare(b.date));
+  const before = sorted.filter((p) => p.date < cutover && p.value > 0).slice(-3);
+  const after = sorted.filter((p) => p.date >= cutover && p.value > 0).slice(0, 3);
+  if (!before.length || !after.length) return false;
+  return median(after.map((p) => p.value)) >= median(before.map((p) => p.value)) * CONVENTION_STEP;
+}

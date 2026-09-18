@@ -30,6 +30,7 @@ import {
   demoHistory,
   type DemoPlanEntry,
 } from './demo-history';
+import { DEMO_LOADS } from './demo-loads';
 
 /**
  * The demo account is the one account we know will be looked at, and what makes
@@ -303,15 +304,23 @@ describe('the demo history', () => {
        week depends on the split and has drifted before. Hard-coding one here
        gave a test that failed with "cannot read topSet of undefined", which
        says nothing about the convention it was meant to be checking. */
+    /* Held against the table it was authored from, per implement. The first
+       version checked the stored weight was even and that halving it gave half
+       of it — and every per-hand load in the table is already even, so it
+       passed with the doubling deleted. A top set at least twice the authored
+       per-hand starting load cannot come from undoubled history: no lift in
+       the table gains more than 35% over the block. */
     const pairs = summary.filter((p) => loadClassOf(p.exercise.name) === 'dumbbellPair');
     expect(pairs.length).toBeGreaterThan(0);
     for (const p of pairs) {
       const stored = p.topSet?.weight ?? 0;
-      expect(stored % 2).toBe(0);
-      expect(toEntered(p.exercise.name, stored)).toBe(stored / 2);
+      const authored = DEMO_LOADS[p.exercise.name]!.start;
+      expect(stored, p.exercise.name).toBeGreaterThanOrEqual(2 * authored);
     }
-    // A single implement is untouched, which is the other half of the rule.
+    // A single implement is untouched, which is the other half of the rule: the
+    // goblet squat's top set stays within its own authored range, not twice it.
     const goblet = byName('Goblet Squat')!.topSet!.weight!;
+    expect(goblet).toBeLessThan(2 * DEMO_LOADS['Goblet Squat']!.start);
     expect(toEntered('Goblet Squat', goblet)).toBe(goblet);
   });
 });

@@ -145,6 +145,10 @@ test.describe('The two strength numbers', () => {
   /** The three competition lifts, which is the only thing DOTS accepts. */
   const theMeet = {
     onboarded: true,
+    // DOTS has a curve per sex and gives no number without an answer, so this
+    // account has one. The unanswered case — every real account's starting
+    // point — has its own test below.
+    sex: 'male',
     history: {
       split: 'sevenPattern',
       weeksBack: 3,
@@ -214,16 +218,39 @@ test.describe('The two strength numbers', () => {
     await page.goto('/progress');
     await weighIn(page, 83);
 
-    const card = page.locator('main > div').filter({ hasText: 'Strength index' }).first();
-    const index = card
-      .locator('span')
-      .filter({ hasText: /^\d+\.\d$/ })
-      .first();
-    const dots = card.locator('span').filter({ hasText: /^\d+$/ }).first();
+    /* Located by where each number sits, not by what it looks like. The first
+       version matched "a span of digits with one decimal" anywhere on the page,
+       which also matched a lift row's delta — and its last assertion, that the
+       two differ, could never fail. Now each is read from its own place and
+       held to its own shape. */
+    const index = page
+      .getByRole('heading', { name: 'Strength index' })
+      .locator('xpath=../following-sibling::div[1]/span[1]');
+    const dots = page
+      .getByText('DOTS', { exact: true })
+      .locator('xpath=following-sibling::span[1]');
 
-    await expect(index).toBeVisible();
-    await expect(dots).toBeVisible();
-    expect(await index.innerText()).not.toBe(await dots.innerText());
+    await expect(index).toHaveText(/^\d+\.\d$/);
+    await expect(dots).toHaveText(/^\d+$/);
+  });
+
+  test('asks which curve to use, rather than showing a DOTS no calculator makes', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* Every account starts at "prefer not to say" and onboarding never asks.
+       DOTS used to fill the gap with the midpoint of the two curves — 18% above
+       a man's real score at 83 kg — while its explainer promised that any
+       calculator would agree. Now it says what it needs instead. */
+    await signInAs(page, context, baseURL!, { ...theMeet, sex: 'unspecified' });
+    await page.goto('/progress');
+    await weighIn(page, 83);
+
+    await expect(page.getByText(/DOTS uses a different curve for men and women/)).toBeVisible();
+    await expect(
+      page.getByText('DOTS', { exact: true }).locator('xpath=following-sibling::span[1]'),
+    ).toHaveText('—');
   });
 
   test('explains each number separately, including what it is not', async ({

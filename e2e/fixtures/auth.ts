@@ -71,6 +71,13 @@ export interface CreateUserOptions {
    */
   bare?: boolean;
   onboarded?: boolean;
+  /**
+   * The profile's answer about sex. Every real account starts at
+   * 'unspecified' and onboarding never asks, which is why it is the default —
+   * and why DOTS, which needs one of the two curves, asks for it rather than
+   * showing a midpoint no calculator produces.
+   */
+  sex?: 'male' | 'female' | 'unspecified';
   split?: Exclude<SplitKey, 'custom'>;
   days?: number;
   /**
@@ -221,9 +228,9 @@ export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser
 
     const onboarded = opts.onboarded ?? false;
     await client.query(
-      `INSERT INTO profiles (id, user_id, updated_at, deleted_at, seq, onboarded, split, days, "where", bias, block_start, block_weeks, unit, lang, theme)
-       VALUES ($1,$2,$3,NULL,nextval('change_seq'),$4,$5,$6,'gym','none',$7,8,'kg','en','system')`,
-      [id, id, now, onboarded, split, days, blockStart],
+      `INSERT INTO profiles (id, user_id, updated_at, deleted_at, seq, onboarded, split, days, "where", bias, block_start, block_weeks, unit, lang, theme, sex)
+       VALUES ($1,$2,$3,NULL,nextval('change_seq'),$4,$5,$6,'gym','none',$7,8,'kg','en','system',$8)`,
+      [id, id, now, onboarded, split, days, blockStart, opts.sex ?? 'unspecified'],
     );
 
     const insertPeriod = async (
@@ -393,6 +400,23 @@ export async function rowCount(table: string, userId: string): Promise<number> {
     userId,
   ]);
   return (r.rows[0] as { n: number } | undefined)?.n ?? 0;
+}
+
+/**
+ * The sets the *server* holds for an account — what actually synced.
+ *
+ * A badge that says "All saved" only says the device's queue is empty, and an
+ * empty queue is exactly what a device that lost its queue looks like too. The
+ * server is the one witness that cannot be fooled by that.
+ */
+export async function serverSets(
+  userId: string,
+): Promise<{ id: string; weight: number | null; reps: number | null; session: string }[]> {
+  const r = await db().query(
+    `SELECT id, weight, reps, session FROM set_logs WHERE user_id = $1 AND deleted_at IS NULL`,
+    [userId],
+  );
+  return r.rows as { id: string; weight: number | null; reps: number | null; session: string }[];
 }
 
 /**

@@ -15,11 +15,12 @@
  * second way of describing a week would be a second thing to keep in step with
  * the coverage rules.
  *
- * **Exercises are chosen by name from the default library.** Names are the only
- * handle that means the same thing in two accounts, and picking from the
- * library everybody is seeded with is what makes them resolve on the other
- * side. A trainer can still name something nobody has; the athlete is told
- * before they apply, and their week fills that slot itself.
+ * **Exercises are chosen by name from the library.** When plans were built,
+ * names were the only handle that meant the same thing in two accounts; the
+ * catalogue now gives every account the same exercises, and a name still
+ * resolves on the other side whether that account reads it from the catalogue
+ * or from a pre-catalogue row. A trainer can still name something nobody has;
+ * the athlete is told before they apply, and their week fills that slot itself.
  */
 
 import { useEffect, useState } from 'react';

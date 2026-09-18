@@ -47,8 +47,15 @@ export const sessionLabel = (i: number): string => String.fromCharCode(65 + i);
  * goals, the charts, "last time" — picks these sets up with no change at all,
  * which is the decision ("training is training") working as intended.
  *
- * What does care is anything that turns a label back into a day number, and
- * both of those go through `planDayOf`, which says no to this one. It also
+ * What does care is anything that turns a label back into a day number, and in
+ * this build both of those go through `planDayOf`, which says no to this one.
+ * **Not in the build before it**, which is worth stating rather than implying
+ * otherwise: a device still running that build reads an `X` set synced from a
+ * newer device as day 23, clamped to the last day, and opens Train and Home on
+ * it until it reloads onto this one. It corrects itself on that reload and
+ * nothing is stored wrongly — but a reserved label avoided a new table's
+ * previous-build window, not every previous-build window. See
+ * `docs/data.md` on rollout windows. It also
  * counts as a session in the week's session count. That was a deliberate choice
  * and the inflation it causes was accepted: extra sets on each of three planned
  * days read as six sessions.

@@ -36,7 +36,7 @@ entering one was not. A fixture that starts from a session row can never catch
 that.
 
 So: **if a step only ever happens on the way in, a fixture cannot cover it.**
-Account creation, the server-side seeding of the default library, the first sync
+Account creation, the server-side seeding of a new account's rows, the first sync
 onto an empty device and the sign-out wipe all belong to the journeys. Everything
 else stays fast and focused.
 

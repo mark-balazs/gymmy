@@ -72,6 +72,13 @@ export function fireAndForget(p: Promise<unknown>): void {
 
 /* --------------------------------------------------------------- logging */
 
+/** A whole number in range, or null. Rounds rather than truncating. */
+const intIn = (v: number | null, lo: number, hi: number): number | null =>
+  v === null || !Number.isFinite(v) ? null : Math.min(hi, Math.max(lo, Math.round(v)));
+/** A number in range, or null. */
+const numIn = (v: number | null, lo: number, hi: number): number | null =>
+  v === null || !Number.isFinite(v) ? null : Math.min(hi, Math.max(lo, v));
+
 export async function logSet(input: {
   date: string;
   session: string;
@@ -82,12 +89,28 @@ export async function logSet(input: {
   rir: number | null;
   note?: string;
 }): Promise<SetLog> {
+  /* Held to the server's row rules here, at the one door every set comes
+     through — because a row the server rejects does not just fail on its own.
+     The push answers 400 for the whole batch, the outbox is only cleared after
+     a successful sync, and the bad row sits at the head of every retry: from
+     then on that device neither pushes nor pulls, for good, and the only way
+     out is a sign-out that throws away every set still waiting.
+
+     And it was one typo away. The steppers clamp their buttons but not what is
+     typed, so "8.5" reps off a decimal keypad, or a weight typed as "-20",
+     went straight in. An off-plan card logged past its hundredth set would
+     have done it too. Rounding reps and clamping to the schema's bounds is
+     less surprising than a device that silently stops syncing. */
   return put<SetLog>('logs', {
     id: id(),
     updatedAt: now(),
     deletedAt: null,
     note: '',
     ...input,
+    setNo: intIn(input.setNo, 1, 100) ?? 1,
+    weight: numIn(input.weight, 0, 2000),
+    reps: intIn(input.reps, 0, 1000),
+    rir: intIn(input.rir, 0, 20),
   });
 }
 

@@ -10,6 +10,7 @@ import {
   sessionsDone,
   weekCoverage,
 } from '../src/model';
+import { dayDetail } from '../src/insights';
 import type { SetLog } from '../src/types';
 import { logsFor, seedSnapshot, withEntries } from './fixture';
 
@@ -137,6 +138,15 @@ describe('what an off-plan set counts for', () => {
     expect(sessionsDone(withLogs(logs), 3, MONDAY)[0]).toBe(false);
   });
 
+  it('does not make a day of training outside the plan into a day of the plan', () => {
+    // dayDetail names which plan day a date was. A day of nothing but off-plan
+    // work is none of them — it used to report itself as a plan day called 'X'.
+    const ix = withLogs(logged('Kettlebell Swing', OFF_PLAN_SESSION, MONDAY));
+    expect(dayDetail(ix, MONDAY)?.session).toBeNull();
+    const planned = programRows(ixPlanned, 3).find((r) => r.session === 0)!.exercise!.name;
+    expect(dayDetail(withLogs(logged(planned, 'A', MONDAY)), MONDAY)?.session).toBe('A');
+  });
+
   it('is what "last time" shows, since it is the last time', () => {
     // A planned card's history line reads the most recent session of that lift,
     // wherever it was logged. Pretending the off-plan set had not happened would
@@ -179,12 +189,18 @@ describe('reading back a day of off-plan training', () => {
     /* Off-plan because of how it was logged, and that never changes. Deriving it
        from "not in any program entry" would turn last month's extra deadlifts
        into planned ones the day somebody rebuilt their week. */
-    const logs = logged('Kettlebell Swing', OFF_PLAN_SESSION, MONDAY);
-    const withPlan = oneOffs(withLogs(logs), MONDAY);
-    const withoutPlan = oneOffs(
-      index({ ...base, entries: [], logs } as Parameters<typeof index>[0]),
-      MONDAY,
-    );
-    expect(withoutPlan.map((o) => o.exercise.name)).toEqual(withPlan.map((o) => o.exercise.name));
+    /* The two cases where a label-based answer and a program-based one disagree
+       — the first version only checked a lift that was off-plan either way, so
+       a program-derived rule would have passed it too. */
+
+    // A lift the program DOES plan, logged outside it: still off-plan.
+    const planned = programRows(ixPlanned, 3).find((r) => r.session === 0)!.exercise!.name;
+    const offButPlanned = oneOffs(withLogs(logged(planned, OFF_PLAN_SESSION, MONDAY)), MONDAY);
+    expect(offButPlanned.map((o) => o.exercise.name)).toEqual([planned]);
+
+    // A lift the program does NOT plan, logged under a day: not off-plan.
+    const unplanned = 'Kettlebell Swing';
+    expect(programRows(ixPlanned, 3).some((r) => r.exercise?.name === unplanned)).toBe(false);
+    expect(oneOffs(withLogs(logged(unplanned, 'A', MONDAY)), MONDAY)).toEqual([]);
   });
 });

@@ -40,6 +40,7 @@ import {
   decorate,
   mondayOf,
   num,
+  planDayOf,
   programExercises,
   type DecoratedLog,
   type Indexed,
@@ -477,7 +478,8 @@ export function setsPerDay(ix: Indexed, from: string, to: string): Map<string, n
 export interface TrainedDay {
   date: string;
   /** Which day of the week's plan this was — 'A', 'B', 'C'. Null if the sets
-   *  disagree, which happens when two sessions were logged on one date. */
+   *  disagree, which happens when two sessions were logged on one date, and
+   *  null for a day of training outside the plan, which is no day of it. */
   session: string | null;
   sets: number;
   /** In the order they were started. See the note on ordering below. */
@@ -524,10 +526,13 @@ export function dayDetail(ix: Indexed, date: string): TrainedDay | null {
   );
 
   const sessions = new Set(logs.map((l) => l.session));
+  const only = sessions.size === 1 ? [...sessions][0]! : null;
 
   return {
     date,
-    session: sessions.size === 1 ? [...sessions][0]! : null,
+    // Through `planDayOf`, like every other reading of a label: an off-plan
+    // day would otherwise report itself as a day of the plan called 'X'.
+    session: only !== null && planDayOf(only) !== null ? only : null,
     sets: logs.length,
     exercises: order.flatMap((id) => {
       const exercise = ix.exerciseById.get(id);

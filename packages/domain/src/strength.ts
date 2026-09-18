@@ -155,16 +155,14 @@ const dotsFor = (c: readonly number[], range: readonly number[], bw: number): nu
 /**
  * The multiplier a three-lift total is scaled by.
  *
- * 'unspecified' takes the midpoint of the two curves rather than defaulting to
- * one of them. Saying nothing has to stay a usable answer — the alternative is
- * an app that quietly assumes, and gets it wrong half the time.
+ * Only the two published curves. There used to be a third, the midpoint, for
+ * "prefer not to say" — a number no DOTS calculator gives; see `dotsFrom` for
+ * why that answer now leaves the score blank instead. The type keeps it out.
  */
-export function dotsCoefficient(bodyWeightKg: number, sex: Sex): number {
-  const male = dotsFor(DOTS.male, DOTS.maleRange, bodyWeightKg);
-  const female = dotsFor(DOTS.female, DOTS.femaleRange, bodyWeightKg);
-  if (sex === 'male') return male;
-  if (sex === 'female') return female;
-  return (male + female) / 2;
+export function dotsCoefficient(bodyWeightKg: number, sex: Exclude<Sex, 'unspecified'>): number {
+  return sex === 'male'
+    ? dotsFor(DOTS.male, DOTS.maleRange, bodyWeightKg)
+    : dotsFor(DOTS.female, DOTS.femaleRange, bodyWeightKg);
 }
 
 /**
@@ -274,13 +272,17 @@ export function bodyWeightOn(ix: Indexed, date: string): number | null {
 
 /* ------------------------------------------------------------ the window */
 
-/** The logs both numbers are computed from: the eight weeks ending with
- *  `weekOf`, and only those with an estimate behind them. */
-const inWindow = (logs: DecoratedLog[], weekOf: string): DecoratedLog[] => {
+/** Everything trained in the eight weeks ending with `weekOf`, estimable or not. */
+const trainedIn = (logs: DecoratedLog[], weekOf: string): DecoratedLog[] => {
   const from = addDays(weekOf, -7 * STRENGTH_WINDOW_WEEKS);
   const until = addDays(weekOf, 6);
-  return logs.filter((l) => l.date >= from && l.date <= until && l.e1rm !== null && l.exercise);
+  return logs.filter((l) => l.date >= from && l.date <= until && l.exercise);
 };
+
+/** The logs both numbers are computed from: the same window, and only those
+ *  with an estimate behind them. */
+const inWindow = (logs: DecoratedLog[], weekOf: string): DecoratedLog[] =>
+  trainedIn(logs, weekOf).filter((l) => l.e1rm !== null);
 
 const patternOfExercise = (ix: Indexed): Map<string, PatternKey> => {
   const byId = new Map<string, PatternKey>();
@@ -299,8 +301,10 @@ const patternOfExercise = (ix: Indexed): Map<string, PatternKey> => {
 export interface DotsPoint {
   weekOf: string;
   /**
-   * Null unless all three competition lifts have been trained in the window
-   * and bodyweight is known.
+   * Null unless all three competition lifts have been trained in the window,
+   * bodyweight is known and sex has been answered — exactly when `missing` is
+   * null. DOTS publishes no curve for "prefer not to say", and a midpoint of
+   * the two would be a number no other DOTS calculator gives.
    *
    * Strict on purpose, and the same principle as everywhere else here: a total
    * missing a lift is not a smaller total, it is not a total. Filling the gap
@@ -310,11 +314,25 @@ export interface DotsPoint {
    */
   score: number | null;
   bodyWeight: number | null;
-  /** Best estimated one-rep max per competition lift, in `COMPETITION_LIFTS`
-   *  order. Zero means it has not been trained in the window. */
-  lifts: { name: string; best: number }[];
+  /**
+   * Per competition lift, in `COMPETITION_LIFTS` order: the best estimated
+   * one-rep max, and whether it was trained in the window at all.
+   *
+   * Two separate facts, because they want two different sentences. `best` is
+   * zero both for a lift never done and for one done only above the rep
+   * ceiling, where there is nothing to estimate from — and telling somebody who
+   * benched on Tuesday that their bench is "still missing" is telling them to go
+   * and do the training they already did.
+   */
+  lifts: { name: string; best: number; trained: boolean }[];
   /** The three-lift total, in the profile's unit. Null when one is missing. */
   total: number | null;
+  /**
+   * Why there is no score, or null when there is one — in the order the screen
+   * should ask for them. A lift never trained; a lift trained but never heavy
+   * enough to estimate; no bodyweight; no answer about sex.
+   */
+  missing: 'lifts' | 'estimate' | 'bodyweight' | 'sex' | null;
 }
 
 function dotsFrom(
@@ -323,24 +341,52 @@ function dotsFrom(
   weekOf: string,
   who: StrengthOf,
 ): DotsPoint {
+  const isLift = (name: string) => (COMPETITION_LIFTS as readonly string[]).includes(name);
+  const trained = new Set(
+    trainedIn(logs, weekOf)
+      .map((l) => l.exercise!.name)
+      .filter(isLift),
+  );
   const best = new Map<string, number>();
   for (const log of inWindow(logs, weekOf)) {
     const name = log.exercise!.name;
-    if (!(COMPETITION_LIFTS as readonly string[]).includes(name)) continue;
+    if (!isLift(name)) continue;
     if (log.e1rm! > (best.get(name) ?? 0)) best.set(name, log.e1rm!);
   }
 
-  const lifts = COMPETITION_LIFTS.map((name) => ({ name, best: best.get(name) ?? 0 }));
+  const lifts = COMPETITION_LIFTS.map((name) => ({
+    name,
+    best: best.get(name) ?? 0,
+    trained: trained.has(name),
+  }));
   const complete = lifts.every((l) => l.best > 0);
   const total = complete ? lifts.reduce((sum, l) => sum + l.best, 0) : null;
+
+  /* No score without a sex answer, rather than the midpoint of the two curves.
+     The midpoint is a number no public calculator produces, and a DOTS that
+     cannot be checked has lost the one property it exists to have. Every
+     account starts at "prefer not to say" and onboarding never asks, so the
+     midpoint was quietly the default — 18% above a man's real DOTS at 83 kg.
+     "Prefer not to say" stays a first-class answer; it just does not come with
+     a DOTS attached. The index, which never compares anybody, does not ask. */
+  const missing: DotsPoint['missing'] = lifts.some((l) => !l.trained)
+    ? 'lifts'
+    : !complete
+      ? 'estimate'
+      : !bodyWeight
+        ? 'bodyweight'
+        : who.sex === 'unspecified'
+          ? 'sex'
+          : null;
 
   return {
     weekOf,
     bodyWeight,
     lifts,
     total,
+    missing,
     score:
-      total && bodyWeight
+      missing === null && who.sex !== 'unspecified' && total && bodyWeight
         ? // No age factor. See the header: plain DOTS has none, and adding one
           // is precisely what would make a public calculator disagree with us.
           Math.round(toKg(total, who.unit) * dotsCoefficient(toKg(bodyWeight, who.unit), who.sex))

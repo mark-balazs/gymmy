@@ -6,15 +6,13 @@
 erDiagram
     user ||--o| profile : "has exactly one"
     user ||--o{ patterns : owns
-    user ||--o{ exercises : owns
     user ||--o{ slots : owns
     user ||--o{ split_periods : owns
     user ||--o{ program_entries : owns
     user ||--o{ set_logs : owns
     user ||--o{ body_logs : owns
-    user ||--o{ ref_sets : owns
-    patterns ||--o{ exercises : classifies
-    exercises ||--o{ set_logs : "is logged as"
+    user ||--o{ goals : owns
+    user ||--o{ exercises : "owns (pre-catalogue only)"
     slots ||--o{ program_entries : "is filled by"
 ```
 
@@ -22,6 +20,13 @@ Every arrow out of `user` is `ON DELETE CASCADE`, which is why erasing an accoun
 is one statement. Note what does **not** point at `program_entries`: a set log
 references the *exercise*, never the plan — which is what lets the week be
 rebuilt without touching a single thing you lifted.
+
+Nor does anything point *into* an exercise. The exercise a set, plan entry or
+goal names is usually not a row at all: it is an entry in the catalogue in code
+(see [The exercise library](#the-exercise-library)), and `exercises` holds only
+rows written before the catalogue existed, read as aliases. The full generated
+diagram, with every column, is [`data-model.mmd`](./data-model.mmd); it draws
+those references dotted.
 
 ## Two stores, one shape
 
@@ -201,6 +206,35 @@ outboxes. Instead:
   catalogue's order decides which exercise a week gets. It used to be the
   device's id order — per-account hashes, so a different order for everybody by
   accident; that variety is now deliberate, via `varietyFor`.
+
+### Rollout windows: what a device one build behind sees
+
+A PWA does not update the moment a deploy lands. A tab left open keeps running
+the old bundle, and a device brought to the foreground syncs *before* it reloads
+onto the new one — `sw-register` defers the reload until the page is hidden. So
+for about one foreground session per device per deploy, rows written by a newer
+device are read by older code. Nothing is lost or stored wrongly in that window,
+and the device corrects itself on its next reload. But it looks wrong, and these
+are the known cases:
+
+- **A catalogue id the previous build has never heard of.** It resolves no
+  exercise there, so on that device the set counts for nothing on screen and a
+  plan slot pointing at it renders no card. This happens once for the release
+  that introduced the catalogue — old builds only knew an account's own row ids
+  — and again, more narrowly, every time an exercise is *added*: only sets on
+  the new exercise are affected. Aliasing only works old-to-new.
+- **An off-plan set.** The previous build reads its `X` label as day 23, clamped
+  to the last day, and opens Train and Home on the wrong day until it reloads.
+- **What does not correct itself:** a new column (the `seq` trap above) and a
+  new table. An old build's `applyChanges` walks only the tables *it* knows, but
+  the cursor moves past everything, so rows of a table it has never heard of are
+  skipped and not fetched again after it updates — nothing resets the cursor on
+  a Dexie upgrade. The server still has them; that device never will. That is
+  why neither off-plan logging nor the catalogue added a table or a column.
+
+If one of these ever needs closing rather than tolerating, the pattern is the
+same as dropping a table: ship the reading side one release before the writing
+side.
 
 Descriptions, photographs, load classes and translations are still keyed by the
 English name, and their tests hold every table to the catalogue — so names are

@@ -77,7 +77,8 @@ repair pass selects the same way instead of always forcing the head of the pool.
   59 of 70 before the library grew; a bigger pool is a different input, not a
   different rule.
 - **Across forty accounts every programmable exercise is reached**; one account
-  still reaches 62–74 of the 85. That is the honest shape of it: this restores the
+  still reaches 58–75 of the 85, 66 at the median, measured over all 997 values
+  `varietyFor` can return. That is the honest shape of it: this restores the
   per-account spread the storage accident provided, rather than giving any one
   account the whole library.
 - **Nothing moves on the day it ships.** A stored week is never regenerated on
@@ -199,15 +200,25 @@ value. (A device on the previous build keeps writing the old meaning for a day o
 two; a column would not have fixed that, since it would be written server-side at
 deploy time.)
 
-Nothing is rewritten. `conventionKnown(name, date)` is false only for a
-dumbbell-pair row dated before the cutover — the one class whose meaning moved.
-A retroactive doubling would be right for some rows and wrong by two for others,
-with nothing stored to separate them.
+Nothing is rewritten. A retroactive doubling would be right for some rows and
+wrong by two for others, with nothing stored to separate them.
 
-What that false must gate is narrow: **the convention cancels in any
-same-exercise comparison**, so somebody's own dumbbell bench trend is sound on
-either reading. It is the absolute, cross-person figure that has nothing left to
-cancel it.
+Instead the app says so where it shows. **The convention cancels within either
+side of the cutover** — somebody's dumbbell bench trend is sound on one reading
+throughout — so the only thing that goes wrong is the step *at* the cutover,
+where somebody who logged one dumbbell starts logging both. `conventionChanged`
+in `load.ts` looks for that step: the median of the last three sessions before
+`LOAD_CONVENTION_FROM` against the first three after, and true only when the
+later sit at least half as high again. The exercise chart then carries a note
+at the date, and so does the index when any scored lift has the step.
+
+**Decided by the step, not by the dates.** The first version was true whenever
+a history merely crossed the cutover. That misfires on anybody who already
+entered both dumbbells — they cross the date and see no jump — and on the demo,
+whose history is dated relative to today and straddled the cutover within a
+week of shipping. Two properties survive either way: DOTS reads only barbell
+lifts, so the one cross-person number never touches a dumbbell pair, and a
+chart note is information, not a repair — the history stays as stored.
 
 ## The two strength numbers
 
@@ -304,8 +315,10 @@ lift.
 
 ### True of both
 
-- **`sex` is asked for DOTS and only DOTS.** "Prefer not to say" takes the
-  midpoint of the two curves and is a first-class answer.
+- **`sex` is asked for DOTS and only DOTS.** "Prefer not to say" is a
+  first-class answer that leaves DOTS blank: DOTS publishes two curves, and the
+  midpoint this once took is a number no other calculator gives — 18% above a
+  man's real score at 83 kg, and every account started there.
 - **Five patterns, not seven**, for the index. A carry is logged by distance, so
   its "reps" are metres and a 1RM estimated from them is not a number about
   strength. Rotation is trained light and anti-rotational by design.
@@ -385,9 +398,9 @@ and both are now wrong:
 
 ### Movements the app records but never prescribes
 
-An exercise tagged `offPlan` (`OFF_PLAN` in `coach.ts`) is excluded from `pool()`
-and from `swapOptions()`. It can be logged, and a trainer can still name one in a
-plan; the generator will not put it in anybody's week.
+A catalogue entry tagged `offPlan` (`OFF_PLAN` in `catalogue.ts`) is excluded
+from `pool()` and from `swapOptions()`. It can be logged, and a trainer can still
+name one in a plan; the generator will not put it in anybody's week.
 
 This exists because the library is gaining conditioning work — thrusters, wall
 balls, burpees, box jumps — so that a class can be logged at all. Each is fine to
@@ -395,9 +408,12 @@ have done and poor to be *handed*: a generated slot arrives asking for three
 sets of six to twelve, which is not what anybody does with a medicine ball, and
 a week built out of them reads as a programme nobody wrote.
 
-It is a tag rather than a column because `tags` is already a string array on the
-wire, in Dexie and in Postgres — so it costs no migration and no version bump,
-and a row that has never heard of it simply does not carry it. The filter sits in
+It is a tag on the entry rather than anything stored: the catalogue is code, so
+marking a movement off-plan is an edit to `catalogue.ts` and reaches every
+account with the next deploy, with no migration and nothing synced. A
+pre-catalogue row of the same name reads as the catalogue entry, tag included,
+so an older account cannot bring an off-plan movement back through its own
+library. The filter sits in
 `pool()`'s **base** rather than its tag argument: `pool` is called again with a
 null tag whenever a bias empties a pattern, and that fallback is exactly where an
 off-plan movement would otherwise reappear.

@@ -58,7 +58,7 @@ test.describe('A full journey', () => {
     const email = freshEmail();
 
     // 1. Sign up. Nothing about this account exists yet — the server creates
-    //    the user and seeds the whole default library in response to this.
+    //    the user and seeds its patterns, slots and profile in response to this.
     await signInWithCode(page, email, '111111');
 
     // 2. Setup. A brand-new account is sent here rather than to an empty Train

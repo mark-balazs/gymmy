@@ -104,32 +104,48 @@ describe('load conventions', () => {
     expect(loadClassOf('Chest-Supported Row')).toBe('dumbbellPair');
   });
 
-  it('speaks only for a history that really crosses the cutover', () => {
-    /* The narrow version of a problem that could have been a mechanism. True
-       only when the dates on the chart actually straddle the change, so the
-       demo — whose generated past sits entirely on one side — correctly says
-       nothing, while somebody who trained through it is told once. */
-    const before = '2020-01-01';
-    const after = '2030-01-01';
+  /** Sessions a week apart, straddling the cutover, at the given values. */
+  const around = (before: number[], after: number[]) => [
+    ...before.map((value, i) => ({
+      date: `2026-08-${String(10 + i * 7).padStart(2, '0')}`,
+      value,
+    })),
+    ...after.map((value, i) => ({ date: `2026-09-${String(17 + i * 7).padStart(2, '0')}`, value })),
+  ];
 
-    expect(conventionChanged('DB Bench Press', [before, after])).toBe(true);
-    expect(conventionChanged('DB Bench Press', [before, before])).toBe(false);
-    expect(conventionChanged('DB Bench Press', [after, after])).toBe(false);
+  it('speaks when a pair of dumbbells steps up across the cutover', () => {
+    // Entered per hand before, stored doubled after: the step the convention
+    // makes, and the one somebody reading the chart deserves an explanation for.
+    expect(conventionChanged('DB Bench Press', around([30, 30, 31], [60, 62, 62]))).toBe(true);
+    // The cutover day itself is on the new side.
+    expect(LOAD_CONVENTION_FROM).toBe('2026-09-17');
+  });
+
+  it('says nothing when the dates cross but nothing jumped', () => {
+    /* The case the first version got wrong. It answered yes for any history
+       that merely crossed the date, and promised the demo "correctly says
+       nothing" because its generated past sat on one side — which held for four
+       days, until the demo's history, dated relative to today, crossed too. The
+       demo is generated under the new convention throughout, and so is anybody
+       who already entered both dumbbells: there is no step to explain. */
+    expect(conventionChanged('DB Bench Press', around([60, 61, 62], [62, 63, 64]))).toBe(false);
+    // Ordinary progress is not the convention either, however good a week.
+    expect(conventionChanged('DB Bench Press', around([50, 52, 54], [58, 60, 62]))).toBe(false);
+  });
+
+  it('needs sessions on both sides to say anything', () => {
+    expect(conventionChanged('DB Bench Press', around([30, 30], []))).toBe(false);
+    expect(conventionChanged('DB Bench Press', around([], [60, 60]))).toBe(false);
     expect(conventionChanged('DB Bench Press', [])).toBe(false);
-
-    // The cutover day itself is already on the new side. A set logged that day
-    // was typed under the new label, so it is not ambiguous.
-    expect(conventionChanged('DB Bench Press', [LOAD_CONVENTION_FROM])).toBe(false);
-    expect(conventionChanged('DB Bench Press', [before, LOAD_CONVENTION_FROM])).toBe(true);
   });
 
   it('says nothing about a class whose meaning never moved', () => {
-    /* Exactly one class changed meaning, so exactly one class has an ambiguous
-       past. Widening this to "dumbbells", or to "everything before the date",
-       would put a note under charts that were never in doubt — a barbell was
-       always the bar and the plates, and a single dumbbell was always one. */
+    /* Exactly one class changed meaning, so exactly one class can show the
+       step. A barbell was always the bar and the plates, and a single dumbbell
+       was always one — so even a genuine doubling on one of those is training,
+       or a typo, and never the convention. */
     for (const name of ['Barbell Bench Press', 'DB Row', 'Lat Pulldown', 'Pull-Up']) {
-      expect(conventionChanged(name, ['2020-01-01', '2030-01-01'])).toBe(false);
+      expect(conventionChanged(name, around([30, 30, 30], [60, 60, 60]))).toBe(false);
     }
   });
 

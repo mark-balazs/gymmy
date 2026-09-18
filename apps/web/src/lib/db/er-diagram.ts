@@ -63,7 +63,7 @@ export const GROUPS: Group[] = [
     key: 'training',
     title: 'A person’s own training',
     blurb:
-      'The replicated set: every row belongs to exactly one account, cascades from it, and is held in full on the device.',
+      'The replicated set: every row belongs to exactly one account, cascades from it, and is held in full on the device. The exercise library is the catalogue in code, not a table: exercises holds only pre-catalogue rows, read as aliases, so the lines into it are dotted.',
     tables: [
       'user',
       'patterns',
@@ -130,14 +130,26 @@ export interface Link {
 /**
  * Relationships the schema cannot declare, because the target is keyed on
  * `(user_id, id)` and the referencing column carries only the id half.
+ *
+ * The four `exercise_id` lines are dotted. Since the library moved into code,
+ * that column usually holds a catalogue id — `ex-barbell-back-squat` — which is
+ * no row in any table; only an account's pre-catalogue sets point at an
+ * `exercises` row, and `index()` reads even those as the catalogue's. A solid
+ * line would say every set joins to a row, which is now the exception.
  */
 export const LINKS: Link[] = [
   { from: 'exercises', column: 'pattern_id', to: 'patterns', label: 'is classified by' },
   { from: 'program_entries', column: 'slot_id', to: 'slots', label: 'fills' },
-  { from: 'program_entries', column: 'exercise_id', to: 'exercises', label: 'programmes' },
-  { from: 'set_logs', column: 'exercise_id', to: 'exercises', label: 'records' },
-  { from: 'ref_sets', column: 'exercise_id', to: 'exercises', label: 'records' },
-  { from: 'goals', column: 'exercise_id', to: 'exercises', label: 'is set on' },
+  {
+    from: 'program_entries',
+    column: 'exercise_id',
+    to: 'exercises',
+    label: 'programmes',
+    snapshot: true,
+  },
+  { from: 'set_logs', column: 'exercise_id', to: 'exercises', label: 'records', snapshot: true },
+  { from: 'ref_sets', column: 'exercise_id', to: 'exercises', label: 'records', snapshot: true },
+  { from: 'goals', column: 'exercise_id', to: 'exercises', label: 'is set on', snapshot: true },
   {
     from: 'profiles',
     column: 'plan_id',

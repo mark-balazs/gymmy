@@ -92,8 +92,9 @@ describe('program generation', () => {
     });
 
     it('reaches every programmable exercise across accounts', () => {
-      /* The point of it. One account still reaches a subset — 62 to 74 of the
-         85 programmable exercises — but different accounts reach different
+      /* The point of it. One account still reaches a subset — 58 to 75 of the
+         85 programmable exercises over every value `varietyFor` can return,
+         66 at the median — but different accounts reach different
          subsets, and between forty of them the whole library is programmed
          somewhere. Without the offset, the shared catalogue would have put every
          account on the same week. */

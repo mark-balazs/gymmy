@@ -43,7 +43,7 @@ export const isDemoEmail = (email?: string | null): boolean =>
   (email ?? '').trim().toLowerCase() === demoEmail();
 
 /**
- * Fills an account that already has the default library with training history.
+ * Fills an account that has already been seeded with training history.
  *
  * Reads the program back out of the database rather than regenerating it, so
  * the logs point at the exercises this account was actually given — inventing a

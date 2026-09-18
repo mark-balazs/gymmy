@@ -6,12 +6,14 @@
  * separately from `splits.ts`.
  *
  * **A plan carries no identifiers from anybody's account.** Not the trainer's
- * and not the athlete's. Exercise rows are keyed `sha256(userId, 'exercise',
- * name)`, so a trainer's exercise id is a meaningless string in every other
- * account in the system — a plan that referenced one would apply cleanly,
- * resolve to nothing, and leave somebody with an empty week and no error. So a
- * plan names exercises the way a person would: by name, resolved against the
- * athlete's own library at the moment it is applied.
+ * and not the athlete's. It was designed when exercise rows were keyed
+ * `sha256(userId, 'exercise', name)`, so a trainer's exercise id was a
+ * meaningless string in every other account — a plan that referenced one would
+ * have applied cleanly, resolved to nothing, and left somebody with an empty
+ * week and no error. So a plan names exercises the way a person would: by
+ * name, resolved against the athlete's library at the moment it is applied.
+ * Catalogue ids are shared by every account now, but a name resolves against
+ * the catalogue and a pre-catalogue row alike, which an id does not.
  *
  * **A plan is applied, not linked.** Putting one into effect materialises
  * ordinary `Slot` rows and an appended `SplitPeriod`, exactly as a preset or a
@@ -36,8 +38,8 @@ export interface PlanSlot {
   patternKeys: PatternKey[] | null;
   dayKey: DayKey | null;
   /**
-   * The exercise the trainer chose, by name — the only handle that means the
-   * same thing in two accounts. Null leaves the choice to the generator, which
+   * The exercise the trainer chose, by name — see the header for why not by
+   * id. Null leaves the choice to the generator, which
    * is a legitimate thing for a trainer to want: "a push here, you pick".
    */
   exerciseName: string | null;

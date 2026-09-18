@@ -75,28 +75,41 @@ and removed, and the editor shows what the arrangement will make a complete week
 and `coversFor` will then stop asking for it rather than leave a box that can
 never be ticked.
 
-## The strength score
+## Two strength numbers
 
-One number for "how much do I move, relative to me", tracked week by week on the
-Progress tab beside a chart per exercise.
+The Progress tab shows two, because they answer different questions and one
+number cannot answer both honestly.
 
-It is the sum of your best estimated one-rep max in each of the five **loaded**
-patterns — squat, hinge, lunge, push, pull — scaled by **DOTS**, the published
-bodyweight-and-sex curve competitive powerlifting uses. Three deliberate choices
-sit in that sentence:
+**gymmy's strength index** — "am I getting stronger?" The sum of your best
+estimated one-rep max in each of the five **loaded** patterns (squat, hinge,
+lunge, push, pull), divided by bodyweight to the power of two thirds and
+adjusted for age from 40. Shown to one decimal, tracked week by week. It is
+only ever compared with itself, which is what lets it count every pattern you
+train rather than three competition lifts.
 
-- **DOTS rather than a bodyweight multiple.** Strength does not scale linearly
-  with mass, so dividing by bodyweight flatters a light lifter and punishes a
-  heavy one for existing. The curve is published, stable and checkable, which
-  beats anything invented here. `sex` is asked for this and only this;
-  "prefer not to say" takes the midpoint of the two curves and stays a
-  first-class answer.
+**DOTS** — "how do I compare?" The published powerlifting score, computed from
+back squat, bench press and deadlift only, exactly as any DOTS calculator would.
+It needs all three lifts, a bodyweight and an answer about sex, and shows
+nothing rather than a guess when one is missing.
+
+The choices behind them:
+
+- **An allometric exponent, not a bodyweight multiple.** Strength does not scale
+  linearly with mass, so dividing by bodyweight flatters a light lifter and
+  punishes a heavy one for existing. Two thirds is the textbook value; the
+  measured one for trained lifters is a little lower, and why it stays is
+  written up beside `ALLOMETRIC_EXPONENT` in `strength.ts`.
+- **Sex only where a published curve needs it.** The index does not use it at
+  all. DOTS publishes two curves and no third, so "prefer not to say" stays a
+  first-class answer that simply leaves DOTS blank.
 - **Five patterns, not seven.** A carry is logged by distance, so its "reps" are
   metres and a one-rep max estimated from them is not a number about strength.
   Rotation is trained light and anti-rotational by design.
-- **A trailing window, not your best ever.** It describes what you can do *now*;
-  a squat from last spring is not strength you still have. A pattern you have
-  not trained counts as zero, so coverage moves the score too.
+- **A trailing window, not your best ever.** Both describe what you can do
+  *now*; a squat from last spring is not strength you still have. In the index
+  a pattern you have not trained counts as zero, so coverage moves it too.
+- **Only sets that can be estimated from.** Reps plus reps in reserve above ten
+  is an endurance set, and a one-rep max extrapolated from it would be a guess.
 
 Bodyweight is its own dated record rather than a profile field — the score
 divides by what you weighed *that week*, and one current value would silently
@@ -221,7 +234,7 @@ So [flow 08](./e2e/flows/08-a-full-journey.md) seeds nothing but the code that
 would have arrived by email and walks the whole thing: sign up, get set up,
 train, sign out, come back, and find the same training on a second device. The
 rule is **if a step only ever happens on the way in, a fixture cannot cover
-it** — account creation, the server-side seeding of the default library, the
+it** — account creation, the server-side seeding of a new account's rows, the
 first sync onto an empty device, the sign-out wipe.
 
 ## Known gaps

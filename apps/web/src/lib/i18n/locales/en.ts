@@ -258,7 +258,7 @@ export const en = {
   'prog.strengthBody':
     'Your best lift in each of the five loaded movements, added up and set against your bodyweight — raised to the two-thirds power, because strength does not scale with weight one for one. It only counts the last two months, because it is meant to say what you can do now.',
   'prog.strengthNot':
-    'It is gymmy’s own scale and it is not comparable with anybody else’s — no ranking, nobody else in it. A movement you have not trained counts as zero, because covering all five is half the point.',
+    'It is gymmy’s own scale and it is not comparable with anybody else’s — no ranking, nobody else in it. A movement with nothing to estimate from counts as zero: not trained, or only trained for high reps. Covering all five is half the point.',
   'prog.needWeight': 'Add your bodyweight and this starts tracking.',
   'prog.needLifts': 'Log a few sessions and this starts tracking.',
   'prog.deltaUp': 'Up {by} on {ago}',
@@ -283,6 +283,10 @@ export const en = {
   'prog.dotsNot':
     'It is not a meet total. A real total is three single lifts on one day under judging; this is estimated from your training over two months, so it reads higher than you would lift on the day.',
   'prog.dotsNeed': 'Needs a barbell squat, bench press and deadlift. Still missing: {what}.',
+  'prog.dotsEstimate':
+    'Nothing to estimate {what} from yet: an estimate needs a set of ten reps or fewer to failure.',
+  'prog.dotsNeedsSex':
+    'DOTS uses a different curve for men and women. Set yours in your profile to see it.',
   'prog.dotsFrom': '{total} across the three lifts',
   'prog.prs': '★ marks a personal best',
   'prog.conventionChanged':
@@ -308,7 +312,7 @@ export const en = {
   'set.aboutYou': 'About you',
   'set.sex': 'Sex',
   'set.sexWhy':
-    'Used for one thing: picking the reference curve your strength score is measured against. Saying nothing takes the midpoint of the two.',
+    'Used for one thing: DOTS, which has a separate curve for men and women. Prefer not to say, and there is simply no DOTS — nothing else changes.',
   'sex.unspecified': 'Prefer not to say',
   'sex.female': 'Female',
   'sex.male': 'Male',

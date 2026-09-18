@@ -120,14 +120,20 @@ export default function TrainPage() {
   const offPlan = useMemo(() => {
     const logged = oneOffs(ix, date);
     const seen = new Set(logged.map((o) => o.exercise.id));
+    /* A lift picked while one day was open, and never logged, is dropped the
+       moment a day that plans it is opened — otherwise it sits as an empty
+       off-plan card under the day's own card for the same lift, the duplicate
+       picking was built to prevent. Logged sets are never dropped: those really
+       were done outside the plan. */
+    const plannedHere = new Set(plan.flatMap((r) => (r.exercise ? [r.exercise.id] : [])));
     const fresh = (picked.date === date ? picked.ids : [])
-      .filter((id) => !seen.has(id))
+      .filter((id) => !seen.has(id) && !plannedHere.has(id))
       .flatMap((id) => {
         const exercise = ix.exerciseById.get(id);
         return exercise ? [{ exercise, done: 0, logs: [] }] : [];
       });
     return [...logged, ...fresh];
-  }, [ix, date, picked]);
+  }, [ix, date, picked, plan]);
 
   const pick = (exercise: Exercise) => {
     setPicking(false);
@@ -255,6 +261,15 @@ export default function TrainPage() {
   );
 }
 
+/**
+ * The most dots a row draws.
+ *
+ * An off-plan card has no target, so its row grows with every set — and a class
+ * logged as twenty sets of burpees pushed the exercise's name off the collapsed
+ * card and then out of the card entirely. Past this, the count is written out.
+ */
+const MAX_DOTS = 8;
+
 /** Identity of a past session, for spotting when the history behind it moved. */
 const seedOf = (s: LastSession | null): string => `${s?.date}|${s?.weight}|${s?.reps}`;
 
@@ -338,7 +353,7 @@ function ExerciseCard({
   /* An off-plan card has no target, so it shows only what was done — hollow
      dots would be a promise of sets nobody asked for. A planned card keeps its
      old rule, including the three-dot fallback. */
-  const dots = offPlan ? row.done : Math.max(row.target, row.done) || 3;
+  const dots = offPlan ? Math.min(row.done, MAX_DOTS) : Math.max(row.target, row.done) || 3;
 
   /**
    * Progress as dots: filled for a set done, hollow for one still to do.
@@ -361,6 +376,12 @@ function ExerciseCard({
           )}
         />
       ))}
+      {/* Past the cap, the rest as a number rather than more dots. */}
+      {offPlan && row.done > MAX_DOTS && (
+        <span className="num text-xs leading-none font-semibold text-[var(--color-accent)]">
+          +{row.done - MAX_DOTS}
+        </span>
+      )}
     </div>
   );
 

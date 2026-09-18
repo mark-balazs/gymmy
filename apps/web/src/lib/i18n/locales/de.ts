@@ -263,7 +263,7 @@ export const de: Record<Key, string> = {
   'prog.strengthBody':
     'Deine beste Leistung in jedem der fünf belasteten Muster, summiert und deinem Körpergewicht gegenübergestellt — hoch zwei Drittel, weil Kraft nicht eins zu eins mit dem Gewicht skaliert. Es zählen nur die letzten zwei Monate, denn die Zahl soll sagen, was du jetzt kannst.',
   'prog.strengthNot':
-    'Es ist gymmys eigene Skala und mit niemandem sonst vergleichbar — keine Rangliste, niemand anderes darin. Ein Muster, das du nicht trainiert hast, zählt als null, denn alle fünf abzudecken ist die halbe Idee.',
+    'Es ist gymmys eigene Skala und mit niemandem sonst vergleichbar — keine Rangliste, niemand anderes darin. Ein Muster, aus dem sich nichts schätzen lässt, zählt als null: nicht trainiert oder nur mit vielen Wiederholungen. Alle fünf abzudecken ist die halbe Idee.',
   'prog.needWeight': 'Trag dein Körpergewicht ein, dann läuft das hier mit.',
   'prog.needLifts': 'Trag ein paar Einheiten ein, dann läuft das hier mit.',
   'prog.deltaUp': '{by} mehr als {ago}',
@@ -286,6 +286,10 @@ export const de: Record<Key, string> = {
     'Es ist kein Wettkampftotal. Ein echtes Total sind drei Einzelversuche an einem Tag unter Kampfrichtern; dies ist aus zwei Monaten Training geschätzt und liegt daher höher, als du am Tag heben würdest.',
   'prog.dotsNeed':
     'Braucht Kniebeuge, Bankdrücken und Kreuzheben mit der Stange. Fehlt noch: {what}.',
+  'prog.dotsEstimate':
+    'Noch nichts, woraus sich {what} schätzen lässt: Dafür braucht es einen Satz mit höchstens zehn Wiederholungen bis zum Muskelversagen.',
+  'prog.dotsNeedsSex':
+    'DOTS hat eine eigene Kurve für Männer und für Frauen. Trag deins im Profil ein, dann erscheint der Wert.',
   'prog.dotsFrom': '{total} aus den drei Übungen',
   'prog.prs': '★ steht für eine Bestleistung',
   'prog.conventionChanged':
@@ -311,7 +315,7 @@ export const de: Record<Key, string> = {
   'set.aboutYou': 'Über dich',
   'set.sex': 'Geschlecht',
   'set.sexWhy':
-    'Nur für eines nötig: an welcher Referenzkurve dein Kraftwert gemessen wird. Ohne Angabe nehmen wir die Mitte aus beiden.',
+    'Nur für eines nötig: DOTS, das für Männer und Frauen eine eigene Kurve hat. Ohne Angabe gibt es einfach keinen DOTS-Wert — sonst ändert sich nichts.',
   'sex.unspecified': 'Keine Angabe',
   'sex.female': 'Weiblich',
   'sex.male': 'Männlich',

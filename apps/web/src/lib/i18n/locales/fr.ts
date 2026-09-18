@@ -263,7 +263,7 @@ export const fr: Record<Key, string> = {
   'prog.strengthBody':
     'Votre meilleure charge dans chacun des cinq mouvements chargés, additionnée et rapportée à votre poids de corps — élevé à la puissance deux tiers, car la force ne suit pas le poids un pour un. Seuls les deux derniers mois comptent : le chiffre doit dire ce que vous pouvez faire maintenant.',
   'prog.strengthNot':
-    'C’est l’échelle propre à gymmy, comparable à celle de personne d’autre — aucun classement, personne d’autre dedans. Un mouvement non entraîné compte pour zéro, car couvrir les cinq est la moitié de l’idée.',
+    'C’est l’échelle propre à gymmy, comparable à celle de personne d’autre — aucun classement, personne d’autre dedans. Un mouvement sans rien pour l’estimer compte pour zéro : non entraîné, ou seulement en séries longues. Couvrir les cinq est la moitié de l’idée.',
   'prog.needWeight': 'Renseigne ton poids de corps et le suivi démarre.',
   'prog.needLifts': 'Note quelques séances et le suivi démarre.',
   'prog.deltaUp': '{by} de plus qu’{ago}',
@@ -286,6 +286,10 @@ export const fr: Record<Key, string> = {
     'Ce n’est pas un total de compétition. Un vrai total, c’est trois levers uniques le même jour devant des juges ; celui-ci est estimé sur deux mois d’entraînement, donc plus élevé que ce que vous souleveriez le jour même.',
   'prog.dotsNeed':
     'Demande un squat, un développé couché et un soulevé de terre à la barre. Il manque encore : {what}.',
+  'prog.dotsEstimate':
+    'Rien pour estimer {what} pour l’instant : il faut une série de dix répétitions ou moins jusqu’à l’échec.',
+  'prog.dotsNeedsSex':
+    'Le DOTS utilise une courbe différente pour les hommes et les femmes. Renseignez-le dans votre profil pour le voir.',
   'prog.dotsFrom': '{total} sur les trois mouvements',
   'prog.prs': '★ signale un record personnel',
   'prog.conventionChanged':
@@ -311,7 +315,7 @@ export const fr: Record<Key, string> = {
   'set.aboutYou': 'À propos de toi',
   'set.sex': 'Sexe',
   'set.sexWhy':
-    'Sert à une seule chose : choisir la courbe de référence à laquelle ton score de force est comparé. Sans réponse, on prend le milieu des deux.',
+    'Sert à une seule chose : le DOTS, qui a une courbe différente pour les hommes et les femmes. Sans réponse, il n’y a simplement pas de DOTS — rien d’autre ne change.',
   'sex.unspecified': 'Je préfère ne pas dire',
   'sex.female': 'Femme',
   'sex.male': 'Homme',

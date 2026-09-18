@@ -40,6 +40,49 @@ test.describe('First run', () => {
     await expect(app.getByRole('heading', { name: 'Train' })).toBeVisible();
   });
 
+  test('installs exactly the week it previewed', async ({ app }) => {
+    /* The preview and the install each build the week themselves, and each
+       derives the account's offset into the library from the profile row. If
+       they ever disagreed — one reading a different row, or seeding from a slot
+       id, the clock or randomness — setup would show one week and hand over
+       another, and nothing else would notice. Found missing by review: the
+       offset was only ever tested by calling the generator directly. */
+    await app.goto('/onboarding');
+    await app.getByRole('button').filter({ hasText: 'Seven movement patterns' }).first().click();
+    await app.getByRole('button', { name: /^3 days/ }).click();
+    await app.getByRole('button', { name: /^A gym/ }).click();
+    await app.getByRole('button', { name: /Nothing in particular/ }).click();
+    await app.getByLabel('What do you weigh?').fill('78.5');
+    await app.getByRole('button', { name: 'Next', exact: true }).click();
+    await expect(app.getByRole('heading', { name: 'Here is your week' })).toBeVisible();
+
+    const previewed = await app
+      .locator('h3', { hasText: /^Day A$/ })
+      .locator('xpath=../following-sibling::div[1]')
+      .locator('span.truncate')
+      .allInnerTexts();
+    expect(previewed.length).toBeGreaterThan(0);
+
+    await app.getByRole('button', { name: 'Start training' }).click();
+    await app.waitForURL('**/train');
+    await app.getByRole('link', { name: 'Week', exact: true }).click();
+    await app.waitForURL('**/week');
+
+    const dayA = app
+      .locator('h3')
+      .filter({ hasText: /^Day A/ })
+      .locator('xpath=ancestor::div[2]');
+    // Waited for, and counted: `evaluateAll` does not wait, and the week renders
+    // a tick after the page does — the first version read an empty list here.
+    await expect(dayA.getByRole('button', { name: /^About / })).toHaveCount(previewed.length);
+    const labels = await dayA
+      .getByRole('button', { name: /^About / })
+      .evaluateAll((els) =>
+        els.map((e) => (e.getAttribute('aria-label') ?? '').replace(/^About /, '')),
+      );
+    expect(labels).toEqual(previewed);
+  });
+
   test('does not ask again on a later visit', async ({ app }) => {
     await completeOnboarding(app);
     await app.goto('/train');

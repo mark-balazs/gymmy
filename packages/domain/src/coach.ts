@@ -35,9 +35,12 @@ export interface BuildInput {
   /**
    * A stable per-account offset into each pattern's pool, from `varietyFor`.
    *
-   * Zero reproduces the generator exactly as it was, which is what the demo
-   * account, every test fixture and the e2e suite pass, so none of their weeks
-   * move. See `varietyFor` for why real accounts pass something else.
+   * Zero reproduces the generator exactly as it was. The demo account passes
+   * it, as do the domain fixtures and the e2e fixture's pre-onboarded accounts,
+   * so none of their weeks move. A spec that onboards through the screen gets
+   * the account's own offset, exactly like a real user — which is why those
+   * specs read the recorded set back instead of assuming the first lift. See
+   * `varietyFor` for why real accounts pass something else.
    */
   variety?: number;
 }
@@ -186,13 +189,19 @@ export function buildProgram(ix: Indexed, input: BuildInput): DraftEntry[] {
       const pattern = missing ?? pick(candidates, d + position);
 
       const tag = slot.key === 'isolation' && input.bias !== 'none' ? input.bias : null;
-      /* The exercise gets its own seed rather than sharing the pattern's. With
-         one seed for both, a slot that alternates between two patterns by parity
-         only ever handed each pattern even — or only odd — indexes, which is
-         why three of the eight gym rotation movements could never be reached.
-         The pattern choice above is deliberately untouched, so the week's
-         layout, its coverage and every slot constraint are exactly what they
-         were. */
+      /* The exercise's seed is the pattern's plus the account's offset. With
+         one seed for both, a slot that alternates between two patterns by
+         parity only ever hands each pattern even — or only odd — indexes, which
+         is why three of the eight gym rotation movements were reachable by
+         nobody.
+
+         Be precise about what the offset does to that, because an earlier
+         version of this comment overclaimed it: *within one account* the
+         offset is a constant, so the parity coupling is exactly as it was — the
+         rotation pattern still only sees one parity. What changes is which
+         parity, from account to account, so between accounts every movement is
+         reached. The pattern choice above is untouched, so the week's layout,
+         its coverage and every slot constraint are exactly what they were. */
       const exercise = choose(pattern, tag, d + position + variety);
 
       entries.set(`${d}:${slot.id}`, {

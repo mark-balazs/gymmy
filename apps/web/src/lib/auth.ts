@@ -77,7 +77,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   events: {
     /**
-     * The earliest moment the default library can exist, but deliberately not
+     * The earliest moment a new account's rows can exist, but deliberately not
      * the only one.
      *
      * A throw here becomes Auth.js's "Server error" page, and this event fires

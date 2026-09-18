@@ -413,8 +413,10 @@ export const planSlots = pgTable(
     requiredRole: text('required_role').notNull().default('Any'),
     patternKeys: jsonb('pattern_keys').$type<string[] | null>(),
     dayKey: text('day_key'),
-    /** By NAME, never by id: an exercise id is `sha256(userId, …)` and means
-     *  nothing outside the account that produced it. Resolved on apply. */
+    /** By NAME, never by id. Chosen when an exercise id was `sha256(userId, …)`
+     *  and meant nothing outside its account; catalogue ids are shared now, but
+     *  a name resolves against the catalogue and a legacy row alike, so it
+     *  stays. Resolved on apply. */
     exerciseName: text('exercise_name'),
     sets: integer('sets').notNull().default(3),
     repRange: text('rep_range').notNull().default(''),

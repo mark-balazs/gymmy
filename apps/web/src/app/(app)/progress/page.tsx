@@ -53,6 +53,7 @@ import {
   recentWeeks,
   LOAD_CONVENTION_FROM,
   conventionChanged,
+  SCORED_PATTERNS,
   dotsAt,
   strengthSeries,
   type Attention,
@@ -187,6 +188,16 @@ export default function ProgressPage() {
      Almost always null on a real account — it needs all three competition
      lifts — so it is a row inside the card rather than a card of its own, and
      it says which lift is still missing instead of just going quiet. */
+  const indexCrossesCutover = useMemo(
+    () =>
+      summary.some(
+        (p) =>
+          p.pattern?.key &&
+          SCORED_PATTERNS.includes(p.pattern.key) &&
+          conventionChanged(p.exercise.name, p.sessions),
+      ),
+    [summary],
+  );
   const dotsNow = useMemo(
     () => dotsAt(ix, mondayOf(today), { unit, sex, birthYear }),
     [ix, today, unit, sex, birthYear],
@@ -268,6 +279,16 @@ export default function ProgressPage() {
           </Summary>
         )}
 
+        {/* The index sums the best of each pattern, so a pair of dumbbells that
+            doubled at the cutover lifts the whole number that week — a review
+            measured +27% for a home user with nothing changed in their
+            training. Same note as the lift's own chart, whenever a lift feeding
+            the index shows the step. */}
+        {indexCrossesCutover && (
+          <p className="text-[11px] text-[var(--color-muted)]">
+            {tr.t('prog.conventionChanged', { date: shortDay(LOAD_CONVENTION_FROM, tr.lang) })}
+          </p>
+        )}
         {scored.length > 1 && (
           <LineChart
             points={scored.map((s) => ({
@@ -278,6 +299,8 @@ export default function ProgressPage() {
             unit=""
             tone="secondary"
             label={tr.t('prog.scoreOverTime')}
+            // The same shape as the hero number above it, trailing zero and all.
+            decimals={1}
             tableLabel={tr.t('prog.table')}
             labelHeader={tr.t('prog.week')}
             valueHeader={tr.t('prog.score')}
@@ -303,23 +326,35 @@ export default function ProgressPage() {
               </span>
               <span className="num text-[22px] leading-none font-bold">{dotsNow.score ?? '—'}</span>
             </div>
-            {/* Null for two different reasons, and they want different
-                sentences — which a test caught rather than a reading of this
-                code. With all three lifts logged and no bodyweight on record,
-                the "still missing" line listed nothing at all: a sentence that
-                trails off into a full stop, telling somebody to go and do the
-                training they have already done. */}
+            {/* Null for four different reasons, and each wants its own sentence —
+                the domain says which, so the screen never has to guess from
+                what happens to be empty. Two of them were found the hard way:
+                with no bodyweight the old "still missing" line listed nothing
+                and trailed off into a full stop, and a bench trained only above
+                the rep ceiling was reported as "still missing" to somebody who
+                had benched that week. */}
             <p className="mt-1 text-xs text-[var(--color-muted)]">
-              {dotsNow.total === null
+              {dotsNow.missing === 'lifts'
                 ? tr.t('prog.dotsNeed', {
                     what: dotsNow.lifts
-                      .filter((l) => l.best === 0)
+                      .filter((l) => !l.trained)
                       .map((l) => tr.exercise({ name: l.name }))
                       .join(', '),
                   })
-                : dotsNow.score === null
-                  ? tr.t('prog.needWeight')
-                  : tr.t('prog.dotsFrom', { total: `${Math.round(dotsNow.total)} ${unit}` })}
+                : dotsNow.missing === 'estimate'
+                  ? tr.t('prog.dotsEstimate', {
+                      what: dotsNow.lifts
+                        .filter((l) => l.trained && l.best === 0)
+                        .map((l) => tr.exercise({ name: l.name }))
+                        .join(', '),
+                    })
+                  : dotsNow.missing === 'bodyweight'
+                    ? tr.t('prog.needWeight')
+                    : dotsNow.missing === 'sex'
+                      ? tr.t('prog.dotsNeedsSex')
+                      : tr.t('prog.dotsFrom', {
+                          total: `${Math.round(dotsNow.total ?? 0)} ${unit}`,
+                        })}
             </p>
           </div>
           <InfoButton label={tr.t('prog.dotsWhat')} onClick={() => setDots(true)} />
@@ -655,11 +690,8 @@ function DetailSheet({
           {/* The one place the dumbbell cutover is visible to anybody. Logged per
               hand before it and combined after, a pair shows a jump on that day
               that is bookkeeping rather than training — so the chart says so,
-              under the chart, and only when the dates on it actually cross. */}
-          {conventionChanged(
-            progress.exercise.name,
-            points.map((p) => p.date),
-          ) && (
+              under the chart, and only when the step is actually on it. */}
+          {conventionChanged(progress.exercise.name, points) && (
             <p className="text-[11px] text-[var(--color-muted)]">
               {tr.t('prog.conventionChanged', {
                 date: shortDay(LOAD_CONVENTION_FROM, tr.lang),

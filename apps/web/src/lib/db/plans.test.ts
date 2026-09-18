@@ -135,7 +135,7 @@ describe('plans and who can see them', () => {
   });
 
   it('carries the exercises across by name', async () => {
-    /* The crossing this whole design turns on. An exercise id is
+    /* The crossing this whole design turns on. A pre-catalogue exercise id is
        `sha256(userId, …)` and means nothing in another account, so the plan
        stores what a person would say instead. */
     const id = await createPlan(

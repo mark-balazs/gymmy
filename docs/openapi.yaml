@@ -731,12 +731,13 @@ components:
           type: [string, 'null']
           maxLength: 80
           description: |
-            **A name, never an id.** An exercise row is keyed
-            `sha256(userId, 'exercise', name)`, so a trainer's id for a bench
-            press matches nothing in anybody else's library — a plan built on
-            ids would apply without error and leave somebody with an empty week.
+            **A name, never an id.** Exercise rows written before the shared
+            catalogue are keyed `sha256(userId, 'exercise', name)`, so such an
+            id matches nothing in anybody else's library — a plan built on ids
+            could apply without error and leave somebody with an empty week. A
+            name resolves against the catalogue and those older rows alike.
 
-            Resolved against the athlete's own library at the moment of
+            Resolved against the athlete's library at the moment of
             applying. A name they do not have costs them that exercise and not
             that session: the slot stays, and their week fills it itself.
 
@@ -1135,9 +1136,9 @@ components:
               enum: [unspecified, female, male]
               default: unspecified
               description: |
-                Asked for one thing: which reference curve the strength score is
-                measured against. "Prefer not to say" takes the midpoint of the
-                two and is a first-class answer.
+                Asked for one thing: which of DOTS's two published curves applies.
+                gymmy's own index does not read it. "Prefer not to say" is a
+                first-class answer that leaves DOTS blank rather than guessing.
             name: { type: string, maxLength: 60, default: '' }
             birthYear:
               type: [integer, 'null']

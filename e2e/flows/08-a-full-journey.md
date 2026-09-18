@@ -54,8 +54,10 @@ walks the rest.
 
 - A brand-new account can sign in at all. This is the assertion that was
   missing, and it is the one that matters most: nothing else works without it.
-- The default library exists without anyone inserting it, which is only
-  provable by letting the server do it.
+- The account's starting rows — patterns, slots, a split period, a profile —
+  exist without anyone inserting them, which is only provable by letting the
+  server do it. The exercise library is not among them: it is the catalogue in
+  code, on every account from the first render.
 - Onboarding runs once. Coming back lands on Train, not on setup.
 - A set survives the device being wiped — the sign-out path destroys local
   storage, so anything that comes back afterwards came from the server.

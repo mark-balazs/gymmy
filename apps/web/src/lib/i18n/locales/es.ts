@@ -268,7 +268,7 @@ export const es: Record<Key, string> = {
   'prog.strengthBody':
     'Tu mejor levantamiento en cada uno de los cinco movimientos con carga, sumados y comparados con tu peso corporal — elevado a dos tercios, porque la fuerza no escala uno a uno con el peso. Solo cuenta los últimos dos meses, porque debe decir lo que puedes hacer ahora.',
   'prog.strengthNot':
-    'Es la escala propia de gymmy y no se puede comparar con la de nadie más — sin clasificación, nadie más dentro. Un movimiento que no has entrenado cuenta como cero, porque cubrir los cinco es la mitad del asunto.',
+    'Es la escala propia de gymmy y no se puede comparar con la de nadie más — sin clasificación, nadie más dentro. Un movimiento sin nada con qué estimarlo cuenta como cero: sin entrenar, o solo con muchas repeticiones. Cubrir los cinco es la mitad del asunto.',
   'prog.needWeight': 'Añade tu peso corporal y esto empieza a medirse.',
   'prog.needLifts': 'Registra unas sesiones y esto empieza a medirse.',
   'prog.deltaUp': '{by} más que {ago}',
@@ -291,6 +291,10 @@ export const es: Record<Key, string> = {
     'No es un total de competición. Un total real son tres levantamientos únicos en un día con jueces; este se estima con dos meses de entrenamiento, así que sale más alto de lo que levantarías ese día.',
   'prog.dotsNeed':
     'Necesita sentadilla, press de banca y peso muerto con barra. Todavía falta: {what}.',
+  'prog.dotsEstimate':
+    'Todavía no hay con qué estimar {what}: hace falta una serie de diez repeticiones o menos hasta el fallo.',
+  'prog.dotsNeedsSex':
+    'El DOTS usa una curva distinta para hombres y mujeres. Indícalo en tu perfil para verlo.',
   'prog.dotsFrom': '{total} en los tres levantamientos',
   'prog.prs': '★ marca un récord personal',
   'prog.conventionChanged':
@@ -316,7 +320,7 @@ export const es: Record<Key, string> = {
   'set.aboutYou': 'Sobre ti',
   'set.sex': 'Sexo',
   'set.sexWhy':
-    'Sirve para una sola cosa: elegir la curva de referencia con la que se mide tu puntuación de fuerza. Si no lo dices, se toma el punto medio entre las dos.',
+    'Sirve para una sola cosa: el DOTS, que tiene una curva distinta para hombres y mujeres. Si no lo dices, simplemente no hay DOTS — nada más cambia.',
   'sex.unspecified': 'Prefiero no decirlo',
   'sex.female': 'Mujer',
   'sex.male': 'Hombre',

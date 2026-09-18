@@ -127,7 +127,12 @@ test('a device on the previous build keeps its unsynced set through the upgrade'
   expect(after.stores).toEqual(expect.arrayContaining(['logs', 'outbox', 'goals', 'bodyLogs']));
   expect(after.kept).toBe(true);
 
-  // And the set still reaches the server — the upgrade did not strand the
-  // outbox either.
-  await expect(page.getByText('All saved')).toBeVisible({ timeout: 30_000 });
+  /* And the set still reaches the server — asked of the server itself. This
+     used to be "the badge reads All saved", which an upgrade that emptied the
+     outbox also passes: an empty queue reads "All saved" whether the set
+     arrived or was lost, and a lost set is the whole thing this guards. */
+  const { serverSets } = await import('../fixtures/auth');
+  await expect
+    .poll(async () => (await serverSets(user.id)).map((s) => s.id), { timeout: 30_000 })
+    .toContain(pending.id);
 });
