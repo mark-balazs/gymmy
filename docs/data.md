@@ -164,7 +164,8 @@ position in the change order. Every row is validated per table by
 
 Use the *unpooled* URL for migrations. A pooler in transaction mode can reject or
 mis-sequence DDL, and `drizzle.config.ts` prefers `DATABASE_URL_UNPOOLED` for
-exactly that reason.
+exactly that reason. It reads that variable from the shell only, never from
+`.env`: `DATABASE_URL_UNPOOLED=<direct URL> npm run db:migrate`.
 
 ### Dropping a table takes two deploys
 
