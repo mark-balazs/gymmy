@@ -553,8 +553,37 @@ input[type='checkbox'][switch]:disabled {
   animation: none;
 }
 
+/* The title is named apart from the header, so it crossfades while the rest of
+   the header holds still: the old word goes as the new one comes, over a short
+   fade, in place — no size morph, and each word at its own width rather than
+   stretched to the other's. Linear, and added (`plus-lighter`, as the browser
+   does for its own crossfades), so the two always sum to one: a title that
+   does not change — Settings to the split editor — stays solid throughout.
+   A fade, so it stays under reduced motion. */
+::view-transition-group(app-title) {
+  animation: none;
+  z-index: 101;
+}
+::view-transition-image-pair(app-title) {
+  isolation: isolate;
+}
+::view-transition-old(app-title),
+::view-transition-new(app-title) {
+  inline-size: auto;
+  mix-blend-mode: plus-lighter;
+}
+::view-transition-old(app-title) {
+  animation: var(--dur-fast) linear both fade reverse;
+}
+::view-transition-new(app-title) {
+  animation: var(--dur-fast) linear both fade;
+}
+
 /* The transition overlay swallows taps while it runs. Two tabs in quick
-   succession is a normal thing to do, and the second one should not be lost. */
+   succession is a normal thing to do, and the second one should not be lost —
+   but letting taps through is only half of it: the browser also skips the
+   named bars themselves while they are pinned, so `usePinnedTaps` in
+   `app-shell.tsx` hands such a tap to the control under it. */
 ::view-transition {
   pointer-events: none;
 }

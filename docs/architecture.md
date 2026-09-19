@@ -309,7 +309,16 @@ same journey.
   nothing moves under the finger; the swipe still changes tab, as a crossfade.
 - The header and the tab bar carry their own `viewTransitionName` and are
   pinned. Without a fixed reference the whole viewport appears to move rather
-  than the page inside it.
+  than the page inside it. The title is named apart (`app-title`) and
+  crossfades, linear and `plus-lighter` so an unchanged title stays solid.
+- **The browser skips named elements when it hit-tests during a slide**, the
+  pinned bars included — a second tab tapped mid-slide landed on `<main>` and
+  was lost. `usePinnedTaps` in `app-shell.tsx` hands a click that lands on one
+  of the page's containers, at a point inside a bar, to the control drawn
+  there.
+- **The tab bar's mark is one element** that glides (`translate`, `--dur-page`)
+  to the tab you are on; the bar is drawn live during a slide, so the two move
+  together. It jumps under reduced motion. Tabs take the `press` utility.
 - The flex column that spaces the cards lives on `[data-page]`, not on `<main>`.
   `<main>` persists; spacing applied there would leave the cards travelling
   independently of the box supposed to be carrying them.

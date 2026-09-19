@@ -9,7 +9,7 @@
  */
 
 import { usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/components/ui';
 import { Avatar } from '@/components/avatar';
 import { NavLink, useHistorySlides, useMove } from '@/components/navigate';
@@ -176,20 +176,69 @@ function ProfileLink() {
   );
 }
 
+/**
+ * Taps on the header and the tab bar while a move is still sliding.
+ *
+ * The two bars carry a view-transition name so they hold still during a
+ * slide, and for the length of the slide the browser's hit-testing skips
+ * named elements, the sliding page included (Next's view-transition guide
+ * says so; a probe confirmed it: a tap on the Progress tab mid-slide landed on
+ * `<main>`). So a second tab tapped inside ~300 ms of the first went nowhere.
+ *
+ * A click that lands on one of the page's containers — `<main>`, the body,
+ * anything holding `[data-page]`, never a control — at a point inside one of
+ * the bars is handed to the control drawn there. Outside a slide the bar is
+ * on top and takes its own clicks, and a sheet over the bar holds its clicks
+ * itself, so neither ever reaches this.
+ */
+function usePinnedTaps(bars: readonly React.RefObject<HTMLElement | null>[]): void {
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      const page = document.querySelector('[data-page]');
+      if (!target || !page || !target.contains(page)) return;
+      for (const bar of bars) {
+        const hit = [...(bar.current?.querySelectorAll<HTMLElement>('a[href], button') ?? [])].find(
+          (el) => {
+            const r = el.getBoundingClientRect();
+            return (
+              e.clientX >= r.left &&
+              e.clientX <= r.right &&
+              e.clientY >= r.top &&
+              e.clientY <= r.bottom
+            );
+          },
+        );
+        if (!hit) continue;
+        e.preventDefault();
+        e.stopPropagation();
+        hit.click();
+        return;
+      }
+    };
+    document.addEventListener('click', onClick, true);
+    return () => document.removeEventListener('click', onClick, true);
+  }, [bars]);
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { t } = useT();
   const move = useMove();
+  const header = useRef<HTMLElement>(null);
+  const nav = useRef<HTMLElement>(null);
+  const [bars] = useState(() => [header, nav] as const);
 
   useSwipeTabs(pathname, move);
   useHistorySlides(pathname);
+  usePinnedTaps(bars);
 
   useEffect(() => {
     startSync();
   }, []);
 
-  const active = TABS.find((tab) => pathname.startsWith(tab.href)) ?? TABS[0]!;
-  const titleKey = active.key.replace('tab.', 'title.') as Key;
+  const on = TABS.findIndex((tab) => pathname.startsWith(tab.href));
+  const titleKey = (TABS[on] ?? TABS[0]!).key.replace('tab.', 'title.') as Key;
 
   return (
     <div className="pb-[calc(62px+env(safe-area-inset-bottom))]">
@@ -197,11 +246,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           the content leaves the reader without a fixed point, and the whole
           viewport appears to move rather than the page inside it. */}
       <header
+        ref={header}
         style={{ viewTransitionName: 'app-header' }}
         className="safe-top sticky top-0 z-20 border-b border-[var(--color-line)]/70 bg-[var(--color-bg)]/75 px-4 pt-3 pb-3 backdrop-blur-xl"
       >
         <div className="mx-auto flex max-w-[760px] items-center justify-between">
-          <h1 className="text-[22px] font-bold tracking-[-0.02em]">{t(titleKey)}</h1>
+          {/* Named apart from the header, so the old title fades out as the
+              new one fades in rather than being swapped mid-slide. */}
+          <h1
+            style={{ viewTransitionName: 'app-title' }}
+            className="text-[22px] font-bold tracking-[-0.02em]"
+          >
+            {t(titleKey)}
+          </h1>
           <div className="flex items-center gap-3">
             <SyncBadge />
             <ProfileLink />
@@ -216,11 +273,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main className="mx-auto max-w-[760px] p-4">{children}</main>
 
       <nav
+        ref={nav}
         style={{ viewTransitionName: 'app-nav' }}
         className="safe-bottom fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-[var(--color-line)]/70 bg-[var(--color-surface)]/80 backdrop-blur-xl"
       >
-        {TABS.map((tab) => {
-          const on = pathname.startsWith(tab.href);
+        {/* The mark over the tab you are on: one element that glides to the
+            next tab as the page slides, rather than one per tab that blinks
+            out here and in there. Its move starts in the navigation's own
+            commit, and the bar is drawn live during a slide, so the two travel
+            together. Under reduced motion it jumps. Hidden where no tab is on
+            (Coaching). */}
+        <span
+          aria-hidden
+          data-tab-mark
+          style={{ translate: `${Math.max(on, 0) * 100}% 0` }}
+          className={cn(
+            'pointer-events-none absolute top-0 left-0 flex w-1/5 justify-center',
+            'transition-[translate,opacity] duration-(--dur-page) ease-(--ease-out) motion-reduce:transition-opacity',
+            on < 0 && 'opacity-0',
+          )}
+        >
+          <span className="h-0.5 w-8 rounded-full bg-[image:var(--gradient-accent)]" />
+        </span>
+        {TABS.map((tab, i) => {
           // Tapping a tab is the same movement as swiping to it, so it gets
           // the same direction (from `NavLink`) rather than a different
           // animation for the same journey.
@@ -228,11 +303,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <NavLink
               key={tab.href}
               href={tab.href}
-              aria-current={on ? 'page' : undefined}
+              aria-current={i === on ? 'page' : undefined}
               className={cn(
-                'relative flex h-[62px] flex-col items-center justify-center gap-0.5 text-[10.5px] font-semibold',
-                'transition-colors duration-(--dur-fast) ease-(--ease-out)',
-                on ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]',
+                'press relative flex h-[62px] flex-col items-center justify-center gap-0.5 text-[10.5px] font-semibold',
+                i === on ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]',
               )}
             >
               <svg
@@ -248,12 +322,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <path d={tab.icon} />
               </svg>
               {t(tab.key)}
-              {on && (
-                <span
-                  aria-hidden
-                  className="absolute top-0 h-0.5 w-8 rounded-full bg-[image:var(--gradient-accent)]"
-                />
-              )}
             </NavLink>
           );
         })}

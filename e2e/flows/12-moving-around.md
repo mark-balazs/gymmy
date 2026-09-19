@@ -18,8 +18,10 @@ finger until it was lifted; and Back walked through every tab looked at.
 
 1. Opens the app, or reloads it. Train opens on the day already started today,
    or else the first day not trained this week.
-2. Taps another tab. The new page slides in already holding its content, from
-   the side the tab is on.
+2. Taps another tab. It sinks a little under the thumb; the new page slides in
+   already holding its content, from the side the tab is on; the mark over the
+   tabs glides across and the title crossfades. A second tab tapped before the
+   slide has finished still counts.
 3. Or drags the page sideways. It moves with the thumb (stiffening past the
    first or last tab). Let go past a third of the screen, or with a flick, and
    it carries on out at the thumb's speed as the next tab arrives; let go short
@@ -47,6 +49,11 @@ finger until it was lifted; and Back walked through every tab looked at.
   reduced motion — the page itself do not move; with reduced motion the swipe
   still changes tab. The old swipe tests (direction, a scroll that wandered,
   the split editor, a chart's `data-no-swipe`) still hold.
+- **The tab bar**: a second tab tapped mid-slide is taken (the browser skips
+  the pinned bar while it slides, so it used to be lost); the mark glides
+  (a `translate` transition runs) and ends centred over the chosen tab, and
+  with reduced motion it jumps; the title's old and new pictures both fade,
+  with reduced motion too; a tab transitions `scale` at 100 ms.
 - **Tabs add nothing to Back**, switched by tap or by swipe: after three tab
   changes, one Back leaves.
 - **A screen inside a tab** is one Back deep: Back (or its own back link) slides

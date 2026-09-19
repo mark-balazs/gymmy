@@ -167,6 +167,107 @@ test.describe('Every move slides its way', () => {
   });
 });
 
+test.describe('The tab bar', () => {
+  test('a second tab tapped while the first move is sliding is not lost', async ({
+    onboardedApp: app,
+  }) => {
+    /* The bar is pinned during a slide by a view-transition name, and the
+       browser skips named elements when it hit-tests — so this tap used to
+       land on the page root and do nothing. */
+    const progress = (await tab(app, 'Progress').boundingBox())!;
+    await tab(app, 'Week').click();
+    await app.waitForFunction(
+      () => document.documentElement.matches(':active-view-transition'),
+      null,
+      { polling: 'raf' },
+    );
+    await app.touchscreen.tap(progress.x + progress.width / 2, progress.y + progress.height / 2);
+    await app.waitForURL('**/progress');
+  });
+
+  test('the mark glides to the tab you chose, and jumps with motion off', async ({
+    onboardedApp: app,
+  }) => {
+    const mark = app.locator('[data-tab-mark]');
+    const gliding = () =>
+      app.waitForFunction(
+        () =>
+          document
+            .querySelector('[data-tab-mark]')!
+            .getAnimations()
+            .some((a) => (a as CSSTransition).transitionProperty === 'translate'),
+        null,
+        { polling: 'raf', timeout: 2000 },
+      );
+    /** The mark's centre against the centre of a tab. */
+    const under = async (name: string) => {
+      await expect(mark).toHaveCount(1);
+      await app.waitForFunction(() => !document.documentElement.matches(':active-view-transition'));
+      await expect
+        .poll(async () => {
+          const m = (await mark.boundingBox())!;
+          const t = (await tab(app, name).boundingBox())!;
+          return Math.abs(m.x + m.width / 2 - (t.x + t.width / 2));
+        })
+        .toBeLessThan(1);
+    };
+
+    await under('Train');
+    const glide = gliding();
+    await tab(app, 'Progress').click();
+    await glide;
+    await under('Progress');
+
+    await app.emulateMedia({ reducedMotion: 'reduce' });
+    const jump = gliding();
+    await tab(app, 'Home').click();
+    await expect(jump).rejects.toThrow();
+    await under('Home');
+  });
+
+  test('the title crossfades, with motion or without', async ({ onboardedApp: app }) => {
+    /** The animations run on the title's two pictures while `act` moves. */
+    const title = async (act: () => Promise<unknown>) => {
+      await app.waitForFunction(() => !document.documentElement.matches(':active-view-transition'));
+      await app.evaluate(() => {
+        const w = window as unknown as { seen: string[]; until: number };
+        w.seen = [];
+        w.until = performance.now() + 1000;
+        const tick = () => {
+          for (const a of document.getAnimations()) {
+            const pseudo = (a.effect as KeyframeEffect | null)?.pseudoElement ?? '';
+            if (pseudo.endsWith('(app-title)') && 'animationName' in a) {
+              w.seen.push(`${pseudo.split('(')[0]} ${(a as CSSAnimation).animationName}`);
+            }
+          }
+          if (performance.now() < w.until) requestAnimationFrame(tick);
+        };
+        tick();
+      });
+      await act();
+      await app.waitForFunction(
+        () => performance.now() > (window as unknown as { until: number }).until,
+      );
+      return app.evaluate(() => [...new Set((window as unknown as { seen: string[] }).seen)]);
+    };
+
+    const both = ['::view-transition-old fade', '::view-transition-new fade'];
+    expect((await title(() => tab(app, 'Week').click())).sort()).toEqual(both.sort());
+
+    await app.emulateMedia({ reducedMotion: 'reduce' });
+    expect((await title(() => tab(app, 'Train').click())).sort()).toEqual(both.sort());
+  });
+
+  test('a tab sinks under the thumb', async ({ onboardedApp: app }) => {
+    const timing = await tab(app, 'Week').evaluate((el) => {
+      const s = getComputedStyle(el);
+      return { props: s.transitionProperty.split(', '), duration: s.transitionDuration };
+    });
+    expect(timing.props).toContain('scale');
+    expect(timing.duration.split(', ')[0]).toBe('0.1s');
+  });
+});
+
 /**
  * One finger, driven a step at a time through Chrome's touch pipeline, so a
  * test can look at the page between moves. `touches` > 1 puts a second finger
