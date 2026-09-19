@@ -3,6 +3,7 @@ import { auth, signIn } from '@/lib/auth';
 import { DEV_AUTH, devSignIn } from '@/lib/dev-auth';
 import { env } from '@/env';
 import { Logo } from '@/components/logo';
+import { translate } from '@/lib/i18n';
 import { EmailSignIn } from './email-form';
 
 export default async function SignIn() {
@@ -53,9 +54,10 @@ export default async function SignIn() {
           </>
         )}
 
-        <p className="text-xs text-[var(--color-muted)]">
-          Your training syncs across your devices. Nothing is shared.
-        </p>
+        {/* The doubt people have in front of a Google button, answered in one
+            line. English, like the rest of this screen: nobody has an account
+            yet, so there is no language to follow. */}
+        <p className="text-xs text-[var(--color-muted)]">{translate('en', 'app.signInWhy')}</p>
 
         {/* Local development only — see lib/dev-auth.ts for why this cannot
             reach a deployed build. Styled as a warning rather than a button so

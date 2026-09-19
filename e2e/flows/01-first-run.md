@@ -46,6 +46,15 @@ app has failed at the thing it exists to do.
   lift: that is the squat's main slot, and a scored movement's main slot
   prefers a lift the index counts.
 
+- Each step says at most one short line under its question, and only where it
+  changes the answer: the split can be changed later; pick what a normal week
+  allows; the area you bring up gets a bit extra; bodyweight is needed for the
+  strength score. "Where do you train?" says nothing — the equipment line under
+  each answer is the explanation. Only 2 and 3 days carry a hint ("Still covers
+  everything", "Recommended").
+- The bodyweight box shows its unit beside it, and a screen reader hears it: the
+  number is stored as typed, so someone who thinks in pounds must see "kg".
+
 ## Notes
 
 The user is never asked about slots, roles or movement patterns. Those still

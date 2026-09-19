@@ -17,6 +17,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Card, buttonClass } from '@/components/ui';
+import { InfoTip } from '@/components/info-tip';
 import { useT } from '@/lib/client/hooks';
 
 export function CoachLink() {
@@ -40,8 +41,13 @@ export function CoachLink() {
 
   return (
     <Card className="flex flex-col gap-3">
-      <h2 className="text-[17px] font-semibold">{t('coach.title')}</h2>
-      <p className="text-sm text-[var(--color-muted)]">{t('coach.openBody')}</p>
+      {/* Only trainers see this card; what it is for is one tap away. */}
+      <div className="flex items-center gap-1">
+        <h2 className="flex-1 text-[17px] font-semibold">{t('coach.title')}</h2>
+        <InfoTip label={t('info.more', { subject: t('coach.title') })}>
+          {t('coach.openBody')}
+        </InfoTip>
+      </div>
       <Link href="/coach" className={buttonClass('default', 'w-full')}>
         {t('coach.open')}
       </Link>

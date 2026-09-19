@@ -4,7 +4,7 @@ status: current
 decided: "Confluence 934608974"
 appears:
   repo: ["docs/data.md#deleting-an-account"]
-  copy: ["set.deleteTitle", "set.deleteBody"]
+  copy: ["set.deleteTitle"]
   tests: ["apps/web/src/lib/db/delete-account.test.ts", "e2e/tests/delete-account.spec.ts"]
   confluence: ["934608974"]
 ---

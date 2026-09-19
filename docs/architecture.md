@@ -317,6 +317,26 @@ action, consequences before a destructive or replacing action.
   subject (`info.more`: "More on {subject}") and never starts with "About ",
   which belongs to the exercise names' button. The exercise names keep their
   outlined "i"; this one is a filled disc.
+- **A label never contains the name of the control beside it.** "More on Use
+  this plan" also answers to the button called "Use this plan", and "More on
+  Year of birth" to the field's label (`getByLabel` reads `aria-label` too). Those
+  ⓘs have names of their own: "How your copy works", "Why your age matters".
+- **Where the pieces take one.** `Field` has an `info` slot — with it the label
+  points at its control by `htmlFor` instead of wrapping it, so the control needs
+  that id. `LineChart` takes `info` (an ⓘ beside its caption) and `quiet` (a
+  caption that only speaks while the chart is scrubbed, for a chart whose card
+  heading already names it). `ExercisePicker` puts its `note` behind an ⓘ beside
+  the search box.
+- **A raw error is not an explanation.** The recovery screens and the root
+  error page keep the message for a bug report behind a native `<details>`
+  ("Details"), which needs nothing that may have failed.
+
+Every screen but Train went through this once (GYM-21): what stayed on the
+screen is states and empty states, a refusal and its way out, the consequence
+before a replacing or destroying action ("This replaces the week you train
+now", the delete sheet's counts), and a label that stops a wrong entry ("for a
+single rep", the onboarding weight's unit). Everything read once went behind an
+ⓘ or, where it repeated something already on the screen, went.
 
 ## Things that will surprise you
 

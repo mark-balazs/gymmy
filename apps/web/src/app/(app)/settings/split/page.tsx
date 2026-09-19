@@ -19,6 +19,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button, Card, Field, Sheet, Summary, cn } from '@/components/ui';
 import { Page } from '@/components/page';
+import { InfoTip } from '@/components/info-tip';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import { applyCustomSplit } from '@/lib/client/mutations';
 import type { Key } from '@/lib/i18n';
@@ -184,7 +185,13 @@ export default function CustomSplitPage() {
           ‹ {tr.t('split.backToSettings')}
         </Link>
         <h2 className="text-[22px] leading-tight font-bold">{tr.t('split.editTitle')}</h2>
-        <p className="text-sm text-[var(--color-muted)]">{tr.t('split.editIntro')}</p>
+        {/* That this is the real week and not a blank template stays on the
+            screen; that saving leaves the log and the past alone is one tap
+            away, and said again in the save sheet where it matters. */}
+        <p className="flex items-center gap-1 text-sm text-[var(--color-muted)]">
+          <span>{tr.t('split.editIntro')}</span>
+          <InfoTip label={tr.t('split.editWhat')}>{tr.t('split.editWhy')}</InfoTip>
+        </p>
       </Card>
 
       {week.map((day, d) => (
@@ -333,9 +340,13 @@ export default function CustomSplitPage() {
           </Field>
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold text-[var(--color-muted)]">
-              {tr.t('split.pinTitle')}
-            </span>
+            {/* How pins and the choice above combine is read once. */}
+            <div className="flex min-h-6 items-center gap-1">
+              <span className="text-xs font-semibold text-[var(--color-muted)]">
+                {tr.t('split.pinTitle')}
+              </span>
+              <InfoTip label={tr.t('split.pinWhat')}>{tr.t('split.pinNote')}</InfoTip>
+            </div>
             <div className="flex flex-wrap gap-1.5">
               {ix.patterns.map((p) => {
                 const key = p.key;
@@ -368,7 +379,6 @@ export default function CustomSplitPage() {
                 );
               })}
             </div>
-            <p className="text-xs text-[var(--color-muted)]">{tr.t('split.pinNote')}</p>
           </div>
 
           <div className="flex gap-2">

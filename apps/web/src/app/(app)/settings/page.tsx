@@ -178,10 +178,15 @@ export default function SettingsPage() {
                       </span>
                     )}
                   </span>
-                  <span className={sub}>{tr.t(`split.${key}H` as Key)}</span>
-                  {preset && preset.minDays > 2 && (
-                    <span className={sub}>{tr.count('split.minDays', preset.minDays)}</span>
-                  )}
+                  {/* One line under each option. The day minimum stays visible
+                      — picking this split on two days silently moves the week to
+                      three — but on the same line as the gist, not a second. */}
+                  <span className={sub}>
+                    {tr.t(`split.${key}H` as Key)}
+                    {preset &&
+                      preset.minDays > 2 &&
+                      ` · ${tr.count('split.minDays', preset.minDays)}`}
+                  </span>
                 </button>
                 {/* A one-line hint is not enough to choose on: which days it
                     makes, and what it will then call a complete week, is the
@@ -226,21 +231,20 @@ export default function SettingsPage() {
       </Card>
 
       <Card className="flex flex-col gap-3">
+        {/* What a rebuild does is said in its confirmation, at the moment of
+            deciding — not here as well, before anything has changed. */}
         <h2 className="text-[17px] font-semibold">{tr.t('set.myTraining')}</h2>
-        <p className="text-sm text-[var(--color-muted)]">{tr.t('set.rebuildBody')}</p>
 
         {/* A hand-built week pins every slot to its own day, so how many days it
             has is part of the arrangement rather than a dial beside it —
-            turning it here would leave the new day with nothing in it. */}
+            turning it here would leave the new day with nothing in it. The
+            link under it says where that is changed. */}
         {split === 'custom' ? (
           <div className="flex flex-col gap-1.5">
             <span className="text-xs font-semibold text-[var(--color-muted)]">
               {tr.t('set.days')}
             </span>
-            <p className="text-sm">
-              {tr.count('sub.daysPerWeek', days)}{' '}
-              <span className="text-[var(--color-muted)]">{tr.t('set.daysCustom')}</span>
-            </p>
+            <p className="text-sm">{tr.count('sub.daysPerWeek', days)}</p>
             <Link
               href="/settings/split"
               className="text-xs font-semibold text-[var(--color-accent)]"
@@ -288,11 +292,10 @@ export default function SettingsPage() {
         </Button>
         {/* Nothing here saves on its own: every one of these settings changes
             which exercises you are given, so they are applied together with the
-            plan they produce. Saying so beats leaving the button inert with no
-            explanation. */}
-        <p className="text-xs text-[var(--color-muted)]">
-          {dirty ? tr.t('set.pending') : tr.t('set.noChanges')}
-        </p>
+            plan they produce. Said the moment something is changed — someone
+            who picks Home and leaves would otherwise believe it was saved. With
+            nothing changed there is nothing to say; the form is what you train. */}
+        {dirty && <p className="text-xs text-[var(--color-muted)]">{tr.t('set.pending')}</p>}
       </Card>
 
       {/* One card, because these are the same kind of thing: how the app
@@ -409,10 +412,11 @@ export default function SettingsPage() {
       </Card>
 
       {/* Separate from sign-out and visually quieter than it, because the two
-          are one tap apart and only one of them is recoverable. */}
+          are one tap apart and only one of them is recoverable. What deleting
+          costs is said in the sheet that always opens first, counted from the
+          person's own data. */}
       <Card className="flex flex-col gap-2">
         <h2 className="text-[17px] font-semibold">{tr.t('set.deleteTitle')}</h2>
-        <p className="text-sm text-[var(--color-muted)]">{tr.t('set.deleteBody')}</p>
         <Button
           variant="danger"
           className="self-start px-0"

@@ -55,9 +55,14 @@ The button is a **sibling** of the option, never nested inside it: a button
 within a button is neither valid markup nor operable with a keyboard. Reading
 about a split must not select it.
 
+Under each option is one short line: what the week looks like ("A day each for
+push, pull and legs"), and in Settings, on the same line, the day minimum for the
+split that has one — picking it on two days quietly moves the week to three.
+
 ### Expected
 
-- Push / Pull / Legs never mentions rotation or carry as part of a complete week.
+- Push / Pull / Legs never mentions rotation or carry as part of a complete week,
+  in its sheet or in its one-line hint.
 - The seven-pattern split does — that is what it is for.
 - Closing the sheet leaves the question unanswered and nothing selected.
 
@@ -74,8 +79,11 @@ about a split must not select it.
 ## Steps — changing your mind later
 
 1. Go to **Settings**.
-2. Pick a different split and tap **Rebuild my week**.
-3. Confirm on the sheet that warns the plan will be regenerated.
+2. Pick a different split. Nothing on that card saves by itself, so a line
+   under the button says so the moment anything changes ("Not saved yet. Tap
+   Rebuild my week."). With nothing changed there is no line.
+3. Tap **Rebuild my week** and confirm on the sheet, which is where it says what
+   a rebuild does: new exercises, history untouched.
 
 ## Expected
 
@@ -141,12 +149,15 @@ than no box.
 the week has actually been arranged. It is a place you go: Settings → **Build
 your own** → `/settings/split`.
 
-1. The editor opens on **the week you already train**, not a blank page.
-   Arranging a week from nothing is a far harder question than adjusting one,
-   and a preset is a perfectly good first draft of one.
+1. The editor opens on **the week you already train**, not a blank page, and
+   says so in one line. Arranging a week from nothing is a far harder question
+   than adjusting one, and a preset is a perfectly good first draft of one. That
+   saving leaves the log and past weeks alone is behind the ⓘ beside that line,
+   and said again in the save sheet.
 2. Tapping a slot opens a sheet: what it is called, the role it falls back on,
    and the specific movements it can be pinned to. Pins win over the role,
-   exactly as the generator itself decides it.
+   exactly as the generator itself decides it — which the ⓘ beside "Or pin it
+   to movements" says.
 3. Slots reorder with ↑/↓ and are added or removed per day; days are added and
    removed at the bottom. A day always keeps at least one slot.
 4. Before saving, the editor states **what this arrangement will make a complete

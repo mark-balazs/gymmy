@@ -32,6 +32,9 @@ below hold just the same.
 - After one squat set: the **Squat** tile shows a tick, the other six still
   show `–`, and the summary names the gaps.
 - The session count reads `1 session` — singular, not `1 sessions`.
+- What the tiles are for ("your body moves in seven basic ways…") is behind the
+  ⓘ beside the summary, not a paragraph under the tiles. It is read once, on a
+  tab people open all the time.
 
 ## The isolation rule
 
@@ -64,4 +67,5 @@ account whose block starts this Monday with a squat logged the Sunday before.
 
 A week is scored against the split that was in force **that week**, not the one
 in force today. Paging back to a week trained under a different split shows that
-split's tiles and says so. See [flow 07](./07-choosing-a-split.md).
+split's tiles and says so — "Scored as …" on the screen, why behind its ⓘ. See
+[flow 07](./07-choosing-a-split.md).

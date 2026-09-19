@@ -32,22 +32,25 @@ export default function GlobalError({
       >
         <div style={{ maxWidth: 420, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <h1 style={{ fontSize: 19, margin: 0 }}>gymmy could not start</h1>
-          <p style={{ fontSize: 14, color: '#8794a4', margin: 0 }}>
-            Something failed before the app loaded. Your training is saved on the server.
-          </p>
-          <p
-            style={{
-              fontSize: 12,
-              color: '#8794a4',
-              background: '#1a2029',
-              padding: '8px 12px',
-              borderRadius: 11,
-              margin: 0,
-              wordBreak: 'break-word',
-            }}
-          >
-            {error.message}
-          </p>
+          {/* "Safe", not "saved on the server": a change not yet synced is
+              still on this device — and neither button below touches it. */}
+          <p style={{ fontSize: 14, color: '#8794a4', margin: 0 }}>Your training is safe.</p>
+          {/* The raw message is for a bug report, not for the person reading:
+              a native disclosure, which needs nothing that may have failed. */}
+          <details style={{ fontSize: 12, color: '#8794a4' }}>
+            <summary style={{ cursor: 'pointer' }}>Details</summary>
+            <p
+              style={{
+                background: '#1a2029',
+                padding: '8px 12px',
+                borderRadius: 11,
+                margin: '6px 0 0',
+                wordBreak: 'break-word',
+              }}
+            >
+              {error.message}
+            </p>
+          </details>
           <button
             onClick={reset}
             style={{

@@ -26,6 +26,7 @@
 import { useEffect, useState } from 'react';
 import { Button, Card, Field, Sheet, Summary, cn } from '@/components/ui';
 import { Page } from '@/components/page';
+import { InfoTip } from '@/components/info-tip';
 import { useT } from '@/lib/client/hooks';
 import {
   addMember,
@@ -139,11 +140,9 @@ export function CoachScreen() {
 
   return (
     <Page>
-      <Card className="flex flex-col gap-2">
-        <h2 className="text-[17px] font-semibold">{tr.t('coach.open')}</h2>
-        <p className="text-sm text-[var(--color-muted)]">{tr.t('coach.openBody')}</p>
-      </Card>
-
+      {/* No introduction card: it repeated the Settings card the trainer just
+          came through, and the two cards below say what this screen is by
+          being here. */}
       <Card className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-[17px] font-semibold">{tr.t('coach.plans')}</h2>
@@ -358,7 +357,17 @@ function PlanEditor({
         ))}
       </div>
 
-      <Summary tone="idle">{tr.t('coach.publishBody')}</Summary>
+      {/* That only a published plan reaches anybody stays on the screen: the
+          list does not mark drafts, and a draft shared is a plan that never
+          arrives. How later edits reach people is one tap away. */}
+      <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <Summary tone="idle">{tr.t('coach.publishBody')}</Summary>
+        </div>
+        <InfoTip label={tr.t('coach.publishWhat')} className="mr-1.5">
+          {tr.t('coach.publishWhy')}
+        </InfoTip>
+      </div>
 
       <div className="flex gap-2">
         <Button

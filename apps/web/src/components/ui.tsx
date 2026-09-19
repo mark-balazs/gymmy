@@ -91,7 +91,36 @@ export function Chip({
   );
 }
 
-export function Field({ label, children }: { label: string; children: ReactNode }) {
+export function Field({
+  label,
+  children,
+  info,
+  htmlFor,
+}: {
+  label: string;
+  children: ReactNode;
+  /**
+   * An ⓘ for the label row (an `<InfoTip>`). It cannot sit inside the
+   * `<label>` that normally wraps the control — it would become part of the
+   * label and tapping it would focus the field — so with one the label points
+   * at the control by `htmlFor` instead, and the control needs that id.
+   */
+  info?: ReactNode;
+  htmlFor?: string;
+}) {
+  if (info) {
+    return (
+      <div className="flex flex-col gap-1.5">
+        <div className="flex min-h-6 items-center gap-1">
+          <label htmlFor={htmlFor} className="text-xs font-semibold text-[var(--color-muted)]">
+            {label}
+          </label>
+          {info}
+        </div>
+        {children}
+      </div>
+    );
+  }
   return (
     <label className="flex flex-col gap-1.5">
       <span className="text-xs font-semibold text-[var(--color-muted)]">{label}</span>

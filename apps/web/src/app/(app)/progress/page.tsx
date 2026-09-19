@@ -33,6 +33,7 @@
  */
 
 import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Button, Card, Chip, Sheet, Summary, cn } from '@/components/ui';
 import { InfoTip } from '@/components/info-tip';
 import { Page } from '@/components/page';
@@ -191,7 +192,7 @@ export default function ProgressPage() {
   /* The second number, and the only one that means anything to anybody else.
      Almost always null on a real account — it needs all three competition
      lifts — so it is a row inside the card rather than a card of its own, and
-     it says which lift is still missing instead of just going quiet. */
+     its sheet says which lift is still missing instead of just going quiet. */
   const indexCrossesCutover = useMemo(
     () =>
       summary.some(
@@ -265,11 +266,27 @@ export default function ProgressPage() {
               {fmtIndex(current.index!)}
             </span>
             {delta !== null && (
-              <Delta
-                value={Math.round(delta * 10) / 10}
-                label={deltaLabel(tr, Math.round(delta * 10) / 10, tr.count('prog.agoWeeks', 8))}
-                className="text-base"
-              />
+              <>
+                <Delta
+                  value={Math.round(delta * 10) / 10}
+                  label={deltaLabel(tr, Math.round(delta * 10) / 10, tr.count('prog.agoWeeks', 8))}
+                  className="text-base"
+                />
+                {/* What the arrow is measured against, which its hover title
+                    never told a phone. And the dumbbell cutover, where the jump
+                    it explains shows: the index sums the best of each pattern,
+                    so a pair that doubled at the cutover lifts the whole number
+                    that week — a review measured +27% for a home user with
+                    nothing changed in their training. After the number, so
+                    the tests' "first span after the heading row" is still it. */}
+                <InfoTip label={tr.t('prog.deltaWhat')} className="self-center">
+                  {`${deltaLabel(tr, Math.round(delta * 10) / 10, tr.count('prog.agoWeeks', 8))}.`}
+                  {indexCrossesCutover &&
+                    ` ${tr.t('prog.conventionChanged', {
+                      date: shortDay(LOAD_CONVENTION_FROM, tr.lang),
+                    })} ${tr.t('prog.conventionWhy')}`}
+                </InfoTip>
+              </>
             )}
           </div>
         ) : (
@@ -278,16 +295,6 @@ export default function ProgressPage() {
           </Summary>
         )}
 
-        {/* The index sums the best of each pattern, so a pair of dumbbells that
-            doubled at the cutover lifts the whole number that week — a review
-            measured +27% for a home user with nothing changed in their
-            training. Same note as the lift's own chart, whenever a lift feeding
-            the index shows the step. */}
-        {indexCrossesCutover && (
-          <p className="text-[11px] text-[var(--color-muted)]">
-            {tr.t('prog.conventionChanged', { date: shortDay(LOAD_CONVENTION_FROM, tr.lang) })}
-          </p>
-        )}
         {scored.length > 1 && (
           <LineChart
             points={scored.map((s) => ({
@@ -298,6 +305,9 @@ export default function ProgressPage() {
             unit=""
             tone="secondary"
             label={tr.t('prog.scoreOverTime')}
+            // The card's heading already says what this is; the caption line
+            // only speaks while a finger is on the chart.
+            quiet
             // The same shape as the hero number above it, trailing zero and all.
             decimals={1}
             tableLabel={tr.t('prog.table')}
@@ -313,10 +323,11 @@ export default function ProgressPage() {
             invite reading one as more real than the other. Smaller than the
             hero because it is the narrower claim: three lifts, not five.
 
-            It also never silently disappears. A DOTS needs all three
-            competition lifts and most people will not have them, so the empty
-            state names the ones still missing — a blank space teaches nobody
-            what would fill it. */}
+            It never silently disappears: its ⓘ opens a sheet listing the three
+            lifts, each with its number or a red dash — which lift is missing,
+            or trained but with no estimate yet, and the 10-rep rule that
+            decides it. That used to be a sentence here on every visit, for a
+            number most people will never have. */}
         <div className="flex items-center gap-2 border-t border-[var(--color-line)] pt-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-2">
@@ -325,36 +336,19 @@ export default function ProgressPage() {
               </span>
               <span className="num text-[22px] leading-none font-bold">{dotsNow.score ?? '—'}</span>
             </div>
-            {/* Null for four different reasons, and each wants its own sentence —
-                the domain says which, so the screen never has to guess from
-                what happens to be empty. Two of them were found the hard way:
-                with no bodyweight the old "still missing" line listed nothing
-                and trailed off into a full stop, and a bench trained only above
-                the rep ceiling was reported as "still missing" to somebody who
-                had benched that week. */}
-            <p className="mt-1 text-xs text-[var(--color-muted)]">
-              {dotsNow.missing === 'lifts'
-                ? tr.t('prog.dotsNeed', {
-                    what: dotsNow.lifts
-                      .filter((l) => !l.trained)
-                      .map((l) => tr.exercise({ name: l.name }))
-                      .join(', '),
-                  })
-                : dotsNow.missing === 'estimate'
-                  ? tr.t('prog.dotsEstimate', {
-                      what: dotsNow.lifts
-                        .filter((l) => l.trained && l.best === 0)
-                        .map((l) => tr.exercise({ name: l.name }))
-                        .join(', '),
-                    })
-                  : dotsNow.missing === 'bodyweight'
-                    ? tr.t('prog.needWeight')
-                    : dotsNow.missing === 'sex'
-                      ? tr.t('prog.dotsNeedsSex')
-                      : tr.t('prog.dotsFrom', {
-                          total: `${Math.round(dotsNow.total ?? 0)} ${unit}`,
-                        })}
-            </p>
+            {/* Only what the sheet cannot say for you. With no bodyweight the
+                hero line above already asks for it; with no answer about sex
+                the way to fix it is in Settings, which nothing else on the page
+                says; and the total, once there is a score. */}
+            {(dotsNow.missing === 'sex' || dotsNow.missing === null) && (
+              <p className="mt-1 text-xs text-[var(--color-muted)]">
+                {dotsNow.missing === 'sex'
+                  ? tr.t('prog.dotsNeedsSex')
+                  : tr.t('prog.dotsFrom', {
+                      total: `${Math.round(dotsNow.total ?? 0)} ${unit}`,
+                    })}
+              </p>
+            )}
           </div>
           <InfoTip label={tr.t('prog.dotsWhat')} onOpen={() => setDots(true)} />
         </div>
@@ -393,9 +387,12 @@ export default function ProgressPage() {
 
       {/* 4 — the app's thesis on a time axis. */}
       <Card className="flex flex-col gap-2">
-        <h2 className="text-[17px] font-semibold">{tr.t('prog.patterns')}</h2>
+        {/* The legend is read once; after that the squares explain themselves. */}
+        <div className="flex items-center gap-1">
+          <h2 className="flex-1 text-[17px] font-semibold">{tr.t('prog.patterns')}</h2>
+          <InfoTip label={tr.t('prog.patternsWhat')}>{tr.t('prog.patternsBody')}</InfoTip>
+        </div>
         <PatternGrid grid={grid} thisWeek={mondayOf(today)} />
-        <p className="text-[11px] text-[var(--color-muted)]">{tr.t('prog.patternsBody')}</p>
       </Card>
 
       {/* 5 — everything, compactly. */}
@@ -449,7 +446,9 @@ export default function ProgressPage() {
           work than the index's: this is the number somebody might quote, and it
           is estimated from training rather than totalled on a platform, so the
           gap between it and a real meet total has to be stated where they read
-          the figure and not only in the code. */}
+          the figure and not only in the code. The list below it is also what
+          says which lift is missing: a red dash for a lift never trained, or
+          trained but never at 10 reps or fewer. */}
       <Sheet title={tr.t('prog.dotsWhat')} open={dots} onClose={() => setDots(false)}>
         <p className="text-sm leading-relaxed">{tr.t('prog.dotsBody')}</p>
         <p className="text-sm leading-relaxed text-[var(--color-muted)]">{tr.t('prog.dotsNot')}</p>
@@ -661,6 +660,7 @@ function DetailSheet({
   const tr = useT();
   const points = toPoints(progress, tr.lang);
   const d = progress.drawdown;
+  const cutover = conventionChanged(progress.exercise.name, points);
 
   return (
     <Sheet title={tr.exercise(progress.exercise)} open onClose={onClose}>
@@ -670,6 +670,10 @@ function DetailSheet({
         <p className="text-sm text-[var(--color-muted)]">{tr.t('prog.oneSession')}</p>
       ) : (
         <>
+          {/* The caption stays, because it says the line is an estimate for
+              one rep and not a weight that was lifted — read as a real set,
+              105 kg on the chart is something somebody might load. The legend
+              (ringed bests, dotted gaps) is read once and sits behind the ⓘ. */}
           <LineChart
             points={points}
             unit={unit}
@@ -678,16 +682,20 @@ function DetailSheet({
             tableLabel={tr.t('prog.table')}
             labelHeader={tr.t('prog.session')}
             valueHeader={tr.t('prog.value')}
+            info={
+              <InfoTip label={tr.t('prog.chartWhat')}>
+                {tr.t('prog.chartKey')}
+                {cutover && ` ${tr.t('prog.conventionWhy')}`}
+              </InfoTip>
+            }
           />
-          {points.some((p) => p.peak) && (
-            <p className="text-[11px] text-[var(--color-muted)]">{tr.t('prog.prs')}</p>
-          )}
-          <p className="text-[11px] text-[var(--color-muted)]">{tr.t('prog.gapNote')}</p>
-          {/* The one place the dumbbell cutover is visible to anybody. Logged per
+          {/* The one place the dumbbell cutover is drawn plainly. Logged per
               hand before it and combined after, a pair shows a jump on that day
               that is bookkeeping rather than training — so the chart says so,
-              under the chart, and only when the step is actually on it. */}
-          {conventionChanged(progress.exercise.name, points) && (
+              under the chart, and only when the step is actually on it. The
+              fact stays on screen, since the goal form below reads from these
+              numbers; that the jump is not strength is behind the ⓘ. */}
+          {cutover && (
             <p className="text-[11px] text-[var(--color-muted)]">
               {tr.t('prog.conventionChanged', {
                 date: shortDay(LOAD_CONVENTION_FROM, tr.lang),
@@ -716,13 +724,17 @@ function DetailSheet({
           <Row
             k={tr.t('prog.best')}
             v={`${Math.round(d.best * 10) / 10} ${unit} · ${shortDay(d.bestDate, tr.lang)}`}
+            info={
+              /* Withheld rather than hedged when the two ends of the comparison
+                 disagree about whether effort was recorded — an unrated set
+                 scores about 5% lower for reasons that are not about strength.
+                 Why this lift gets no verdict is one tap away, on the row the
+                 comparison is about. */
+              !d.confident ? (
+                <InfoTip label={tr.t('prog.unratedWhat')}>{tr.t('prog.unrated')}</InfoTip>
+              ) : undefined
+            }
           />
-        )}
-        {/* Withheld rather than hedged when the two ends of the comparison
-            disagree about whether effort was recorded — an unrated set scores
-            about 5% lower for reasons that are not about strength. */}
-        {d && !d.confident && (
-          <p className="mt-1 text-[11px] text-[var(--color-muted)]">{tr.t('prog.unrated')}</p>
         )}
       </dl>
 
@@ -736,9 +748,12 @@ function DetailSheet({
   );
 }
 
-const Row = ({ k, v }: { k: string; v: string }) => (
+const Row = ({ k, v, info }: { k: string; v: string; info?: ReactNode }) => (
   <div className="flex items-baseline justify-between gap-3">
-    <dt className="text-[var(--color-muted)]">{k}</dt>
+    <dt className={cn('text-[var(--color-muted)]', info && 'flex items-center gap-1 self-center')}>
+      {k}
+      {info}
+    </dt>
     <dd className="num font-semibold">{v}</dd>
   </div>
 );

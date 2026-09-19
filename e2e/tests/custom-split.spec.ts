@@ -111,10 +111,26 @@ test.describe('Building your own split', () => {
     await gotoSettings(app);
     await openEditor(app);
 
+    /* One line says this is the real week, not a template; that saving leaves
+       the log and the past alone is behind the ⓘ beside it. */
+    await expect(app.getByText('This is the week you train now.', { exact: true })).toBeVisible();
+    await app.getByRole('button', { name: 'What saving changes' }).click();
+    await expect(app.getByRole('note', { name: 'What saving changes' })).toContainText(
+      'Past weeks are still checked against the split you trained then.',
+    );
+    await app.keyboard.press('Escape');
+
     const firstSlot = app.getByRole('button', { name: /^Edit / }).first();
     await firstSlot.click();
 
     const sheet = app.getByRole('dialog');
+    // How pins and "What goes here" combine is read once: behind the ⓘ.
+    await sheet.getByRole('button', { name: 'How pinning works' }).click();
+    await expect(app.getByRole('note', { name: 'How pinning works' })).toContainText(
+      'What goes here',
+    );
+    await app.keyboard.press('Escape');
+    await expect(sheet).toBeVisible();
     await sheet.getByRole('button', { name: 'Carry', exact: true }).click();
     await sheet.getByRole('button', { name: 'Done', exact: true }).click();
 
@@ -165,13 +181,13 @@ test.describe('Building your own split', () => {
 
     await gotoSettings(app);
     await app.getByRole('button', { name: 'Home', exact: true }).click();
-    await expect(app.getByText('Not applied yet')).toBeVisible();
+    await expect(app.getByText('Not saved yet')).toBeVisible();
 
     await app.getByRole('button', { name: 'Rebuild my week' }).click();
     await confirmSheet(app);
-    await expect(app.getByText('This is what you are training now.')).toBeVisible();
+    await expect(app.getByText('Not saved yet')).toHaveCount(0);
 
-    /* That line is shown after any rebuild, whatever it wrote — the draft is
+    /* That line goes after any rebuild, whatever it wrote — the draft is
        simply cleared. So what was written: the equipment is home, the week is
        still their own, and it still holds the slot they arranged. */
     await app.reload();

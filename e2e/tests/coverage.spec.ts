@@ -16,6 +16,15 @@ test.describe('Weekly coverage', () => {
     await expect(tiles.getByRole('listitem')).toHaveCount(7);
     await expect(tiles.getByText('–', { exact: true })).toHaveCount(7);
     await expect(tiles.getByText('✓', { exact: true })).toHaveCount(0);
+
+    /* What the tiles are for is one tap away. It was the only paragraph always
+       on a tab people open all the time, and after the first read the ticks
+       explain themselves. */
+    await expect(app.getByText(/seven basic ways/)).toBeHidden();
+    await app.getByRole('button', { name: 'More on Movement coverage' }).click();
+    await expect(app.getByRole('note', { name: 'More on Movement coverage' })).toContainText(
+      'Carrying and twisting',
+    );
   });
 
   test('one logged pattern ticks exactly one box', async ({ onboardedApp: app }) => {

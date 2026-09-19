@@ -24,6 +24,7 @@
  */
 
 import { useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { cn } from '@/components/ui';
 
 export interface ChartPoint {
@@ -125,6 +126,8 @@ export function LineChart({
   valueHeader,
   tone = 'primary',
   decimals,
+  quiet = false,
+  info,
 }: {
   points: ChartPoint[];
   /** Appended to values in labels and the tooltip. Empty for a unitless score. */
@@ -143,6 +146,11 @@ export function LineChart({
    *  and drop it — which is right for kilos and wrong for the strength index,
    *  whose one decimal is part of what tells it apart from a DOTS score. */
   decimals?: number;
+  /** The caption only while the chart is being scrubbed — for a chart whose
+   *  heading already says what it is. Its line is kept, so nothing moves. */
+  quiet?: boolean;
+  /** An ⓘ beside the caption: how to read this chart. */
+  info?: ReactNode;
 }) {
   const [active, setActive] = useState<number | null>(null);
   const svg = useRef<SVGSVGElement>(null);
@@ -322,11 +330,17 @@ export function LineChart({
 
       <figcaption
         className={cn(
-          'num text-center text-[11px]',
+          'num flex items-center justify-center gap-1 text-center text-[11px]',
           shown === null ? 'text-[var(--color-muted)]' : 'font-semibold text-[var(--color-ink)]',
         )}
       >
-        {shown === null ? label : `${shown.label} · ${fmt(shown.value)}${shown.peak ? ' ★' : ''}`}
+        {/* Hidden, not removed, when quiet: the svg already carries the label
+            for a screen reader, and keeping the line stops the scrub readout
+            pushing the page down when it appears. */}
+        <span className={cn(quiet && shown === null && 'invisible')}>
+          {shown === null ? label : `${shown.label} · ${fmt(shown.value)}${shown.peak ? ' ★' : ''}`}
+        </span>
+        {info}
       </figcaption>
 
       {/* The table is not a fallback, it is the accessible twin: every value a

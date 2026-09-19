@@ -1,4 +1,4 @@
-import { expect, signInAs, test } from '../fixtures/test';
+import { expect, historyStart, signInAs, test } from '../fixtures/test';
 
 /**
  * Goals, and the silence that is their absence.
@@ -56,6 +56,18 @@ test.describe('The app pushes only where it was asked to', () => {
     // A goal is set where its baseline already is: the per-lift sheet.
     await page.getByRole('button', { name: 'Show Goblet Squat' }).click();
     const sheet = page.getByRole('dialog');
+
+    /* What a goal does is behind the ⓘ beside the button — three sentences in
+       every lift's sheet, read once — and Escape closes the tip, not the sheet
+       it sits in. */
+    await expect(sheet.getByText(/tells you if this lift stops moving/)).toBeHidden();
+    await sheet.getByRole('button', { name: 'What a goal does' }).click();
+    const tip = page.getByRole('note', { name: 'What a goal does' });
+    await expect(tip).toContainText('tells you if this lift stops moving');
+    await page.keyboard.press('Escape');
+    await expect(tip).toBeHidden();
+    await expect(sheet.getByRole('heading', { name: 'Goblet Squat' })).toBeVisible();
+
     await sheet.getByRole('button', { name: 'Push this lift' }).click();
 
     /* The form opens on a target that would pass every check, so the first
@@ -124,6 +136,16 @@ test.describe('The app pushes only where it was asked to', () => {
     await expect(sheet.getByText(/Too small to measure/)).toBeVisible();
     await expect(sheet.getByRole('button', { name: 'Set the goal' })).toBeDisabled();
 
+    /* The reason behind the limit is in the form's ⓘ — a tip now, not a sheet
+       stacked on this one — and the refusal keeps only the rule and the way
+       out. */
+    await sheet.getByRole('button', { name: 'Where these limits come from' }).click();
+    await expect(page.getByRole('note', { name: 'Where these limits come from' })).toContainText(
+      'about 4% from one day to the next',
+    );
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(1);
+
     // The number it offered clears the noise, so the refusal goes away.
     expect(offered).toBeGreaterThanOrEqual(now * 1.05);
     await target.fill(String(offered));
@@ -159,14 +181,15 @@ test.describe('The app pushes only where it was asked to', () => {
     const target = sheet.getByLabel(/^Target, for a single rep/);
     await expect(sheet.getByText('Now at 13 kg')).toBeVisible();
     await expect(target).toHaveValue('14');
-    // The line under the form explains goals instead of warning.
-    await expect(sheet.getByText(/^The app only comments/)).toBeVisible();
-    await expect(sheet.getByText(/^That is about/)).toHaveCount(0);
+    // Nothing under the form: nothing to warn about, and the explanation of
+    // goals is the ⓘ that was tapped past to get here.
+    await expect(sheet.getByText(/^About [\d.]+% a week/)).toHaveCount(0);
+    await expect(sheet.locator('#goal-note')).toHaveCount(0);
 
     // One step higher is the person's own number, and gets the usual check:
     // a warning, and still a goal they can set.
     await target.fill('14.5');
-    await expect(sheet.getByText(/^That is about [\d.]+% a week/)).toBeVisible();
+    await expect(sheet.getByText(/^About [\d.]+% a week/)).toBeVisible();
     await expect(sheet.getByRole('button', { name: 'Set the goal' })).toBeEnabled();
   });
 
@@ -198,8 +221,8 @@ test.describe('The app pushes only where it was asked to', () => {
     await sheet.getByRole('button', { name: 'Push this lift' }).click();
 
     const target = sheet.getByLabel(/^Target, for a single rep/);
-    const warning = sheet.getByText(/^That is about [\d.]+% a week/);
-    const explain = sheet.getByText(/^The app only comments/);
+    const warning = sheet.getByText(/^About [\d.]+% a week/);
+    const note = sheet.locator('#goal-note');
     await expect(sheet.getByText('Now at 66.7 kg')).toBeVisible();
     await expect(sheet.getByRole('button', { name: '12 weeks' })).toHaveAttribute(
       'aria-pressed',
@@ -210,7 +233,7 @@ test.describe('The app pushes only where it was asked to', () => {
     // Eight weeks, nothing typed: the eight-week offer, and no warning.
     await sheet.getByRole('button', { name: '8 weeks' }).click();
     await expect(target).toHaveValue('72');
-    await expect(explain).toBeVisible();
+    await expect(note).toHaveCount(0);
     await expect(warning).toHaveCount(0);
 
     // A higher number of their own gets the ordinary check, and stays theirs
@@ -235,7 +258,7 @@ test.describe('The app pushes only where it was asked to', () => {
 
     await page.getByRole('button', { name: 'Show Goblet Squat' }).click();
     const sheet = page.getByRole('dialog');
-    await expect(sheet.getByText(/Log a few sessions of this first/)).toBeVisible();
+    await expect(sheet.getByText('Log a few sessions of this to set a goal.')).toBeVisible();
     await expect(sheet.getByRole('button', { name: 'Push this lift' })).toHaveCount(0);
   });
 
@@ -285,10 +308,81 @@ test.describe('The app pushes only where it was asked to', () => {
     await sheet.getByRole('button', { name: 'Set the goal' }).click();
 
     const down = page.getByRole('listitem').filter({ hasText: 'Down' });
-    await expect(down).toContainText('Recent sessions sit 17% under it.');
+    await expect(down).toContainText('17% under your best');
 
     await page.getByRole('button', { name: 'Stop pushing this' }).click();
     await expect(page.getByRole('heading', { name: 'Worth knowing' })).toHaveCount(0);
+  });
+});
+
+test.describe('The goal card says what happened, once', () => {
+  /** A date `n` days from today, as the app stores it. */
+  const inDays = (n: number): string => {
+    const d = new Date();
+    d.setHours(12, 0, 0, 0);
+    d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0, 10);
+  };
+
+  test('an ended goal is a state and a gain; a live one that moved says so on its number', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* Two goals from the same start, on the same five sessions: 40 kg twice,
+       then 50 (for 8, two in reserve — 53.3 up to 66.7 estimated). One ended
+       yesterday short of its target; one runs for another month.
+
+       The ended one used to say "This goal has ended. Came up short, and still
+       added 13.4 kg." — a sentence for a state, and a judgement ahead of the
+       gain. Now the state is a chip where the days left were, and the line is
+       the gain. The live one said "Now at 66.7 kg" under "66.7 of 90 kg": the
+       same number twice. Now the number itself carries the arrow. */
+    const start = historyStart(5);
+    await signInAs(page, context, baseURL!, {
+      onboarded: true,
+      history: {
+        split: 'sevenPattern',
+        weeksBack: 5,
+        exercises: ['Goblet Squat', 'Barbell Bench Press'],
+        sessions: 5,
+        weights: [40, 40, 50, 50, 50],
+      },
+      goals: [
+        {
+          exercise: 'Goblet Squat',
+          target: 80,
+          baseline: 53.3,
+          startedOn: start,
+          targetDate: inDays(-1),
+        },
+        {
+          exercise: 'Barbell Bench Press',
+          target: 90,
+          baseline: 53.3,
+          startedOn: start,
+          targetDate: inDays(30),
+        },
+      ],
+    });
+    await page.goto('/progress');
+    await expect(page.getByRole('heading', { name: 'What you are pushing' })).toBeVisible();
+
+    const row = (name: string) =>
+      page.getByRole('button', { name, exact: true }).locator('xpath=../..');
+
+    const ended = row('Goblet Squat');
+    await expect(ended.getByText('Ended', { exact: true })).toBeVisible();
+    await expect(ended).toContainText('+13.4 kg since you started');
+    await expect(ended).not.toContainText('days left');
+    await expect(ended).not.toContainText('Came up short');
+
+    const live = row('Barbell Bench Press');
+    await expect(live).toContainText('66.7 of 90 kg');
+    await expect(live).toContainText('days left');
+    // The arrow on the number, and no second line repeating it.
+    await expect(live.getByText('66.7 of 90 kg').locator('svg')).toHaveCount(1);
+    await expect(page.getByText(/^Now at /)).toHaveCount(0);
   });
 });
 
@@ -316,7 +410,7 @@ test.describe('What the app says without being asked', () => {
     await expect(rows).toHaveCount(1);
     await expect(rows.first()).toHaveAccessibleName('Show Goblet Squat');
     await expect(rows.first()).toContainText('Not trained');
-    await expect(rows.first()).toContainText('It is still in your week.');
+    await expect(rows.first()).toContainText('still in your week');
     // And no goal card: nothing was asked for.
     await expect(page.getByRole('heading', { name: 'What you are pushing' })).toHaveCount(0);
   });

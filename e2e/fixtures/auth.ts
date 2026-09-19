@@ -103,6 +103,8 @@ export interface CreateUserOptions {
    */
   id?: string;
   onboarded?: boolean;
+  /** 'trainer' for an account that writes plans; set by hand in production. */
+  role?: 'athlete' | 'trainer';
   /**
    * Also writes the copied exercise rows every account had before the library
    * became the catalogue, each under a random id, and logs `history` and
@@ -127,6 +129,24 @@ export interface CreateUserOptions {
    * weeks ago" — the dumbbell convention's cutover is one.
    */
   sets?: readonly DatedSet[];
+  /**
+   * Bodyweight readings on fixed dates. A weigh-in through the page is dated
+   * today, so it gives every week before this one no strength index at all —
+   * and whether the chart then has a second point depends on the weekday. A
+   * test about the index's change over time needs a reading in the past.
+   */
+  bodyWeights?: readonly { date: string; kg: number }[];
+  /**
+   * Goals already set, on fixed dates — for one that has ended, which no test
+   * could reach through the form: the shortest horizon it offers is 8 weeks.
+   */
+  goals?: readonly {
+    exercise: string;
+    target: number;
+    baseline: number;
+    startedOn: string;
+    targetDate: string;
+  }[];
   /**
    * The profile's answer about sex. Every real account starts at
    * 'unspecified' and onboarding never asks, which is why it is the default —
@@ -195,10 +215,11 @@ export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser
 
     const id = opts.id ?? randomUUID();
     const email = `e2e-${id.slice(0, 8)}@example.test`;
-    await client.query('INSERT INTO "user" (id, name, email) VALUES ($1, $2, $3)', [
+    await client.query('INSERT INTO "user" (id, name, email, role) VALUES ($1, $2, $3, $4)', [
       id,
       'E2E User',
       email,
+      opts.role ?? 'athlete',
     ]);
 
     const sessionToken = randomUUID();
@@ -375,6 +396,31 @@ export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser
         `INSERT INTO set_logs (id, user_id, updated_at, deleted_at, seq, date, session, exercise_id, set_no, weight, reps, rir, note)
          VALUES ($1,$2,$3,NULL,nextval('change_seq'),$4,'A',$5,$6,$7,$8,$9,'')`,
         [randomUUID(), id, now, s.date, exerciseIdOf(s.exercise), i + 1, s.weight, s.reps, s.rir],
+      );
+    }
+
+    for (const b of opts.bodyWeights ?? []) {
+      await client.query(
+        `INSERT INTO body_logs (id, user_id, updated_at, deleted_at, seq, date, weight, note)
+         VALUES ($1,$2,$3,NULL,nextval('change_seq'),$4,$5,'')`,
+        [randomUUID(), id, now, b.date, b.kg],
+      );
+    }
+
+    for (const g of opts.goals ?? []) {
+      await client.query(
+        `INSERT INTO goals (id, user_id, updated_at, deleted_at, seq, exercise_id, target, baseline, started_on, target_date, retired_at)
+         VALUES ($1,$2,$3,NULL,nextval('change_seq'),$4,$5,$6,$7,$8,NULL)`,
+        [
+          randomUUID(),
+          id,
+          now,
+          exerciseIdOf(g.exercise),
+          g.target,
+          g.baseline,
+          g.startedOn,
+          g.targetDate,
+        ],
       );
     }
 
