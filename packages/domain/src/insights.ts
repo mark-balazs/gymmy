@@ -500,8 +500,9 @@ export interface TrainedDay {
  * Taking first-appearance from that reads as a shuffle. `updatedAt` is the
  * moment a set was logged, which for a real account *is* the order it was
  * performed in, so that is what decides it. Where those tie — a seeded history
- * that stamps a whole day at once — the plan's own order is the tiebreak: it is
- * display order only, and the alternative is arbitrary.
+ * that stamps a whole day at once — the plan's own order is the tiebreak: the
+ * day that was trained first, slot by slot, then the rest of the week by day and
+ * slot. It is display order only, and the alternative is arbitrary.
  */
 export function dayDetail(ix: Indexed, date: string): TrainedDay | null {
   const logs = ix.logs.filter((l) => l.date === date);
@@ -518,15 +519,34 @@ export function dayDetail(ix: Indexed, date: string): TrainedDay | null {
     if (!seen || log.updatedAt < seen) startedAt.set(log.exerciseId, log.updatedAt);
   }
 
-  const planned = new Map(ix.entries.map((e, i) => [e.exerciseId ?? '', i]));
-  const order = [...byExercise.keys()].sort(
-    (a, b) =>
-      (startedAt.get(a) ?? '').localeCompare(startedAt.get(b) ?? '') ||
-      (planned.get(a) ?? Infinity) - (planned.get(b) ?? Infinity),
-  );
-
   const sessions = new Set(logs.map((l) => l.session));
   const only = sessions.size === 1 ? [...sessions][0]! : null;
+
+  /* The plan's order, built rather than read off `ix.entries`: those arrive in
+     store order, which is random-UUID order, so their index in the array was no
+     order at all. The day this date was comes first, so a day-B sheet reads in
+     day B's order, as its cards did on Train. An exercise planned twice takes
+     its first place. */
+  const day = only === null ? null : planDayOf(only);
+  const LAST = Number.MAX_SAFE_INTEGER;
+  const slotAt = (slotId: string) => ix.slotById.get(slotId)?.position ?? LAST;
+  const planned = new Map<string, number>();
+  ix.entries
+    .slice()
+    .sort(
+      (a, b) =>
+        Number(b.sessionIndex === day) - Number(a.sessionIndex === day) ||
+        a.sessionIndex - b.sessionIndex ||
+        slotAt(a.slotId) - slotAt(b.slotId),
+    )
+    .forEach((e, i) => {
+      if (e.exerciseId !== null && !planned.has(e.exerciseId)) planned.set(e.exerciseId, i);
+    });
+  const rank = (id: string) => planned.get(id) ?? LAST;
+
+  const order = [...byExercise.keys()].sort(
+    (a, b) => (startedAt.get(a) ?? '').localeCompare(startedAt.get(b) ?? '') || rank(a) - rank(b),
+  );
 
   return {
     date,

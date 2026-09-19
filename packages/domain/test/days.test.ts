@@ -102,6 +102,67 @@ describe('dayDetail', () => {
     ]);
   });
 
+  describe('when sets share a time', () => {
+    /* A seeded history stamps a whole day with one time, so the order the sets
+       were started cannot decide it and the plan's own order must. The plan
+       arrives from the store in random-UUID order, so the two orders below are
+       both ones the store can hand back; the answer must not depend on which.
+       Every log is on one stamp here, through `logsFor`. */
+    const [first, second] = index(snap).slots.filter((s) => s.sessionIndex === 0);
+    const [firstB, secondB] = index(snap).slots.filter((s) => s.sessionIndex === 1);
+    const entry = (sessionIndex: number, slotId: string, exerciseId: string) => ({
+      id: `entry-${sessionIndex}-${slotId}`,
+      updatedAt: '2026-09-01T00:00:00.000Z',
+      deletedAt: null,
+      sessionIndex,
+      slotId,
+      exerciseId,
+      sets: 3,
+      repRange: '6-12',
+      startWeight: null,
+      note: '',
+    });
+    const names = (ix: ReturnType<typeof index>) =>
+      dayDetail(ix, '2026-09-07')!.exercises.map((e) => e.exercise.name);
+
+    it('lists them in the plan’s order, whatever order the plan comes back in', () => {
+      // Day A plans the squat first and the bench second.
+      const plan = [entry(0, first!.id, squat.id), entry(0, second!.id, bench.id)];
+      const logs = [
+        ...logsFor(bench.id, [{ weight: 80, reps: 5, rir: 1 }]),
+        ...logsFor(squat.id, [{ weight: 60, reps: 8, rir: 2 }]),
+      ];
+      for (const entries of [plan, [...plan].reverse()]) {
+        expect(names(index({ ...snap, entries, logs }))).toEqual([
+          'Goblet Squat',
+          'Barbell Bench Press',
+        ]);
+      }
+    });
+
+    it('follows the day that was trained when another day orders them differently', () => {
+      /* Day A plans the bench before the squat, day B the squat before the
+         bench. A day-B sheet follows day B, the order its own cards were in
+         on Train — not whichever day happens to come first in the week. */
+      const entries = [
+        entry(0, first!.id, bench.id),
+        entry(0, second!.id, squat.id),
+        entry(1, firstB!.id, squat.id),
+        entry(1, secondB!.id, bench.id),
+      ];
+      const logs = [
+        ...logsFor(bench.id, [{ weight: 80, reps: 5, rir: 1 }]),
+        ...logsFor(squat.id, [{ weight: 60, reps: 8, rir: 2 }]),
+      ].map((l) => ({ ...l, session: 'B' }));
+      for (const order of [entries, [...entries].reverse()]) {
+        expect(names(index({ ...snap, entries: order, logs }))).toEqual([
+          'Goblet Squat',
+          'Barbell Bench Press',
+        ]);
+      }
+    });
+  });
+
   it('still shows an exercise that has since left the plan, even once retired', () => {
     /* The plan is rebuilt on every split change; the history is not. The first
        version of this had no plan at all, so "left the plan" was never set up.
