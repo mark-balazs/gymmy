@@ -533,22 +533,31 @@ export function blockWeeks(blockStart: string, weeks: number): string[] {
 }
 
 /**
- * The weeks the Week tab pages through: from the first week of the account's
- * block up to this week, and always the whole first block.
+ * The weeks the Week tab pages through: every week from the earliest of the
+ * block start, the first logged set and this week, to the later of the block's
+ * last week and this week.
  *
- * The block is written once, when the account is made, and never moves on. The
- * tab used to page through that block alone, so from week nine, or a week after
- * the demo was seeded, this week was not a page at all: the tab opened on the
- * account's first week and could not reach today. Built around today instead, so
- * this week is always the last page, or inside the first block. A block that
- * starts after today, which only a phone clock set ahead can produce, starts this
- * week instead.
+ * The block is written once, when the account is made, and never moves on, so
+ * paging through the block alone lost this week from week nine. And the block
+ * start alone does not reach every set. The server writes it from its own clock,
+ * in UTC, so someone west of UTC who signs up on a Sunday evening gets the next
+ * Monday; and Train can log a set on any past date. Either way a set sat in a
+ * week before the first page, and nothing could reach it.
+ *
+ * `firstSet` is the date of the earliest logged set, if there is one.
  */
-export function weekPages(blockStart: string, blockLength: number, today: Date | string): string[] {
+export function weekPages(
+  blockStart: string,
+  blockLength: number,
+  today: Date | string,
+  firstSet: string | undefined,
+): string[] {
   const thisWeek = mondayOf(today);
-  const start = mondayOf(blockStart) < thisWeek ? mondayOf(blockStart) : thisWeek;
-  const weeksToToday = daysBetween(start, thisWeek) / 7 + 1;
-  return blockWeeks(start, Math.max(blockLength, weeksToToday));
+  const block = mondayOf(blockStart);
+  const blockEnd = addDays(block, 7 * (blockLength - 1));
+  const start = [block, thisWeek, ...(firstSet ? [mondayOf(firstSet)] : [])].sort()[0]!;
+  const end = blockEnd > thisWeek ? blockEnd : thisWeek;
+  return blockWeeks(start, daysBetween(start, end) / 7 + 1);
 }
 
 export function weekCoverage(ix: Indexed, weekOf: string): WeekCoverage {

@@ -102,12 +102,13 @@ describe('weeks', () => {
   /* The Week tab pages through these. The block is written once, when the
    * account is made, and never moves on — so paging through the block alone
    * lost this week from week nine, and the tab opened on the account's first
-   * week with no way forward to today. */
+   * week with no way forward to today. Nor does the block start reach every
+   * set: a set can sit in a week before it (GYM-77). */
   describe('the Week tab’s pages', () => {
     const today = '2026-09-17'; // a Thursday; its week starts 2026-09-14
 
     it('reach this week once the first block is over', () => {
-      const pages = weekPages('2026-07-06', 8, today); // ten weeks back
+      const pages = weekPages('2026-07-06', 8, today, '2026-07-07'); // ten weeks back
       expect(pages[0]).toBe('2026-07-06');
       expect(pages.at(-1)).toBe('2026-09-14');
       expect(pages).toHaveLength(11);
@@ -118,22 +119,53 @@ describe('weeks', () => {
     it('reach this week on the demo, a week after it was seeded', () => {
       // Seeded 22 weeks back with a 23-week block, which ended last week.
       const seeded = '2026-09-07';
-      const pages = weekPages(addDays(seeded, -7 * 22), 23, today);
+      const pages = weekPages(addDays(seeded, -7 * 22), 23, today, addDays(seeded, -7 * 22));
       expect(pages.at(-1)).toBe('2026-09-14');
       expect(pages).toHaveLength(24);
     });
 
     it('keep the whole first block while the account is inside it', () => {
-      // Unchanged for a young account: its eight weeks, this one among them.
-      expect(weekPages('2026-08-31', 8, today)).toEqual(blockWeeks('2026-08-31', 8));
-      expect(weekPages('2026-08-31', 8, today)).toContain('2026-09-14');
+      // Unchanged for a young account: its eight weeks, this one among them —
+      // with no sets yet, or with sets inside the block.
+      expect(weekPages('2026-08-31', 8, today, undefined)).toEqual(blockWeeks('2026-08-31', 8));
+      expect(weekPages('2026-08-31', 8, today, '2026-09-02')).toEqual(blockWeeks('2026-08-31', 8));
+      expect(weekPages('2026-08-31', 8, today, undefined)).toContain('2026-09-14');
     });
 
-    it('include this week when the block starts after it', () => {
-      // Only a phone clock set ahead can write a block start in the future.
-      const pages = weekPages('2026-10-05', 8, today);
+    it('reach the sign-up week when the block starts the Monday after it', () => {
+      /* The server writes the block start from its own clock, in UTC. Someone
+         west of UTC who signs up on Sunday 13 September at 9 pm is already on
+         Monday 14th there, so their block starts the week after they joined —
+         and the set they logged that evening sits in a week before it. */
+      const block = '2026-09-14';
+      const signedUp = '2026-09-13';
+
+      // That Sunday evening: the block starts after today.
+      const sunday = weekPages(block, 8, signedUp, signedUp);
+      expect(sunday[0]).toBe('2026-09-07');
+      expect(sunday).toContain('2026-09-14');
+
+      // And from the Monday on, when the old pages began at the block.
+      const later = weekPages(block, 8, today, signedUp);
+      expect(later[0]).toBe('2026-09-07');
+      expect(later.at(-1)).toBe(blockWeeks(block, 8).at(-1));
+      expect(later).toHaveLength(9);
+    });
+
+    it('reach a set logged on a date before the account began', () => {
+      // Train's date box takes any past date.
+      const pages = weekPages('2026-08-31', 8, today, '2026-06-10');
+      expect(pages[0]).toBe('2026-06-08');
+      expect(pages.at(-1)).toBe(blockWeeks('2026-08-31', 8).at(-1));
+      pages.slice(1).forEach((w, i) => expect(w).toBe(addDays(pages[i]!, 7)));
+    });
+
+    it('include this week, and the whole block, when the block starts after it', () => {
+      // The UTC case above, seen from inside the sign-up week before any set.
+      const pages = weekPages('2026-09-21', 8, today, undefined);
       expect(pages[0]).toBe('2026-09-14');
-      expect(pages).toHaveLength(8);
+      expect(pages.at(-1)).toBe(blockWeeks('2026-09-21', 8).at(-1));
+      expect(pages).toHaveLength(9);
     });
   });
 

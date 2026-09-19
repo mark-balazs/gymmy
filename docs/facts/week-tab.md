@@ -9,4 +9,4 @@ appears:
   confluence: ["934543418", "934608916", "934608935"]
 ---
 
-The Week tab opens on this week and pages back to the week the account began; a new account can also page ahead through its first eight weeks. It shows the week's coverage in words, a tile per movement the split in force asks for and the session count, then the plan day by day. A swap (the same searchable picker as 'Log something else') keeps the movement in most slots, but a full-body day's big-lift slots and every finisher offer any lower, upper or core movement, so a swap there can change coverage.
+The Week tab opens on this week and pages back to the week the account began, or to the first logged set if that is earlier; a new account can also page ahead through its first eight weeks. It shows the week's coverage in words, a tile per movement the split in force asks for and the session count, then the plan day by day. A swap (the same searchable picker as 'Log something else') keeps the movement in most slots, but a full-body day's big-lift slots and every finisher offer any lower, upper or core movement, so a swap there can change coverage.

@@ -22,10 +22,12 @@ export default function WeekPage() {
   const blockLen = profile?.blockWeeks ?? DEFAULT_PREFS.blockWeeks;
 
   const thisWeek = mondayOf(new Date());
-  // Always includes this week, however long ago the block began — see weekPages.
+  // Always includes this week and the week of the first logged set, however
+  // either sits against the block — see weekPages.
+  const firstSet = ix.logs[0]?.date;
   const weeks = useMemo(
-    () => weekPages(profile?.blockStart ?? thisWeek, blockLen, thisWeek),
-    [profile?.blockStart, blockLen, thisWeek],
+    () => weekPages(profile?.blockStart ?? thisWeek, blockLen, thisWeek, firstSet),
+    [profile?.blockStart, blockLen, thisWeek, firstSet],
   );
   const [week, setWeek] = useState(thisWeek);
   const idx = Math.max(0, weeks.indexOf(week));

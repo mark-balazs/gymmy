@@ -1,5 +1,6 @@
 /** Flow 03 — see ../flows/03-weekly-coverage.md */
 
+import { thisMonday } from '../fixtures/auth';
 import { expect, logSet, openCard, signInAs, test } from '../fixtures/test';
 
 test.describe('Weekly coverage', () => {
@@ -83,6 +84,38 @@ test.describe('Weekly coverage', () => {
       await page.getByRole('button', { name: 'Back', exact: true }).click();
     await expect(page.getByText('Week 1', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Back', exact: true })).toBeDisabled();
+    const tiles = page.getByRole('list', { name: 'Movement coverage' });
+    await expect(tiles.getByRole('listitem').filter({ hasText: 'Squat' })).toContainText('✓');
+  });
+
+  test('a set logged before the account’s block began is still a page', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* GYM-77. The server writes the block start from its own clock, in UTC,
+       so someone west of UTC who signs up on a Sunday evening gets the next
+       Monday — and the set they logged that evening sits in the week before
+       the block. (Train can also log a set on any past date.) The Week tab
+       paged from the block start, so that week was never a page. The fixture
+       writes exactly that: a block starting this Monday, and a squat logged
+       the Sunday before. */
+    const d = new Date(`${thisMonday()}T12:00:00`);
+    d.setDate(d.getDate() - 1);
+    const sunday = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    await signInAs(page, context, baseURL!, {
+      onboarded: true,
+      sets: [{ date: sunday, exercise: 'Goblet Squat', weight: 40, reps: 8, rir: 2 }],
+    });
+    await page.getByRole('link', { name: 'Week', exact: true }).click();
+    await page.waitForURL('**/week');
+    await expect(page.getByText('This week', { exact: true })).toBeVisible();
+
+    const back = page.getByRole('button', { name: 'Back', exact: true });
+    await expect(back).toBeEnabled();
+    await back.click();
+    await expect(page.getByText('Week 1', { exact: true })).toBeVisible();
+    await expect(back).toBeDisabled();
     const tiles = page.getByRole('list', { name: 'Movement coverage' });
     await expect(tiles.getByRole('listitem').filter({ hasText: 'Squat' })).toContainText('✓');
   });
