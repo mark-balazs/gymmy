@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  GOAL_HORIZONS,
   SEED_PATTERNS,
   addDays,
+  daysBetween,
   toEntered,
   loadClassOf,
   attention,
@@ -523,6 +525,15 @@ describe('the demo goals', () => {
       expect(check.reason, g.exerciseId).toBeNull();
       expect(check.warning, `${g.exerciseId}: ${g.baseline} → ${g.target}`).toBeNull();
     });
+  });
+
+  it('runs a horizon the goal sheet offers', () => {
+    /* A goal the app wrote itself should still be one a person could have
+       set, and the sheet offers only these horizons. */
+    for (const g of goals) {
+      const weeks = daysBetween(g.startedOn, g.targetDate) / 7;
+      expect(GOAL_HORIZONS, `${g.exerciseId}: ${weeks} weeks`).toContain(weeks);
+    }
   });
 
   it('is still running, with weeks left to watch', () => {

@@ -3,9 +3,9 @@ id: goal-entry-point
 status: current
 decided: "D-012; Confluence 934608916"
 appears:
-  repo: ["apps/web/src/components/goal.tsx"]
+  repo: ["apps/web/src/components/goal.tsx", "packages/domain/src/goals.ts"]
   copy: ["goal.set", "goal.target", "goal.weeks", "goal.weeksN.one", "goal.weeksN.other", "goal.nowAt", "goal.save"]
-  tests: ["e2e/tests/goals.spec.ts", "packages/domain/test/goals.test.ts"]
+  tests: ["e2e/tests/goals.spec.ts", "packages/domain/test/goals.test.ts", "apps/web/src/lib/db/demo-history.test.ts"]
   confluence: ["934608916", "934543399"]
 ---
 

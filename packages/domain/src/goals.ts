@@ -180,6 +180,12 @@ export const MIN_DISTANCE = 0.05;
 export const MIN_WEEKS = 8;
 /** Beyond this a "goal" is a hope, and the app would be nagging for a year. */
 export const MAX_WEEKS = 52;
+/**
+ * The horizons the goal sheet offers, and so the only ones a person can pick.
+ * A goal the app writes itself (the demo's) runs one of these too, or it is a
+ * goal nobody could have set.
+ */
+export const GOAL_HORIZONS = [MIN_WEEKS, 12, 16, 24, MAX_WEEKS] as const;
 /** You cannot ask to be pushed on everything. Three is a focus; eight is a mood. */
 export const MAX_LIVE_GOALS = 3;
 

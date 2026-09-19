@@ -38,7 +38,7 @@
  * history, which is what lets the whole seed be safely re-run — see seed-user.
  */
 
-import { est1RM, loadRuleOf, sessionLabel } from '@athletic/domain';
+import { est1RM, loadRuleOf, sessionLabel, type GOAL_HORIZONS } from '@athletic/domain';
 import { BY_PATTERN, DEMO_LOADS, type DemoArc, type DemoLoad } from './demo-loads';
 
 /** Roughly five months. Long enough for the progress charts to have a shape
@@ -395,8 +395,12 @@ const GOAL_PLAN: { want: DemoArc['kind'] | null; weeksAgo: number }[] = [
   { want: null, weeksAgo: 3 },
 ];
 
-/** Long enough to clear the app's own eight-week minimum comfortably. */
-const GOAL_WEEKS = 14;
+/**
+ * One of the horizons the goal sheet offers, or the demo shows a goal nobody
+ * could have set. Sixteen leaves the stalled goal ten weeks to run when the
+ * account is seeded, so the demo keeps its story between resets.
+ */
+const GOAL_WEEKS: (typeof GOAL_HORIZONS)[number] = 16;
 /**
  * Seven percent: past the 5% floor, and short of the ambition warning.
  *

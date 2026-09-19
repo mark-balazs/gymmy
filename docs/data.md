@@ -398,6 +398,8 @@ and `seed-demo.ts` reads the plan back with exactly that `ORDER BY`. Without
 it the choice was Postgres's, and a re-seed could pick another lift and write
 a third goal. Each baseline is the lift's best in the eight weeks before the
 goal, and each goal is as old as it can be without arriving already reached.
+Each runs **16 weeks**, one of the horizons the goal sheet offers, so a person
+could have set it; that leaves the stalled one ten weeks to run when seeded.
 The target is **7%** up: past the 5% floor and under
 the 7.5% at which the goal sheet warns "ambitious" for a lift gaining slowly.
 8% tripped that warning on both, so the demo showed goals the app itself called

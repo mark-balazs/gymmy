@@ -1,6 +1,7 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import {
   EVIDENCE,
+  GOAL_HORIZONS,
   MAX_LIVE_GOALS,
   MIN_DISTANCE,
   addDays,
@@ -238,7 +239,7 @@ describe('the guardrails', () => {
     // The round trip's baselines plus light ones, on every horizon the sheet
     // offers, with no history, a flat one and a fast one.
     for (const baseline of [100, 101, 41, 57.3, 20.1, 13, 9.5]) {
-      for (const weeks of [8, 12, 16, 24, 52]) {
+      for (const weeks of GOAL_HORIZONS) {
         for (const gain of [null, 0, 0.05, 0.2]) {
           const check = ask(baseline, weeks, gain, offered(baseline, weeks, gain));
           const label = `${baseline} over ${weeks} weeks, gain ${gain}`;

@@ -26,8 +26,8 @@ import { Button, Card, Chip, InfoButton, Sheet, Summary, cn } from '@/components
 import { useSnapshot, useT, useToday } from '@/lib/client/hooks';
 import { fireAndForget, retireGoal, setGoal } from '@/lib/client/mutations';
 import {
+  GOAL_HORIZONS,
   MAX_LIVE_GOALS,
-  MAX_WEEKS,
   MIN_WEEKS,
   addDays,
   checkGoal,
@@ -40,9 +40,6 @@ import {
   type Goal,
   type GoalProgress,
 } from '@athletic/domain';
-
-/** The horizons offered. Eight is the floor; a year is the ceiling. */
-const WEEK_OPTIONS = [MIN_WEEKS, 12, 16, 24, MAX_WEEKS] as const;
 
 /** How long an ended goal keeps its place on the card, waiting to be read. */
 const LINGER_DAYS = 21;
@@ -204,7 +201,7 @@ export function GoalForm({
               {tr.t('goal.weeks')}
             </legend>
             <div className="flex flex-wrap gap-1.5">
-              {WEEK_OPTIONS.map((w) => (
+              {GOAL_HORIZONS.map((w) => (
                 <button
                   key={w}
                   type="button"
