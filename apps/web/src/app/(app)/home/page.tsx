@@ -15,7 +15,7 @@
  * on behalf of somebody it cannot see. See Decision log D-014.
  */
 
-import Link from 'next/link';
+import { NavLink } from '@/components/navigate';
 import { useMemo } from 'react';
 import { Card, Chip, Summary, buttonClass, cn } from '@/components/ui';
 import { Page } from '@/components/page';
@@ -86,9 +86,9 @@ export default function HomePage() {
               ))}
             </div>
 
-            <Link href="/train" className={buttonClass('primary', 'w-full')}>
+            <NavLink href="/train" className={buttonClass('primary', 'w-full')}>
               {started ? tr.count('home.continue', total, { done }) : tr.t('home.start')}
-            </Link>
+            </NavLink>
           </>
         )}
       </Card>
@@ -96,9 +96,9 @@ export default function HomePage() {
       <Card className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between gap-2">
           <h2 className="text-[17px] font-semibold">{tr.t('home.thisWeek')}</h2>
-          <Link href="/week" className="text-xs font-semibold text-[var(--color-accent)]">
+          <NavLink href="/week" className="text-xs font-semibold text-[var(--color-accent)]">
             {tr.t('home.seeWeek')}
-          </Link>
+          </NavLink>
         </div>
 
         <Summary tone={cov.complete ? 'good' : cov.sessions === 0 ? 'idle' : 'near'}>

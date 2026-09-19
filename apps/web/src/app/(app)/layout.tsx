@@ -7,13 +7,20 @@
  * IndexedDB. On a fresh device that store is empty until the first sync lands,
  * so "no profile yet" means *loading*, not "needs onboarding" — getting that
  * backwards would throw a returning user back through setup.
+ *
+ * It is also what makes every page's first render a real one. The local
+ * database is read once for the whole app (`lib/client/live.ts`), this layout
+ * holds that read open for as long as the app is on screen, and no page is
+ * drawn until it has landed. So a tab mounted by a navigation already has its
+ * data in the frame the slide carries, and nothing chosen on a first render —
+ * the day Train opens on — is chosen from an empty database.
  */
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
 import { Recovery } from '@/components/recovery';
-import { useProfile, useSyncStatus, useT } from '@/lib/client/hooks';
+import { useProfile, useSnapshotStatus, useSyncStatus, useT } from '@/lib/client/hooks';
 import { startSync, sync } from '@/lib/client/sync';
 
 /** Long enough that a slow first sync is not mistaken for a wedged app, short
@@ -21,6 +28,7 @@ import { startSync, sync } from '@/lib/client/sync';
 const STUCK_AFTER_MS = 12_000;
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
+  const read = useSnapshotStatus();
   const profile = useProfile();
   const status = useSyncStatus();
   const router = useRouter();
@@ -39,11 +47,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (profile && !profile.onboarded) router.replace('/onboarding');
   }, [profile, router]);
 
+  const waiting = !profile && read !== 'failed';
+
   useEffect(() => {
-    if (profile) return;
+    if (!waiting) return;
     const timer = setTimeout(() => setStuck(true), STUCK_AFTER_MS);
     return () => clearTimeout(timer);
-  }, [profile]);
+  }, [waiting]);
+
+  // A read that failed is not waited on: the page's own read throws it into
+  // `error.tsx`, which says so and offers to try again.
+  if (read === 'failed') return <AppShell>{children}</AppShell>;
 
   if (!profile) {
     /**

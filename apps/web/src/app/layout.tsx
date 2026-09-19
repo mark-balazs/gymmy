@@ -4,6 +4,7 @@ import { ServiceWorkerRegister } from '@/components/sw-register';
 import { HtmlLang } from '@/components/html-lang';
 import { HtmlTheme } from '@/components/html-theme';
 import { BOOT_WATCHDOG, BootSignal } from '@/components/boot-watchdog';
+import { HISTORY_FIRST } from '@/components/history-first';
 
 export const metadata: Metadata = {
   title: 'gymmy',
@@ -43,6 +44,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             fails to load there is no React, no boundary and no way out without
             it. See components/boot-watchdog.tsx. */}
         <script dangerouslySetInnerHTML={{ __html: BOOT_WATCHDOG }} />
+        {/* Also before any bundle, and for the same reason of order: the app's
+            Back has to be heard before Next's. See components/history-first.ts. */}
+        <script dangerouslySetInnerHTML={{ __html: HISTORY_FIRST }} />
         <BootSignal />
         {children}
         <HtmlLang />

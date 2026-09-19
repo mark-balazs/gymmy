@@ -70,6 +70,7 @@ second implementation to disagree with the first.
 | `packages/domain/src/catalogue.ts` `catalogue-ids.ts` `details.ts` | The exercise library, shared by every account and authored in code; the append-only record of published ids; photos and descriptions |
 | `packages/domain/src/seed.ts` | A new account's patterns and slot skeleton. `SEED_EXERCISES` is a view of the catalogue kept for older seeding code |
 | `apps/web/src/lib/client/` | IndexedDB, the sync engine, every mutation |
+| `apps/web/src/lib/client/live.ts` | The one live read of the local database every screen shares. See [One read for every screen](#one-read-for-every-screen) |
 | `apps/web/src/lib/db/` | Drizzle schema, per-account seeding, the demo |
 | `apps/web/src/lib/db/demo-history.ts` | Pure: the demo account's training, as data points |
 | `apps/web/src/lib/sync/` | The wire contract and per-table row validation |
@@ -79,6 +80,8 @@ second implementation to disagree with the first.
 | `apps/web/src/components/` | The UI kit, the charts, the calendar, the sheets, the lightbox, the profile card, the recovery screens |
 | `apps/web/src/components/entry/` | Train's number controls — buttons, the ruler, the plate loader, gymmy's keypad — and the card's open/close. `rolling-number.tsx` rolls a changed digit in from the way the number moved |
 | `apps/web/src/components/motion.ts` | The motion tokens for JavaScript — easings, durations, reduced motion. See [Motion](#motion) |
+| `apps/web/src/components/tabs.ts` `navigate.tsx` `history-first.ts` | The tabs and where every screen sits among them; every move between screens (`NavLink`, `useMove`), its direction and what it does to the history; Back and Forward as moves. See [Moving between tabs](#moving-between-tabs) |
+| `apps/web/src/components/swipe-tabs.ts` `swipe.ts` | The swipe between tabs that follows the finger, and its arithmetic (axis lock, resistance, when letting go commits, how long the rest takes) |
 | `apps/web/src/components/info-tip.tsx` `place-tip.ts` | The ⓘ that holds an explanation instead of a paragraph on the screen, and where its popover goes. See [Explanations behind an info button](#explanations-behind-an-info-button) |
 | `apps/web/src/components/switch.tsx` | An on/off setting, as the platform's own `<input type="checkbox" switch>` |
 
@@ -114,8 +117,9 @@ sequenceDiagram
    that skips `put()` does so on purpose: `rememberBar`, the bar weight picked
    on a barbell card, goes to the local `meta` table only — it describes a
    gym's equipment, not training, and is not meant to reach the server.
-2. The UI re-renders from the local write. `useLiveQuery` is watching, so this
-   is immediate and does not wait on anything.
+2. The UI re-renders from the local write. The app's one live read of the
+   database is watching (see [One read for every screen](#one-read-for-every-screen)),
+   so this is immediate and does not wait on anything.
 3. `sync.ts` debounces ~800ms, then posts the outbox to `/api/sync` along with
    the client's cursor.
 4. The server validates each row against `lib/sync/rows.ts`, upserts it with
@@ -225,6 +229,35 @@ something got somebody stuck:
 - **Seed repair in `/api/sync`** — an account with no rows gets seeded on the
   spot. See [data.md](./data.md#seeding).
 
+## One read for every screen
+
+The whole local database is read once for the app, not once per screen
+(`lib/client/live.ts`, used by `useSnapshot` and `useProfile` in `hooks.ts`).
+The `(app)` layout keeps that read open for as long as the app is on screen and
+draws no page until it has landed.
+
+- **Why:** a fresh read has nothing on its first render, and a page's first
+  render is the one a navigation slides in. With a read per page, every tab
+  slid in empty ("Log a few sessions…", "Loading…") and filled in afterwards —
+  and Train chose its day from that empty render and kept it, so after a
+  reload it always opened on Day A (GYM-13, `opening-a-tab.spec.ts`).
+- **The profile comes from the same read**, kept as the same object while it
+  says the same thing, so a page never sees a profile and training from two
+  different moments, and logging a set does not re-render everything that
+  only reads the language.
+- **The index** (`index(snapshot)`) is worked out once per read, not once per
+  screen.
+- **The read outlives its last listener by a second**, so the moment between
+  one screen unmounting and the next subscribing does not restart it, and is
+  then forgotten, so nothing stale survives a sign-out.
+- **A failed read** is not waited on: the layout draws the page, the page's
+  `useSnapshot` throws it into `error.tsx`, and that throw starts a fresh read
+  for "Try again". `live.test.ts` pins all of this without IndexedDB.
+
+A page may still check `ready`, but inside `(app)` it is always true. Anything
+chosen once on a first render (Train's day) depends on that — do not move a
+page outside the layout's gate without it.
+
 ## Moving between tabs
 
 Tabs slide, and the direction carries meaning: left is forward, right is back.
@@ -235,13 +268,57 @@ same journey.
   **It lives in the page, not the layout** — a layout persists across
   navigation, so its enter and exit animations never fire. Only something that
   genuinely unmounts can be animated out.
-- The direction is a *transition type*: `transitionTypes` on the tab `<Link>`,
-  and the same on `router.push` for a swipe. `default: 'none'` means a
-  navigation carrying no type — the browser's back button, `router.refresh()`,
-  a Suspense reveal — does not slide, because it was not a move.
+- The direction is a *transition type* (`nav-forward`, `nav-back`), and
+  **every** move between screens carries one: `NavLink` and `useMove()` in
+  `components/navigate.tsx` work it out from `tabs.ts` — a tab to the right is
+  forward, into a screen is forward, out of one is back. No link to another
+  screen is a bare `<Link>`. `default: 'none'` means a navigation with no type
+  (`router.refresh()`, a Suspense reveal) does not slide.
+- **Tabs do not stack up in history.** A move between tabs replaces the entry;
+  going into a screen inside a tab (`/settings/split`, `/coach`) pushes one;
+  leaving that screen steps back out of it (`history.back()`, then a replace
+  if the destination is another tab), so Back leaves the screen and then the
+  app. Whether the entry under a screen is its tab is known only if this page
+  load opened it; after a reload it is replaced instead. `historyFor` in
+  `tabs.ts` holds the rule, `tabs.test.ts` the cases, `navigation.spec.ts`
+  the browser.
+- **Back and Forward slide too.** Next.js restores them synchronously, outside
+  any transition, so they never animated. `useHistorySlides` takes them over:
+  it stops Next's `popstate` listener and navigates to the same place as a
+  typed replace. To be heard first it goes through a listener the root layout
+  inlines ahead of every bundle (`history-first.ts`) — see
+  [Things that will surprise you](#things-that-will-surprise-you). A Back the
+  phone animates itself (`hasUAVisualTransition`, iOS's edge swipe) is left
+  alone.
+- **A swipe drags the page** (`components/swipe-tabs.ts`, the arithmetic in
+  `swipe.ts`). After 10 px the drag is sideways or a scroll, decided once;
+  sideways, the transform is written straight onto `[data-page]` (no CSS
+  variable, which would restyle every card each frame) with `will-change`
+  only while a finger is down, and `touchmove` is not passive so it can stop
+  the page scrolling. Past the first or last tab it resists. Letting go moves
+  on after a flick faster than 0.2 px/ms or a drag past 30% of the width,
+  unless the finger was flicking back; otherwise the page springs back on a
+  CSS transition, which a finger can catch mid-way.
+- **A committed swipe carries on from where the page is.** The page is left
+  where the finger let go, so the transition's picture of it is taken there;
+  the move adds a `swipe` type, and `globals.css` carries the old page on to
+  the edge (`--swipe-rest`) in the time the finger's speed gives it
+  (`--swipe-ms`, never longer than `--dur-page`). Left alone: touches within
+  24 px of either edge (the phone's own Back), `[data-no-swipe]`, dialogs, a
+  second finger, and any screen that is not a tab itself. Under reduced motion
+  nothing moves under the finger; the swipe still changes tab, as a crossfade.
 - The header and the tab bar carry their own `viewTransitionName` and are
   pinned. Without a fixed reference the whole viewport appears to move rather
-  than the page inside it.
+  than the page inside it. The title is named apart (`app-title`) and
+  crossfades, linear and `plus-lighter` so an unchanged title stays solid.
+- **The browser skips named elements when it hit-tests during a slide**, the
+  pinned bars included — a second tab tapped mid-slide landed on `<main>` and
+  was lost. `usePinnedTaps` in `app-shell.tsx` hands a click that lands on one
+  of the page's containers, at a point inside a bar, to the control drawn
+  there.
+- **The tab bar's mark is one element** that glides (`translate`, `--dur-page`)
+  to the tab you are on; the bar is drawn live during a slide, so the two move
+  together. It jumps under reduced motion. Tabs take the `press` utility.
 - The flex column that spaces the cards lives on `[data-page]`, not on `<main>`.
   `<main>` persists; spacing applied there would leave the cards travelling
   independently of the box supposed to be carrying them.
@@ -320,9 +397,10 @@ action, consequences before a destructive or replacing action.
 
 ## Things that will surprise you
 
-- **React Compiler is on.** It rejects a `useMemo` whose dependency comes through
-  a cross-package call. Read `DEFAULT_PREFS.days` directly rather than calling
-  `prefs(profile).days` inside a dependency array.
+- **The React Compiler's lint rules are on** (through `eslint-config-next`),
+  though the compiler itself is not installed. They reject a `useMemo` whose
+  dependency comes through a cross-package call. Read `DEFAULT_PREFS.days`
+  directly rather than calling `prefs(profile).days` inside a dependency array.
 - **`next start` serves the last `next build`.** The e2e suite does not rebuild,
   so a UI change tests the *previous* build unless you build first.
 - **`drizzle.config.ts` reads `.env.local` with `override: true`**, but captures
@@ -330,3 +408,10 @@ action, consequences before a destructive or replacing action.
   db:migrate` really does migrate the remote.
 - **Auth.js reads email-callback params from the query string**, never the body.
   This broke email sign-in for the entire life of the feature.
+- **Next.js restores Back and Forward with no transition**, so no
+  `<ViewTransition>` sees them, and **Chrome runs a window's `popstate`
+  listeners in the order they were added, capture or not.** So a listener
+  added by app code — always after Next's, which is added at hydration — can
+  neither stop Next nor make its restore animate. That is why the app's
+  listener is an inline script in the root layout (`history-first.ts`), which
+  hands the event to `window.__gymmyPopstate`.

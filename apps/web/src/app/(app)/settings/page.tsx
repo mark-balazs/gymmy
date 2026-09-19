@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { NavLink } from '@/components/navigate';
 import { useId, useState } from 'react';
 import { Button, Card, Field, Segmented, Sheet, cn } from '@/components/ui';
 import { Page } from '@/components/page';
@@ -58,8 +58,8 @@ const draftOf = (p: Profile | null): Draft => ({
 
 const SPLIT_OPTIONS: SplitKey[] = SPLITS.map((s) => s.key);
 
-/** Compared rather than by object identity: `useLiveQuery` hands back a fresh
- *  object on every IndexedDB write, including ones that change none of this. */
+/** Compared rather than by object identity: the profile is a new object
+ *  whenever any of it changes, including the fields that are none of this. */
 const signatureOf = (d: Draft): string => `${d.split}|${d.days}|${d.where}|${d.bias}`;
 
 export default function SettingsPage() {
@@ -72,8 +72,9 @@ export default function SettingsPage() {
   /**
    * Null until the user touches something, and back to null once applied.
    *
-   * The profile arrives from IndexedDB a tick after the first render, which
-   * breaks the obvious approaches in two different ways. Seeding state from it
+   * The profile can change under the form — it is a live read, and a sync from
+   * another phone rewrites it — and it used to arrive a tick after the first
+   * render, which broke the obvious approaches in two ways. Seeding state from it
    * once (`useState(profile?.days)`) captures `undefined` and shows everyone
    * the defaults forever — so the page claimed "Seven movement patterns, 3
    * days" regardless of what they actually trained, and rebuilding wrote those
@@ -107,12 +108,16 @@ export default function SettingsPage() {
   // Settings you cannot see yet are not settings. Showing the form before the
   // profile lands invites an edit against the defaults, which would then be
   // applied over the real values — the page has to know what you train before
-  // it offers to change it.
+  // it offers to change it. The layout waits for the profile, so this is a
+  // guard rather than a screen anybody sees; it is inside `Page` all the same,
+  // because a first render outside it is a page that cannot slide in.
   if (!profile) {
     return (
-      <Card>
-        <p className="text-[var(--color-muted)]">{tr.t('common.loading')}</p>
-      </Card>
+      <Page>
+        <Card>
+          <p className="text-[var(--color-muted)]">{tr.t('common.loading')}</p>
+        </Card>
+      </Page>
     );
   }
 
@@ -200,7 +205,7 @@ export default function SettingsPage() {
               nothing to apply until the week has actually been arranged. It is
               always offered now; the old picker revealed it only once you had a
               custom split already, which no screen could give you. */}
-          <Link
+          <NavLink
             href="/settings/split"
             className={cn(
               'flex items-center gap-3 rounded-[11px] border bg-[var(--color-surface-2)] px-3.5 py-3',
@@ -221,7 +226,7 @@ export default function SettingsPage() {
             <span aria-hidden className="text-[var(--color-muted)]">
               ›
             </span>
-          </Link>
+          </NavLink>
         </div>
       </Card>
 
@@ -241,12 +246,12 @@ export default function SettingsPage() {
               {tr.count('sub.daysPerWeek', days)}{' '}
               <span className="text-[var(--color-muted)]">{tr.t('set.daysCustom')}</span>
             </p>
-            <Link
+            <NavLink
               href="/settings/split"
               className="text-xs font-semibold text-[var(--color-accent)]"
             >
               {tr.t('set.editSplit')}
-            </Link>
+            </NavLink>
           </div>
         ) : (
           <Field label={tr.t('set.days')}>

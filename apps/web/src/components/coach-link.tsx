@@ -14,7 +14,7 @@
  * anything at all.
  */
 
-import Link from 'next/link';
+import { NavLink } from '@/components/navigate';
 import { useEffect, useState } from 'react';
 import { Card, buttonClass } from '@/components/ui';
 import { useT } from '@/lib/client/hooks';
@@ -42,9 +42,9 @@ export function CoachLink() {
     <Card className="flex flex-col gap-3">
       <h2 className="text-[17px] font-semibold">{t('coach.title')}</h2>
       <p className="text-sm text-[var(--color-muted)]">{t('coach.openBody')}</p>
-      <Link href="/coach" className={buttonClass('default', 'w-full')}>
+      <NavLink href="/coach" className={buttonClass('default', 'w-full')}>
         {t('coach.open')}
-      </Link>
+      </NavLink>
     </Card>
   );
 }
