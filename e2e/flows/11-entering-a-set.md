@@ -77,6 +77,9 @@ header and the tab bar of a 640 px phone.
   `toBeChecked`, not an `aria-checked` attribute.
 - **Bodyweight "None" is logged as no added weight.**
 - **Nothing scrolls sideways** on a 360 px screen, in any style.
+- **The keypad fits a phone on its side**: at 915×412 and 667×320 it is all on
+  screen, Cancel and Done included, with keys still 44 px or taller — the
+  number and Done move beside the keys instead of above and below them.
 - **Moving between exercises**:
   - finishing one brings the next into view, log button above the tab bar;
   - on a phone too short for the card, the log button still shows — the card is

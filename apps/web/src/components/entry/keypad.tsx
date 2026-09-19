@@ -20,6 +20,12 @@
  * containing block for a `position: fixed` child — "cover the screen" would
  * quietly become "cover the card". The lightbox is portalled for the same
  * reason.
+ *
+ * **Two columns on a phone on its side.** Stacked, it is about 470 px tall,
+ * and a phone held sideways has 320 to 410 — the title, the number and Cancel
+ * went off the top (GYM-25). On a short, wide screen (`short:`) the number and
+ * Done sit to the left of the keys, which shrink to 46 px, still a thumb's
+ * target. The order in the page, and so the Tab order, does not change.
  */
 
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
@@ -170,7 +176,7 @@ function Sheet({ title, unit, value, places, decimals, onDone, onClose, opener }
   }, []);
 
   const keyClass =
-    'num min-h-[56px] cursor-pointer rounded-[12px] bg-[var(--color-surface-2)] text-[22px] font-semibold ' +
+    'num min-h-[56px] short:min-h-[46px] cursor-pointer rounded-[12px] bg-[var(--color-surface-2)] text-[22px] font-semibold ' +
     'press active:bg-[var(--color-surface-3)] ' +
     'disabled:cursor-not-allowed disabled:opacity-30';
 
@@ -190,9 +196,9 @@ function Sheet({ title, unit, value, places, decimals, onDone, onClose, opener }
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="animate-sheet flex w-full max-w-[480px] flex-col gap-3 rounded-t-[20px] border border-b-0 border-[var(--color-line)] bg-[var(--color-surface)] px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-[var(--shadow-card)]"
+        className="animate-sheet short:max-w-[760px] short:grid-cols-[1fr_1.3fr] short:grid-rows-[auto_1fr_auto] short:gap-x-5 short:[grid-template-areas:'head_keys'_'out_keys'_'done_keys'] grid w-full max-w-[480px] gap-3 rounded-t-[20px] border border-b-0 border-[var(--color-line)] bg-[var(--color-surface)] px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-[var(--shadow-card)] [grid-template-areas:'head'_'out'_'keys'_'done']"
       >
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 [grid-area:head]">
           {/* Not a heading: this sits over Train, whose tests and screen-reader
               users both read the page's headings as its list of exercises. */}
           <span id={titleId} className="min-w-0 flex-1 truncate text-[17px] font-semibold">
@@ -211,7 +217,7 @@ function Sheet({ title, unit, value, places, decimals, onDone, onClose, opener }
         {/* Announced as it changes, so a screen reader hears each digit land. */}
         <output
           aria-live="polite"
-          className="num flex min-h-[60px] items-baseline justify-center gap-1.5 text-[44px] leading-[60px] font-bold tracking-tight"
+          className="num flex min-h-[60px] items-baseline justify-center gap-1.5 self-center text-[44px] leading-[60px] font-bold tracking-tight [grid-area:out]"
         >
           {typed === '' ? (
             // The number it will stay if nothing is typed — faded, so it reads
@@ -231,7 +237,7 @@ function Sheet({ title, unit, value, places, decimals, onDone, onClose, opener }
           )}
         </output>
 
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2 [grid-area:keys]">
           {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
             <button key={d} type="button" className={keyClass} onClick={() => press(d)}>
               {d}
@@ -256,15 +262,16 @@ function Sheet({ title, unit, value, places, decimals, onDone, onClose, opener }
           >
             <span aria-hidden>⌫</span>
           </button>
-          <button
-            ref={done}
-            type="button"
-            onClick={finish}
-            className={buttonClass('primary', 'col-span-3 min-h-[52px] text-[17px]')}
-          >
-            {tr.t('entry.done')}
-          </button>
         </div>
+        {/* After the keys, so Tab still reaches it last. */}
+        <button
+          ref={done}
+          type="button"
+          onClick={finish}
+          className={buttonClass('primary', 'min-h-[52px] text-[17px] [grid-area:done]')}
+        >
+          {tr.t('entry.done')}
+        </button>
       </div>
     </div>
   );

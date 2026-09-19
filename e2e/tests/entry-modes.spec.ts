@@ -779,6 +779,43 @@ test.describe('Fits the phone', () => {
     await expect(ruler(app, 'Weight')).toHaveCount(1);
     await expectNoSideScroll(app);
   });
+
+  test('the keypad fits a phone turned on its side', async ({ onboardedApp: app }) => {
+    /* Stacked, the keypad is about 470 px tall; a phone on its side has 320
+       to 410. Its title, the number and Cancel went off the top of the screen
+       (GYM-25). Checked at a Pixel 7 on its side and at a small iPhone's
+       height in Safari with its bars showing. */
+    for (const size of [
+      { width: 915, height: 412 },
+      { width: 667, height: 320 },
+    ]) {
+      await app.setViewportSize(size);
+      await numberButton(app, 'weight').click();
+      const pad = app.getByRole('dialog', { name: 'Weight' });
+      await expect(pad).toBeVisible();
+      // Let it finish rising, then measure where it landed.
+      await expect
+        .poll(() =>
+          pad.evaluate((el) => el.getAnimations().every((a) => a.playState === 'finished')),
+        )
+        .toBe(true);
+
+      const box = (await pad.boundingBox())!;
+      expect(box.y, `the top is on screen at ${size.width}×${size.height}`).toBeGreaterThanOrEqual(
+        0,
+      );
+      expect(box.y + box.height).toBeLessThanOrEqual(size.height + 1);
+      for (const name of ['Cancel', 'Done', '1', '0']) {
+        const key = (await pad.getByRole('button', { name, exact: true }).boundingBox())!;
+        expect(key.y, `${name} on screen`).toBeGreaterThanOrEqual(0);
+        expect(key.y + key.height).toBeLessThanOrEqual(size.height + 1);
+        // Still a thumb's target.
+        expect(key.height).toBeGreaterThanOrEqual(44);
+      }
+      await pad.getByRole('button', { name: 'Cancel', exact: true }).click();
+      await expect(pad).toHaveCount(0);
+    }
+  });
 });
 
 test.describe('Bodyweight', () => {

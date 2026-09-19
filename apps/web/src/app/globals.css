@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 
+/* A screen too short for a layout stacked top to bottom, and wide enough to
+   put things side by side instead: a phone on its side. The keypad uses it. */
+@custom-variant short (@media (max-height: 520px) and (min-width: 520px));
+
 /* Dark by default — this app is used in gyms, often one-handed, often at night.
    Light mode follows the system rather than a toggle nobody looks for.
 
