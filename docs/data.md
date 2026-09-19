@@ -333,6 +333,14 @@ about what plausible training looks like. `seed-demo.ts` only turns those rows
 into SQL. That is what lets the interesting half be asserted without Postgres,
 which is where the mistakes actually are.
 
+**Its shape is checked on many dates, not one.** The history is dated back from
+the Monday it is seeded on, so a dated rule in the domain lands somewhere new in
+the block every week, and one run checks only today's placement. So
+`demo-history.test.ts` builds the demo on every Monday from 2026-09-21 to
+2027-03-29, and on this week's, and holds every shape to each.
+`seed-demo.test.ts` seeds once, on today's date: its job is the trip into the
+database, and its one shape claim follows from the spread at the same Monday.
+
 **It produces sets, and only sets.** One row per set performed, carrying what
 was on the bar, how many reps went up and how many were left in reserve — the
 same three numbers a person types in. Nothing derived is stored beside them: no

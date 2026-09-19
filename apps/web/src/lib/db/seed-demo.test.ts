@@ -132,7 +132,11 @@ describe('seeding the demo account', () => {
        The generator tests prove the *sets* have a shape. They cannot prove the
        seeding wrote the two things a score needs — a sex and a dated bodyweight
        for every week — and without either of those the page correctly shows no
-       number at all, which looks exactly like a demo with no history. */
+       number at all, which looks exactly like a demo with no history.
+       Seeded once, on today's date. The shape across dates is
+       `demo-history.test.ts`'s: it builds this history on every Monday for
+       half a year, this one included, and holds last over first above 1.08,
+       which puts max over min above it too. */
     const { index, strengthSeries, mondayOf } = await import('@athletic/domain');
 
     const [profile] = (await rows('profiles')) as { sex: string; heightCm: number | null }[];
