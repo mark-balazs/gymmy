@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useId, useState } from 'react';
+import { useState } from 'react';
 import { Button, Card, Field, InfoButton, Segmented, Sheet, cn } from '@/components/ui';
 import { Page } from '@/components/page';
 import { SplitSheet } from '@/components/split-sheet';
 import { ProfileCard } from '@/components/profile-card';
 import { PlansCard } from '@/components/plans-card';
+import { Switch } from '@/components/switch';
 import { CoachLink } from '@/components/coach-link';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import {
@@ -487,66 +488,5 @@ export default function SettingsPage() {
 
       {info && <SplitSheet split={info} onClose={() => setInfo(null)} />}
     </Page>
-  );
-}
-
-/**
- * An on/off setting, as a real `role="switch"`.
- *
- * The whole row is the target, not just the track: this is tapped with a thumb,
- * and a 46px pill at the edge of the screen is easy to miss. The name is the
- * title alone and the hint is its description, so a screen reader says
- * "Load the bar on barbell lifts, switch, on" rather than reading the hint as
- * part of the name.
- */
-function Switch({
-  label,
-  hint,
-  on,
-  onChange,
-}: {
-  label: string;
-  hint: string;
-  on: boolean;
-  onChange: (on: boolean) => void;
-}) {
-  const id = useId();
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-labelledby={`${id}-label`}
-      aria-describedby={`${id}-hint`}
-      onClick={() => onChange(!on)}
-      className="flex min-h-[var(--spacing-tap)] w-full cursor-pointer items-center gap-3 text-left"
-    >
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span id={`${id}-label`} className="text-sm font-semibold">
-          {label}
-        </span>
-        <span id={`${id}-hint`} className="text-xs text-[var(--color-muted)]">
-          {hint}
-        </span>
-      </span>
-      <span
-        aria-hidden
-        className={cn(
-          'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full p-[3px]',
-          'transition-colors duration-(--dur-fast) ease-(--ease-out)',
-          on ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-surface-3)]',
-        )}
-      >
-        <span
-          className={cn(
-            'size-[22px] rounded-full shadow-sm',
-            'transition-[translate,background-color] duration-(--dur-fast) ease-(--ease-out) motion-reduce:transition-colors',
-            on
-              ? 'translate-x-5 bg-[var(--color-accent-ink)]'
-              : 'translate-x-0 bg-[var(--color-muted)]',
-          )}
-        />
-      </span>
-    </button>
   );
 }

@@ -27,7 +27,9 @@ sets**:
   the needle darkens without growing.
 - **Load the bar** — for barbell lifts, on unless switched off: tap the plates
   you put on one side, and gymmy adds the bar and the other side. The bar weight
-  is a chip, remembered per exercise on the device.
+  is a chip, remembered per exercise on the device. The setting is the phone's
+  own switch (`<input type="checkbox" switch>`, the only haptic an iPhone gives
+  a web page), and the whole row flips it.
 
 The card also opens and closes smoothly, and each style fits between the
 header and the tab bar of a 640 px phone.
@@ -69,6 +71,10 @@ header and the tab bar of a 640 px phone.
 - **Pounds**: the card uses the pound dumbbells, bar and plates, and a bar
   remembered in kilograms is not read back as pounds.
 - **The choice follows the account** to a second browser, like the unit does.
+- **Load the bar is a native switch**: an `input[type=checkbox][switch]` found
+  by role `switch` and its name, the hint as its description, flipped by the
+  row's title and by Space. Its state is `checked`, so tests read it with
+  `toBeChecked`, not an `aria-checked` attribute.
 - **Bodyweight "None" is logged as no added weight.**
 - **Nothing scrolls sideways** on a 360 px screen, in any style.
 - **Moving between exercises**:

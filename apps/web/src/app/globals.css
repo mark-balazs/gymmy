@@ -206,6 +206,59 @@ input[type='number']::-webkit-inner-spin-button {
   border-radius: 10px;
 }
 
+/*
+ * An on/off setting: `<input type="checkbox" switch>` (components/switch.tsx).
+ * Safari knows the attribute and would draw its own; everywhere else it is a
+ * plain checkbox. Drawn here instead, so it looks the same on every phone —
+ * the haptic an iPhone gives comes from the toggle, not from the drawing.
+ */
+input[type='checkbox'][switch] {
+  appearance: none;
+  position: relative;
+  flex-shrink: 0;
+  width: 48px;
+  height: 28px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--color-surface-3);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+input[type='checkbox'][switch]::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--color-muted);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+  transition:
+    translate var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+input[type='checkbox'][switch]:checked {
+  background: var(--color-accent);
+}
+input[type='checkbox'][switch]:checked::before {
+  translate: 20px 0;
+  background: var(--color-accent-ink);
+}
+input[type='checkbox'][switch]:focus-visible {
+  border-radius: 999px;
+}
+input[type='checkbox'][switch]:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+/* The thumb jumps rather than slides; its colour still fades. */
+@media (prefers-reduced-motion: reduce) {
+  input[type='checkbox'][switch]::before {
+    transition-property: background-color;
+  }
+}
+
 /* ----------------------------------------------------------------- motion */
 
 /*
