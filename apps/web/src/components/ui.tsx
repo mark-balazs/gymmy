@@ -2,8 +2,10 @@
 
 import { clsx } from 'clsx';
 import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react';
-import { useEffect } from 'react';
+import { useEffect, useEffectEvent, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { Presence, PresenceBoundary, usePresence } from '@/components/presence';
+import { dragToDismiss, leave } from '@/components/sheet-gesture';
 import { useT } from '@/lib/client/hooks';
 
 export const cn = clsx;
@@ -166,6 +168,21 @@ export function Segmented<T extends string | number>({
  * turns "cover the screen" into "cover the card". The keypad and the lightbox
  * are portalled for the same reason. It also takes the sheet out of any
  * `<form>` it is declared in, so its buttons can never submit that form.
+ *
+ * **It leaves as it came** (GYM-17): it stays on screen until its exit has
+ * played — `open` turning false, or, for a sheet its caller mounts with
+ * `{x && <Sheet open …>}`, a `<Presence>` around that condition. While it
+ * leaves it is `inert` and hidden from assistive technology, so the page
+ * behind takes taps at once and a test looking for "the dialog" does not find
+ * the one on its way out. A caller that mounts a sheet conditionally without
+ * a `<Presence>` gets no exit.
+ *
+ * **Drag it down to dismiss** (`sheet-gesture.ts` has the rules): from
+ * anywhere on it, as long as what is under the finger is scrolled to the top.
+ *
+ * **Focus** moves into it as it opens and goes back to whatever had it as it
+ * closes, so a keyboard or screen-reader user is never left in a page they
+ * cannot see.
  */
 export function Sheet({
   title,
@@ -178,34 +195,132 @@ export function Sheet({
   onClose: () => void;
   children: ReactNode;
 }) {
+  /* Two things can end it: `open`, and a `<Presence>` its caller put around
+     it. Either way it is this component's own `<Presence>` that keeps the
+     panel through the exit, and tells the caller's one when it is over. */
+  const outer = usePresence();
+  // Only ever opened from a tap, so there is no server render to guard.
+  const shown = open && outer.present && typeof document !== 'undefined';
+  return (
+    <Presence onExit={outer.done}>
+      {shown && (
+        <SheetPanel title={title} onClose={onClose}>
+          {children}
+        </SheetPanel>
+      )}
+    </Presence>
+  );
+}
+
+function SheetPanel({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
   const tr = useT();
+  const { present, done } = usePresence();
+  const dialog = useRef<HTMLDivElement>(null);
+  const shade = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  /** The finger's speed when a drag let it go: the exit carries on at it. */
+  const fling = useRef<number | null>(null);
+
+  const close = useEffectEvent(() => onClose());
+  const dismiss = useEffectEvent((velocity: number) => {
+    fling.current = velocity;
+    onClose();
+  });
 
   useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    if (!present) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  }, [present]);
 
-  // Only ever opened from a tap, so there is no server render to guard.
-  if (!open || typeof document === 'undefined') return null;
+  /* In as it opens, back as it closes — to whatever had focus, which is the
+     button that opened it. Only if focus is still in the sheet (or nowhere):
+     an action that moved it on purpose keeps it where it went. */
+  useEffect(() => {
+    if (!present) return;
+    const active = document.activeElement;
+    const opener = active instanceof HTMLElement && active !== document.body ? active : null;
+    const box = dialog.current;
+    if (box && !box.contains(active)) box.focus({ preventScroll: true });
+    return () => {
+      const now = document.activeElement;
+      const lost = !now || now === document.body || (box?.contains(now) ?? false);
+      if (lost && opener?.isConnected) opener.focus({ preventScroll: true });
+    };
+  }, [present]);
+
+  useEffect(() => {
+    const p = panel.current;
+    const s = shade.current;
+    if (!present || !p || !s) return;
+    return dragToDismiss(p, s, (v) => dismiss(v));
+  }, [present]);
+
+  /* The exit, started before the frame that would show the sheet without it,
+     from wherever the sheet is — a drag included. */
+  useLayoutEffect(() => {
+    const p = panel.current;
+    const s = shade.current;
+    if (present || !p || !s) return;
+    let current = true;
+    // Gone once it has played — or been cut short: never left on screen, inert.
+    const end = () => current && done();
+    leave(p, s, fling.current).finished.then(end, end);
+    return () => {
+      current = false;
+    };
+  }, [present, done]);
+
   return createPortal(
     <div
-      /* `100dvh`, not `inset-0`. A fixed overlay sized to the *layout* viewport
-         runs underneath a phone's address bar, which is exactly how the last
-         line of a sheet ends up cut in half by the bottom of the screen. */
-      className="animate-fade fixed inset-0 z-50 flex h-[100dvh] items-end justify-center bg-black/60 backdrop-blur-[2px]"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      ref={dialog}
       role="dialog"
       aria-modal="true"
       aria-label={title}
+      aria-hidden={present ? undefined : true}
+      inert={!present}
+      tabIndex={-1}
+      data-sheet
+      data-state={present ? 'open' : 'closed'}
+      // A sideways drag on a sheet — a chart, a row of chips — must not
+      // change the tab behind it and throw the sheet away.
+      data-no-swipe
+      /* `100dvh`, not `inset-0`. A fixed overlay sized to the *layout* viewport
+         runs underneath a phone's address bar, which is exactly how the last
+         line of a sheet ends up cut in half by the bottom of the screen. */
+      className={cn(
+        'fixed inset-0 z-50 flex h-[100dvh] items-end justify-center outline-none',
+        !present && 'pointer-events-none',
+      )}
     >
+      {/* The dimmed page, its own layer so a drag can lighten it without
+          fading the sheet. */}
+      <div
+        ref={shade}
+        aria-hidden
+        className="animate-fade absolute inset-0 bg-black/60 backdrop-blur-[2px]"
+        onClick={onClose}
+      />
       {/* A column rather than one scrolling box: the handle and the title stay
           put while the content moves under them, so a long sheet still shows
           what it is and how to close it. Capped short of the full height so
           there is always a strip of the page behind it — a sheet that fills
-          the screen is a page, and people stop expecting it to dismiss. */}
-      <div className="animate-sheet flex max-h-[86dvh] w-full max-w-[560px] flex-col rounded-t-[20px] border border-b-0 border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)]">
+          the screen is a page, and people stop expecting it to dismiss. The
+          `after:` strip carries its surface on below the bottom edge, so a
+          sheet pulled up past where it rests does not lift off the screen. */}
+      <div
+        ref={panel}
+        className="animate-sheet relative flex max-h-[86dvh] w-full max-w-[560px] flex-col rounded-t-[20px] border border-b-0 border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] after:absolute after:-inset-x-px after:top-full after:h-[50dvh] after:border-x after:border-[var(--color-line)] after:bg-[var(--color-surface)] after:content-['']"
+      >
         <div className="shrink-0 px-4 pt-3">
           <div className="mx-auto mb-2.5 h-1 w-9 rounded-full bg-[var(--color-line)]" />
           <div className="flex items-center justify-between gap-2">
@@ -222,9 +337,12 @@ export function Sheet({
           </div>
         </div>
         {/* The padding at the end is what stops the last row sitting flush
-            against the screen edge with no air under it. */}
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+1.75rem)]">
-          {children}
+            against the screen edge with no air under it. Contained, so a
+            scroll that reaches the end stops there instead of moving the page
+            behind. */}
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto overscroll-contain px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+1.75rem)]">
+          {/* A sheet opened from inside this one answers to its own presence. */}
+          <PresenceBoundary>{children}</PresenceBoundary>
         </div>
       </div>
     </div>,

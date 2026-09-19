@@ -17,6 +17,7 @@ before the test that covers it. Every file maps to one spec in `../tests`.
 | [10 — Logging something outside the plan](./10-something-else.md) | `one-off.spec.ts` | A class or a test can be logged without ticking, or moving, a planned day |
 | [11 — Entering a set without the keyboard](./11-entering-a-set.md) | `entry-modes.spec.ts` | Buttons, ruler or plates set a weight and reps with no phone keyboard, and the card stays put |
 | [12 — Moving around the app](./12-moving-around.md) | `opening-a-tab.spec.ts`, `navigation.spec.ts` | A tab arrives holding its content, every move slides its way, and Back leaves rather than walking through tabs |
+| [13 — Closing a sheet](./13-closing-a-sheet.md) | `sheets.spec.ts` | A sheet leaves the way it came, and can be pulled down to dismiss |
 
 Other specs cover narrower ground against the same fixtures: `settings`,
 `exercise-detail`, `email-signin`, `sync-paging`, `write-failure`, `recovery`,

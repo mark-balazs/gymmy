@@ -21,6 +21,7 @@
  */
 
 import { useMemo, useState } from 'react';
+import { Presence } from '@/components/presence';
 import { Sheet, cn } from '@/components/ui';
 import { useProfile, useSnapshot, useT, useToday } from '@/lib/client/hooks';
 import { fmtIndex } from '@/lib/client/format';
@@ -195,50 +196,52 @@ export function Calendar() {
         </div>
       </div>
 
-      {open && (
-        <Sheet title={dayName(open, tr.lang)} open onClose={() => setOpen(null)}>
-          <div className="flex gap-3">
-            <Stat
-              label={tr.t('prog.strength')}
-              value={score?.index != null ? fmtIndex(score.index) : '—'}
-            />
-            <Stat
-              label={tr.t('prog.bodyWeight')}
-              value={bodyWeightOn(ix, open) ? `${bodyWeightOn(ix, open)} ${unit}` : '—'}
-            />
-            <Stat label={tr.t('cal.sets')} value={detail ? String(detail.sets) : '0'} />
-          </div>
-
-          {detail ? (
-            <div className="flex flex-col gap-2">
-              {detail.exercises.map(({ exercise, pattern, logs }) => (
-                <div
-                  key={exercise.id}
-                  className="rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3 py-2.5"
-                >
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="min-w-0 truncate text-sm font-semibold">
-                      {tr.exercise(exercise)}
-                    </span>
-                    <span className="shrink-0 text-[11px] text-[var(--color-muted)]">
-                      {tr.pattern(pattern)}
-                    </span>
-                  </div>
-                  <ul className="num mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-[var(--color-muted)]">
-                    {logs.map((l) => (
-                      <li key={l.id}>
-                        {l.weight ?? 0} {unit} × {l.reps ?? 0}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+      <Presence>
+        {open && (
+          <Sheet title={dayName(open, tr.lang)} open onClose={() => setOpen(null)}>
+            <div className="flex gap-3">
+              <Stat
+                label={tr.t('prog.strength')}
+                value={score?.index != null ? fmtIndex(score.index) : '—'}
+              />
+              <Stat
+                label={tr.t('prog.bodyWeight')}
+                value={bodyWeightOn(ix, open) ? `${bodyWeightOn(ix, open)} ${unit}` : '—'}
+              />
+              <Stat label={tr.t('cal.sets')} value={detail ? String(detail.sets) : '0'} />
             </div>
-          ) : (
-            <p className="text-sm text-[var(--color-muted)]">{tr.t('cal.nothing')}</p>
-          )}
-        </Sheet>
-      )}
+
+            {detail ? (
+              <div className="flex flex-col gap-2">
+                {detail.exercises.map(({ exercise, pattern, logs }) => (
+                  <div
+                    key={exercise.id}
+                    className="rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3 py-2.5"
+                  >
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="min-w-0 truncate text-sm font-semibold">
+                        {tr.exercise(exercise)}
+                      </span>
+                      <span className="shrink-0 text-[11px] text-[var(--color-muted)]">
+                        {tr.pattern(pattern)}
+                      </span>
+                    </div>
+                    <ul className="num mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-[var(--color-muted)]">
+                      {logs.map((l) => (
+                        <li key={l.id}>
+                          {l.weight ?? 0} {unit} × {l.reps ?? 0}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-[var(--color-muted)]">{tr.t('cal.nothing')}</p>
+            )}
+          </Sheet>
+        )}
+      </Presence>
     </>
   );
 }

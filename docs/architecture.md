@@ -82,6 +82,7 @@ second implementation to disagree with the first.
 | `apps/web/src/components/motion.ts` | The motion tokens for JavaScript — easings, durations, reduced motion. See [Motion](#motion) |
 | `apps/web/src/components/tabs.ts` `navigate.tsx` `history-first.ts` | The tabs and where every screen sits among them; every move between screens (`NavLink`, `useMove`), its direction and what it does to the history; Back and Forward as moves. See [Moving between tabs](#moving-between-tabs) |
 | `apps/web/src/components/swipe-tabs.ts` `swipe.ts` | The swipe between tabs that follows the finger, and its arithmetic (axis lock, resistance, when letting go commits, how long the rest takes) |
+| `apps/web/src/components/presence.tsx` `sheet-gesture.ts` | Keeping a sheet or the keypad on screen until its exit has played, and the drag that dismisses a sheet. See [Sheets](#sheets) |
 | `apps/web/src/components/info-tip.tsx` `place-tip.ts` | The ⓘ that holds an explanation instead of a paragraph on the screen, and where its popover goes. See [Explanations behind an info button](#explanations-behind-an-info-button) |
 | `apps/web/src/components/switch.tsx` | An on/off setting, as the platform's own `<input type="checkbox" switch>` |
 
@@ -364,6 +365,41 @@ fallbacks equal the CSS, reduced motion removes every distance, the press
 transitions `scale`, and no hard-coded duration, easing, `active:scale-*` or
 reduced-motion media query appears outside the system. `motion.spec.ts` checks
 what the browser does with it.
+
+## Sheets
+
+Every sheet is `Sheet` in `components/ui.tsx`, portalled to the body. The
+keypad is its own component but leaves the same way.
+
+- **It leaves as it came.** A sheet stays mounted until its exit has played:
+  the entrance backwards (sinking by `--rise` as it fades, `--dur-sheet-out`),
+  or, after a drag, on down off the screen at the finger's speed. While it
+  leaves it is `inert`, `aria-hidden` and takes no taps (`data-state="closed"`),
+  so the page behind answers at once and `getByRole('dialog')` no longer finds
+  it. Under reduced motion it only fades.
+- **`<Presence>` is what keeps it** (`components/presence.tsx`). `open` turning
+  false is handled inside `Sheet`. A sheet its caller mounts with
+  `{x && <…/>}` needs the condition wrapped — `<Presence>{x && <…/>}</Presence>`
+  — or it is gone in one frame with nothing played. `sheet.test.ts` fails on a
+  bare one. Each opening is a new mount, even mid-exit, so a reopened picker or
+  keypad starts empty, as before.
+- **Drag down to dismiss** (`components/sheet-gesture.ts`, Vaul's rules). Touch
+  only. It decides on the first move whose gesture it is, because a browser
+  stops letting the page cancel a touch once it has started scrolling; it
+  starts moving past 10 px, so a wobbly tap is still a tap. A drag is the
+  sheet's only where the content under the finger is scrolled to its top and
+  has not scrolled in the last 100 ms; sideways is never its. Pulled up, it
+  resists (iOS's rubber band). A second finger cancels. Let go, it closes on a
+  flick (over 0.4 px/ms) or past a quarter of its height, else springs back
+  over `--dur-base`. The transform is written straight onto the panel and the
+  dimmed layer behind lightens with it; `will-change` only while a finger is
+  down.
+- **Focus** moves into the sheet as it opens and back to what had it as it
+  closes. The keypad does the same, onto its `opener`.
+- **`data-no-swipe`** is on every sheet and the keypad, so a sideways drag on
+  one never changes the tab behind it.
+- The keypad cannot be dragged away: it is tapped fast, and a thumb sliding off
+  a key must not throw the typed number away.
 
 ## Explanations behind an info button
 

@@ -11,6 +11,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Card, cn } from '@/components/ui';
+import { Presence } from '@/components/presence';
 import { InfoTip } from '@/components/info-tip';
 import { SplitSheet } from '@/components/split-sheet';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
@@ -412,7 +413,7 @@ export default function Onboarding() {
         </>
       )}
 
-      {info && <SplitSheet split={info} onClose={() => setInfo(null)} />}
+      <Presence>{info && <SplitSheet split={info} onClose={() => setInfo(null)} />}</Presence>
     </main>
   );
 }
