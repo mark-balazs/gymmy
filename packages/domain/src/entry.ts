@@ -336,3 +336,46 @@ export function startReps(repRange: string | null | undefined): number {
   const low = m ? Number(m[1]) : 0;
   return low > 0 ? low : DEFAULT_START_REPS;
 }
+
+/** As many rep chips as a card can offer before the row is a list to read
+ *  rather than a row to tap. A plan's own ranges are all well under it; a
+ *  trainer's wider one is stepped out instead of truncated. */
+export const MAX_REP_CHIPS = 10;
+
+/** The steps a range is walked in, narrowest first: the first one that keeps
+ *  the row inside `MAX_REP_CHIPS` wins. Metres start at five because nobody
+ *  counts a carry to the metre. */
+const REP_STEPS = [1, 2, 5, 10] as const;
+const METRE_STEPS = [5, 10, 25] as const;
+
+/**
+ * The numbers the reps row offers for one tap: every rep in the exercise's
+ * range — 6 to 12 on a main lift, 8 to 12 for rotation, 10 to 15 for isolation.
+ *
+ * The range is the plan's, so this offers nothing the plan does not already
+ * ask for; `−` and `+` still reach anything outside it.
+ *
+ * **A carry is not measured in reps.** Its range is metres ("30-40m"), and
+ * eleven chips a metre apart would be a ruler, not a choice — so a metre range
+ * is walked in fives: 30, 35, 40. The same ladder catches a trainer's unusually
+ * wide rep range, which is stepped out rather than cut short, so the top of the
+ * range is always on the row.
+ *
+ * Empty for anything that does not read as a range, which is what an off-plan
+ * card gets when its movement has none.
+ */
+export function repChoices(repRange: string | null | undefined): number[] {
+  const m = /(\d+)\s*-\s*(\d+)\s*(m)?/i.exec(repRange ?? '');
+  if (!m) return [];
+  const lo = Number(m[1]);
+  const hi = Number(m[2]);
+  if (lo <= 0 || hi < lo) return [];
+
+  const ladder = m[3] ? METRE_STEPS : REP_STEPS;
+  const step = ladder.find((s) => (hi - lo) / s + 1 <= MAX_REP_CHIPS) ?? ladder[ladder.length - 1]!;
+
+  const out: number[] = [];
+  for (let v = lo; v < hi && out.length < MAX_REP_CHIPS - 1; v += step) out.push(v);
+  out.push(hi);
+  return out;
+}

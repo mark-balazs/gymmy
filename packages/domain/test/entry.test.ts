@@ -13,6 +13,8 @@ import {
   placesOf,
   plateTotal,
   platesFor,
+  MAX_REP_CHIPS,
+  repChoices,
   scalePlaces,
   scaleValues,
   startReps,
@@ -459,6 +461,58 @@ describe('where a card starts with no history', () => {
     // and '5 reps' prove that, where '8' could not tell refusal from reading.
     for (const r of ['', '12', '5 reps', 'AMRAP', 'max', '0-5', null, undefined]) {
       expect(startReps(r), String(r)).toBe(8);
+    }
+  });
+});
+
+/**
+ * The reps row on a Buttons card. Everything on it is a number the plan
+ * already asks for, so the row offers a choice rather than a recommendation —
+ * and the top of the range is always reachable in one tap, whatever the
+ * generator or a trainer wrote.
+ */
+describe('the reps a card offers', () => {
+  it('offers every rep the plan asks for, in order', () => {
+    // The three ranges the generator writes.
+    expect(repChoices('6-12')).toEqual([6, 7, 8, 9, 10, 11, 12]);
+    expect(repChoices('8-12')).toEqual([8, 9, 10, 11, 12]);
+    expect(repChoices('10-15')).toEqual([10, 11, 12, 13, 14, 15]);
+    // A trainer's own range, and whitespace around it.
+    expect(repChoices(' 5 - 8 ')).toEqual([5, 6, 7, 8]);
+    // A range of one is one chip, not an empty row.
+    expect(repChoices('8-8')).toEqual([8]);
+  });
+
+  it('counts a carry in metres, not to the metre', () => {
+    /* A carry's range is a distance. Eleven chips a metre apart would be a
+       ruler rather than a choice, and nobody walks 33 metres on purpose — so a
+       metre range steps in fives and still ends on the top of the range. */
+    expect(repChoices('30-40m')).toEqual([30, 35, 40]);
+    expect(repChoices('20-50m')).toEqual([20, 25, 30, 35, 40, 45, 50]);
+    // The top is on the row even when the step does not land on it.
+    expect(repChoices('30-42m')).toEqual([30, 35, 40, 42]);
+  });
+
+  it('steps a wide range out instead of cutting it short', () => {
+    /* A range nobody generates but a trainer could write. It must not become a
+       row of thirty, and it must not lose its top — the whole point of the row
+       is that the answer is on it. */
+    const wide = repChoices('5-40');
+    expect(wide.length).toBeLessThanOrEqual(MAX_REP_CHIPS);
+    expect(wide[0]).toBe(5);
+    expect(wide.at(-1)).toBe(40);
+    // Evenly spaced, not the bottom five and a jump.
+    expect(new Set(wide.slice(1).map((v, i) => v - wide[i]!)).size).toBeLessThanOrEqual(2);
+
+    const far = repChoices('1-1000');
+    expect(far.length).toBeLessThanOrEqual(MAX_REP_CHIPS);
+    expect(far.at(-1)).toBe(1000);
+  });
+
+  it('offers nothing when there is no range to read', () => {
+    // An off-plan card whose movement has no range, and anything unparseable.
+    for (const r of ['', '12', 'AMRAP', 'max', '0-5', '12-8', null, undefined]) {
+      expect(repChoices(r), String(r)).toEqual([]);
     }
   });
 });

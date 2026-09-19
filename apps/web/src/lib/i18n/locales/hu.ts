@@ -359,6 +359,8 @@ export const hu: Record<Key, string> = {
   'entry.none': 'Nincs',
   'entry.more': '{label} +',
   'entry.less': '{label} −',
+  'entry.recentWeights': 'Legutóbbi súlyok',
+  'entry.repsInRange': 'Ismétlések a tartományból',
 
   'plan.shared': 'Neked megosztott tervek',
   'plan.by.one': '{name} · heti {n} alkalom',

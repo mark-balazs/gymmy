@@ -29,6 +29,8 @@ import { PlateLoader } from '@/components/entry/plate-loader';
 import { RollingNumber } from '@/components/entry/rolling-number';
 import { Ruler } from '@/components/entry/ruler';
 import { ValueStepper } from '@/components/entry/value-stepper';
+import { ChipRow, type ChipOption } from '@/components/entry/chip-row';
+import { formatAmount } from '@/components/entry/keypad';
 import {
   useProfile,
   useRememberedBar,
@@ -45,9 +47,13 @@ import {
   REPS_SCALE,
   barWeightOf,
   buttonStep,
+  formatOnScale,
   lastSession,
   loadClassOf,
   prefs,
+  recentWeights,
+  repChoices,
+  repRangeFor,
   scalePlaces,
   scaleValues,
   startReps,
@@ -741,6 +747,79 @@ function ExerciseCard({
   const weightStops = scaleValues(scale, weight, lastWeight);
   const weightPlaces = scalePlaces(weightStops);
 
+  /* -------------------------------------------------------------- the chips */
+
+  /**
+   * One-tap rows under the Buttons controls: the weights this lift has been
+   * logged at, and the reps its range asks for.
+   *
+   * In the gym the reps change every set and a weight jump is half a dozen
+   * taps of `+`, so the answers somebody actually gives are one tap each. The
+   * `−`/`+` stay for a nudge and the keypad still reaches anything.
+   *
+   * Buttons only. The ruler already puts a run of numbers under the thumb, and
+   * the picture of the bar answers "which plates" rather than "which weight" —
+   * neither gains a row, and a card is only ever as tall as it has to be.
+   *
+   * Nothing here is a suggestion. The weights are ones this person lifted
+   * (`recentWeights`) and the reps are what the plan already asks for
+   * (`repChoices`); a lift with no history gets no weight row at all rather
+   * than a made-up one.
+   */
+  const recent = useMemo(() => recentWeights(ix, exercise.id), [ix, exercise.id]);
+  const weightChips = useMemo<ChipOption[]>(
+    () =>
+      recent
+        // Per hand for a pair, exactly as the card's own number is.
+        .map((w) => toEntered(exercise.name, w) ?? 0)
+        // A zero is an answer on a bodyweight lift ("None") and noise anywhere
+        // else — a barbell's own empty bar is already the number it starts on.
+        .filter((w) => w > 0 || noneLabel !== undefined)
+        .map((w) =>
+          // "None" says itself; a bare number needs its unit spoken, and as
+          // anybody would say it — "60 kg", not "60.0 kg".
+          w === 0 && noneLabel !== undefined
+            ? { value: w, text: noneLabel }
+            : {
+                value: w,
+                text: formatOnScale(w, weightPlaces),
+                said: `${formatAmount(w)} ${unit}`,
+              },
+        ),
+    [recent, exercise.name, noneLabel, weightPlaces, unit],
+  );
+  /* Off the plan there is no slot and so no range; the movement's own is what
+     the generator would have written, so a one-off card offers the same reps
+     as a planned one. */
+  const range = repRange ?? repRangeFor(ix.patternById.get(exercise.patternId) ?? null);
+  const repChips = useMemo<ChipOption[]>(
+    () => repChoices(range).map((v) => ({ value: v, text: String(v) })),
+    [range],
+  );
+
+  /* Where the rows are allowed, said once. Buttons mode only, and never under
+     the picture of the bar — which is why the rows below can be handed to
+     every layout: in the other modes they are nothing. */
+  const chips = entryMode === 'buttons';
+  const weightChipRow =
+    chips && !plates && weightChips.length > 0 ? (
+      <ChipRow
+        label={tr.t('entry.recentWeights')}
+        options={weightChips}
+        value={weight}
+        onChange={setWeight}
+      />
+    ) : null;
+  const repChipRow =
+    chips && repChips.length > 0 ? (
+      <ChipRow
+        label={tr.t('entry.repsInRange')}
+        options={repChips}
+        value={reps}
+        onChange={setReps}
+      />
+    ) : null;
+
   /**
    * What the number actually means.
    *
@@ -853,7 +932,7 @@ function ExerciseCard({
      tall as the ⓘ and held clear of the buttons by its reach — its tap area
      runs 10 px past the mark, and a tap on the top edge of "−" must not open
      a tip. The same on both, so the two sets of buttons still line up. */
-  const captioned = (caption: string, control: ReactNode, info?: ReactNode) => (
+  const captioned = (caption: string, control: ReactNode, info?: ReactNode, under?: ReactNode) => (
     <div className="min-w-0 flex-1">
       <div className={cn('flex items-center gap-1', weightTip ? 'mb-2.5 h-6' : 'mb-1')}>
         <span className="text-[10.5px] font-bold tracking-wider text-[var(--color-muted)] uppercase">
@@ -862,6 +941,7 @@ function ExerciseCard({
         {info}
       </div>
       {control}
+      {under}
     </div>
   );
 
@@ -988,14 +1068,25 @@ function ExerciseCard({
           {plates || entryMode === 'ruler' ? (
             <>
               {weightControl}
+              {weightChipRow}
               {how}
-              {entryMode === 'ruler' ? repsControl : captioned(tr.t('common.reps'), repsControl)}
+              {entryMode === 'ruler' ? (
+                <>
+                  {repsControl}
+                  {repChipRow}
+                </>
+              ) : (
+                captioned(tr.t('common.reps'), repsControl, undefined, repChipRow)
+              )}
             </>
           ) : (
+            /* Top-aligned, not bottom: a first-time lift has a chip row under
+               its reps and none under its weight, and aligning the bottoms
+               would step the two sets of buttons out of line. */
             <>
-              <div className="flex items-end gap-2">
-                {captioned(unit, weightControl, weightTip)}
-                {captioned(tr.t('common.reps'), repsControl)}
+              <div className="flex items-start gap-2">
+                {captioned(unit, weightControl, weightTip, weightChipRow)}
+                {captioned(tr.t('common.reps'), repsControl, undefined, repChipRow)}
               </div>
               {how}
             </>

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  MAX_RECENT_WEIGHTS,
   buildProgram,
   lastSession,
   rangeAfterSwap,
+  recentWeights,
   repRangeFor,
   swapOptions,
   varietyFor,
@@ -683,5 +685,112 @@ describe('what you did last time', () => {
       logs: [...ordered].reverse(),
     };
     expect(lastSession(unsorted, squat.id)).toEqual({ date: '2026-09-01', weight: 70, reps: 6 });
+  });
+});
+
+/**
+ * The weights a Buttons card offers as one-tap chips.
+ *
+ * The same line as `lastSession`: every number here was put on a bar by the
+ * person reading it. A chip holding a weight they have never lifted would be
+ * gymmy suggesting a load, which it does not do (D-014) — so the only input is
+ * their own log, and a lift with no log offers nothing at all.
+ */
+describe('the weights a card offers', () => {
+  const base = seedSnapshot();
+  const squat = index(base).exercises.find((e) => e.name === 'Goblet Squat')!;
+  const bench = index(base).exercises.find((e) => e.name === 'Barbell Bench Press')!;
+  const on = (...weeks: { date: string; weights: number[] }[]) =>
+    index({
+      ...base,
+      logs: weeks.flatMap((w) =>
+        logsFor(
+          squat.id,
+          w.weights.map((weight) => ({ weight, reps: 8, rir: 2 })),
+          w.date,
+        ),
+      ),
+    });
+
+  it('offers nothing for a lift never trained', () => {
+    // No row on the card rather than a row of plausible numbers: a weight
+    // nobody has lifted would be advice, and there is none to give.
+    expect(recentWeights(index(base), squat.id)).toEqual([]);
+  });
+
+  it('puts the most recent session first', () => {
+    const ix = on(
+      { date: '2026-08-01', weights: [50] },
+      { date: '2026-09-10', weights: [60] },
+      { date: '2026-08-20', weights: [55] },
+    );
+    expect(recentWeights(ix, squat.id)).toEqual([60, 55, 50]);
+  });
+
+  it('says each weight once, at its most recent place', () => {
+    /* Weeks of the same working weight are one chip, not four — the row is for
+       jumping somewhere else. A weight that comes back after a lighter week
+       sits where it was last used, not where it first appeared. */
+    const ix = on(
+      { date: '2026-08-01', weights: [60, 60] },
+      { date: '2026-08-08', weights: [50] },
+      { date: '2026-08-15', weights: [60] },
+    );
+    expect(recentWeights(ix, squat.id)).toEqual([60, 50]);
+  });
+
+  it('reads a single session back the way the sets went in', () => {
+    // A session of 40 (warm-up), 60, 60, 50 (back-off): the last thing lifted
+    // is the first chip.
+    expect(recentWeights(on({ date: '2026-09-10', weights: [40, 60, 60, 50] }), squat.id)).toEqual([
+      50, 60, 40,
+    ]);
+  });
+
+  it('stops at four, however long the history', () => {
+    const ix = on(
+      { date: '2026-05-01', weights: [40] },
+      { date: '2026-06-01', weights: [45] },
+      { date: '2026-07-01', weights: [50] },
+      { date: '2026-08-01', weights: [55] },
+      { date: '2026-09-01', weights: [60] },
+    );
+    expect(recentWeights(ix, squat.id)).toEqual([60, 55, 50, 45]);
+    expect(recentWeights(ix, squat.id)).toHaveLength(MAX_RECENT_WEIGHTS);
+    // A caller may ask for fewer; it never invents more.
+    expect(recentWeights(ix, squat.id, 2)).toEqual([60, 55]);
+  });
+
+  it('never leaks another lift onto this card', () => {
+    const ix = index({
+      ...base,
+      logs: [
+        ...logsFor(squat.id, [{ weight: 60, reps: 8, rir: 2 }], '2026-09-01'),
+        ...logsFor(bench.id, [{ weight: 80, reps: 5, rir: 1 }], '2026-09-02'),
+      ],
+    });
+    expect(recentWeights(ix, squat.id)).toEqual([60]);
+    expect(recentWeights(ix, bench.id)).toEqual([80]);
+  });
+
+  it('keeps a set logged with no weight, as a zero', () => {
+    /* On a bodyweight lift "nothing added" is a real answer and the card shows
+       it as "None". Dropping it here would leave a pull-up card unable to
+       offer the thing most of its sets were. */
+    const ix = index({
+      ...base,
+      logs: logsFor(squat.id, [{ weight: 0, reps: 12, rir: 2 }], '2026-09-01'),
+    });
+    expect(recentWeights(ix, squat.id)).toEqual([0]);
+  });
+
+  it('gives back the figure as it was logged, whatever the unit now says', () => {
+    /* Weights are stored in the unit they were entered in and switching kg to
+       lb relabels history rather than converting it. So there is no unit to
+       pass and nothing here to convert: 60 comes back 60, and the one
+       conversion in the system — a pair of dumbbells, halved back to the one
+       in the hand — stays at the card where `lastSession` does it too. */
+    const ix = on({ date: '2026-09-01', weights: [61.25, 60] });
+    expect(recentWeights(ix, squat.id)).toEqual([60, 61.25]);
   });
 });
