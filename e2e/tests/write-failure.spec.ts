@@ -73,10 +73,31 @@ test.describe('When the device cannot store a set', () => {
     await expect(warning).toBeVisible();
     await expect(badge).toHaveAttribute('data-state', 'storage');
 
+    /* And a reload. Nobody has to ask for one: the service worker's update
+       reloads the app while it is out of view, and a phone discards a page
+       left in the background. Kept only in memory, the warning went with it,
+       unseen. Waited for past the load's own sync, so it is also not a
+       warning that merely has not been replaced yet. */
+    const reloaded = page.waitForResponse((r) => r.url().endsWith('/api/sync') && r.ok());
+    await page.reload();
+    await reloaded;
+    await expect(badge).toHaveAttribute('data-sync', 'idle');
+    await expect(warning).toBeVisible();
+    await expect(badge).toHaveAttribute('data-state', 'storage');
+
     // Only the person takes it away, and then the dot says what the sync says.
     await warning.getByRole('button', { name: 'Dismiss', exact: true }).click();
     await expect(warning).toHaveCount(0);
     await expect(page.getByTitle('All saved')).toHaveAttribute('data-state', 'idle');
+
+    /* Taken away for good: a reload does not bring back a warning already
+       read. Checked after the load's sync, by which time the header has long
+       been listening, so the absence is not just a page still starting. */
+    const again = page.waitForResponse((r) => r.url().endsWith('/api/sync') && r.ok());
+    await page.reload();
+    await again;
+    await expect(page.getByTitle('All saved')).toHaveAttribute('data-state', 'idle');
+    await expect(page.getByRole('alert').filter({ hasText: 'was not saved' })).toHaveCount(0);
   });
 });
 

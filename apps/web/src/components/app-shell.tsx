@@ -196,7 +196,8 @@ function SyncBadge() {
  * The one state that needs a sentence: the dot has no hover on a phone, and a
  * triangle alone does not say that a set is gone. It sits in the sticky header
  * so scrolling cannot hide it, and nothing but the button removes it — a sync
- * that succeeds a second later has no bearing on a write that never landed.
+ * that succeeds a second later has no bearing on a write that never landed,
+ * and a reload brings it back (`sync.ts` keeps it in localStorage).
  * `role="alert"` announces it once, when it appears.
  */
 function StorageWarning() {

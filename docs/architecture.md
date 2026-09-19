@@ -128,7 +128,11 @@ If step 1's own write to IndexedDB fails, nothing was saved anywhere.
 status: the header shows a magenta triangle and a one-line warning that stays
 until the person dismisses it. It is a separate field, not a sync state,
 because as a state the next sync replaced it within seconds — so no sync
-outcome can clear it. It lives in memory: a reload or a sign-out clears it.
+outcome can clear it. It is also written to localStorage (not IndexedDB, the
+store that just failed), so a reload keeps it: reloads come unasked, from the
+service worker's update and from phones discarding background pages. Only
+dismissing it or a sign-out clears it. The write is best effort: where the
+browser blocks site data, the warning lasts until the page goes.
 
 ### The cursor is the subtle part
 

@@ -71,10 +71,15 @@ referencing column carries only the id half.
 | `goals` | One lift the user has asked to be judged on, until a date. Nothing else in the app evaluates progression without one |
 | `profile` | One row per user; `id` equals `userId`. Also carries how Train takes numbers — `entryMode` (buttons or ruler) and `plateLoader` — because, like the unit, the choice belongs to the person, not the phone |
 
-One thing lives on the device and nowhere else: the **bar weight** picked on a
-barbell card, per exercise, in Dexie's `meta` table under
-`bar:<unit>:<exerciseId>`. It is equipment in one gym, not training, so it is
-not synced — and `wipeLocal` clears it on sign-out with everything else.
+Two things live on the device and nowhere else, and `wipeLocal` clears both on
+sign-out with everything else:
+
+- the **bar weight** picked on a barbell card, per exercise, in Dexie's `meta`
+  table under `bar:<unit>:<exerciseId>`. It is equipment in one gym, not
+  training, so it is not synced;
+- an undismissed **storage-failure warning**, in localStorage under
+  `gymmy.storageFailure` — not in Dexie, because Dexie is the store whose
+  write just failed. It is the only thing gymmy keeps in localStorage.
 
 Server-side every table has a composite primary key `(user_id, id)` and a `seq`
 index. `seq` comes from one shared Postgres sequence, `change_seq`, so a single

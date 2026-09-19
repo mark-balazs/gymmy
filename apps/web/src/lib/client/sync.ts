@@ -32,9 +32,41 @@ export interface SyncStatus {
    * `syncing`, then `idle`, seconds later — replaced it: somebody who looked
    * away never learned. It is a fact about a write, not about the sync, so no
    * sync outcome touches it. Only the person clears it (`dismissStorageFailure`),
-   * or a sign-out wipe.
+   * or a sign-out wipe. A reload does not: see `FAILURE_KEY`.
    */
   storageFailure: string | null;
+}
+
+/**
+ * Where a storage failure outlives the page.
+ *
+ * Held only in memory, a reload cleared it unseen — and reloads happen without
+ * anybody asking: the service worker's self-update reloads the app while it is
+ * out of view, and phones discard pages left in the background. So it is also
+ * written to localStorage: not IndexedDB, which is the store that just failed.
+ *
+ * Best effort. localStorage is absent on the server, and a browser that blocks
+ * site data throws on any touch of it; then the warning lasts until a reload,
+ * as it always did, rather than the report itself failing.
+ */
+const FAILURE_KEY = 'gymmy.storageFailure';
+
+function recallFailure(): string | null {
+  try {
+    return typeof localStorage === 'undefined' ? null : localStorage.getItem(FAILURE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function keepFailure(message: string | null): void {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    if (message === null) localStorage.removeItem(FAILURE_KEY);
+    else localStorage.setItem(FAILURE_KEY, message);
+  } catch {
+    /* Blocked or full: it still shows until the page goes. */
+  }
 }
 
 type Listener = (s: SyncStatus) => void;
@@ -45,7 +77,8 @@ let status: SyncStatus = {
   pending: 0,
   lastSyncedAt: null,
   error: null,
-  storageFailure: null,
+  // A warning the last page load left up, and nobody has dismissed.
+  storageFailure: recallFailure(),
 };
 let inFlight: Promise<void> | null = null;
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -88,15 +121,18 @@ export async function enqueue(table: TableName, row: { id: string }): Promise<vo
  * that does not exist.
  *
  * It stays reported until the person dismisses it, whatever the sync does
- * next and even if a later write succeeds: a later set being saved does not
- * bring back the one that was not.
+ * next, even if a later write succeeds, and across a reload: a later set being
+ * saved does not bring back the one that was not.
  */
 export function reportStorageFailure(err: unknown): void {
-  emit({ storageFailure: err instanceof Error ? err.message : String(err) });
+  const message = err instanceof Error ? err.message : String(err);
+  keepFailure(message);
+  emit({ storageFailure: message });
 }
 
 /** The person has seen the storage warning and tapped it away. */
 export function dismissStorageFailure(): void {
+  keepFailure(null);
   emit({ storageFailure: null });
 }
 
@@ -221,6 +257,7 @@ export async function wipeLocal(): Promise<void> {
     local.meta.clear(),
   ]);
   // The next person on this phone inherits nothing, a warning included.
+  keepFailure(null);
   emit({ state: 'idle', pending: 0, lastSyncedAt: null, error: null, storageFailure: null });
 }
 
