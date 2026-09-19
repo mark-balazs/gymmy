@@ -86,6 +86,7 @@ export const fr: Record<Key, string> = {
   'common.weight': 'Poids ({unit})',
   'common.reps': 'Reps',
   'common.close': 'Fermer',
+  'info.more': 'En savoir plus sur {subject}',
   'common.previous': 'Précédent',
   'common.next': 'Suivant',
   'common.loading': 'Chargement…',

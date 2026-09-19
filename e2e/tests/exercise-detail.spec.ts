@@ -1,5 +1,5 @@
 import { EXERCISE_DETAILS } from '../../packages/domain/src/details';
-import { expect, test } from '../fixtures/test';
+import { expect, finishOpenExercise, openCard, test } from '../fixtures/test';
 
 test.describe('Exercise detail', () => {
   test('is reachable while planning the week, not just while training', async ({
@@ -34,6 +34,34 @@ test.describe('Exercise detail', () => {
        the placeholder. */
     await expect(sheet.getByText(EXERCISE_DETAILS[name]!.description)).toBeVisible();
     await expect(sheet.getByText('No description for this one yet.')).toHaveCount(0);
+  });
+
+  test('opened from a finished exercise, it is not faded with the card', async ({
+    onboardedApp: app,
+  }) => {
+    /* A finished card recedes to 70% opacity, and a sheet rendered inside it
+       inherited that: the photographs and the description came up washed out
+       (GYM-24). Measured as what reaches the eye — every opacity from the
+       sheet up to the page, multiplied — and polled, because the sheet fades
+       in. */
+    const name = await finishOpenExercise(app);
+    await openCard(app, name);
+    await app.getByRole('button', { name: `About ${name}`, exact: true }).click();
+
+    const sheet = app.getByRole('dialog');
+    await expect(sheet.getByRole('img', { name: 'Starting position' })).toBeVisible();
+    await expect
+      .poll(() =>
+        sheet.evaluate((el) => {
+          let seen = 1;
+          for (let n: Element | null = el; n; n = n.parentElement) {
+            seen *= Number(getComputedStyle(n).opacity);
+          }
+          return seen;
+        }),
+      )
+      .toBe(1);
+    await expect(app.locator('main').getByRole('dialog')).toHaveCount(0);
   });
 
   test('a photograph opens large when you tap it', async ({ onboardedApp: app }) => {

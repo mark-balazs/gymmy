@@ -33,7 +33,8 @@
  */
 
 import { useMemo, useState } from 'react';
-import { Button, Card, Chip, InfoButton, Sheet, Summary, cn } from '@/components/ui';
+import { Button, Card, Chip, Sheet, Summary, cn } from '@/components/ui';
+import { InfoTip } from '@/components/info-tip';
 import { Page } from '@/components/page';
 import { LineChart, Sparkline, type ChartPoint } from '@/components/chart';
 import { Delta } from '@/components/delta';
@@ -251,7 +252,7 @@ export default function ProgressPage() {
       <Card className="flex flex-col gap-3 border-[var(--color-accent-2)]/35 bg-[var(--color-accent-2-bg)]">
         <div className="flex items-center gap-1">
           <h2 className="flex-1 text-[17px] font-semibold">{tr.t('prog.strength')}</h2>
-          <InfoButton label={tr.t('prog.strengthWhat')} onClick={() => setExplain(true)} />
+          <InfoTip label={tr.t('prog.strengthWhat')} onOpen={() => setExplain(true)} />
         </div>
 
         {current ? (
@@ -355,7 +356,7 @@ export default function ProgressPage() {
                         })}
             </p>
           </div>
-          <InfoButton label={tr.t('prog.dotsWhat')} onClick={() => setDots(true)} />
+          <InfoTip label={tr.t('prog.dotsWhat')} onOpen={() => setDots(true)} />
         </div>
 
         <form

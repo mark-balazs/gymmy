@@ -42,7 +42,8 @@ offered and then quietly under-delivered.
 
 A one-line hint is not enough to choose on. The thing worth explaining is not
 what a split is called, it is **what it will then hold you to** — so every
-preset carries an "i" beside it, in onboarding and in Settings alike, opening a
+preset carries an ⓘ beside it (the app's one info button, in its sheet mode),
+in onboarding and in Settings alike, opening a
 sheet that states the days it makes, what goes in each slot, the day counts it
 works at, and the coverage set it will call a complete week.
 

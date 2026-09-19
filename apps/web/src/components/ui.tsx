@@ -3,6 +3,7 @@
 import { clsx } from 'clsx';
 import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react';
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useT } from '@/lib/client/hooks';
 
 export const cn = clsx;
@@ -40,9 +41,8 @@ type Variant = 'default' | 'primary' | 'ghost' | 'danger';
 export const buttonClass = (variant: Variant = 'default', className?: string): string =>
   cn(
     'inline-flex min-h-[var(--spacing-tap)] cursor-pointer items-center justify-center gap-2',
-    'rounded-[12px] border px-4 font-semibold',
-    'transition-[transform,background-color,box-shadow,opacity] duration-150 ease-[var(--ease-out-soft)]',
-    'active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100',
+    'press rounded-[12px] border px-4 font-semibold',
+    'disabled:cursor-not-allowed disabled:opacity-40',
     variant === 'primary' &&
       'border-transparent bg-[image:var(--gradient-accent)] text-[var(--color-accent-ink)] shadow-[var(--shadow-accent)]',
     variant === 'default' &&
@@ -62,48 +62,6 @@ export function Button({
   return (
     <button {...rest} className={buttonClass(variant, className)}>
       {children}
-    </button>
-  );
-}
-
-/**
- * The "i" affordance.
- *
- * A separate control rather than something folded into the card it explains:
- * the card already does something when you tap it — picks a split, opens a day —
- * and a button inside a button is neither valid markup nor operable with a
- * keyboard or a screen reader.
- */
-export function InfoButton({
-  label,
-  onClick,
-  className,
-}: {
-  label: string;
-  onClick: () => void;
-  className?: string;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      onClick={onClick}
-      className={cn(
-        'grid w-[var(--spacing-tap)] shrink-0 cursor-pointer place-items-center self-stretch',
-        'rounded-[11px] text-[13px] font-bold',
-        // "Tell me more" is the second voice everywhere it appears, so the
-        // affordance is recognisable as the same thing across screens.
-        'text-[var(--color-accent-2)] hover:opacity-80',
-        'transition-colors duration-150 active:scale-[0.94]',
-        className,
-      )}
-    >
-      <span
-        aria-hidden
-        className="grid h-[19px] w-[19px] place-items-center rounded-full border border-current"
-      >
-        i
-      </span>
     </button>
   );
 }
@@ -170,8 +128,7 @@ export function Segmented<T extends string | number>({
           onClick={() => onChange(o.value)}
           className={cn(
             'min-h-[38px] flex-1 cursor-pointer rounded-[10px] text-sm font-semibold',
-            'transition-[background-color,color,box-shadow,transform] duration-200 ease-[var(--ease-out-soft)]',
-            'active:scale-[0.97]',
+            'press',
             'inline-flex items-center justify-center gap-1',
             o.value === value
               ? 'bg-[var(--color-surface)] text-[var(--color-accent)] shadow-[var(--shadow-card)]'
@@ -200,7 +157,16 @@ export function Segmented<T extends string | number>({
   );
 }
 
-/** Bottom sheet — reachable with a thumb, unlike a centred modal. */
+/**
+ * Bottom sheet — reachable with a thumb, unlike a centred modal.
+ *
+ * **Portalled to the body.** Sheets open from inside cards, and a card that is
+ * faded (a finished exercise on Train) or transformed passes that on: the
+ * sheet showed at the card's 70% opacity (GYM-24), and a transformed parent
+ * turns "cover the screen" into "cover the card". The keypad and the lightbox
+ * are portalled for the same reason. It also takes the sheet out of any
+ * `<form>` it is declared in, so its buttons can never submit that form.
+ */
 export function Sheet({
   title,
   open,
@@ -221,8 +187,9 @@ export function Sheet({
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  if (!open) return null;
-  return (
+  // Only ever opened from a tap, so there is no server render to guard.
+  if (!open || typeof document === 'undefined') return null;
+  return createPortal(
     <div
       /* `100dvh`, not `inset-0`. A fixed overlay sized to the *layout* viewport
          runs underneath a phone's address bar, which is exactly how the last
@@ -244,6 +211,7 @@ export function Sheet({
           <div className="flex items-center justify-between gap-2">
             <h2 className="min-w-0 flex-1 text-[17px] font-semibold">{title}</h2>
             <Button
+              type="button"
               variant="ghost"
               className="-mr-1 min-h-9 shrink-0 px-2"
               aria-label={tr.t('common.close')}
@@ -259,7 +227,8 @@ export function Sheet({
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

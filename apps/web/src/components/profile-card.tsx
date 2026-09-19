@@ -137,8 +137,7 @@ export function ProfileCard() {
             aria-label={tr.t(avatar ? 'set.picChange' : 'set.picAdd')}
             className={cn(
               'relative h-[72px] w-[72px] shrink-0 cursor-pointer rounded-full',
-              'transition-transform duration-150 ease-[var(--ease-out-soft)] active:scale-[0.95]',
-              'disabled:cursor-wait disabled:active:scale-100',
+              'press disabled:cursor-wait',
             )}
           >
             <Avatar src={avatar} className={cn(busy && 'opacity-60')} />
@@ -158,7 +157,7 @@ export function ProfileCard() {
                   stroke="currentColor"
                   strokeWidth="2.6"
                   strokeLinecap="round"
-                  className="h-3.5 w-3.5 animate-spin"
+                  className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
                 >
                   <path d="M12 3.5a8.5 8.5 0 0 1 8.5 8.5" />
                 </svg>

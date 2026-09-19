@@ -21,8 +21,8 @@
  * it closes it is `inert` and hidden from assistive technology already: a
  * card on its way out is not somewhere to type.
  *
- * **Reduced motion.** The global rule shortens every transition to 0.01 ms
- * rather than removing it, so `transitionend` still fires and the sequence
+ * **Reduced motion.** A change of size is movement, so the transition drops to
+ * 1 ms rather than being removed: `transitionend` still fires and the sequence
  * below runs the same way, only instantly. A 400 ms fallback covers a
  * transition that never starts at all — a browser without `@starting-style`,
  * a tab in the background.
@@ -32,8 +32,8 @@ import { useEffect, useEffectEvent, useState } from 'react';
 import type { ReactNode, TransitionEvent } from 'react';
 import { cn } from '@/components/ui';
 
-/** Past the 280 ms transition with room to spare, and short enough that a
- *  missed event is a hitch rather than a hang. */
+/** Past the transition (`--dur-base`, 240 ms) with room to spare, and short
+ *  enough that a missed event is a hitch rather than a hang. */
 const FALLBACK_MS = 400;
 
 export function Collapse({
@@ -104,7 +104,10 @@ export function Collapse({
         if (ours(e) && !open) setPresent(false);
       }}
       className={cn(
-        'grid transition-[grid-template-rows] duration-[280ms] ease-[var(--ease-out-soft)]',
+        'grid transition-[grid-template-rows] duration-(--dur-base) ease-(--ease-out)',
+        // A change of size is movement: instant under reduced motion. 1 ms, not
+        // none, so `transitionend` still fires and the sequence runs the same.
+        'motion-reduce:duration-[1ms]',
         open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
         // Mounted open, it starts from nothing — `@starting-style` gives a new
         // element a first frame to transition from, without a render to wait
