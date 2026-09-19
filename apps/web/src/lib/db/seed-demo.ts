@@ -13,7 +13,7 @@
  * the interesting half be tested without Postgres.
  */
 
-import { sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import {
   bodyLogs,
@@ -22,6 +22,7 @@ import {
   patterns,
   programEntries,
   setLogs,
+  slots,
 } from '@/lib/db/schema';
 import { CATALOGUE, mondayOf, type PatternKey } from '@athletic/domain';
 import { demoGoals, demoHistory, type DemoPlanEntry } from './demo-history';
@@ -51,10 +52,24 @@ export const isDemoEmail = (email?: string | null): boolean =>
  */
 export async function seedDemoHistory(userId: string): Promise<void> {
   const [plan, library, patternRows] = await Promise.all([
+    /* In the order `buildProgram` built the week: session, then slot position.
+       `demoGoals` puts the climbing goal on the first steady lift it meets, so
+       with no ORDER BY that choice was Postgres's — heap order gave the Goblet
+       Squat, the entries index the Trap Bar Deadlift — and a re-seed could
+       write a third goal. The slot id breaks a tie, so the order is total. */
     db
-      .select()
+      .select({
+        sessionIndex: programEntries.sessionIndex,
+        exerciseId: programEntries.exerciseId,
+        sets: programEntries.sets,
+      })
       .from(programEntries)
-      .where(sql`${programEntries.userId} = ${userId}`),
+      .leftJoin(
+        slots,
+        and(eq(slots.userId, programEntries.userId), eq(slots.id, programEntries.slotId)),
+      )
+      .where(eq(programEntries.userId, userId))
+      .orderBy(programEntries.sessionIndex, slots.position, programEntries.slotId),
     db
       .select()
       .from(exercisesTable)

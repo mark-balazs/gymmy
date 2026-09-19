@@ -376,11 +376,15 @@ gain and lose the same rep in lockstep, which is the tell that one generator dre
 all of them.
 
 **Two goals**, because without one the app judges nothing and the goal and
-verdict cards stay blank. `demoGoals` puts one on the stalled lift, so the
-verdict card has a stall to report, and one on the first steady lift in the
-plan, so a climbing bar sits beside it. Each baseline is the lift's best in the
-eight weeks before the goal, and each goal is as old as it can be without
-arriving already reached. The target is **7%** up: past the 5% floor and under
+verdict cards stay blank. `demoGoals` puts one on the stalled lift (Barbell
+Bench Press), so the verdict card has a stall to report, and one on the first
+steady lift in the plan (Goblet Squat), so a climbing bar sits beside it.
+"First" means the order the week was built in — session, then slot position —
+and `seed-demo.ts` reads the plan back with exactly that `ORDER BY`. Without
+it the choice was Postgres's, and a re-seed could pick another lift and write
+a third goal. Each baseline is the lift's best in the eight weeks before the
+goal, and each goal is as old as it can be without arriving already reached.
+The target is **7%** up: past the 5% floor and under
 the 7.5% at which the goal sheet warns "ambitious" for a lift gaining slowly.
 8% tripped that warning on both, so the demo showed goals the app itself called
 unrealistic. A test asks `checkGoal` about each goal the way the goal sheet

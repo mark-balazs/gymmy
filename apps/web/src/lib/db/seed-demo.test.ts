@@ -53,15 +53,35 @@ describe('seeding the demo account', () => {
   const counts = async (): Promise<Record<string, number>> =>
     Object.fromEntries(await Promise.all(HISTORY.map(async (t) => [t, (await rows(t)).length])));
 
-  /** The plan as `seedDemoHistory` reads it back: this account's own entries,
-   *  named through the catalogue. */
+  const nameOf = (exerciseId: string) => CATALOGUE.find((c) => c.id === exerciseId)?.name;
+
+  /** The plan as `seedDemoHistory` should read it back: this account's own
+   *  entries, named through the catalogue, in the order `buildProgram` built
+   *  them — session, then slot position. Stated here rather than borrowed from
+   *  the seed, so a seed that reads them in any other order disagrees. */
   const seededPlan = async (): Promise<DemoPlanEntry[]> => {
     const byId = new Map(CATALOGUE.map((c) => [c.id, c]));
-    const entries = (await rows('programEntries')) as {
-      sessionIndex: number;
-      exerciseId: string | null;
-      sets: number;
-    }[];
+    const position = new Map(
+      (
+        await db
+          .select()
+          .from(schema.slots)
+          .where(sql`${schema.slots.userId} = ${userId}`)
+      ).map((s) => [s.id, s.position]),
+    );
+    const entries = (
+      (await rows('programEntries')) as {
+        sessionIndex: number;
+        slotId: string;
+        exerciseId: string | null;
+        sets: number;
+      }[]
+    ).sort(
+      (a, b) =>
+        a.sessionIndex - b.sessionIndex ||
+        position.get(a.slotId)! - position.get(b.slotId)! ||
+        a.slotId.localeCompare(b.slotId),
+    );
     return entries.flatMap((e) => {
       const c = e.exerciseId ? byId.get(e.exerciseId) : undefined;
       if (!c) return [];
@@ -234,27 +254,44 @@ describe('seeding the demo account', () => {
     const byLift = (a: Goal, b: Goal) => a.exerciseId.localeCompare(b.exerciseId);
 
     const got = (await rows('goals')) as Goal[];
-    expect(got).toHaveLength(2);
-    const bench = CATALOGUE.find((c) => c.name === 'Barbell Bench Press')!.id;
-    expect(got.map((g) => g.exerciseId)).toContain(bench);
 
-    /* Held to the generator with the stored goals' own lifts put first. The
-       climbing goal goes on whichever steady lift `demoGoals` meets first, and
-       the seed reads the plan back with no ORDER BY, so that is Postgres's
-       choice: read in the order of the entries index instead of the heap, the
-       same seed picks the Trap Bar Deadlift rather than the Goblet Squat. A
-       second read here could disagree with the seed over nothing but a query
-       plan — it did, once in about a hundred runs. Putting the stored lifts
-       first asks what does not depend on that: are these the goals the
-       generator makes for these lifts? A lift it would never pick still
-       fails, because it walks straight past it. */
-    const chosen = new Set(got.map((g) => g.exerciseId));
-    const theirsFirst = [
-      ...plan.filter((e) => chosen.has(e.exerciseId)),
-      ...plan.filter((e) => !chosen.has(e.exerciseId)),
-    ];
-    const expected = demoGoals(theirsFirst, demoHistory(plan, monday).sets, monday);
+    /* By name. The climbing goal goes on the first steady lift `demoGoals`
+       meets, so which lift that is depends on the order the seed reads the
+       plan in. It read with no ORDER BY, and Postgres picked: heap order gave
+       the Goblet Squat, the entries index the Trap Bar Deadlift. In the order
+       the week was built — session, then slot — it is the Goblet Squat. */
+    expect(got.map((g) => nameOf(g.exerciseId)).sort()).toEqual([
+      'Barbell Bench Press',
+      'Goblet Squat',
+    ]);
+
+    // And with the numbers the generator chose for the plan in that order.
+    const expected = demoGoals(plan, demoHistory(plan, monday).sets, monday);
     expect(got.map(pick).sort(byLift)).toEqual(expected.map(pick).sort(byLift));
+  });
+
+  it('picks the same lifts however the plan rows happen to be stored', async () => {
+    /* The ORDER BY is the fix, and a freshly seeded table hides its absence:
+       the rows sit in the order they were inserted, which is the order the
+       week was built, so a read with no ORDER BY usually gets the right
+       answer by luck. Stored backwards, it would not. So: store them
+       backwards, seed the goals again, and want the same two lifts. */
+    const entries = await db
+      .select()
+      .from(schema.programEntries)
+      .where(sql`${schema.programEntries.userId} = ${userId}`);
+    await db.delete(schema.programEntries).where(sql`${schema.programEntries.userId} = ${userId}`);
+    for (const e of [...entries].reverse()) await db.insert(schema.programEntries).values(e);
+    await db.delete(schema.goals).where(sql`${schema.goals.userId} = ${userId}`);
+
+    const { seedDemoHistory } = await import('./seed-demo');
+    await seedDemoHistory(userId);
+
+    const got = (await rows('goals')) as { exerciseId: string }[];
+    expect(got.map((g) => nameOf(g.exerciseId)).sort()).toEqual([
+      'Barbell Bench Press',
+      'Goblet Squat',
+    ]);
   });
 
   it('writes nothing twice when seeded again', async () => {

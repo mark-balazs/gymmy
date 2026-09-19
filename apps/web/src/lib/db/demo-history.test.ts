@@ -467,7 +467,12 @@ describe('the demo goals', () => {
        verdict card invisible. Two, so both states are on screen at once: one
        lift the app now has something to say about, and one it does not. */
     expect(goals).toHaveLength(2);
-    expect(goals.map((g) => g.exerciseId)).toContain(byName('Barbell Bench Press')!.exercise.id);
+    /* By name: the stalled bench, and the first steady lift in the order the
+       week was built — the seed reads its plan back in that order too. */
+    const named = goals.map(
+      (g) => summary.find((p) => p.exercise.id === g.exerciseId)?.exercise.name,
+    );
+    expect(named.sort()).toEqual(['Barbell Bench Press', 'Goblet Squat']);
 
     // And the gate opens for exactly those two, not for the other fifteen.
     expect(growingExercises(withGoals, today).size).toBe(2);
