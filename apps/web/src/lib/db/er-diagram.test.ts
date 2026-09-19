@@ -136,7 +136,7 @@ describe('the hand-declared links', () => {
        change without a migration, but the words on the lines can, and a line
        reading "programmes" tells a reader the feature already exists. */
     const labels = allDiagrams().flatMap(({ mermaid }) =>
-      [...mermaid.matchAll(/ : "([^"]*)"$/gm)].map((m) => m[1]),
+      [...mermaid.matchAll(/ : "([^"]*)"$/gm)].map((m) => m[1] ?? ''),
     );
     expect(labels.length, 'no relationship labels found; the pattern is stale').toBeGreaterThan(0);
     expect(labels.filter((l) => /programme/i.test(l))).toEqual([]);
