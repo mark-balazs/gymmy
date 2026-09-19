@@ -9,6 +9,6 @@ appears:
   confluence: ["934445059", "934608897", "934543418", "934608916", "934608935", "934543399", "934445118", "934477826", "934445138"]
 ---
 
-Changing split starts a new period from this Monday and never edits an old one; each period freezes what counted as a complete week. Every week is scored against the split in force that week, marked 'Scored as' and that split's name when it differs.
+Changing split starts a period from this Monday (a second change that week replaces it) and never edits an older one; each period freezes what counted as a complete week. Every week is scored against the split in force that week, marked 'Scored as' and that split's name when it differs.
 
-The past is never rewritten: changing split in March leaves January as it was trained. A second change in the same week replaces that week's period rather than adding another, so split periods are not append-only.
+The past is never rewritten: changing split in March leaves January as it was trained.

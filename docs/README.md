@@ -38,8 +38,10 @@ regression in a feature, it is a regression in what the app *is*.
 January meant. Coverage is scored against the `SplitPeriod` in force that week.
 A switch starts a period from this Monday; a second switch in the same week
 replaces that week's period, which covers nothing but this week. Any code that
-edits a period that started before this Monday, or that starts a new one
-earlier than this Monday, is wrong. See
+edits a period that started before this Monday, or that starts a switch's
+period earlier than this Monday, is wrong. (The backfill for an account that
+pre-dates periods, and the demo seed, start earlier periods on purpose: they
+record the past, they do not change it.) See
 [training-model.md](./training-model.md#historisation).
 
 **The local database is the source of truth while you use the app.** Reads never
