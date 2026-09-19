@@ -67,7 +67,13 @@ export type PlanAction =
  * after the plan or group it describes is gone — which is exactly when somebody
  * comes asking. Best-effort: an audit write must never be the reason a trainer
  * cannot save their work, and a missing event is a smaller problem than a
- * refused edit. It is logged loudly instead.
+ * refused edit. It is logged loudly instead — and under the test runner it
+ * throws, because every audit write that has failed here was a bug, and a log
+ * line is something no test reads. `plan.deleted` and `group.deleted` failed on
+ * every call that way, and nothing noticed.
+ *
+ * Pass only ids of rows that still exist: `plan_id` and `group_id` are foreign
+ * keys, so an event about something already deleted names it and nothing more.
  */
 async function record(event: {
   actorId: string;
@@ -90,6 +96,7 @@ async function record(event: {
     });
   } catch (err) {
     console.error('[plans] audit write failed', event.action, err);
+    if (process.env.VITEST) throw err;
   }
 }
 
@@ -341,12 +348,19 @@ export async function publishPlan(ownerId: string, planId: string): Promise<bool
  * account at the moment it was applied, so deleting the original takes away
  * future editions and nothing else — which is the property that makes deletion
  * safe to offer at all.
+ *
+ * The event is written after the delete and names the plan without its id. The
+ * id would point at a row that is gone, which the foreign key refuses, and the
+ * delete has just set every earlier event's `plan_id` to null anyway — the name
+ * is what all of them identify it by now. After rather than before, so a delete
+ * that fails leaves no event saying it happened. (Both in one transaction is not
+ * available: the Neon HTTP driver production runs on has none.)
  */
 export async function deletePlan(ownerId: string, planId: string): Promise<boolean> {
   const [existing] = await db.select().from(plans).where(OWNED(ownerId, planId)).limit(1);
   if (!existing) return false;
   await db.delete(plans).where(OWNED(ownerId, planId));
-  await record({ actorId: ownerId, action: 'plan.deleted', planId, planName: existing.name });
+  await record({ actorId: ownerId, action: 'plan.deleted', planName: existing.name });
   return true;
 }
 
@@ -410,6 +424,7 @@ export async function renameGroup(
   return true;
 }
 
+/** Recorded after the delete, by name only — for the reason `deletePlan` gives. */
 export async function deleteGroup(ownerId: string, groupId: string): Promise<boolean> {
   const [existing] = await db
     .select()
@@ -418,12 +433,7 @@ export async function deleteGroup(ownerId: string, groupId: string): Promise<boo
     .limit(1);
   if (!existing) return false;
   await db.delete(userGroups).where(eq(userGroups.id, groupId));
-  await record({
-    actorId: ownerId,
-    action: 'group.deleted',
-    groupId,
-    groupName: existing.name,
-  });
+  await record({ actorId: ownerId, action: 'group.deleted', groupName: existing.name });
   return true;
 }
 

@@ -116,6 +116,14 @@ with the name it had at the time copied alongside. Erasure has to remove the
 person; it does not have to remove the fact that a plan was shared with forty
 people in March. `delete-account.test.ts` asserts both halves of that.
 
+A deletion is itself an event, written after the delete with the name and no
+id: `plan_id` and `group_id` are foreign keys, so naming a row that is gone
+fails the insert. (One transaction for both is not possible: the Neon HTTP
+driver has none.) Audit writes are best-effort in the app, because a failed one
+must not refuse a trainer's edit, but `record()` rethrows under Vitest —
+swallowing the error is how `plan.deleted` and `group.deleted` went missing on
+every call without a test noticing. `plans.test.ts` reads both back.
+
 ## Adding a field to an existing table
 
 There is a trap here that has already bricked the app once.

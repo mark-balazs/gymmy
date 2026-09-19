@@ -9,4 +9,4 @@ appears:
   confluence: ["934543399", "934445118", "934445138"]
 ---
 
-Everything done to a plan is recorded in an append-only log (plan_events). It keeps the event and a copy of the name after the plan, group or person is deleted.
+Everything done to a plan or group, deleting it included, is recorded in an append-only log (plan_events). It keeps the event and a copy of the name after the plan, group or person is deleted.

@@ -288,6 +288,8 @@ describe('plans and who can see them', () => {
         'group.renamed',
         'group.member.added',
         'group.member.removed',
+        'plan.deleted',
+        'group.deleted',
       ]),
     );
 
@@ -300,6 +302,17 @@ describe('plans and who can see them', () => {
     const made = events.find((e) => e.action === 'group.created')!;
     expect(made.groupId).toBeNull();
     expect(made.groupName).toBe('Audited group');
+
+    /* The deletions themselves, which are what an audit trail is asked about
+       most. Each names what went, by the name it had then, and points at
+       nothing: the row is gone. They were missing entirely — written with the
+       deleted row's id, refused by the foreign key, and the refusal swallowed. */
+    const planGone = events.find((e) => e.action === 'plan.deleted')!;
+    expect(planGone.planId).toBeNull();
+    expect(planGone.planName).toBe('Audited block');
+    const groupGone = events.find((e) => e.action === 'group.deleted')!;
+    expect(groupGone.groupId).toBeNull();
+    expect(groupGone.groupName).toBe('Audited group, renamed');
   });
 
   it('deleting a plan takes nobody’s week with it', async () => {
