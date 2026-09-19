@@ -202,14 +202,20 @@ followed by signing in again.
 
 1. Push to GitHub and import the repository. Vercel detects the monorepo; set
    the root directory to `apps/web`.
-2. Create a Neon database and set `DATABASE_URL` to the **pooled** connection
-   string. The driver switches to Neon's HTTP transport automatically.
+2. Create a Neon database and set both of its URLs (Vercel's Neon integration
+   sets them for you):
+   - `DATABASE_URL`: the **pooled** connection string, for the app. The driver
+     switches to Neon's HTTP transport automatically.
+   - `DATABASE_URL_UNPOOLED`: the **direct** connection string, for
+     migrations. A pooler can reject or reorder schema changes, and without
+     this variable migrations fall back to the pooled URL.
 3. Set `AUTH_SECRET`, `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`. `AUTH_URL` is
    set by Vercel.
 4. Add `https://your-domain/api/auth/callback/google` as an authorised redirect
    URI in Google Cloud Console.
-5. Nothing else: `vercel-build` runs `drizzle-kit migrate` before `next build`,
-   so every deploy applies pending migrations and a failed one fails the deploy.
+5. Nothing else: `vercel-build` runs `drizzle-kit migrate` over
+   `DATABASE_URL_UNPOOLED` before `next build`, so every deploy applies pending
+   migrations and a failed one fails the deploy.
 
 ## Tests
 
