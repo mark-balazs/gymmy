@@ -59,7 +59,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       return (
         <Recovery
           title={t('err.stuckTitle')}
-          detail={status.error ?? t('err.stuckDetail')}
+          detail={status.error ?? status.storageFailure ?? t('err.stuckDetail')}
           onRetry={() => {
             setStuck(false);
             void sync();

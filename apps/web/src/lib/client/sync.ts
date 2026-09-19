@@ -15,25 +15,38 @@ import { local, DOMAIN_TABLES, getMeta, setMeta, type Outbox } from './db';
 import type { PullResponse } from '@/lib/sync/protocol';
 import type { TableName } from '@athletic/domain';
 
-/**
- * `error` and `storage` are deliberately distinct. An `error` means the change
- * is safe on this device but has not reached the server yet — annoying, and it
- * resolves itself. `storage` means the write never landed at all, so the set
- * the user believes they logged does not exist anywhere.
- */
-export type SyncState = 'idle' | 'syncing' | 'offline' | 'error' | 'storage';
+/** Where the sync is. An `error` means the change is safe on this device but
+ *  has not reached the server yet — annoying, and it resolves itself. */
+export type SyncState = 'idle' | 'syncing' | 'offline' | 'error';
 
 export interface SyncStatus {
   state: SyncState;
   pending: number;
   lastSyncedAt: string | null;
   error: string | null;
+  /**
+   * A write that never landed on this device, so the set the person believes
+   * they logged does not exist anywhere. The message of the last one, or null.
+   *
+   * **Not a sync state, on purpose.** It used to be one, and the next sync —
+   * `syncing`, then `idle`, seconds later — replaced it: somebody who looked
+   * away never learned. It is a fact about a write, not about the sync, so no
+   * sync outcome touches it. Only the person clears it (`dismissStorageFailure`),
+   * or a sign-out wipe.
+   */
+  storageFailure: string | null;
 }
 
 type Listener = (s: SyncStatus) => void;
 
 const listeners = new Set<Listener>();
-let status: SyncStatus = { state: 'idle', pending: 0, lastSyncedAt: null, error: null };
+let status: SyncStatus = {
+  state: 'idle',
+  pending: 0,
+  lastSyncedAt: null,
+  error: null,
+  storageFailure: null,
+};
 let inFlight: Promise<void> | null = null;
 let timer: ReturnType<typeof setTimeout> | null = null;
 let started = false;
@@ -73,9 +86,18 @@ export async function enqueue(table: TableName, row: { id: string }): Promise<vo
  * *anywhere* — the device is out of space, or in a private window, or the store
  * is corrupt. Staying quiet would leave someone believing they had logged a set
  * that does not exist.
+ *
+ * It stays reported until the person dismisses it, whatever the sync does
+ * next and even if a later write succeeds: a later set being saved does not
+ * bring back the one that was not.
  */
 export function reportStorageFailure(err: unknown): void {
-  emit({ state: 'storage', error: err instanceof Error ? err.message : String(err) });
+  emit({ storageFailure: err instanceof Error ? err.message : String(err) });
+}
+
+/** The person has seen the storage warning and tapped it away. */
+export function dismissStorageFailure(): void {
+  emit({ storageFailure: null });
 }
 
 export function schedule(delay = 800): void {
@@ -198,7 +220,8 @@ export async function wipeLocal(): Promise<void> {
     local.outbox.clear(),
     local.meta.clear(),
   ]);
-  emit({ state: 'idle', pending: 0, lastSyncedAt: null, error: null });
+  // The next person on this phone inherits nothing, a warning included.
+  emit({ state: 'idle', pending: 0, lastSyncedAt: null, error: null, storageFailure: null });
 }
 
 export type { Outbox };

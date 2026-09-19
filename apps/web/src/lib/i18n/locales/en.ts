@@ -58,6 +58,9 @@ export const en = {
   'sync.error': 'Could not sync',
   // Deliberately not "could not sync": nothing was written at all.
   'sync.storage': 'Not saved on this device',
+  // The warning under the header, which stays until it is dismissed.
+  'sync.storageWarn': 'Your last change was not saved on this device.',
+  'sync.dismiss': 'Dismiss',
   'sync.pending.one': '{n} waiting to sync',
   'sync.pending.other': '{n} waiting to sync',
 

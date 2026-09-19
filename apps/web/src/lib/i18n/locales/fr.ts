@@ -66,6 +66,8 @@ export const fr: Record<Key, string> = {
   'sync.error': 'Synchronisation impossible',
   // Rien n’a été écrit du tout : ce n’est pas un échec de synchro.
   'sync.storage': 'Pas enregistré sur cet appareil',
+  'sync.storageWarn': 'Ta dernière modification n’a pas été enregistrée sur cet appareil.',
+  'sync.dismiss': 'Masquer',
   'sync.pending.one': '{n} en attente de synchro',
   'sync.pending.other': '{n} en attente de synchro',
 

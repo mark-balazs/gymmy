@@ -25,28 +25,58 @@ test.describe('When the device cannot store a set', () => {
     const user = await createUser({ onboarded: true });
     await context.addCookies([sessionCookie(user, baseURL!)]);
 
+    // The sync the app starts on load, out of the way first, so the one below
+    // is certain to begin after the failure rather than be half-way through.
+    const loaded = page.waitForResponse((r) => r.url().endsWith('/api/sync') && r.ok());
     await page.goto('/train');
     await expect(page.getByRole('heading', { name: /Train|Edzés/ })).toBeVisible();
+    await loaded;
 
     await page
       .getByRole('button', { name: /^Log set/ })
       .first()
       .click();
 
-    await expect(page.getByText('Not saved on this device')).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText('Could not sync')).toHaveCount(0);
+    const badge = page.getByTitle('Not saved on this device');
+    await expect(page.getByText('Not saved on this device', { exact: true })).toBeAttached({
+      timeout: 15_000,
+    });
+    await expect(page.getByText('Could not sync', { exact: true })).toHaveCount(0);
 
     /* And what a sighted person sees. The words are for screen readers and the
        tooltip; on screen the badge is all there is — so a badge that stayed
        green would leave the label correct and the person none the wiser. It
        must not look like a sync problem either: that is red and a dot, and
        this is its own colour and a warning triangle. */
-    const badge = page.getByTitle('Not saved on this device');
     await expect(badge).toHaveAttribute('data-state', 'storage');
     const storage = await themeColour(page, '--color-storage');
     expect(storage).not.toBe(await themeColour(page, '--color-bad'));
     await expect(badge.locator('svg')).toHaveCSS('color', storage);
     await expect(badge.locator('.rounded-full')).toHaveCount(0);
+
+    // A dot has no hover on a phone, so the warning is also said in words.
+    const warning = page
+      .getByRole('alert')
+      .filter({ hasText: 'Your last change was not saved on this device.' });
+    await expect(warning).toBeVisible();
+
+    /* It stays, whatever the sync does next. It used to be a sync state, and
+       the next sync — "syncing", then "idle", seconds later — replaced it, so
+       somebody who looked away never learned the set was saved nowhere. The
+       reconnect trigger is the one that also set the state to idle directly. */
+    const next = page.waitForRequest((r) => r.url().endsWith('/api/sync'));
+    const answered = page.waitForResponse((r) => r.url().endsWith('/api/sync') && r.ok());
+    await page.evaluate(() => window.dispatchEvent(new Event('online')));
+    await next;
+    await answered;
+    await expect(badge).toHaveAttribute('data-sync', 'idle');
+    await expect(warning).toBeVisible();
+    await expect(badge).toHaveAttribute('data-state', 'storage');
+
+    // Only the person takes it away, and then the dot says what the sync says.
+    await warning.getByRole('button', { name: 'Dismiss', exact: true }).click();
+    await expect(warning).toHaveCount(0);
+    await expect(page.getByTitle('All saved')).toHaveAttribute('data-state', 'idle');
   });
 });
 

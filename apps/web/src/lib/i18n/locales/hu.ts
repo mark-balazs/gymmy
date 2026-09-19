@@ -56,6 +56,8 @@ export const hu: Record<Key, string> = {
   'sync.offline': 'Nincs net – ezen az eszközön elmentve',
   'sync.error': 'A szinkronizálás nem sikerült',
   'sync.storage': 'Nem sikerült elmenteni az eszközre',
+  'sync.storageWarn': 'Az utolsó módosításodat nem sikerült elmenteni erre az eszközre.',
+  'sync.dismiss': 'Elrejtés',
   'sync.pending.one': '{n} vár szinkronizálásra',
   'sync.pending.other': '{n} vár szinkronizálásra',
 

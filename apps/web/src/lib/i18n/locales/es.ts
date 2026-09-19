@@ -69,6 +69,8 @@ export const es: Record<Key, string> = {
   'sync.error': 'No se pudo sincronizar',
   // Nada llegó a escribirse, así que no es "no se pudo sincronizar".
   'sync.storage': 'No se guardó en este dispositivo',
+  'sync.storageWarn': 'Tu último cambio no se guardó en este dispositivo.',
+  'sync.dismiss': 'Descartar',
   'sync.pending.one': '{n} pendiente de sincronizar',
   'sync.pending.other': '{n} pendientes de sincronizar',
 

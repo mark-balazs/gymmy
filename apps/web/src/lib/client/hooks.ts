@@ -140,6 +140,7 @@ export function useSyncStatus(): SyncStatus {
     pending: 0,
     lastSyncedAt: null,
     error: null,
+    storageFailure: null,
   });
   useEffect(() => onSyncStatus(setStatus), []);
   return status;

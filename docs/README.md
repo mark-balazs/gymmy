@@ -51,7 +51,9 @@ needs to say so out loud.
 as a distinct state from a sync failure, because "saved here, not there yet" and
 "not saved anywhere" are different facts and only one of them loses a set. The
 header never lets them look alike: a sync failure is a red dot, a storage
-failure a warning triangle in its own colour (`--color-storage`).
+failure a warning triangle in its own colour (`--color-storage`) with a warning
+in words that stays until the person dismisses it. That is why it is its own
+field, `storageFailure`, rather than a sync state the next sync can overwrite.
 
 **Nothing user-visible is English-only by accident.** Copy goes through the
 dictionary; pattern, slot, day and split names translate by key with the user's

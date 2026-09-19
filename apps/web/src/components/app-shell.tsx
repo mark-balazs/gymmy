@@ -14,7 +14,7 @@ import { useEffect } from 'react';
 import { cn } from '@/components/ui';
 import { Avatar } from '@/components/avatar';
 import { useProfile, useSyncStatus, useT } from '@/lib/client/hooks';
-import { startSync } from '@/lib/client/sync';
+import { dismissStorageFailure, startSync } from '@/lib/client/sync';
 import type { Key } from '@/lib/i18n';
 
 /**
@@ -131,19 +131,21 @@ function useSwipeTabs(pathname: string): void {
 function SyncBadge() {
   const { t, count } = useT();
   const status = useSyncStatus();
+  /* A write that never landed outranks anything the sync says, and stays until
+     the person dismisses the warning under the header. */
+  const lost = status.storageFailure !== null;
 
-  const label =
-    status.state === 'storage'
-      ? t('sync.storage')
-      : status.state === 'syncing'
-        ? t('sync.syncing')
-        : status.state === 'offline'
-          ? t('sync.offline')
-          : status.state === 'error'
-            ? t('sync.error')
-            : status.pending > 0
-              ? count('sync.pending', status.pending)
-              : t('sync.idle');
+  const label = lost
+    ? t('sync.storage')
+    : status.state === 'syncing'
+      ? t('sync.syncing')
+      : status.state === 'offline'
+        ? t('sync.offline')
+        : status.state === 'error'
+          ? t('sync.error')
+          : status.pending > 0
+            ? count('sync.pending', status.pending)
+            : t('sync.idle');
 
   const dot =
     status.state === 'error'
@@ -168,11 +170,17 @@ function SyncBadge() {
      a person who reads it as the milder one loses a set believing it is
      queued. So it gets its own colour and a shape — a warning triangle — that
      no sync state ever uses, and still reads as different to somebody who
-     cannot tell the colours apart. `data-state` names what is showing. */
+     cannot tell the colours apart. `data-state` names what is showing, and
+     `data-sync` what the sync is doing underneath it. */
   return (
-    <span className="flex items-center" title={label} data-state={status.state}>
-      {status.state === 'storage' ? (
-        <StorageIcon />
+    <span
+      className="flex items-center"
+      title={label}
+      data-state={lost ? 'storage' : status.state}
+      data-sync={status.state}
+    >
+      {lost ? (
+        <StorageIcon className="h-4 w-4" />
       ) : (
         <span className={cn('h-2.5 w-2.5 rounded-full', dot)} aria-hidden />
       )}
@@ -181,10 +189,56 @@ function SyncBadge() {
   );
 }
 
-/** A filled warning triangle in the storage colour, its "!" cut out of it. */
-function StorageIcon() {
+/**
+ * The storage warning, in words, under the title — until the person taps it
+ * away.
+ *
+ * The one state that needs a sentence: the dot has no hover on a phone, and a
+ * triangle alone does not say that a set is gone. It sits in the sticky header
+ * so scrolling cannot hide it, and nothing but the button removes it — a sync
+ * that succeeds a second later has no bearing on a write that never landed.
+ * `role="alert"` announces it once, when it appears.
+ */
+function StorageWarning() {
+  const { t } = useT();
+  const status = useSyncStatus();
+  if (status.storageFailure === null) return null;
+
   return (
-    <svg viewBox="0 0 16 16" className="h-4 w-4 text-[var(--color-storage)]" aria-hidden>
+    <div
+      role="alert"
+      className="animate-pop mx-auto mt-2.5 flex max-w-[760px] items-center gap-2 rounded-[12px] border border-[var(--color-storage)]/50 bg-[var(--color-surface)] py-1 pr-1 pl-3"
+    >
+      <StorageIcon className="h-4 w-4 shrink-0" />
+      <p className="min-w-0 flex-1 text-[13px] leading-snug font-semibold">
+        {t('sync.storageWarn')}
+      </p>
+      <button
+        type="button"
+        aria-label={t('sync.dismiss')}
+        onClick={dismissStorageFailure}
+        className="grid h-[var(--spacing-tap)] w-[var(--spacing-tap)] shrink-0 cursor-pointer place-items-center rounded-[10px] text-[var(--color-muted)] transition-transform duration-150 active:scale-90"
+      >
+        <svg
+          viewBox="0 0 16 16"
+          className="h-4 w-4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          aria-hidden
+        >
+          <path d="M4 4l8 8M12 4l-8 8" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+/** A filled warning triangle in the storage colour, its "!" cut out of it. */
+function StorageIcon({ className }: { className: string }) {
+  return (
+    <svg viewBox="0 0 16 16" className={cn('text-[var(--color-storage)]', className)} aria-hidden>
       <path
         d="M8 1.75 14.75 13.75H1.25z"
         fill="currentColor"
@@ -257,6 +311,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <ProfileLink />
           </div>
         </div>
+        <StorageWarning />
       </header>
 
       {/* The flex column moved into `Page`: that is the element which slides,

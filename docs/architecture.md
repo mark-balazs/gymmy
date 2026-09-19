@@ -123,6 +123,13 @@ sequenceDiagram
    set logged while it was travelling, and it would look to the user like the
    app simply lost it.
 
+If step 1's own write to IndexedDB fails, nothing was saved anywhere.
+`put()` calls `reportStorageFailure`, which sets `storageFailure` on the sync
+status: the header shows a magenta triangle and a one-line warning that stays
+until the person dismisses it. It is a separate field, not a sync state,
+because as a state the next sync replaced it within seconds — so no sync
+outcome can clear it. It lives in memory: a reload or a sign-out clears it.
+
 ### The cursor is the subtle part
 
 Each table is paged independently. Taking the highest `seq` across all of them

@@ -67,6 +67,8 @@ export const de: Record<Key, string> = {
   'sync.error': 'Synchronisieren fehlgeschlagen',
   // Bewusst nicht "Synchronisieren fehlgeschlagen": hier wurde gar nichts geschrieben.
   'sync.storage': 'Nicht auf diesem Gerät gespeichert',
+  'sync.storageWarn': 'Deine letzte Änderung wurde auf diesem Gerät nicht gespeichert.',
+  'sync.dismiss': 'Ausblenden',
   'sync.pending.one': '{n} wartet auf Sync',
   'sync.pending.other': '{n} warten auf Sync',
 
