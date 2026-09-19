@@ -116,6 +116,16 @@ test.describe('Choosing a split', () => {
       sheet.getByRole('button', { name: /Bench Press|Overhead Press/ }).first(),
     ).toBeVisible();
 
+    /* Why only these is one tap away rather than a line over a list opened
+       every week — and Escape closes the tip, not the sheet. */
+    await sheet.getByRole('button', { name: 'Why these exercises' }).click();
+    await expect(app.getByRole('note', { name: 'Why these exercises' })).toContainText(
+      'fit this slot',
+    );
+    await app.keyboard.press('Escape');
+    await expect(app.getByRole('note', { name: 'Why these exercises' })).toBeHidden();
+    await expect(sheet).toBeVisible();
+
     // And nothing from another pattern is in it: a push day's main lift must
     // not be able to quietly become a row.
     const names = await sheet.getByRole('button').allInnerTexts();
@@ -202,8 +212,14 @@ test.describe('Coverage is historised', () => {
 
     await expectTiles(page, SEVEN);
     // And the page says why the goal is different, rather than leaving the
-    // changed tile count looking like a glitch.
+    // changed tile count looking like a glitch: the label on the screen, the
+    // reason one tap away.
     await expect(page.getByText('Scored as Seven movement patterns')).toBeVisible();
+    await expect(page.getByText(/trained this week on a different split/)).toBeHidden();
+    await page.getByRole('button', { name: 'Why this week is scored differently' }).click();
+    await expect(
+      page.getByRole('note', { name: 'Why this week is scored differently' }),
+    ).toContainText('different split');
   });
 
   test('the old week still shows the sets logged in it', async ({ page, context, baseURL }) => {

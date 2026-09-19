@@ -31,7 +31,29 @@ test.describe('Settings', () => {
       'aria-pressed',
       'true',
     );
-    await expect(page.getByText('This is what you are training now.')).toBeVisible();
+    /* Nothing edited, so nothing to apply and nothing said about it: the line
+       under the button only appears once something is waiting to be saved. */
+    await expect(page.getByRole('button', { name: 'Rebuild my week' })).toBeDisabled();
+    await expect(page.getByText('Not saved yet')).toHaveCount(0);
+    // What a rebuild does is said where it is decided, in its sheet — not on
+    // the card as well, before anything has changed.
+    await expect(page.getByText(/New exercises will be chosen to fit/)).toHaveCount(0);
+  });
+
+  test('says what each split is in one line, the day minimum included', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* One line under each option, not two: the gist, and — for the split that
+       cannot run on two days — its minimum on the same line, because picking it
+       on two days quietly moves the week to three. The longer explanation is
+       the ⓘ beside it. */
+    await signInAs(page, context, baseURL!, { onboarded: true, days: 2 });
+    await page.goto('/settings');
+    const ppl = page.getByRole('button').filter({ hasText: 'Push / Pull / Legs' }).first();
+    await expect(ppl).toContainText('A day each for push, pull and legs · At least 3 days a week');
+    await expect(page.getByText('still checked for carries and rotation')).toHaveCount(0);
   });
 
   test('an edit is held until it is applied, then sticks', async ({ page, context, baseURL }) => {
@@ -40,9 +62,12 @@ test.describe('Settings', () => {
     await page.waitForURL('**/settings');
 
     await page.getByRole('button', { name: '4', exact: true }).click();
-    await expect(page.getByText('Not applied yet')).toBeVisible();
+    await expect(page.getByText('Not saved yet. Tap Rebuild my week.')).toBeVisible();
 
     await page.getByRole('button', { name: 'Rebuild my week' }).click();
+    await expect(
+      page.getByRole('dialog').getByText(/New exercises will be chosen to fit/),
+    ).toBeVisible();
     await confirmSheet(page);
 
     // Let the change reach the server before reloading. Pulling with a cursor
@@ -56,6 +81,8 @@ test.describe('Settings', () => {
       'aria-pressed',
       'true',
     );
-    await expect(page.getByText('This is what you are training now.')).toBeVisible();
+    // Applied: nothing is waiting, so the line has gone.
+    await expect(page.getByText('Not saved yet')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Rebuild my week' })).toBeDisabled();
   });
 });

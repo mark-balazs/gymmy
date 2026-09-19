@@ -4,7 +4,7 @@ status: current
 decided: "D-015; owner, week of 2026-09-14"
 appears:
   repo: ["README.md#two-strength-numbers", "docs/training-model.md#dotsat--a-real-dots", "docs/training-model.md#true-of-both", "docs/training-model.md#history-before-the-convention", "docs/openapi.yaml#/components/schemas/Profile"]
-  copy: ["prog.dots", "prog.dotsWhat", "prog.dotsBody", "prog.dotsNot", "prog.dotsNeed", "prog.dotsEstimate", "prog.dotsNeedsSex", "prog.dotsFrom", "set.sexWhy", "sex.unspecified"]
+  copy: ["prog.dots", "prog.dotsWhat", "prog.dotsBody", "prog.dotsNot", "prog.dotsNeedsSex", "prog.dotsFrom", "set.sexWhy", "sex.unspecified"]
   tests: ["packages/domain/test/strength.test.ts", "e2e/tests/progress.spec.ts"]
   confluence: ["934543418", "934608916", "934608935", "934543399", "934445118"]
 ---

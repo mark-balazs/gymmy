@@ -64,9 +64,14 @@ export function SplitSheet({ split, onClose }: { split: SplitKey; onClose: () =>
           </div>
         ))}
 
+        {/* One line: the day range, and — for a split whose days differ —
+            that they start over after the last one. A full-body week's days
+            are all the same, so there is nothing to start over. */}
         <p className="text-xs text-[var(--color-muted)]">
           {tr.t('split.range', { min: preset.minDays, max: preset.maxDays })}
-          {preset.maxDays > preset.days.length && ` ${tr.t('split.repeats')}`}
+          {!shared &&
+            preset.maxDays > preset.days.length &&
+            ` ${tr.t('split.repeats', { day: sessionLabel(preset.days.length - 1) })}`}
         </p>
       </section>
 

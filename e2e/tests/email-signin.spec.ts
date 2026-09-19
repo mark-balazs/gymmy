@@ -68,6 +68,11 @@ test.describe('Requesting a sign-in code', () => {
     await emailField.fill('someone@example.test');
     await page.getByRole('button', { name: /Email me a code/ }).click();
     await expect(page.getByLabel('Sign-in code')).toBeVisible();
+    /* Where to look, with the address to catch a typo — and no "if it has an
+       account", which a first-time address read as "this will not work". */
+    await expect(
+      page.getByText('Check someone@example.test for a 6-digit code. It works for 10 minutes.'),
+    ).toBeVisible();
   });
 });
 

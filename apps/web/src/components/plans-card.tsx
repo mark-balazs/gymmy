@@ -19,6 +19,7 @@
 import { useEffect, useState } from 'react';
 import { Button, Card, Sheet, Summary, cn } from '@/components/ui';
 import { Presence } from '@/components/presence';
+import { InfoTip } from '@/components/info-tip';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import { applySharedPlan } from '@/lib/client/mutations';
 import { fetchPlan, fetchPlans, type PlanDetail, type SharedPlan } from '@/lib/client/plans';
@@ -125,8 +126,6 @@ export function PlansCard() {
             );
           })}
         </div>
-
-        <p className="text-xs text-[var(--color-muted)]">{tr.t('plan.orYourOwn')}</p>
       </section>
 
       <Presence>
@@ -154,7 +153,19 @@ export function PlansCard() {
               <Summary tone="idle">{tr.t('plan.missing', { list: missing.join(', ') })}</Summary>
             )}
 
-            <Summary tone="idle">{tr.t('plan.applyBody')}</Summary>
+            {/* The one consequence that matters, before the button: it replaces
+              the week you train now. That it is then your own copy — offline,
+              out of anybody else's reach — is one tap away. */}
+            <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <Summary tone="idle">{tr.t('plan.applyBody')}</Summary>
+              </div>
+              {/* Its own name, not "More on Use this plan": a name holding the
+                button's would answer to the button's name too. */}
+              <InfoTip label={tr.t('plan.applyWhat')} className="mr-1.5">
+                {tr.t('plan.applyWhy')}
+              </InfoTip>
+            </div>
 
             {failed && <Summary tone="gap">{tr.t('plan.applyFailed')}</Summary>}
 

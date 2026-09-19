@@ -5,6 +5,7 @@ import { Button, Card, Chip, Summary, cn } from '@/components/ui';
 import { useMove } from '@/components/navigate';
 import { Presence } from '@/components/presence';
 import { Page } from '@/components/page';
+import { InfoTip } from '@/components/info-tip';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import { setEntryExercise } from '@/lib/client/mutations';
 import { DEFAULT_PREFS, swapOptions, type Exercise } from '@athletic/domain';
@@ -86,7 +87,19 @@ export default function WeekPage() {
           </Button>
         </div>
 
-        <Summary tone={summary.tone}>{summary.text}</Summary>
+        {/* What the tiles are for sits behind the ⓘ: read once, and after that
+            the ticks explain themselves. It was the only always-on paragraph on
+            a tab people open all the time. */}
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <Summary tone={summary.tone}>{summary.text}</Summary>
+          </div>
+          <InfoTip label={tr.t('info.more', { subject: tr.t('week.coverage') })} className="mr-1.5">
+            {cov.split === 'sevenPattern' || cov.split === null
+              ? tr.t('week.explain')
+              : tr.t('week.explainSplit', { split: tr.split(cov.split) })}
+          </InfoTip>
+        </div>
 
         {/* Grouped as a list: unlabelled, these read to a screen reader as seven
             loose "✓ Squat" fragments with nothing tying them together. */}
@@ -112,21 +125,16 @@ export default function WeekPage() {
           ))}
         </div>
 
-        <p className="text-xs text-[var(--color-muted)]">
-          {cov.split === 'sevenPattern' || cov.split === null
-            ? tr.t('week.explain')
-            : tr.t('week.explainSplit', { split: tr.split(cov.split) })}
-        </p>
-
         {/* Only worth saying when it differs from what you train now: a past
             week keeps the goal it was trained under, and without this the
-            tile count silently changing as you page back looks like a bug. */}
+            tile count silently changing as you page back looks like a bug.
+            The label stays; why is one tap away. */}
         {cov.split && cov.split !== (profile?.split ?? cov.split) && (
-          <p className="text-xs text-[var(--color-muted)]">
+          <p className="flex items-center gap-1 text-xs text-[var(--color-muted)]">
             <span className="font-semibold">
               {tr.t('week.scoredAs', { split: tr.split(cov.split) })}
-            </span>{' '}
-            {tr.t('week.scoredAsWhy')}
+            </span>
+            <InfoTip label={tr.t('week.scoredAsWhat')}>{tr.t('week.scoredAsWhy')}</InfoTip>
           </p>
         )}
       </Card>
@@ -203,6 +211,7 @@ export default function WeekPage() {
           <ExercisePicker
             title={tr.t('week.swapTitle', { name: swap.name })}
             note={tr.t('week.swapBody')}
+            noteLabel={tr.t('picker.why')}
             exercises={swapOptions(ix, days, swap.session, swap.slotId, where)}
             patterns={ix.patterns}
             onPick={async (e) => {

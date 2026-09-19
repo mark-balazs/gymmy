@@ -22,7 +22,7 @@
  */
 
 import { useMemo, useState } from 'react';
-import { Button, Card, Chip, Sheet, Summary, cn } from '@/components/ui';
+import { Button, Card, Chip, Summary, cn } from '@/components/ui';
 import { InfoTip } from '@/components/info-tip';
 import { useSnapshot, useT, useToday } from '@/lib/client/hooks';
 import { fireAndForget, retireGoal, setGoal } from '@/lib/client/mutations';
@@ -80,7 +80,6 @@ export function GoalForm({
   const today = useToday();
 
   const [open, setOpen] = useState(false);
-  const [why, setWhy] = useState(false);
   const [weeks, setWeeks] = useState<number>(12);
   /** What the person typed, or null while the box still holds the app's offer. */
   const [typed, setTyped] = useState<string | null>(null);
@@ -140,19 +139,35 @@ export function GoalForm({
   }
 
   if (!open) {
+    /* What a goal does sits behind the ⓘ: three sentences in every lift's
+       sheet, read once. Its name must not contain "Push this lift" — the
+       button's own name, which the tests find by. */
     return (
-      <div className="flex flex-col gap-2 border-t border-[var(--color-line)] pt-3">
-        <p className="text-[11px] leading-relaxed text-[var(--color-muted)]">
-          {tr.t('goal.explain')}
-        </p>
-        <Button variant="ghost" className="self-start" onClick={start}>
+      <div className="flex items-center gap-3 border-t border-[var(--color-line)] pt-3">
+        <Button variant="ghost" onClick={start}>
           {tr.t('goal.set')}
         </Button>
+        <InfoTip label={tr.t('goal.whatFor')}>{tr.t('goal.explain')}</InfoTip>
       </div>
     );
   }
 
   const full = live.length >= MAX_LIVE_GOALS;
+
+  /* One line, and it is either a refusal with a way out of it or a warning
+     that changes nothing. Never both, never a list — and nothing at all when
+     there is nothing to warn about: the explanation that used to fill it is
+     the ⓘ the person tapped past to get here. */
+  const note =
+    check.reason === 'tooSmall'
+      ? tr.t('goal.tooSmall', { n: round(check.suggestedTarget), unit })
+      : check.reason === 'tooShort'
+        ? tr.count('goal.tooShort', MIN_WEEKS)
+        : check.reason === 'tooLong'
+          ? tr.t('goal.tooLong')
+          : check.warning === 'ambitious'
+            ? tr.t('goal.ambitious', { pct: check.impliedWeeklyPct })
+            : null;
 
   return (
     <form
@@ -175,7 +190,9 @@ export function GoalForm({
     >
       <div className="flex items-center gap-1">
         <span className="flex-1 text-sm font-semibold">{tr.t('goal.set')}</span>
-        <InfoTip label={tr.t('goal.why')} onOpen={() => setWhy(true)} />
+        {/* Three sentences now, so a tip rather than a sheet on top of the
+            sheet this form is in. `type="button"` inside: this is a form. */}
+        <InfoTip label={tr.t('goal.why')}>{tr.t('goal.whyBody')}</InfoTip>
       </div>
 
       {full ? (
@@ -194,7 +211,7 @@ export function GoalForm({
               value={value}
               onChange={(e) => setTyped(e.target.value)}
               aria-label={tr.t('goal.target', { unit })}
-              aria-describedby="goal-note"
+              aria-describedby={note ? 'goal-note' : undefined}
               className="num min-h-[var(--spacing-tap)] w-full rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
             />
             <span className="num text-[11px] text-[var(--color-muted)]">
@@ -226,25 +243,17 @@ export function GoalForm({
             </div>
           </fieldset>
 
-          {/* One line, and it is either a refusal with a way out of it or a
-              warning that changes nothing. Never both, never a list. */}
-          <p
-            id="goal-note"
-            className={cn(
-              'text-[11px] leading-relaxed',
-              check.allowed ? 'text-[var(--color-muted)]' : 'text-[var(--color-bad)]',
-            )}
-          >
-            {check.reason === 'tooSmall'
-              ? tr.t('goal.tooSmall', { n: round(check.suggestedTarget), unit })
-              : check.reason === 'tooShort'
-                ? tr.count('goal.tooShort', MIN_WEEKS)
-                : check.reason === 'tooLong'
-                  ? tr.t('goal.tooLong')
-                  : check.warning === 'ambitious'
-                    ? tr.t('goal.ambitious', { pct: check.impliedWeeklyPct })
-                    : tr.t('goal.explain')}
-          </p>
+          {note && (
+            <p
+              id="goal-note"
+              className={cn(
+                'text-[11px] leading-relaxed',
+                check.allowed ? 'text-[var(--color-muted)]' : 'text-[var(--color-bad)]',
+              )}
+            >
+              {note}
+            </p>
+          )}
 
           <div className="flex gap-2">
             <Button type="submit" disabled={!check.allowed}>
@@ -256,10 +265,6 @@ export function GoalForm({
           </div>
         </>
       )}
-
-      <Sheet title={tr.t('goal.why')} open={why} onClose={() => setWhy(false)}>
-        <p className="text-sm leading-relaxed">{tr.t('goal.whyBody')}</p>
-      </Sheet>
     </form>
   );
 }
@@ -352,24 +357,53 @@ function GoalRow({
         />
       </div>
 
-      <div className="num flex items-baseline justify-between gap-3 text-[11px] text-[var(--color-muted)]">
-        <span>
+      <div className="num flex items-center justify-between gap-3 text-[11px] text-[var(--color-muted)]">
+        {/* Only said when it is true by more than a retest of the same lift
+            would move on its own — anything smaller is the app's own noise.
+            Said on the number itself, which is where the lift now stands:
+            this used to repeat it in a second line. The arrow as well as the
+            colour, because colour alone is no signal to plenty of people. */}
+        <span
+          className={cn(
+            'inline-flex items-center gap-0.5',
+            moved && !achieved && 'font-semibold text-[var(--color-accent)]',
+          )}
+        >
+          {moved && !achieved && (
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-[1.05em] w-[1.05em]"
+            >
+              <path d="M5 15.5 12 8.5l7 7" />
+            </svg>
+          )}
           {tr.t('goal.of', { current: round(current), target: round(goal.target), unit })}
         </span>
-        {!ended && <span>{tr.count('goal.daysLeft', daysLeft)}</span>}
+        {/* A state, not a sentence: where the days left were. */}
+        {ended ? (
+          <Chip>{tr.t('goal.ended')}</Chip>
+        ) : (
+          <span>{tr.count('goal.daysLeft', daysLeft)}</span>
+        )}
       </div>
 
       {ended ? (
         <>
-          {/* What happened, and never the word failed. */}
-          <p className="text-[11px] leading-relaxed text-[var(--color-muted)]">
-            {tr.t('goal.ended')}{' '}
-            {achieved
-              ? tr.t('goal.achieved')
-              : outcomeOf(progress) === 'partly'
+          {/* What happened, and never the word failed. A reached goal says so
+              in the chip at the top of the row already. */}
+          {!achieved && (
+            <p className="text-[11px] leading-relaxed text-[var(--color-muted)]">
+              {outcomeOf(progress) === 'partly'
                 ? tr.t('goal.partly', { n: round(current - goal.baseline), unit })
                 : tr.t('goal.flat')}
-          </p>
+            </p>
+          )}
           <div className="flex gap-2">
             <Button
               variant="ghost"
@@ -389,13 +423,6 @@ function GoalRow({
         </>
       ) : (
         <div className="flex items-center gap-2">
-          {/* Only said when it is true by more than a retest of the same lift
-              would move on its own. Anything smaller is the app's own noise. */}
-          {moved && !achieved && (
-            <span className="text-[11px] font-semibold text-[var(--color-accent)]">
-              {tr.t('goal.nowAt', { n: round(current), unit })}
-            </span>
-          )}
           <Button
             variant="ghost"
             className="min-h-9 self-start px-2 text-xs text-[var(--color-muted)]"

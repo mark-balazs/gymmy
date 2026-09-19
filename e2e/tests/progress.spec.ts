@@ -1,5 +1,13 @@
-import type { Page } from '@playwright/test';
-import { expect, logSet, openCard, recordedSet, signInAs, test } from '../fixtures/test';
+import type { Locator, Page } from '@playwright/test';
+import {
+  expect,
+  historyStart,
+  logSet,
+  openCard,
+  recordedSet,
+  signInAs,
+  test,
+} from '../fixtures/test';
 
 /**
  * The Progress tab shows what you have logged — not what falls inside the
@@ -99,9 +107,37 @@ test.describe('Progress covers the training, not the block', () => {
     await expect(table.getByRole('row')).toHaveCount(3);
     await expect(table.getByRole('cell', { name: /^53\.3 kg/ })).toBeVisible();
     await expect(table.getByRole('cell', { name: /^80 kg/ })).toBeVisible();
-    await expect(
-      sheet.getByRole('img', { name: 'Your estimated best single lift, session by session' }),
-    ).toBeVisible();
+    await expect(sheet.getByRole('img', { name: 'Estimated best single lift' })).toBeVisible();
+  });
+
+  test('keeps the chart caption and puts the legend behind the ⓘ', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* The caption stays on the screen, because it is what says the line is an
+       estimate for one rep rather than a weight that was lifted. The legend —
+       ringed bests, dotted gaps — is read once, and sat under every chart as
+       two grey lines; now it is one tap away, and one Escape closes the tip
+       without closing the sheet it is in. */
+    await signInAs(page, context, baseURL!, seeded);
+    await logSet(page, 60, 8);
+    await expect(page.getByText('60 kg × 8').first()).toBeVisible();
+
+    await page.goto('/progress');
+    await page.getByRole('button', { name: 'Show Goblet Squat' }).click();
+    const sheet = page.getByRole('dialog');
+    await expect(sheet.getByText('Estimated best single lift', { exact: true })).toBeVisible();
+    await expect(sheet.getByText(/dotted line is a stretch/)).toBeHidden();
+
+    const legend = sheet.getByRole('button', { name: 'How to read the chart' });
+    await legend.click();
+    await expect(page.getByRole('note', { name: 'How to read the chart' })).toContainText(
+      'Ringed dots are your personal bests.',
+    );
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('note', { name: 'How to read the chart' })).toBeHidden();
+    await expect(sheet.getByRole('heading', { name: 'Goblet Squat' })).toBeVisible();
   });
 
   test('shows which movements the weeks actually contained', async ({ page, context, baseURL }) => {
@@ -114,6 +150,15 @@ test.describe('Progress covers the training, not the block', () => {
     await expect(grid).toBeVisible();
     await expect(grid.getByRole('rowheader', { name: 'Squat' })).toBeVisible();
     await expect(grid.getByRole('rowheader', { name: 'Carry' })).toBeVisible();
+
+    /* The legend is behind an ⓘ in the card's header, and names all four kinds
+       of square — the paragraph it replaced left out two of them. */
+    await expect(page.getByText(/one square a week/)).toBeHidden();
+    await page.getByRole('button', { name: 'How to read the squares' }).click();
+    const legend = page.getByRole('note', { name: 'How to read the squares' });
+    for (const kind of ['Filled', 'Red', 'Dashed', 'Outlined']) {
+      await expect(legend).toContainText(`${kind}:`);
+    }
 
     /* The cells, not just the rows. Every counted pattern gets a row whatever
        was logged, so row headers alone would pass on a grid that counted
@@ -178,6 +223,14 @@ test.describe('The two strength numbers', () => {
     await page.getByRole('button', { name: 'Save', exact: true }).click();
   };
 
+  /** The DOTS number on the card, read from where it sits beside its label. */
+  const dotsScore = (page: Page) =>
+    page.getByText('DOTS', { exact: true }).locator('xpath=following-sibling::span[1]');
+
+  /** One lift's figure in the DOTS sheet: its number, or a dash if it has none. */
+  const dotsLift = (sheet: Locator, name: string) =>
+    sheet.getByText(name, { exact: true }).locator('xpath=following-sibling::span[1]');
+
   /** The three competition lifts, which is the only thing DOTS accepts. */
   const theMeet = {
     onboarded: true,
@@ -199,15 +252,23 @@ test.describe('The two strength numbers', () => {
     baseURL,
   }) => {
     /* A blank space teaches nobody what would fill it, and DOTS is null for
-       almost everybody — it needs all three competition lifts. So the empty
-       state is a sentence that says which ones. */
+       almost everybody — it needs all three competition lifts. That used to be
+       a sentence on the card on every visit; it is the DOTS sheet now, one tap
+       away on the ⓘ beside the dash, listing the three lifts with a number or
+       a dash each. The bench was trained, so it has a number and the other two
+       do not — a list that ignored what was trained would read the same. */
     await signInAs(page, context, baseURL!, twoLifts);
     await page.goto('/progress');
     await weighIn(page, 83);
 
-    await expect(page.getByText(/Still missing:/)).toHaveText(
-      'Needs a barbell squat, bench press and deadlift. Still missing: Barbell Back Squat, Conventional Deadlift.',
-    );
+    await expect(dotsScore(page)).toHaveText('—');
+    await expect(page.getByText(/Still missing/)).toHaveCount(0);
+    await page.getByRole('button', { name: 'What DOTS is' }).click();
+    const sheet = page.getByRole('dialog');
+    await expect(dotsLift(sheet, 'Barbell Back Squat')).toHaveText('—');
+    await expect(dotsLift(sheet, 'Conventional Deadlift')).toHaveText('—');
+    await expect(dotsLift(sheet, 'Barbell Bench Press')).toHaveText('60 kg');
+    await sheet.getByRole('button', { name: 'Close' }).click();
 
     /* The index, meanwhile, is perfectly happy with two of five patterns — an
        untrained pattern counts as zero rather than blanking the number. Read
@@ -253,25 +314,20 @@ test.describe('The two strength numbers', () => {
     await signInAs(page, context, baseURL!, theMeet);
     await page.goto('/progress');
 
-    // All three lifts are there, so nothing is missing — but the number still
-    // cannot exist yet, and it says which of the two reasons applies.
-    await expect(page.getByText(/Still missing:/)).toHaveCount(0);
-    // Twice, and that is right: both numbers divide by bodyweight, so both are
-    // waiting on the same one thing and both say so rather than one of them
-    // going quietly blank.
-    await expect(page.getByText('Add your bodyweight and this starts tracking.')).toHaveCount(2);
+    /* All three lifts are there, but the number cannot exist yet: both numbers
+       divide by bodyweight. Said once, under the index — the card used to say
+       it twice, once per number, one line apart — and DOTS reads a dash. */
+    await expect(page.getByText('Add your bodyweight and this starts tracking.')).toHaveCount(1);
+    await expect(dotsScore(page)).toHaveText('—');
 
     await weighIn(page, 83);
 
     /* The number, and the total it was computed from, stated so it is not just
        asserted at the reader. Three bests of 60 is 180, which at 83 kg on the
-       men's curve is 122. The sentence alone renders whenever nothing is
-       missing, whatever the total — a wrong coefficient still makes an integer
-       and the same words. */
-    await expect(
-      page.getByText('DOTS', { exact: true }).locator('xpath=following-sibling::span[1]'),
-    ).toHaveText('122');
-    await expect(page.getByText('180 kg across the three lifts')).toBeVisible();
+       men's curve is 122. The total alone renders whenever nothing is missing,
+       whatever the score — a wrong coefficient still makes an integer. */
+    await expect(dotsScore(page)).toHaveText('122');
+    await expect(page.getByText('Total 180 kg', { exact: true })).toBeVisible();
   });
 
   test('keeps the two numbers visibly different kinds of thing', async ({
@@ -321,10 +377,10 @@ test.describe('The two strength numbers', () => {
     await page.goto('/progress');
     await weighIn(page, 83);
 
-    await expect(page.getByText(/worked out differently for men and women/)).toBeVisible();
-    await expect(
-      page.getByText('DOTS', { exact: true }).locator('xpath=following-sibling::span[1]'),
-    ).toHaveText('—');
+    /* On the card, because nothing else says where to fix it: every account
+       starts unanswered and onboarding never asks. */
+    await expect(page.getByText('Set your sex in Settings to see it.')).toBeVisible();
+    await expect(dotsScore(page)).toHaveText('—');
   });
 
   test('explains each number separately, including what it is not', async ({
@@ -340,7 +396,7 @@ test.describe('The two strength numbers', () => {
     await weighIn(page, 83);
 
     await page.getByRole('button', { name: 'What this number is' }).click();
-    await expect(page.getByText(/not for comparing with anyone else/)).toBeVisible();
+    await expect(page.getByText(/not for comparing with others/)).toBeVisible();
     /* And the patterns it was built from, so the figure is checkable by hand:
        squat, hinge and push at 60 each, lunge and pull never trained. Exact,
        so the explanatory paragraphs above cannot match. */
@@ -349,7 +405,7 @@ test.describe('The two strength numbers', () => {
     await page.getByRole('button', { name: 'Close' }).click();
 
     await page.getByRole('button', { name: 'What DOTS is' }).click();
-    await expect(page.getByText(/It is not a meet total/)).toBeVisible();
+    await expect(page.getByText(/higher than a meet total/)).toBeVisible();
     /* And the three lifts it was built from, with their numbers. The names
        alone are always there — the sheet lists all three whatever was lifted —
        so it is the figures that make it checkable. */
@@ -365,8 +421,8 @@ test.describe('The two strength numbers', () => {
   }) => {
     /* A bench trained only above the rep ceiling has no estimate, and it used
        to be reported as "still missing" to somebody who had benched that very
-       week. It is trained; it just has no number yet, and the sentence says
-       which, and why. */
+       week. It is trained; it just has no number yet — a dash in the DOTS
+       sheet, which also says why: a lift counts from a set of 10 or fewer. */
     await signInAs(page, context, baseURL!, {
       onboarded: true,
       sex: 'male',
@@ -384,12 +440,39 @@ test.describe('The two strength numbers', () => {
     await page.goto('/progress');
     await weighIn(page, 83);
 
-    await expect(
-      page.getByText('No number for Barbell Bench Press yet — it needs a set of 10 reps or fewer.'),
-    ).toBeVisible();
-    await expect(page.getByText(/Still missing:/)).toHaveCount(0);
-    await expect(
-      page.getByText('DOTS', { exact: true }).locator('xpath=following-sibling::span[1]'),
-    ).toHaveText('—');
+    await expect(dotsScore(page)).toHaveText('—');
+    await page.getByRole('button', { name: 'What DOTS is' }).click();
+    const sheet = page.getByRole('dialog');
+    await expect(sheet.getByText(/counts once you do a set of 10 reps or fewer/)).toBeVisible();
+    await expect(dotsLift(sheet, 'Barbell Bench Press')).toHaveText('—');
+    await expect(dotsLift(sheet, 'Barbell Back Squat')).toHaveText('60 kg');
+    await expect(dotsLift(sheet, 'Conventional Deadlift')).toHaveText('60 kg');
+  });
+
+  test('says what the arrow is measured against, one tap away', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* "↑ 2.3" on a phone had only a hover title, which a phone never shows,
+       so it could not say what it was compared with. The ⓘ beside it can. And
+       the chart's caption, which only repeated the card's heading, speaks only
+       while the chart is being scrubbed. */
+    // A reading from the first week on, so every week has an index to compare.
+    await signInAs(page, context, baseURL!, {
+      ...theMeet,
+      bodyWeights: [{ date: historyStart(3), kg: 83 }],
+    });
+    await page.goto('/progress');
+
+    const why = page.getByRole('button', { name: 'What the arrow shows' });
+    await expect(why).toHaveAccessibleDescription(/weeks? ago\.$/);
+    await why.click();
+    await expect(page.getByRole('note', { name: 'What the arrow shows' })).toContainText(
+      /^(Up|Down|No change)\b.* on \d+ weeks? ago\.$/,
+    );
+    // The chart is there, named for a screen reader; its caption line is quiet.
+    await expect(page.getByRole('img', { name: 'Strength index, week by week' })).toBeVisible();
+    await expect(page.getByText('Strength index, week by week')).toBeHidden();
   });
 });

@@ -383,9 +383,9 @@ lift.
   `strength.test.ts` pins both edges for both numbers.
 - **Null rather than a guess** when bodyweight is unknown. Both are ratios;
   inventing the denominator invents the answer. They are null for two different
-  reasons and the screen distinguishes them — "still missing: …" for an absent
-  lift, "add your bodyweight" for an absent denominator. An e2e test caught that
-  conflation, not a reading of the code.
+  reasons and the screen distinguishes them — a red dash beside the absent lift
+  in the DOTS sheet, "add your bodyweight" under the index for an absent
+  denominator. An e2e test caught that conflation, not a reading of the code.
 - **Neither is a meet total.** A real total is three singles on one day under
   judging; these are built from `est1RM` over eight weeks, so they read high of
   what anybody would lift on the day. That caveat is on screen, in the DOTS

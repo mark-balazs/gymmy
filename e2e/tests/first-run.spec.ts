@@ -85,12 +85,27 @@ test.describe('First run', () => {
     await expect(
       app.getByRole('heading', { name: 'How should your week be shaped?' }),
     ).toBeVisible();
+    /* One short line per option, and it is true: push/pull/legs used to
+       promise it was "still checked for carries and rotation", which its
+       complete week does not ask for. */
+    await expect(app.getByText('You can change this later.', { exact: true })).toBeVisible();
+    await expect(
+      app.getByRole('button', { name: 'Push / Pull / Legs. A day each for push, pull and legs' }),
+    ).toBeVisible();
     await app.getByRole('button').filter({ hasText: 'Seven movement patterns' }).first().click();
 
     await expect(app.getByRole('heading', { name: 'How often can you train?' })).toBeVisible();
+    // Hints only where they change the answer: two still covers everything,
+    // three is the nudge for the unsure; four says nothing more than "4 days".
+    await expect(
+      app.getByRole('button', { name: '3 days a week. Recommended', exact: true }),
+    ).toBeVisible();
+    await expect(app.getByRole('button', { name: '4 days a week', exact: true })).toBeVisible();
     await app.getByRole('button', { name: /^3 days/ }).click();
 
     await expect(app.getByRole('heading', { name: 'Where do you train?' })).toBeVisible();
+    // The equipment line under each answer is the whole explanation.
+    await expect(app.getByText('Barbells, machines, cables')).toBeVisible();
     await app.getByRole('button', { name: /^A gym/ }).click();
 
     await expect(app.getByRole('heading', { name: /Anything you want to bring up/ })).toBeVisible();
@@ -100,10 +115,14 @@ test.describe('First run', () => {
        score and not having one — it is a ratio, so without this the number
        is null and the page can only say so. */
     await expect(app.getByRole('heading', { name: 'What do you weigh?' })).toBeVisible();
+    /* The unit beside the box, read out with it: the number is stored as
+       typed, and someone who thinks in pounds would otherwise type 170. */
+    await expect(app.getByLabel('What do you weigh?')).toHaveAccessibleDescription('kg');
     await app.getByLabel('What do you weigh?').fill('78.5');
     await app.getByRole('button', { name: 'Next', exact: true }).click();
 
     await expect(app.getByRole('heading', { name: 'Here is your week' })).toBeVisible();
+    await expect(app.getByText('You can swap any exercise later.', { exact: true })).toBeVisible();
     /* Three days, lettered, and five exercises apiece — what the flow promises.
        Counted rather than probed for a fourth: days are lettered, so the check
        this replaced, for a heading called "Day 4", could never find one

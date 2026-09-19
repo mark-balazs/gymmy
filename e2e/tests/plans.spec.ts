@@ -39,7 +39,16 @@ test.describe('A plan somebody shared with you', () => {
 
     await card.getByText('Coach block').click();
     const sheet = page.getByRole('dialog');
-    await expect(sheet.getByText(/copies the plan into your own week/)).toBeVisible();
+    /* The one consequence that matters stays on the sheet, before the button:
+       it replaces the week they train now. That it is then their own copy is
+       one tap away. */
+    await expect(sheet.getByText(/^This replaces the week you train now\./)).toBeVisible();
+    await sheet.getByRole('button', { name: 'How your copy works' }).click();
+    await expect(page.getByRole('note', { name: 'How your copy works' })).toContainText(
+      'works offline',
+    );
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toBeVisible();
     await sheet.getByRole('button', { name: 'Use this plan' }).click();
     /* Waited for, not assumed. Installing a week is a dozen writes and the
        profile is the last of them, so navigating the moment the button is
@@ -184,5 +193,39 @@ test.describe('A plan somebody shared with you', () => {
     await page.goto('/coach');
     await page.waitForURL('**/settings');
     await expect(page.getByRole('heading', { name: 'Split', exact: true })).toBeVisible();
+  });
+
+  test('a trainer is told what matters, and the rest is one tap away', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* A trainer's screens explained themselves in paragraphs: a card whose
+       whole content was one sentence, repeated from the card before it, and two
+       grey paragraphs in the plan editor. What stays on the screen is what
+       stops a mistake — a draft is shared with nobody — and the how-it-works is
+       behind an ⓘ. */
+    await signInAs(page, context, baseURL!, { onboarded: true, role: 'trainer' });
+    await page.goto('/settings');
+    await page.getByRole('button', { name: 'More on Coaching' }).click();
+    await expect(page.getByRole('note', { name: 'More on Coaching' })).toContainText(
+      'share it with one person or a whole group',
+    );
+    await page.keyboard.press('Escape');
+    await page.getByRole('link', { name: 'Plans you write' }).click();
+    await page.waitForURL('**/coach');
+
+    await expect(page.getByRole('heading', { name: 'Your plans' })).toBeVisible();
+    await expect(page.getByText(/share it with one person or a whole group/)).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'New plan' }).click();
+    const sheet = page.getByRole('dialog');
+    await expect(
+      sheet.getByText('People you share it with only see it once it is published.'),
+    ).toBeVisible();
+    await sheet.getByRole('button', { name: 'How later edits reach people' }).click();
+    await expect(page.getByRole('note', { name: 'How later edits reach people' })).toContainText(
+      'never changes the week they are in',
+    );
   });
 });

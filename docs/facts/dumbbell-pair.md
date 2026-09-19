@@ -4,7 +4,7 @@ status: current
 decided: "D-016; owner, week of 2026-09-14"
 appears:
   repo: ["docs/training-model.md#what-the-weight-box-is-counting", "docs/training-model.md#history-before-the-convention", "e2e/flows/09-load-convention.md#the-convention", "e2e/flows/09-load-convention.md#what-the-person-does", "e2e/flows/09-load-convention.md#deliberately-not-covered-here"]
-  copy: ["load.dumbbellPair", "prog.conventionChanged"]
+  copy: ["load.dumbbellPair", "prog.conventionChanged", "prog.conventionWhy"]
   tests: ["packages/domain/test/load.test.ts", "e2e/tests/load-convention.spec.ts", "apps/web/src/lib/db/demo-history.test.ts"]
   confluence: ["934543418", "934608916", "934608935", "934543399", "934445118"]
 ---

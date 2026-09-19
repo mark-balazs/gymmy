@@ -26,7 +26,7 @@ export const BOOT_WATCHDOG = `
 (function () {
   var TEXT = {
     title: 'gymmy could not start',
-    body: 'This device is holding a broken copy of the app. Resetting clears it and downloads a fresh one. Your training is saved on the server.',
+    body: 'This device has a broken copy of gymmy. Resetting downloads a fresh one. Anything not yet synced from this device will be lost.',
     button: 'Reset and reload'
   };
   setTimeout(function () {

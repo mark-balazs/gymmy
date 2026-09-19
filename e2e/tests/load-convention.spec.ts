@@ -230,7 +230,9 @@ test.describe('The chart says when the convention moved it', () => {
     { exercise: 'DB Bench Press', date: '2026-09-17', weight: 60, reps: 8, rir: 2 },
     { exercise: 'DB Bench Press', date: '2026-09-18', weight: 62, reps: 8, rir: 2 },
   ];
-  const note = /record both dumbbells, not one/;
+  const note = /both dumbbells are counted/;
+  /** A reading from before the cutover, so the index has weeks either side of it. */
+  const bodyWeights = [{ date: '2026-08-27', kg: 80 }] as const;
 
   /**
    * Progress, looking at all of it. The page opens on twelve weeks, and once
@@ -255,17 +257,36 @@ test.describe('The chart says when the convention moved it', () => {
     /* The note is unit-tested in the domain; what nothing else saw is the page
        choosing to show it — on the strength card, only for a lift that feeds
        the index, and under the lift's own chart. Without it a doubling that is
-       pure bookkeeping reads as the best month of somebody's training. */
-    await signInAs(page, context, baseURL!, { onboarded: true, sets: perHandThenBoth });
+       pure bookkeeping reads as the best month of somebody's training.
+
+       On the card it is behind the ⓘ beside the index's arrow, where the jump
+       shows — read once, and no decision is made from the index. On the lift's
+       sheet the fact stays on the screen, under the chart the goal form reads
+       from; that the jump is not strength is behind the chart's ⓘ. */
+    await signInAs(page, context, baseURL!, {
+      onboarded: true,
+      sets: perHandThenBoth,
+      bodyWeights,
+    });
     await allTime(page);
 
-    // Once, on the strength card: the lift's sheet is not open yet.
+    // Once on the page, and not on it until asked: it is inside the ⓘ.
     await expect(page.getByText(note)).toHaveCount(1);
+    await expect(page.getByText(note)).toBeHidden();
+    await page.getByRole('button', { name: 'What the arrow shows' }).click();
+    await expect(page.getByRole('note', { name: 'What the arrow shows' })).toContainText(
+      'A jump that week is this change, not new strength.',
+    );
+    await page.keyboard.press('Escape');
 
     await page.getByRole('button', { name: 'Show DB Bench Press' }).click();
     const sheet = page.getByRole('dialog');
     await expect(sheet.getByRole('heading', { name: 'DB Bench Press' })).toBeVisible();
     await expect(sheet.getByText(note)).toBeVisible();
+    await sheet.getByRole('button', { name: 'How to read the chart' }).click();
+    await expect(page.getByRole('note', { name: 'How to read the chart' })).toContainText(
+      'not new strength',
+    );
   });
 
   test('says nothing where there was no jump', async ({ page, context, baseURL }) => {
@@ -274,15 +295,20 @@ test.describe('The chart says when the convention moved it', () => {
     await signInAs(page, context, baseURL!, {
       onboarded: true,
       sets: perHandThenBoth.map((s) => ({ ...s, weight: 60 })),
+      bodyWeights,
     });
     await allTime(page);
     await expect(page.getByRole('heading', { name: 'Strength index' })).toBeVisible();
+    // The ⓘ is there — the arrow still needs explaining — but holds no note.
+    await expect(page.getByRole('button', { name: 'What the arrow shows' })).toBeVisible();
     await expect(page.getByText(note)).toHaveCount(0);
+    await expect(page.getByText(/not new strength/)).toHaveCount(0);
 
     await page.getByRole('button', { name: 'Show DB Bench Press' }).click();
     const sheet = page.getByRole('dialog');
     await expect(sheet.getByRole('heading', { name: 'DB Bench Press' })).toBeVisible();
     await expect(sheet.getByText('Show the numbers')).toBeVisible();
     await expect(sheet.getByText(note)).toHaveCount(0);
+    await expect(sheet.getByText(/not new strength/)).toHaveCount(0);
   });
 });

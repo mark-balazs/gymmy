@@ -42,6 +42,13 @@ test.describe('Deleting your account', () => {
     await expect(
       sheet.getByText('This deletes 2 logged sets across 2 weeks of training.'),
     ).toBeVisible();
+    /* And that it cannot be taken back, with the reason — no copy is kept.
+       That used to be a paragraph on the Settings card as well, before
+       anything had been tapped; the sheet that always opens first is where
+       it is read. */
+    await expect(
+      sheet.getByText('It happens straight away. No copy is kept, so it cannot be undone.'),
+    ).toBeVisible();
 
     await sheet.getByRole('button', { name: 'Delete everything' }).click();
     await page.waitForURL('**/sign-in', { timeout: 30_000 });

@@ -18,6 +18,7 @@
 
 import { useMemo, useState } from 'react';
 import { Button, Sheet } from '@/components/ui';
+import { InfoTip } from '@/components/info-tip';
 import { useT } from '@/lib/client/hooks';
 import type { Exercise, Pattern } from '@athletic/domain';
 
@@ -32,15 +33,19 @@ const fold = (s: string): string =>
 export function ExercisePicker({
   title,
   note,
+  noteLabel,
   exercises,
   patterns,
   onPick,
   onClose,
 }: {
   title: string;
-  /** A line above the search, for what the list means — the swap sheet says
-   *  why these are the options and not others. */
+  /** What the list means, behind an ⓘ beside the search — the swap sheet says
+   *  why these are the options and not others. Read once, so not a line of
+   *  its own on a sheet opened every week. */
   note?: string;
+  /** The ⓘ's name. Required with a note. */
+  noteLabel?: string;
   exercises: Exercise[];
   patterns: Pattern[];
   onPick: (exercise: Exercise) => void;
@@ -72,15 +77,21 @@ export function ExercisePicker({
 
   return (
     <Sheet title={title} open onClose={onClose}>
-      {note && <p className="text-sm text-[var(--color-muted)]">{note}</p>}
-      <input
-        type="search"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder={tr.t('picker.search')}
-        aria-label={tr.t('picker.search')}
-        className="min-h-[var(--spacing-tap)] w-full rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
-      />
+      <div className="flex items-center gap-3">
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={tr.t('picker.search')}
+          aria-label={tr.t('picker.search')}
+          className="min-h-[var(--spacing-tap)] w-full min-w-0 flex-1 rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
+        />
+        {note && (
+          <InfoTip label={noteLabel ?? note} className="mr-1.5">
+            {note}
+          </InfoTip>
+        )}
+      </div>
       {groups.length === 0 ? (
         <p className="text-sm text-[var(--color-muted)]">
           {tr.t('picker.none', { q: query.trim() })}

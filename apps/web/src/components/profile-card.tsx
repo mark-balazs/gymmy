@@ -18,9 +18,10 @@
  * an empty name, not "Athlete".
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Avatar } from '@/components/avatar';
 import { Button, Card, Field, cn } from '@/components/ui';
+import { InfoTip } from '@/components/info-tip';
 import { useProfile, useT } from '@/lib/client/hooks';
 import {
   fireAndForget,
@@ -45,6 +46,9 @@ export function ProfileCard() {
   const profile = useProfile();
   const tr = useT();
   const file = useRef<HTMLInputElement>(null);
+  const fileId = useId();
+  const yearId = useId();
+  const sexId = useId();
 
   const [name, setNameDraft] = useState<string | null>(null);
   const [year, setYearDraft] = useState<string | null>(null);
@@ -190,12 +194,23 @@ export function ProfileCard() {
                 {tr.t('set.picRemove')}
               </Button>
             ) : (
-              <p className="text-sm text-[var(--color-muted)]">{tr.t('set.picHint')}</p>
+              /* A caption, not a second button: the picture is the one control
+                 (see above). A label for the file input, so tapping the words
+                 does what they say, and hidden from screen readers, which
+                 already hear the picture's own "Add a picture". */
+              <label
+                htmlFor={fileId}
+                aria-hidden
+                className="cursor-pointer text-sm text-[var(--color-muted)]"
+              >
+                {tr.t('set.picAdd')}
+              </label>
             )}
           </div>
 
           <input
             ref={file}
+            id={fileId}
             type="file"
             accept="image/*"
             className="hidden"
@@ -219,8 +234,19 @@ export function ProfileCard() {
           />
         </Field>
 
-        <Field label={tr.t('set.birthYear')}>
+        {/* Why each of these is asked sits behind an ⓘ on its label: read once,
+            and leaving either empty does no harm. Being asked about sex in a
+            training app without a reason is a fair thing to be wary of, so the
+            reason is one tap away rather than gone. The ⓘ names never contain
+            the field's own: a name is a label too, and "More on Year of birth"
+            would answer to the field's label. */}
+        <Field
+          label={tr.t('set.birthYear')}
+          htmlFor={yearId}
+          info={<InfoTip label={tr.t('set.birthYearWhat')}>{tr.t('set.birthYearWhy')}</InfoTip>}
+        >
           <input
+            id={yearId}
             type="number"
             inputMode="numeric"
             min={EARLIEST}
@@ -235,10 +261,14 @@ export function ProfileCard() {
             className="num min-h-[var(--spacing-tap)] w-full rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
           />
         </Field>
-        <p className="text-xs text-[var(--color-muted)]">{tr.t('set.birthYearWhy')}</p>
 
-        <Field label={tr.t('set.sex')}>
+        <Field
+          label={tr.t('set.sex')}
+          htmlFor={sexId}
+          info={<InfoTip label={tr.t('set.sexWhat')}>{tr.t('set.sexWhy')}</InfoTip>}
+        >
           <select
+            id={sexId}
             value={profile?.sex ?? DEFAULT_PREFS.sex}
             onChange={(e) => fireAndForget(setSex(e.target.value as Profile['sex']))}
             className="min-h-[var(--spacing-tap)] rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
@@ -250,9 +280,6 @@ export function ProfileCard() {
             ))}
           </select>
         </Field>
-        {/* Said plainly, because being asked this in a training app without a
-          reason is a fair thing to be wary of. */}
-        <p className="text-xs text-[var(--color-muted)]">{tr.t('set.sexWhy')}</p>
 
         <Field label={tr.t('set.height')}>
           <input

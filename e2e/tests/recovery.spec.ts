@@ -105,6 +105,17 @@ test.describe('Not getting stuck', () => {
     for (const name of ['Try again', 'Reload the app', 'Reset this device']) {
       await expect(page.getByRole('button', { name })).toBeVisible();
     }
+    /* What is wrong in words, and — with nothing waiting to sync — that the
+       training is safe, which is what keeps people off the red button. The raw
+       message is for a bug report: behind Details, not second on the screen. */
+    await expect(
+      page.getByText('Only this device has a problem. Your training is safe on the server.', {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(page.getByText('simulated render crash')).toBeHidden();
+    await page.getByText('Details', { exact: true }).click();
+    await expect(page.getByText('simulated render crash')).toBeVisible();
   });
 
   test('a wedged load stops pretending and offers a way out', async ({
@@ -189,6 +200,13 @@ test.describe('Not getting stuck', () => {
     await expect(page.getByRole('heading', { name: /taking too long/ })).toBeVisible({
       timeout: 30_000,
     });
+    /* One sentence for what is wrong, and no promise that the training is safe
+       on the server: a change is still waiting here, and the reset below is
+       about to say it would go. The screen used to say both. */
+    await expect(
+      page.getByText('Your training has not reached this device yet.', { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText(/safe on the server/)).toHaveCount(0);
     await page.getByRole('button', { name: 'Reset this device' }).click();
     // One change, in the singular — it once read "1 changes have".
     await expect(

@@ -17,10 +17,14 @@ import { resetDevice } from '@/lib/client/recover';
 
 export function Recovery({
   title,
+  body,
   detail,
   onRetry,
 }: {
   title: string;
+  /** What is wrong, in words — "only this device has a problem" by default. */
+  body?: string;
+  /** The raw error, for a bug report. */
   detail?: string;
   onRetry?: () => void;
 }) {
@@ -33,14 +37,25 @@ export function Recovery({
     <main className="grid min-h-dvh place-items-center p-6">
       <Card className="flex w-full max-w-[420px] flex-col gap-3">
         <h1 className="text-[19px] font-bold">{title}</h1>
-        <p className="text-sm text-[var(--color-muted)]">{t('err.body')}</p>
+        {/* The reassurance is what keeps people off the red button — so it is
+            only given when it is true. With changes still waiting to sync,
+            "safe on the server" is not, and the reset below says what would
+            go. */}
+        <p className="text-sm text-[var(--color-muted)]">
+          {body ?? t('err.body')}
+          {status.pending === 0 && ` ${t('err.bodySynced')}`}
+        </p>
 
         {detail && (
-          // Shown rather than hidden: when someone reports this, the message is
-          // the only thing that makes the report actionable.
-          <p className="num rounded-[11px] bg-[var(--color-surface-2)] px-3 py-2 text-xs break-words text-[var(--color-muted)]">
-            {detail}
-          </p>
+          // One tap away, not second on the screen: it is a developer's message
+          // ("Cannot read properties of undefined"), there for the report that
+          // makes this fixable. Native, so it stays selectable and copyable.
+          <details className="text-xs text-[var(--color-muted)]">
+            <summary className="cursor-pointer">{t('err.details')}</summary>
+            <p className="num mt-1.5 rounded-[11px] bg-[var(--color-surface-2)] px-3 py-2 break-words">
+              {detail}
+            </p>
+          </details>
         )}
 
         {onRetry && (

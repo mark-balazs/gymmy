@@ -135,6 +135,18 @@ Two ways the suite lies to you if you skip that:
   logged while the first one's pop is still running hides a pop that replays.
 - **An ⓘ label never starts with "About ".** That prefix is the exercise names'
   button, and `exerciseNameAt` and `first-run.spec.ts` count them by it.
+- **An ⓘ label never contains its neighbour's name either.** Name matching is a
+  case-insensitive substring unless `exact`, so "More on Use this plan" makes
+  `getByRole('button', { name: 'Use this plan' })` match two buttons, and
+  `getByLabel` reads `aria-label` too — "More on Year of birth" would answer to
+  the field's own label. Give such an ⓘ a name of its own.
+- **The strength index has no past without a past bodyweight.** A weigh-in
+  through the page is dated today, so every earlier week has no index, and
+  whether the chart gets a second point (and the arrow beside the number
+  exists) depends on the weekday the suite runs. A test about the index over
+  time seeds a reading with the `bodyWeights` fixture option. `goals` seeds a
+  goal on fixed dates (an ended one cannot be reached through the form), and
+  `role: 'trainer'` gives an account the coach area.
 - **Never hard-code which exercise the generator picked.** It depends on the
   split in force, so use `exerciseNameAt(page)` — a hard-coded name turns a
   split change into a mystery failure three specs away from the cause.

@@ -92,8 +92,11 @@ export function EmailSignIn({ callbackUrl }: { callbackUrl: string }) {
    */
   return (
     <form className="flex w-full flex-col gap-2" method="get" action="/api/auth/callback/resend">
+      {/* Where to look, with the address shown so a typo can be caught. Not
+          "if it has an account": a first sign-in makes one, and that hedge
+          read as "this will not work for me". */}
       <p className="text-xs text-[var(--color-muted)]">
-        If {email} has an account, a code is on its way. It expires in 10 minutes.
+        Check {email} for a {CODE_LENGTH}-digit code. It works for 10 minutes.
       </p>
 
       {/* Auth.js verifies the pair, so both travel with the form. */}

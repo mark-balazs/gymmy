@@ -48,9 +48,11 @@ the list of things a class explicitly does *not* license.
    back from history after a reload, turning the stored 40 back into one
    dumbbell.
 4. On Progress, a pair that was logged per hand before the cutover and both
-   together after it says so — on the strength card and under the lift's own
-   chart — because the jump on that day is bookkeeping, not training. A lift
-   that shows no jump says nothing.
+   together after it says so, because the jump on that day is bookkeeping, not
+   training: on the strength card behind the ⓘ beside the index's arrow, and
+   under the lift's own chart in one visible line ("From 17 Sep, both dumbbells
+   are counted"), with "not new strength" behind the chart's ⓘ. A lift that
+   shows no jump says nothing.
 
 ## What these tests are for
 
@@ -72,7 +74,10 @@ that the ⓘ, right above "−", never takes a tap meant for it.
 
 The cutover note is checked on fixed dates either side of
 `LOAD_CONVENTION_FROM`, with Progress switched to *All time* — on the default
-twelve-week view the note correctly disappears once the cutover leaves it.
+twelve-week view the note correctly disappears once the cutover leaves it. The
+account has a bodyweight from before the cutover (the `bodyWeights` fixture
+option): the index's ⓘ lives beside its arrow, and a weigh-in dated today gives
+the chart a second point only on some weekdays.
 
 ## Deliberately not covered here
 

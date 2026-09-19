@@ -8,7 +8,7 @@
  * chosen split rather than offered and then rejected.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Card, cn } from '@/components/ui';
 import { Presence } from '@/components/presence';
@@ -116,6 +116,7 @@ export default function Onboarding() {
   const [bias, setBias] = useState<Bias>('none');
   const [weight, setWeight] = useState('');
   const [info, setInfo] = useState<SplitKey | null>(null);
+  const unitId = useId();
 
   // A brand-new account arrives before its first sync, so this page starts the
   // engine itself rather than relying on the app shell below it.
@@ -261,7 +262,9 @@ export default function Onboarding() {
             <Option
               key={n}
               label={tr.count('sub.daysPerWeek', n)}
-              hint={n <= 4 ? tr.t(`onboard.days.${n}h` as Key) : undefined}
+              // Two and three only: that two still covers everything is what
+              // stops people over-picking, and three is the nudge for the unsure.
+              hint={n <= 3 ? tr.t(`onboard.days.${n}h` as Key) : undefined}
               selected={days === n}
               onClick={() => {
                 setDays(n);
@@ -275,10 +278,10 @@ export default function Onboarding() {
 
       {step === 2 && (
         <>
-          <div>
-            <h1 className="text-[26px] leading-tight font-bold">{tr.t('onboard.q2.title')}</h1>
-            <p className="mt-1.5 text-[var(--color-muted)]">{tr.t('onboard.q2.sub')}</p>
-          </div>
+          {/* No subtitle: the equipment line under each answer is the whole of
+              the explanation, and it is what stops someone with a barbell at
+              home picking "Home". */}
+          <h1 className="text-[26px] leading-tight font-bold">{tr.t('onboard.q2.title')}</h1>
           {(['gym', 'home'] as const).map((w) => (
             <Option
               key={w}
@@ -323,17 +326,29 @@ export default function Onboarding() {
             <p className="mt-1.5 text-[var(--color-muted)]">{tr.t('onboard.q4.sub')}</p>
           </div>
 
-          <input
-            type="number"
-            inputMode="decimal"
-            step="0.1"
-            autoFocus
-            aria-label={tr.t('onboard.q4.title')}
-            placeholder={tr.t('onboard.q4.placeholder')}
-            value={weight}
-            onChange={(e) => setWeight(e.target.value)}
-            className="num min-h-[var(--spacing-tap)] w-full rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3 text-lg"
-          />
+          {/* The unit beside the box: the number is stored as typed, in the
+              account's unit, and nothing else on this step says which — someone
+              who thinks in pounds would type 170 and be recorded at 170 kg. */}
+          <div className="relative">
+            <input
+              type="number"
+              inputMode="decimal"
+              step="0.1"
+              autoFocus
+              aria-label={tr.t('onboard.q4.title')}
+              aria-describedby={unitId}
+              placeholder={tr.t('onboard.q4.placeholder')}
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              className="num min-h-[var(--spacing-tap)] w-full rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] pr-12 pl-3 text-lg"
+            />
+            <span
+              id={unitId}
+              className="pointer-events-none absolute inset-y-0 right-3.5 grid place-items-center text-[var(--color-muted)]"
+            >
+              {profile.unit ?? 'kg'}
+            </span>
+          </div>
 
           <Button variant="primary" onClick={() => setStep(STEPS)}>
             {tr.t('common.next')}

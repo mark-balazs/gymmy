@@ -150,8 +150,23 @@ test.describe('Your profile', () => {
       await expect(you.getByLabel(label)).toBeVisible();
     }
     // Exactly one, not `.first()` of two: the avatar used to be a button and
-    // sit beside a text button that did the same thing.
+    // sit beside a text button that did the same thing. The words beside it
+    // are a caption for the picture, not a second button.
     await expect(you.getByRole('button', { name: 'Add a picture' })).toHaveCount(1);
+    await expect(you.getByText('Add a picture', { exact: true })).toBeVisible();
+
+    /* Why year of birth and sex are asked sits behind an ⓘ on each label, not
+       as a paragraph under each field — and is still there, one tap away,
+       because being asked about sex without a reason is fair to be wary of. */
+    await expect(you.getByText(/Only used for DOTS/)).toBeHidden();
+    await you.getByRole('button', { name: 'Why the app asks this' }).click();
+    await expect(page.getByRole('note', { name: 'Why the app asks this' })).toContainText(
+      'Only used for DOTS',
+    );
+    await you.getByRole('button', { name: 'Why your age matters' }).click();
+    await expect(page.getByRole('note', { name: 'Why your age matters' })).toContainText(
+      'From age 40',
+    );
   });
 
   /** A real 8×8 PNG. `createImageBitmap` has to decode this before any of the
