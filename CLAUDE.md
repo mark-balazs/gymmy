@@ -3,6 +3,27 @@
 Start with [`docs/README.md`](./docs/README.md) — the architecture map, the
 invariants that must not be broken, and where each thing lives.
 
+## What is true: the fact register
+
+[`docs/facts/`](./docs/facts/README.md) is the one list of what is true about
+gymmy — product rules, behaviour, decisions, boundaries, plans and prices, one
+file per fact. Its index is loaded below, whole, into every session. Start from
+it, not from memory.
+
+- **Disagreement is a question for the owner.** When a fact and the code, a
+  doc, the copy or a Confluence page disagree, neither side wins. Ask, and
+  change nothing until the owner answers.
+- **Write a decision down when it is made.** When the owner decides something,
+  write or change the fact file in the same change and quote the sentence back
+  in your reply, so a wrong one can be vetoed.
+- **A changed fact** means its file first, then every place under `appears`.
+- A weekly check compares the register with Confluence and the code and opens
+  one GYM issue per mismatch. It edits nothing.
+- If the index grows much past ~7,500 tokens, propose trimming it — do not drop
+  facts to make it fit.
+
+@docs/facts/README.md
+
 ## How to work here
 
 **Plan before you implement.** Say what the solution is and which direction you
@@ -56,6 +77,7 @@ column is not optional:
 
 | If your change… | Update |
 | --- | --- |
+| changes a product rule, a behaviour, a boundary, a plan or a price | [`docs/facts/`](./docs/facts/README.md) first, then everything under that fact's `appears` |
 | adds or removes a screen, or rearranges one | **Product → Feature reference** |
 | changes what a feature *does* (not how it looks) | **Product → Feature reference** |
 | touches a pattern, split, progression rule, the strength score, or a verdict threshold | **Product → How the training model works** |

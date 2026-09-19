@@ -13,6 +13,7 @@ folder says how it is *built*, and which parts will bite you.
 | [data.md](./data.md) | Tables, migrations, the sync protocol, the local store, seeding |
 | [openapi.yaml](./openapi.yaml) | **The HTTP contract.** Every endpoint, every row schema, every status code |
 | [testing.md](./testing.md) | The three test layers and which one a change belongs in |
+| [facts/](./facts/README.md) | **What is true about gymmy**, one file per rule, decision, plan or price, each saying where else it is stated |
 
 `openapi.yaml` is the only document here a build can check: `openapi.test.ts`
 holds it against the Zod schemas the server validates with, so it cannot quietly
@@ -95,10 +96,12 @@ architecture (C4), infrastructure, runbooks and decision log live in Confluence,
 for the people who will never open this repository:
 [gymmy — documentation](https://dextra.atlassian.net/wiki/spaces/~712020296b34b54b84454489d16860c808e925/pages/934445059).
 
-Neither is a summary of the other, and when they disagree this one is right
-about code and that one is right about intent. `CLAUDE.md` carries the routing
-table for which Confluence page a given change belongs to — a Confluence page
-goes stale silently, because nothing in CI can check it.
+Neither is a summary of the other. When they disagree — with each other, with
+the code, or with the [fact register](./facts/README.md) — nobody picks a
+winner: the owner is asked. `CLAUDE.md` carries the routing table for which
+Confluence page a given change belongs to — a Confluence page goes stale
+silently, because nothing in CI can check it, which is why a weekly check
+compares it with the register and files what it finds.
 
 ## Why this is Markdown and not a graph
 
@@ -119,3 +122,9 @@ is a graph you can read, grep and review.
 Where a graph would actually earn its place is **derived** from the source —
 imports, tables, routes — by a script, so it cannot disagree with the code. That
 is a worthwhile thing to build and a different thing from this.
+
+The [fact register](./facts/README.md) is the structured middle: one Markdown
+file per fact, with front matter naming every doc section, copy key, test and
+Confluence page that states it. It still travels in the same diff as the change,
+`facts.test.ts` fails when a pointer stops resolving, and a script could turn it
+into a graph without anyone maintaining one.

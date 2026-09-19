@@ -1,0 +1,16 @@
+---
+id: strength-index
+status: current
+decided: "D-015; owner, week of 2026-09-14"
+supersedes:
+superseded_by:
+appears:
+  repo: ["README.md#two-strength-numbers", "docs/training-model.md#strengthat--gymmys-own-index", "docs/training-model.md#true-of-both", "packages/domain/src/strength.ts"]
+  copy: ["prog.strength", "prog.strengthWhat", "prog.strengthBody", "prog.strengthNot", "prog.needWeight", "prog.needLifts", "prog.scoreOverTime", "prog.score"]
+  tests: ["packages/domain/test/strength.test.ts", "e2e/tests/first-run.spec.ts"]
+  confluence: ["934608916", "934608935", "934543399", "934576168"]
+---
+
+The strength index adds the best estimated one-rep max in squat, hinge, lunge, push and pull over the last eight weeks, taken from any exercise in each pattern (machines included), and divides by bodyweight to the power 2/3. A pattern never trained counts as zero, and the index is only ever compared with the same person's past.
+
+Counting untrained patterns as zero is the coverage thesis in number form.
