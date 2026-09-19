@@ -109,8 +109,9 @@ export const COMPETITION_LIFTS = [
   'Conventional Deadlift',
 ] as const;
 
-/** How far back a lift still counts. Long enough that a deload or a holiday
- *  does not register; short enough that the number describes you now. */
+/** How far back a lift still counts, in Monday weeks: the week being scored
+ *  and the seven before it. Long enough that a deload or a holiday does not
+ *  register; short enough that the number describes you now. */
 const STRENGTH_WINDOW_WEEKS = 8;
 
 const LB_PER_KG = 2.2046226218;
@@ -272,9 +273,17 @@ export function bodyWeightOn(ix: Indexed, date: string): number | null {
 
 /* ------------------------------------------------------------ the window */
 
-/** Everything trained in the eight weeks ending with `weekOf`, estimable or not. */
+/**
+ * Everything trained in the eight weeks ending with `weekOf`, estimable or not:
+ * from the Monday seven weeks back to the Sunday of `weekOf`'s own week.
+ *
+ * Seven, not eight, because `weekOf` is itself one of the eight. Going back a
+ * full eight Mondays made the window nine weeks, and made Progress's "eight
+ * weeks ago" share a week with now (GYM-46). `strength.test.ts` pins both
+ * edges for both numbers: day −49 counts, day −50 does not.
+ */
 const trainedIn = (logs: DecoratedLog[], weekOf: string): DecoratedLog[] => {
-  const from = addDays(weekOf, -7 * STRENGTH_WINDOW_WEEKS);
+  const from = addDays(weekOf, -7 * (STRENGTH_WINDOW_WEEKS - 1));
   const until = addDays(weekOf, 6);
   return logs.filter((l) => l.date >= from && l.date <= until && l.exercise);
 };
@@ -394,7 +403,8 @@ function dotsFrom(
   };
 }
 
-/** A DOTS score for the eight weeks ending with `weekOf`. */
+/** A DOTS score for the eight weeks ending with `weekOf`'s week — the same
+ *  window as the index. */
 export const dotsAt = (ix: Indexed, weekOf: string, who: StrengthOf): DotsPoint =>
   dotsFrom(allLogs(ix), bodyWeightOn(ix, addDays(weekOf, 6)), weekOf, who);
 
@@ -458,9 +468,9 @@ function indexFrom(
  * things get read as the same number twice. 34.2 and 304 are obviously not the
  * same kind of thing, which is the point.
  *
- * It looks back over a window rather than taking your best ever, so it
- * describes what you can do *now* — a squat from last spring should not still
- * be counted as strength you have today.
+ * It looks back over eight weeks (`trainedIn`) rather than taking your best
+ * ever, so it describes what you can do *now* — a squat from last spring should
+ * not still be counted as strength you have today.
  */
 export const strengthAt = (ix: Indexed, weekOf: string, who: StrengthOf): StrengthPoint =>
   indexFrom(allLogs(ix), patternOfExercise(ix), bodyWeightOn(ix, addDays(weekOf, 6)), weekOf, who);

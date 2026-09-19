@@ -182,8 +182,9 @@ export default function ProgressPage() {
 
   const scored = strength.filter((s) => s.index !== null);
   const current = scored.at(-1) ?? null;
-  // Eight weeks back is the same window the index itself looks over, so the
-  // comparison is against a genuinely different stretch of training.
+  // Eight scored weeks back. The index looks over eight weeks, so the two
+  // windows share no week and the comparison is against a different stretch
+  // of training.
   const earlier = scored.at(-9) ?? scored[0] ?? null;
   const delta = current && earlier && earlier !== current ? current.index! - earlier.index! : null;
   /* The second number, and the only one that means anything to anybody else.

@@ -182,14 +182,14 @@ describe('strength index', () => {
     expect(point.bodyWeight).toBeNull();
   });
 
-  it('stops counting a lift you have not repeated in months', () => {
+  it('looks back eight weeks exactly: the Monday seven weeks back, and not the Sunday before', () => {
     /* It is meant to describe what you can do now. A squat from last spring is
-       not strength you still have. Pinned near both edges rather than at
-       "three weeks in, twelve out", which any window from four weeks to eleven
-       passed: the Monday seven weeks back still counts, and nothing before the
-       Monday eight weeks back does. That one Monday is left open on purpose.
-       The code counts it, which makes the window nine Monday weeks, and every
-       document says eight. Pin it once that is settled. */
+       not strength you still have. Pinned on both sides of the edge rather than
+       at "three weeks in, twelve out", which any window from four weeks to
+       eleven passed. The scored week is one of the eight, so the window opens
+       on the Monday seven weeks back (day −49); the Sunday before it (day −50)
+       is a ninth week. It used to count, and every document said eight
+       (GYM-46). */
     const idxAt = (d: number) =>
       strengthAt(
         index(build(fullWeek(100, addDays(thisWeek, d)), [body(80, addDays(thisWeek, d))])),
@@ -197,7 +197,7 @@ describe('strength index', () => {
         { unit: 'kg', sex: 'male' },
       ).index;
     expect(idxAt(-49)).not.toBeNull();
-    expect(idxAt(-57)).toBeNull();
+    expect(idxAt(-50)).toBeNull();
   });
 
   it('goes up when the lifts go up at the same bodyweight', () => {
@@ -383,9 +383,9 @@ describe('DOTS', () => {
     );
   });
 
-  it('looks back over the same window as the index', () => {
-    // Near both edges, and for the same reason as the index's own window test:
-    // which side the Monday eight weeks back falls on is not settled yet.
+  it('looks back over the same eight weeks as the index', () => {
+    // Both sides of the edge, as in the index's own window test: day −49 is the
+    // first day of the eight weeks, day −50 the last day of a ninth.
     const at = (d: number) => {
       const date = addDays(thisWeek, d);
       const logs = COMPETITION_LIFTS.map((name, i) => lift(name, [150, 100, 180][i]!, date));
@@ -395,7 +395,7 @@ describe('DOTS', () => {
       }).missing;
     };
     expect(at(-49)).toBeNull();
-    expect(at(-57)).toBe('lifts');
+    expect(at(-50)).toBe('lifts');
   });
 
   it('reads the bodyweight of the week it scores, not a later one', () => {

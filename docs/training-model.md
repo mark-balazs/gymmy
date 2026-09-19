@@ -324,7 +324,10 @@ lift.
   its "reps" are metres and a 1RM estimated from them is not a number about
   strength. Rotation is trained light and anti-rotational by design.
 - **An eight-week trailing window**, because they describe what you can do
-  *now*.
+  *now*: the scored week and the seven before it, so from the Monday seven
+  weeks back. Seven, not eight — going back eight Mondays makes nine weeks,
+  which the code did until GYM-46. `strength.test.ts` pins both edges for both
+  numbers.
 - **Null rather than a guess** when bodyweight is unknown. Both are ratios;
   inventing the denominator invents the answer. They are null for two different
   reasons and the screen distinguishes them — "still missing: …" for an absent
