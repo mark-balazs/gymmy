@@ -3,14 +3,15 @@
 /**
  * Reactive reads.
  *
- * `useLiveQuery` re-renders whenever IndexedDB changes, including changes
- * written by the sync engine — so a set logged on your phone appears on your
- * laptop without any manual refresh plumbing.
+ * They re-render whenever IndexedDB changes, including changes written by the
+ * sync engine — so a set logged on your phone appears on your laptop without
+ * any manual refresh plumbing.
  */
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
-import { barKey, getMeta, local, snapshot } from './db';
+import { barKey, getMeta, snapshot } from './db';
+import { fromLiveQuery, shared, type LiveState, type Source } from './live';
 import { onSyncStatus, type SyncStatus } from './sync';
 import { exerciseName, index, type Indexed } from '@athletic/domain';
 import {
@@ -52,16 +53,77 @@ const EMPTY: Snapshot = {
   profile: null,
 };
 
+/** Whether two reads of the profile row say the same thing. */
+const sameRow = (a: Profile | null, b: Profile | null): boolean =>
+  a === b || (!!a && !!b && JSON.stringify(a) === JSON.stringify(b));
+
+/**
+ * The local database as the domain reads it, with the profile kept as the
+ * same object for as long as it says the same thing.
+ *
+ * Every write re-reads every table, and a re-read hands back new objects. The
+ * profile is the one row nearly every component reads (the language, through
+ * `useT`), so without this every set logged would re-render every component
+ * on the screen for a profile that did not change.
+ */
+const snapshotSource: Source<Snapshot> = (next, fail) => {
+  let profile: Profile | null = null;
+  return fromLiveQuery(snapshot)((snap) => {
+    if (sameRow(profile, snap.profile)) snap = { ...snap, profile };
+    else profile = snap.profile;
+    next(snap);
+  }, fail);
+};
+
+/**
+ * One live read of the whole local database, for the whole app — see
+ * `live.ts` for why it is shared rather than read per screen. The profile is
+ * read from it too, rather than by a query of its own, so a page never renders
+ * a profile and a snapshot from two different moments.
+ */
+const live = shared(snapshotSource);
+const NOTHING: LiveState<Snapshot> = { value: undefined, error: null };
+const useLive = () => useSyncExternalStore(live.subscribe, live.get, () => NOTHING);
+
+/** The derived index, worked out once per read rather than once per screen. */
+const indexes = new WeakMap<Snapshot, Indexed>();
+const indexOf = (snap: Snapshot): Indexed => {
+  let ix = indexes.get(snap);
+  if (!ix) indexes.set(snap, (ix = index(snap)));
+  return ix;
+};
+
 export function useSnapshot(): { snap: Snapshot; ix: Indexed; ready: boolean } {
-  const snap = useLiveQuery(() => snapshot(), [], undefined);
-  const value = snap ?? EMPTY;
-  const ix = useMemo(() => index(value), [value]);
-  return { snap: value, ix, ready: snap !== undefined };
+  const { value, error } = useLive();
+  if (error) {
+    /* For the error boundary, as `useLiveQuery` did: a store that will not
+       open is a screen offering "Try again", not an empty one pretending. The
+       failed read is over, so a fresh one is started here — the next render,
+       which is what "Try again" does, then reads its result. */
+    live.retry();
+    throw error;
+  }
+  const snap = value ?? EMPTY;
+  return { snap, ix: indexOf(snap), ready: value !== undefined };
+}
+
+/**
+ * Where the first read is: still going, landed, or failed. For the `(app)`
+ * layout, which draws no page until it has landed — and on a failure draws
+ * them anyway, so the page's own read throws into the error screen, which
+ * offers a way out.
+ */
+export function useSnapshotStatus(): 'loading' | 'ready' | 'failed' {
+  const { value, error } = useLive();
+  return error ? 'failed' : value === undefined ? 'loading' : 'ready';
 }
 
 export function useProfile(): Profile | null {
-  const rows = useLiveQuery(() => local.profile.toArray(), [], undefined);
-  return rows?.[0] ?? null;
+  return useSyncExternalStore(
+    live.subscribe,
+    () => live.get().value?.profile ?? null,
+    () => null,
+  );
 }
 
 /**

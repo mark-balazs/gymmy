@@ -70,6 +70,7 @@ second implementation to disagree with the first.
 | `packages/domain/src/catalogue.ts` `catalogue-ids.ts` `details.ts` | The exercise library, shared by every account and authored in code; the append-only record of published ids; photos and descriptions |
 | `packages/domain/src/seed.ts` | A new account's patterns and slot skeleton. `SEED_EXERCISES` is a view of the catalogue kept for older seeding code |
 | `apps/web/src/lib/client/` | IndexedDB, the sync engine, every mutation |
+| `apps/web/src/lib/client/live.ts` | The one live read of the local database every screen shares. See [One read for every screen](#one-read-for-every-screen) |
 | `apps/web/src/lib/db/` | Drizzle schema, per-account seeding, the demo |
 | `apps/web/src/lib/db/demo-history.ts` | Pure: the demo account's training, as data points |
 | `apps/web/src/lib/sync/` | The wire contract and per-table row validation |
@@ -114,8 +115,9 @@ sequenceDiagram
    that skips `put()` does so on purpose: `rememberBar`, the bar weight picked
    on a barbell card, goes to the local `meta` table only — it describes a
    gym's equipment, not training, and is not meant to reach the server.
-2. The UI re-renders from the local write. `useLiveQuery` is watching, so this
-   is immediate and does not wait on anything.
+2. The UI re-renders from the local write. The app's one live read of the
+   database is watching (see [One read for every screen](#one-read-for-every-screen)),
+   so this is immediate and does not wait on anything.
 3. `sync.ts` debounces ~800ms, then posts the outbox to `/api/sync` along with
    the client's cursor.
 4. The server validates each row against `lib/sync/rows.ts`, upserts it with
@@ -224,6 +226,35 @@ something got somebody stuck:
   the bundle fails to load there is no React and no error boundary to help.
 - **Seed repair in `/api/sync`** — an account with no rows gets seeded on the
   spot. See [data.md](./data.md#seeding).
+
+## One read for every screen
+
+The whole local database is read once for the app, not once per screen
+(`lib/client/live.ts`, used by `useSnapshot` and `useProfile` in `hooks.ts`).
+The `(app)` layout keeps that read open for as long as the app is on screen and
+draws no page until it has landed.
+
+- **Why:** a fresh read has nothing on its first render, and a page's first
+  render is the one a navigation slides in. With a read per page, every tab
+  slid in empty ("Log a few sessions…", "Loading…") and filled in afterwards —
+  and Train chose its day from that empty render and kept it, so after a
+  reload it always opened on Day A (GYM-13, `opening-a-tab.spec.ts`).
+- **The profile comes from the same read**, kept as the same object while it
+  says the same thing, so a page never sees a profile and training from two
+  different moments, and logging a set does not re-render everything that
+  only reads the language.
+- **The index** (`index(snapshot)`) is worked out once per read, not once per
+  screen.
+- **The read outlives its last listener by a second**, so the moment between
+  one screen unmounting and the next subscribing does not restart it, and is
+  then forgotten, so nothing stale survives a sign-out.
+- **A failed read** is not waited on: the layout draws the page, the page's
+  `useSnapshot` throws it into `error.tsx`, and that throw starts a fresh read
+  for "Try again". `live.test.ts` pins all of this without IndexedDB.
+
+A page may still check `ready`, but inside `(app)` it is always true. Anything
+chosen once on a first render (Train's day) depends on that — do not move a
+page outside the layout's gate without it.
 
 ## Moving between tabs
 

@@ -97,6 +97,11 @@ export default function TrainPage() {
    * guard is what matters: without it the suggestion would re-apply on every
    * change to the logs and move you to the next day the moment you logged your
    * first set — mid-session, without asking.
+   *
+   * It relies on the first render already holding the logs: the `(app)`
+   * layout draws no page until the shared read has landed. When each page read
+   * for itself, this ran on an empty database and froze Day A — after every
+   * reload, even mid-way through Day B.
    */
   if (pickedFor !== date) {
     setDay(suggestedDay);

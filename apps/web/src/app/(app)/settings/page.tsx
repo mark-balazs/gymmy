@@ -72,8 +72,9 @@ export default function SettingsPage() {
   /**
    * Null until the user touches something, and back to null once applied.
    *
-   * The profile arrives from IndexedDB a tick after the first render, which
-   * breaks the obvious approaches in two different ways. Seeding state from it
+   * The profile can change under the form — it is a live read, and a sync from
+   * another phone rewrites it — and it used to arrive a tick after the first
+   * render, which broke the obvious approaches in two ways. Seeding state from it
    * once (`useState(profile?.days)`) captures `undefined` and shows everyone
    * the defaults forever — so the page claimed "Seven movement patterns, 3
    * days" regardless of what they actually trained, and rebuilding wrote those
@@ -107,12 +108,16 @@ export default function SettingsPage() {
   // Settings you cannot see yet are not settings. Showing the form before the
   // profile lands invites an edit against the defaults, which would then be
   // applied over the real values — the page has to know what you train before
-  // it offers to change it.
+  // it offers to change it. The layout waits for the profile, so this is a
+  // guard rather than a screen anybody sees; it is inside `Page` all the same,
+  // because a first render outside it is a page that cannot slide in.
   if (!profile) {
     return (
-      <Card>
-        <p className="text-[var(--color-muted)]">{tr.t('common.loading')}</p>
-      </Card>
+      <Page>
+        <Card>
+          <p className="text-[var(--color-muted)]">{tr.t('common.loading')}</p>
+        </Card>
+      </Page>
     );
   }
 
