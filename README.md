@@ -125,7 +125,8 @@ A switch therefore **appends a `SplitPeriod`** rather than editing a field.
 Each period records the split, the day count and a *frozen copy* of the coverage
 goal, so a week is scored against what was in force at the time — even if a
 preset's definition changes in a later release, or the user renames a pattern.
-Periods start on a Monday, because a week is the unit of coverage.
+Periods start on a Monday, because a week is the unit of coverage, and a second
+switch in the same week replaces that week's period rather than adding another.
 
 Opening the first period on an account that pre-dates them backfills the old one
 first; without that, a first-ever switch would hand every earlier week the new

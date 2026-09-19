@@ -142,10 +142,12 @@ export interface Slot extends Synced {
 /**
  * One stretch of time spent training a particular split.
  *
- * Append-only. Switching split closes nothing and rewrites nothing — it opens a
- * new period, and every week before it keeps being scored exactly as it was
- * scored at the time. That is the whole point: three months of seven-pattern
- * weeks must still read as seven-pattern weeks after you move to push/pull.
+ * Never rewritten for a past week. Switching split closes nothing — it opens a
+ * new period from this Monday, and every week before it keeps being scored
+ * exactly as it was scored at the time. That is the whole point: three months
+ * of seven-pattern weeks must still read as seven-pattern weeks after you move
+ * to push/pull. A second switch in the same week replaces that week's period
+ * rather than stacking another on the same Monday.
  *
  * `patternKeys` is frozen at creation rather than looked up from the preset,
  * so history survives us changing a preset's definition in a later release, and

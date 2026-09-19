@@ -64,7 +64,7 @@ referencing column carries only the id half.
 | `patterns` | The seven, plus isolation. `counts: false` means "not a coverage box" |
 | `exercises` | **Legacy rows only.** The library is the catalogue in code — see *The exercise library* below. Accounts created before it still hold their copied rows, which `index()` reads as aliases; new accounts get none. Never delete one: sets point at its id |
 | `slots` | The week's skeleton. Editing these by hand is what makes a split custom |
-| `splitPeriods` | Append-only. The whole historisation model |
+| `splitPeriods` | The whole historisation model. A switch adds a period from this Monday and never edits an older one; a second switch in the same week replaces that week's period |
 | `entries` (`program_entries`) | The generated week: which exercise fills which slot on which day. Unrelated to the planned Programmes feature (a trainer running somebody's training), which is why the diagram's line to `exercises` reads "schedules" |
 | `logs` (`set_logs`) | The dominant write. One row per set |
 | `bodyLogs` | Bodyweight, dated. The denominator of both strength numbers |

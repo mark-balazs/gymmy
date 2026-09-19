@@ -968,9 +968,12 @@ components:
         - { $ref: '#/components/schemas/Synced' }
         - type: object
           description: |
-            **Append-only.** Changing split appends a period; it never edits
-            one, which is what makes three months of seven-pattern weeks still
-            read as seven-pattern weeks after you move to push/pull.
+            **Never rewritten for a past week.** Changing split adds a period
+            starting this Monday and never edits an older one, which is what
+            makes three months of seven-pattern weeks still read as
+            seven-pattern weeks after you move to push/pull. A second change in
+            the same week replaces that week's period rather than adding
+            another with the same start.
           required: [split, days, startWeek, patternKeys]
           properties:
             split: { $ref: '#/components/schemas/SplitKey' }

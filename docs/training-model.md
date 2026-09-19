@@ -113,7 +113,9 @@ flowchart LR
     s2["Scored against<br/>push, pull, squat,<br/>hinge, lunge"] -.-> p2
 ```
 
-A switch **appends a `SplitPeriod`**; it never edits one. Each period records the
+A switch **appends a `SplitPeriod`** from this Monday and never edits an older
+one; a second switch in the same week replaces that week's period, because two
+with one start would be read in no particular order. Each period records the
 split, the day count, and a *frozen copy* of the coverage goal — frozen so that
 history survives us changing what a preset means in a later release, and
 survives the user renaming a pattern.

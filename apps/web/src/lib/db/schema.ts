@@ -164,11 +164,12 @@ export const slots = pgTable(
 );
 
 /**
- * Append-only history of which split was in force when.
+ * History of which split was in force when.
  *
  * Coverage is a property of the split, so scoring an old week correctly means
- * knowing what the goal was at the time. Rows are never rewritten on a switch —
- * a new one is inserted and the old ones keep their meaning.
+ * knowing what the goal was at the time. A switch inserts a row starting this
+ * Monday and never rewrites an older one, so the old ones keep their meaning;
+ * only a second switch in the same week replaces that week's row.
  */
 export const splitPeriods = pgTable(
   'split_periods',

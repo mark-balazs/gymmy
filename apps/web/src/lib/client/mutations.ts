@@ -332,6 +332,7 @@ const countedOf = (snap: Snapshot) => snap.patterns.filter((p) => p.counts && p.
  *
  *  - **It appends.** A switch inserts a period; it never edits an older one. So
  *    a week is always read back against the goal that was in force at the time.
+ *    The one replacement is a second switch in the same week (below).
  *  - **It backfills first.** An account that pre-dates periods has weeks that
  *    were scored against every counted pattern. Opening the first period
  *    without saying so would make `periodFor` hand those old weeks the *new*

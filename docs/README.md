@@ -35,9 +35,11 @@ These are the things that took real damage to learn. Breaking one is not a
 regression in a feature, it is a regression in what the app *is*.
 
 **The past is never rewritten.** Changing your split does not change what last
-January meant. Coverage is scored against the `SplitPeriod` in force that week,
-and periods are append-only. Any code that edits an existing period, or that
-starts a new one earlier than this Monday, is wrong. See
+January meant. Coverage is scored against the `SplitPeriod` in force that week.
+A switch starts a period from this Monday; a second switch in the same week
+replaces that week's period, which covers nothing but this week. Any code that
+edits a period that started before this Monday, or that starts a new one
+earlier than this Monday, is wrong. See
 [training-model.md](./training-model.md#historisation).
 
 **The local database is the source of truth while you use the app.** Reads never
