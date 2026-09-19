@@ -144,10 +144,13 @@ export const LINKS: Link[] = [
   { from: 'exercises', column: 'pattern_id', to: 'patterns', label: 'is classified by' },
   { from: 'program_entries', column: 'slot_id', to: 'slots', label: 'fills' },
   {
+    // Not "programmes": that word belongs to the planned Programmes feature,
+    // where a trainer runs somebody's training. A program entry is one cell of
+    // the generated week — this exercise, in this slot, on this day.
     from: 'program_entries',
     column: 'exercise_id',
     to: 'exercises',
-    label: 'programmes',
+    label: 'schedules',
     snapshot: true,
   },
   { from: 'set_logs', column: 'exercise_id', to: 'exercises', label: 'records', snapshot: true },

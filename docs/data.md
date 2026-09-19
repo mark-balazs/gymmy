@@ -65,7 +65,7 @@ referencing column carries only the id half.
 | `exercises` | **Legacy rows only.** The library is the catalogue in code — see *The exercise library* below. Accounts created before it still hold their copied rows, which `index()` reads as aliases; new accounts get none. Never delete one: sets point at its id |
 | `slots` | The week's skeleton. Editing these by hand is what makes a split custom |
 | `splitPeriods` | Append-only. The whole historisation model |
-| `entries` (`program_entries`) | The generated plan: which exercise fills which slot |
+| `entries` (`program_entries`) | The generated week: which exercise fills which slot on which day. Unrelated to the planned Programmes feature (a trainer running somebody's training), which is why the diagram's line to `exercises` reads "schedules" |
 | `logs` (`set_logs`) | The dominant write. One row per set |
 | `bodyLogs` | Bodyweight, dated. The denominator of both strength numbers |
 | `goals` | One lift the user has asked to be judged on, until a date. Nothing else in the app evaluates progression without one |
