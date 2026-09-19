@@ -18,8 +18,9 @@ sets**:
 - **Buttons** (the default) — `−` and `+` either side of the number.
 - **Ruler** — drag or flick a ruler sideways; it glides and settles on a step.
   Sideways, so scrolling the page up and down can never change a number. Its
-  range is realistic for the equipment: a barbell starts at the bar, a dumbbell
-  goes up in whole kilos to 60 per hand. Every number on a ruler has the same
+  range is realistic for the equipment: a barbell starts at the bar, and
+  dumbbells go up in whole kilos — a pair to 60 per hand, a single dumbbell or
+  kettlebell to 80. Every number on a ruler has the same
   decimals (60.0, 62.5; whole kilos stay whole) in a box of one width, so the
   number does not jump about as it moves, and its digits roll the way it moved.
   With reduced motion on, numbers just change: no rolling, and the label under
@@ -47,7 +48,8 @@ header and the tab bar of a 640 px phone.
   style change cannot quietly break every test.
 - **The keypad**: Done applies, Cancel and Escape do not, reps have no decimal
   point, focus goes in and comes back.
-- **The ruler's range follows the equipment**, and an arrow key moves one step.
+- **The ruler's range follows the equipment** (the Goblet Squat's single
+  dumbbell runs 1–80 kg), and an arrow key moves one step.
 - **The ruler's number keeps one shape**: dragged with a pointer through
   half-kilo stops and past 100, the readout stays `\d+.\d` in a box that never
   changes width, and the labels under the ticks follow the same rule. A
