@@ -3,41 +3,58 @@ import { buildProgram, lastSession, swapOptions, varietyFor } from '../src/coach
 import { SPLITS } from '../src/splits';
 import { CATALOGUE, OFF_PLAN } from '../src/catalogue';
 import { index, programCoverage, programRows, type Indexed } from '../src/model';
+import { SCORED_PATTERNS, countsForIndex } from '../src/strength';
 import { BIASES, type Bias, type PatternKey, type SplitKey, type Where } from '../src/types';
 import { logsFor, seedIndex, seedSnapshot, withEntries } from './fixture';
+
+/* Every preset, every legal day count, both locations, every bias — the same
+   144 configurations the saturation figure in the docs was measured over. */
+const configs = SPLITS.flatMap((s) =>
+  Array.from({ length: s.maxDays - s.minDays + 1 }, (_, i) => s.minDays + i).flatMap((days) =>
+    (['gym', 'home'] as const).flatMap((where) =>
+      BIASES.map((bias) => ({
+        split: s.key as Exclude<SplitKey, 'custom'>,
+        days,
+        where,
+        bias,
+      })),
+    ),
+  ),
+);
+/* Cached per (split, days), and the snapshot with it: `seedSnapshot` mints
+   fresh ids on every call, so a draft checked against a *second* snapshot
+   matches nothing and reports every pattern missing — which is how the first
+   version of the coverage test below failed at variety zero. */
+const built = new Map<string, { snap: ReturnType<typeof seedSnapshot>; ix: Indexed }>();
+const at = (split: Exclude<SplitKey, 'custom'>, days: number) => {
+  const key = `${split}:${days}`;
+  if (!built.has(key)) {
+    const s = seedSnapshot(split, days);
+    built.set(key, { snap: s, ix: index(s) });
+  }
+  return built.get(key)!;
+};
+const ixFor = (split: Exclude<SplitKey, 'custom'>, days: number): Indexed => at(split, days).ix;
+/** Setup's default answers: seven patterns, three days, a gym, no emphasis. */
+const defaultWeek = configs.find(
+  (c) => c.split === 'sevenPattern' && c.days === 3 && c.where === 'gym' && c.bias === 'none',
+)!;
+/** The week one configuration generates, installed so it reads back row by row. */
+const weekOf = (c: (typeof configs)[number], variety: number): Indexed =>
+  withEntries(
+    at(c.split, c.days).snap,
+    buildProgram(ixFor(c.split, c.days), {
+      days: c.days,
+      where: c.where,
+      bias: c.bias,
+      variety,
+    }),
+  );
 
 describe('program generation', () => {
   const snap = seedSnapshot();
 
   describe('reach across the library', () => {
-    /* Every preset, every legal day count, both locations, every bias — the same
-       144 configurations the saturation figure in the docs was measured over. */
-    const configs = SPLITS.flatMap((s) =>
-      Array.from({ length: s.maxDays - s.minDays + 1 }, (_, i) => s.minDays + i).flatMap((days) =>
-        (['gym', 'home'] as const).flatMap((where) =>
-          BIASES.map((bias) => ({
-            split: s.key as Exclude<SplitKey, 'custom'>,
-            days,
-            where,
-            bias,
-          })),
-        ),
-      ),
-    );
-    /* Cached per (split, days), and the snapshot with it: `seedSnapshot` mints
-       fresh ids on every call, so a draft checked against a *second* snapshot
-       matches nothing and reports every pattern missing — which is how the first
-       version of the coverage test below failed at variety zero. */
-    const built = new Map<string, { snap: ReturnType<typeof seedSnapshot>; ix: Indexed }>();
-    const at = (split: Exclude<SplitKey, 'custom'>, days: number) => {
-      const key = `${split}:${days}`;
-      if (!built.has(key)) {
-        const s = seedSnapshot(split, days);
-        built.set(key, { snap: s, ix: index(s) });
-      }
-      return built.get(key)!;
-    };
-    const ixFor = (split: Exclude<SplitKey, 'custom'>, days: number): Indexed => at(split, days).ix;
     const reachedWith = (variety: number): Set<string> => {
       const names = new Set<string>();
       for (const c of configs) {
@@ -62,11 +79,13 @@ describe('program generation', () => {
       /* A pin on the algorithm at zero, not on the library. It was 59 of 70 —
          the figure measured before variety existed — and became 68 of 85 when
          the conventional gaps were added, because a bigger pool is a different
-         input rather than a different rule. If it moves with no change to the
+         input rather than a different rule. Then 67, when each scored
+         movement's main slot began to prefer a lift the index counts: that is
+         a rule, and it moved the number. If it moves with no change to the
          library, the generator changed. The demo's specific week is pinned
          separately, by `demo-history.test.ts` and the e2e suite's named lifts. */
       expect(configs).toHaveLength(144);
-      expect(reachedWith(0).size).toBe(68);
+      expect(reachedWith(0).size).toBe(67);
       // Omitting it is the same as zero.
       const cix = ixFor('sevenPattern', 3);
       expect(buildProgram(cix, { days: 3, where: 'gym', bias: 'none' })).toEqual(
@@ -75,12 +94,13 @@ describe('program generation', () => {
     });
 
     it('reaches every programmable exercise across accounts', () => {
-      /* The point of it. One account still reaches a subset — 58 to 75 of the
+      /* The point of it. One account still reaches a subset — 58 to 72 of the
          85 programmable exercises over every value `varietyFor` can return,
-         66 at the median — but different accounts reach different
+         65 at the median — but different accounts reach different
          subsets, and between forty of them the whole library is programmed
          somewhere. Without the offset, the shared catalogue would have put every
-         account on the same week. */
+         account on the same week. The machines included: a main slot prefers
+         a lift the index counts, and the machines still reach the other slots. */
       const all = new Set<string>();
       for (let v = 0; v < 40; v++) for (const n of reachedWith(v)) all.add(n);
       expect(programmable.filter((n) => !all.has(n))).toEqual([]);
@@ -207,6 +227,113 @@ describe('program generation', () => {
     );
     expect(programCoverage(pplBuilt, 3).filter((c) => c.sets === 0)).toEqual([]);
     expect(programRows(pplBuilt, 3).filter((r) => r.check.ok === false)).toEqual([]);
+  });
+});
+
+describe('a lift the strength index counts', () => {
+  /* The index counts only real weights, plus pull-ups, chin-ups and dips at
+     bodyweight (D-022). Left to the pool order, 41% of generated weeks — 65% of
+     seven-pattern gym weeks — gave a movement the person trains nothing but a
+     machine or a push-up, and so a zero in the index for it. The owner's
+     decision (2026-09-19): keep the rule, and have each scored movement's main
+     slot, its first in the week, prefer a lift that counts. */
+  const varieties = Array.from({ length: 91 }, (_, i) => i * 11);
+
+  /** For each scored movement in the week: its first row, in week order. */
+  const mainRows = (week: Indexed, days: number) => {
+    const out = new Map<PatternKey, ReturnType<typeof programRows>[number]>();
+    for (const r of programRows(week, days)) {
+      const key = r.pattern?.key;
+      if (key && SCORED_PATTERNS.includes(key) && !out.has(key)) out.set(key, r);
+    }
+    return out;
+  };
+
+  it('gives every scored movement one in its main slot, in every configuration', () => {
+    /* Every preset, day count, location and bias, at a spread of offsets
+       across all 997 values `varietyFor` returns — 13,104 weeks. Every scored
+       movement's pool has a lift that counts, at home as at the gym, so every
+       main slot must hold one. */
+    const missed: string[] = [];
+    for (const v of varieties)
+      for (const c of configs) {
+        const week = weekOf(c, v);
+        for (const [key, r] of mainRows(week, c.days))
+          if (!countsForIndex(r.exercise!.name))
+            missed.push(
+              `${v}:${c.split}:${c.days}:${c.where}:${c.bias}:${key}:${r.exercise!.name}`,
+            );
+      }
+    expect(missed.slice(0, 5)).toEqual([]);
+  });
+
+  it('changes nothing where the pick already counted', () => {
+    /* Walked forward from the pick rather than re-picked from the lifts that
+       count, so a week with nothing to fix keeps every lift — the demo's and
+       the e2e fixture's among them, which name theirs. The seven-pattern gym
+       week at variety zero opened every movement on a lift that counts.
+       Coverage, the layout and the location are held for every configuration
+       by the tests above, which the preference runs under. */
+    const names = programRows(weekOf(defaultWeek, 0), 3).map((r) => r.exercise?.name);
+    expect(names).toEqual([
+      'Goblet Squat',
+      'Barbell Bench Press',
+      'Trap Bar Deadlift',
+      'Hammer Curl',
+      'Russian Twist',
+      'Reverse Lunge',
+      'Chin-Up',
+      'Overhead Carry',
+      'Overhead Tricep Extension',
+      "Waiter's Walk",
+      'Step-Up',
+      'Barbell Row',
+      'Chest-Supported Row',
+      'Leg Curl',
+      'Side Plank',
+    ]);
+  });
+
+  it('still puts the machines in the week, in the other slots', () => {
+    /* "Machines go to the other slots", not out of the library. An upper/lower
+       week trains squat twice: the first squat counts, and the second is free
+       to be a Leg Press or a Hack Squat. Across accounts, every machine the
+       generator may program is still programmed somewhere. */
+    const machines = CATALOGUE.filter(
+      (c) =>
+        SCORED_PATTERNS.includes(c.pattern) &&
+        !c.tags.includes(OFF_PLAN) &&
+        !countsForIndex(c.name),
+    ).map((c) => c.name);
+    expect(machines.length).toBeGreaterThan(10);
+    const seen = new Set<string>();
+    for (let v = 0; v < 40; v++)
+      for (const c of configs)
+        for (const r of programRows(weekOf(c, v), c.days))
+          if (r.exercise) seen.add(r.exercise.name);
+    expect(machines.filter((n) => !seen.has(n))).toEqual([]);
+  });
+
+  it('falls back to the pool as it is when nothing in it counts', () => {
+    /* A pool with no lift that counts — every real-weight squat taken out of
+       the library here — keeps its squat rather than losing the slot: the
+       week still covers squat, with whatever the pool has. */
+    const realSquats = CATALOGUE.filter((c) => c.pattern === 'squat' && countsForIndex(c.name));
+    const catalogue = CATALOGUE.map((c) =>
+      realSquats.includes(c) ? { ...c, tags: [...c.tags, OFF_PLAN] } : c,
+    );
+    const s = seedSnapshot('sevenPattern', 3);
+    for (const v of [0, 1, 2, 3]) {
+      const week = withEntries(
+        s,
+        buildProgram(index(s, catalogue), { days: 3, where: 'gym', bias: 'none', variety: v }),
+        catalogue,
+      );
+      const squats = programRows(week, 3).filter((r) => r.pattern?.key === 'squat');
+      expect(squats.length).toBeGreaterThan(0);
+      expect(squats.every((r) => r.exercise && !countsForIndex(r.exercise.name))).toBe(true);
+      expect(programCoverage(week, 3).filter((m) => m.sets === 0)).toEqual([]);
+    }
   });
 });
 

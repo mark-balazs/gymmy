@@ -26,6 +26,7 @@ import {
   slotsForSession,
   type Indexed,
 } from './model';
+import { SCORED_PATTERNS, countsForIndex } from './strength';
 import type { Bias, Exercise, Pattern, ProgramEntry, Slot, Where } from './types';
 
 export interface BuildInput {
@@ -128,6 +129,38 @@ function patternSets(ix: Indexed): PatternSets {
 
 const REP_RANGE = { big: '6-12', accessory: '6-12', isolation: '10-15', finisher: '30-40m' };
 
+/** A movement the strength index is built from (`SCORED_PATTERNS`). */
+const isScored = (pattern: Pattern | null): pattern is Pattern =>
+  !!pattern?.key && SCORED_PATTERNS.includes(pattern.key);
+
+/**
+ * The lift for a scored movement's main slot: `chosen`, unless the strength
+ * index cannot count it — then the next one in `from`, in pool order, that it
+ * can (owner, 2026-09-19).
+ *
+ * The index counts only real weights, plus pull-ups, chin-ups and dips at
+ * bodyweight (`countsForIndex`). Left to the pool order, about two in five
+ * generated weeks gave a trained movement nothing but a Leg Press, a Smith
+ * squat or a Lat Pulldown, and so a zero in the index for a movement the person
+ * trains every week. The movement's first slot in the week now takes a lift
+ * that counts; a machine still goes to any other slot.
+ *
+ * Walked forward from the pick, rather than re-picked from only the lifts that
+ * count, so a slot whose pick already counted keeps it: the account's own
+ * variety holds, and so does every week that had nothing to fix — the demo's
+ * among them. Nothing in `from` counts (a thin home pool, a pattern whose real
+ * weights were all retired) and the pick stands, exactly as before.
+ */
+function preferCounting(from: Exercise[], chosen: Exercise | null): Exercise | null {
+  if (!chosen || countsForIndex(chosen.name)) return chosen;
+  const at = from.indexOf(chosen);
+  for (let k = 1; k <= from.length; k++) {
+    const next = from[(at + k) % from.length]!;
+    if (countsForIndex(next.name)) return next;
+  }
+  return chosen;
+}
+
 /**
  * Build `days` sessions that between them touch every counted pattern.
  *
@@ -161,12 +194,21 @@ export function buildProgram(ix: Indexed, input: BuildInput): DraftEntry[] {
         ? REP_RANGE.isolation
         : REP_RANGE.big;
 
-  const choose = (pattern: Pattern | null, tag: string | null, seed: number): Exercise | null => {
+  /** `main`: this is the movement's first slot in the week, so a scored
+   *  movement prefers a lift the index counts here (`preferCounting`). */
+  const choose = (
+    pattern: Pattern | null,
+    tag: string | null,
+    seed: number,
+    main: boolean,
+  ): Exercise | null => {
     let list = pool(ix, pattern, input.where, tag);
     if (!list.length) list = pool(ix, pattern, input.where, null);
     if (!list.length) list = pool(ix, pattern, null, null);
     const fresh = list.filter((e) => !used.has(e.id));
-    const chosen = pick(fresh.length ? fresh : list, seed);
+    const from = fresh.length ? fresh : list;
+    const picked = pick(from, seed);
+    const chosen = main ? preferCounting(from, picked) : picked;
     if (chosen) used.add(chosen.id);
     return chosen;
   };
@@ -202,7 +244,8 @@ export function buildProgram(ix: Indexed, input: BuildInput): DraftEntry[] {
          parity, from account to account, so between accounts every movement is
          reached. The pattern choice above is untouched, so the week's layout,
          its coverage and every slot constraint are exactly what they were. */
-      const exercise = choose(pattern, tag, d + position + variety);
+      const main = isScored(pattern) && !has(pattern);
+      const exercise = choose(pattern, tag, d + position + variety, main);
 
       entries.set(`${d}:${slot.id}`, {
         sessionIndex: d,
@@ -258,7 +301,10 @@ function repair(
        the repair stops being the one path that always forces the head of the
        pool into somebody's week. */
     const fresh = list.filter((e) => !used.has(e.id));
-    const exercise = pick(fresh.length ? fresh : list, input.variety ?? 0)!;
+    const from = fresh.length ? fresh : list;
+    // The pattern's only slot in the week, so its main one.
+    const picked = pick(from, input.variety ?? 0)!;
+    const exercise = isScored(pattern) ? preferCounting(from, picked)! : picked;
 
     // Every slot across the week that would legally take this pattern.
     const candidates: { day: number; slot: Slot }[] = [];
@@ -280,6 +326,7 @@ function repair(
 
     const key = `${target.day}:${target.slot.id}`;
     const existing = entries.get(key);
+    const displaced = patternOf(existing);
     entries.set(key, {
       sessionIndex: target.day,
       slotId: target.slot.id,
@@ -290,6 +337,34 @@ function repair(
       exerciseId: exercise.id,
     });
     used.add(exercise.id);
+
+    /* The slot just overwritten may have been another movement's main slot,
+       holding its only lift the index counts. That movement is still in the
+       week — the repair prefers a pattern that appears twice — so its next
+       slot is its main one now, and gets the same preference. Without this,
+       plugging a gap in coverage could quietly open one in the index. */
+    if (isScored(displaced)) {
+      const first = [...entries.values()]
+        .filter((e) => patternOf(e)?.id === displaced.id)
+        .sort(
+          (a, b) =>
+            a.sessionIndex - b.sessionIndex ||
+            (ix.slotById.get(a.slotId)?.position ?? 0) - (ix.slotById.get(b.slotId)?.position ?? 0),
+        )[0];
+      const current = first?.exerciseId ? ix.exerciseById.get(first.exerciseId) : null;
+      if (first && current) {
+        let theirs = pool(ix, displaced, input.where, null);
+        if (!theirs.length) theirs = pool(ix, displaced, null, null);
+        const better = preferCounting(
+          theirs.filter((e) => e.id === current.id || !used.has(e.id)),
+          current,
+        );
+        if (better && better.id !== current.id) {
+          entries.set(`${first.sessionIndex}:${first.slotId}`, { ...first, exerciseId: better.id });
+          used.add(better.id);
+        }
+      }
+    }
   }
 }
 

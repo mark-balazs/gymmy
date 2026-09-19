@@ -46,6 +46,27 @@ The heuristic alone covers the seeded library, so the repair is proven by a
 hand-built split instead: `splits.test.ts` "forces in a pattern the rotation
 alone would leave out" fails when the repair pass is disabled.
 
+### What fills a slot
+
+The pattern is chosen first; one rule then acts inside it.
+
+- **A scored movement's main slot prefers a lift the index counts** (owner,
+  2026-09-19). The main slot is the movement's first slot in the week. If the
+  pick there is a machine or a part-body move, `preferCounting` walks on
+  through the pool to the next real weight, pull-up, chin-up or dip; machines
+  still fill the other slots. A pool with none keeps its pick. The repair
+  gives what it forces in the same preference, and when it overwrites a
+  movement's main slot, that movement's next slot takes the preference over.
+  `countsForIndex` in `strength.ts` is the one test for both the generator and
+  the index. Across every preset, day count, location, bias and all 997
+  offsets, weeks that left a trained scored movement with nothing the index
+  counts went from 41% (65% of seven-pattern gym weeks) to none.
+
+Walking on from the pick, rather than re-picking from the lifts that count,
+leaves every slot whose pick already counted as it was, so the offset below
+still decides the week. Only a new or rebuilt week changes; a stored week keeps
+its lifts until "Rebuild my week".
+
 ### How far into the library a week reaches
 
 `pick()` indexes a pattern's pool by day-plus-position, a small number, so any
@@ -70,16 +91,17 @@ choice. The week's layout, its coverage and every slot constraint are exactly
 what they were; which exercise fills each slot differs between accounts. The
 repair pass selects the same way instead of always forcing the head of the pool.
 
-- **Zero is the old generator exactly.** The demo seed passes 0, as do every
-  test fixture and the e2e suite, because the demo's history is authored against
-  one specific week. `coach.test.ts` holds variety zero to 68 of 85 — it was
-  59 of 70 before the library grew; a bigger pool is a different input, not a
-  different rule.
-- **Across forty accounts every programmable exercise is reached**; one account
-  still reaches 58–75 of the 85, 66 at the median, measured over all 997 values
-  `varietyFor` can return. That is the honest shape of it: this restores the
-  per-account spread the storage accident provided, rather than giving any one
-  account the whole library.
+- **Zero is the offset every fixed week uses.** The demo seed passes 0, as do
+  every test fixture and the e2e suite, because the demo's history is authored
+  against one specific week. `coach.test.ts` holds variety zero to 67 of 85 —
+  59 of 70 before the library grew, 68 before main slots preferred a lift that
+  counts. A bigger pool is a different input; the preference is a different
+  rule.
+- **Across forty accounts every programmable exercise is reached**, machines
+  included; one account still reaches 58–72 of the 85, 65 at the median,
+  measured over all 997 values `varietyFor` can return. That is the honest
+  shape of it: this restores the per-account spread the storage accident
+  provided, rather than giving any one account the whole library.
 - **Nothing moves on the day it ships.** A stored week is never regenerated on
   its own; `buildProgram` only runs at onboarding, on an explicit rebuild, on a
   split change and when a plan is applied.
@@ -292,8 +314,8 @@ decimal place.
   bodyweight plus what was added (`indexEstimate` in `strength.ts`, same
   10-rep ceiling). A machine, landmine or push-up best adds nothing, however
   heavy; it still charts against itself. So a pattern trained only on machines
-  counts as zero, and a new account whose first lift is a Leg Press has no index
-  until it logs a real weight — about two in five gym accounts open on one. A
+  counts as zero — which is why a generated week gives each scored movement's
+  main slot a lift that counts ([What fills a slot](#what-fills-a-slot)). A
   pull-up, chin-up or dip logged before `LOAD_CONVENTION_FROM` adds nothing:
   the box then said only "Weight (kg)", and some people typed their bodyweight.
 - **Two-thirds, not one.** From geometric similarity: force goes with

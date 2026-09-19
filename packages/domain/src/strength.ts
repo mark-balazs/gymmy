@@ -86,6 +86,17 @@ import type { PatternKey, Sex, Unit } from './types';
 export const SCORED_PATTERNS: PatternKey[] = ['squat', 'hinge', 'lunge', 'push', 'pull'];
 
 /**
+ * Whether a lift can add to the index at all: a real weight (a load class with
+ * `mass: true`), or a pull-up, chin-up or dip (`WHOLE_BODY`), counted at
+ * bodyweight plus what was added. Decision log D-022.
+ *
+ * One answer for two readers. `indexEstimate` below takes a set's estimate only
+ * from these, and the generator gives each scored movement's main slot one of
+ * these (`buildProgram`), so the week it builds is one this index can read.
+ */
+export const countsForIndex = (name: string): boolean => isWholeBody(name) || loadRuleOf(name).mass;
+
+/**
  * The three lifts a DOTS score is defined on.
  *
  * Named exactly, and strictly. A front squat is not a competition squat and a
@@ -454,11 +465,10 @@ export interface StrengthPoint {
  */
 const indexEstimate = (log: DecoratedLog, bodyWeight: number | null): number | null => {
   const name = log.exercise!.name;
-  if (isWholeBody(name)) {
-    if (log.date < LOAD_CONVENTION_FROM) return null;
-    return bodyWeight ? est1RM(bodyWeight + (log.weight ?? 0), log.reps, log.rir) : null;
-  }
-  return loadRuleOf(name).mass ? log.e1rm : null;
+  if (!countsForIndex(name)) return null;
+  if (!isWholeBody(name)) return log.e1rm;
+  if (log.date < LOAD_CONVENTION_FROM) return null;
+  return bodyWeight ? est1RM(bodyWeight + (log.weight ?? 0), log.reps, log.rir) : null;
 };
 
 function indexFrom(

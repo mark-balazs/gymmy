@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildProgram } from '../src/coach';
 import { index, programCoverage, programRows, slotsForSession } from '../src/model';
+import { countsForIndex } from '../src/strength';
 import {
   allowedDays,
   buildSlots,
@@ -202,6 +203,7 @@ describe('a hand-built split', () => {
   const oneDay = (
     slots: { id: string; patternKeys: PatternKey[] | null }[],
     goal: PatternKey[],
+    variety = 0,
   ) => {
     const base = seedSnapshot('sevenPattern', 1);
     const custom: Snapshot = {
@@ -222,7 +224,7 @@ describe('a hand-built split', () => {
     };
     return withEntries(
       custom,
-      buildProgram(index(custom), { days: 1, where: 'gym', bias: 'none' }),
+      buildProgram(index(custom), { days: 1, where: 'gym', bias: 'none', variety }),
     );
   };
 
@@ -266,6 +268,36 @@ describe('a hand-built split', () => {
     const keyOf = (id: string) => programRows(built, 1).find((r) => r.slot.id === id)?.pattern?.key;
     expect(keyOf('b')).toBe('squat');
     expect(keyOf('a')).toBe('carry');
+  });
+
+  it('does not cost a movement its lift the index counts', () => {
+    /* [squat|pull], [push|pull], [push]: the rotation fills squat, push, push,
+       and the repair overwrites the first push — push's main slot — with the
+       missing pull. The second push, picked as an ordinary slot, may be a
+       Push-Up, a Machine Chest Press or a Landmine Press, none of which the
+       index counts; it is push's main slot now, so it gets the same
+       preference. And the pull forced in is the pattern's only slot, so it
+       counts too. Checked over every offset, because which push lands second
+       depends on it. */
+    const notCounted: string[] = [];
+    for (let v = 0; v < 997; v++) {
+      const rows = programRows(
+        oneDay(
+          [
+            { id: 'r0', patternKeys: ['squat', 'pull'] },
+            { id: 'r1', patternKeys: ['push', 'pull'] },
+            { id: 'r2', patternKeys: ['push'] },
+          ],
+          ['squat', 'push', 'pull'],
+          v,
+        ),
+        1,
+      );
+      expect(rows.map((r) => r.pattern?.key)).toEqual(['squat', 'pull', 'push']);
+      for (const r of rows)
+        if (!countsForIndex(r.exercise!.name)) notCounted.push(`${v}:${r.exercise!.name}`);
+    }
+    expect(notCounted.slice(0, 5)).toEqual([]);
   });
 });
 

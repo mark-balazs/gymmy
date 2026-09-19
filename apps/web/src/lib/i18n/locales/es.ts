@@ -283,7 +283,8 @@ export const es: Record<Key, string> = {
   'prog.strengthNot':
     'Es solo para ti: muestra si te estás haciendo más fuerte y no sirve para compararte con nadie. Solo cuentan los ejercicios con barra, mancuernas y kettlebell, más las dominadas (también supinas) y los fondos, con tu peso corporal más el peso añadido. Un movimiento cuenta en cuanto haces una serie de 10 repeticiones o menos, así que entrenar los cinco hace subir el número.',
   'prog.needWeight': 'Añade tu peso corporal y esto empieza a medirse.',
-  'prog.needLifts': 'Registra unas sesiones y esto empieza a medirse.',
+  'prog.needLifts':
+    'Registra un ejercicio con barra, mancuernas o kettlebell, o dominadas o fondos, y esto empieza a medirse.',
   'prog.deltaUp': '{by} más que {ago}',
   'prog.deltaDown': '{by} menos que {ago}',
   'prog.deltaFlat': 'Sin cambios frente a {ago}',

@@ -279,7 +279,8 @@ export const de: Record<Key, string> = {
   'prog.strengthNot':
     'Der Wert ist nur für dich: Er zeigt, ob du stärker wirst, und ist nicht zum Vergleichen mit anderen gedacht. Es zählen nur Übungen mit Langhantel, Kurzhantel und Kettlebell, dazu Klimmzüge (auch im Untergriff) und Dips – mit deinem Körpergewicht plus Zusatzgewicht. Eine Bewegung zählt, sobald du einen Satz mit höchstens 10 Wiederholungen gemacht hast – wer alle fünf trainiert, bringt den Wert nach oben.',
   'prog.needWeight': 'Trag dein Körpergewicht ein, dann läuft das hier mit.',
-  'prog.needLifts': 'Trag ein paar Einheiten ein, dann läuft das hier mit.',
+  'prog.needLifts':
+    'Trag eine Übung mit Langhantel, Kurzhantel oder Kettlebell ein, oder Klimmzüge oder Dips, dann läuft das hier mit.',
   'prog.deltaUp': '{by} mehr als {ago}',
   'prog.deltaDown': '{by} weniger als {ago}',
   'prog.deltaFlat': 'Unverändert gegenüber {ago}',

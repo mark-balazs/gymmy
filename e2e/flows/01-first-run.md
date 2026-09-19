@@ -36,15 +36,15 @@ app has failed at the thing it exists to do.
 - Re-opening the app goes straight to `/train` — onboarding does not repeat.
 - The generated plan covers **every** counted pattern. This is the guarantee
   the repair pass in `buildProgram` exists to provide, and the unit tests
-  already cover all 36 combinations; here we confirm it survives the round trip
+  already cover all 144 configurations; here we confirm it survives the round trip
   through the UI and the database, by mapping the installed week's exercises
   back to their patterns. That the Week tab shows the seven pattern tiles is
   held by `splits.spec.ts` ("the seven-pattern split is scored on all seven").
 - With a bodyweight given, a strength index appears as soon as a lift it counts
   is trained — a real weight, or a pull-up, chin-up or dip; skipped, Progress
-  says what is missing. The spec picks an account whose week opens on a lift
-  that counts, because about two in five gym accounts open on a machine or a
-  bodyweight squat, and one set of those rightly starts no index.
+  says what is missing. Any account shows it after one set of Day A's first
+  lift: that is the squat's main slot, and a scored movement's main slot
+  prefers a lift the index counts.
 
 ## Notes
 

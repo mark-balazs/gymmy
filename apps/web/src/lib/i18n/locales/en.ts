@@ -274,7 +274,8 @@ export const en = {
   'prog.strengthNot':
     'It is just for you: it shows whether you are getting stronger, and it is not for comparing with anyone else. Only barbell, dumbbell and kettlebell lifts count, plus pull-ups, chin-ups and dips at your bodyweight plus anything added. A movement counts once you have done a set of 10 reps or fewer in it, so training all five pushes the number up.',
   'prog.needWeight': 'Add your bodyweight and this starts tracking.',
-  'prog.needLifts': 'Log a few sessions and this starts tracking.',
+  'prog.needLifts':
+    'Log a barbell, dumbbell or kettlebell lift, or a pull-up, chin-up or dip, and this starts tracking.',
   'prog.deltaUp': 'Up {by} on {ago}',
   'prog.deltaDown': 'Down {by} on {ago}',
   'prog.deltaFlat': 'No change on {ago}',

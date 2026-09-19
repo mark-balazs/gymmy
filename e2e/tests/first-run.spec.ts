@@ -4,7 +4,6 @@ import { randomUUID } from 'node:crypto';
 import type { Page } from '@playwright/test';
 import { CATALOGUE } from '../../packages/domain/src/catalogue';
 import { buildProgram, varietyFor } from '../../packages/domain/src/coach';
-import { isWholeBody, loadRuleOf } from '../../packages/domain/src/load';
 import { index } from '../../packages/domain/src/model';
 import { SEED_PATTERNS } from '../../packages/domain/src/seed';
 import { buildSlots, findSplit } from '../../packages/domain/src/splits';
@@ -239,19 +238,13 @@ test.describe('First run', () => {
        the app's headline number only worked for people who went looking for
        a field in Settings.
 
-       The account's id is chosen so that its week opens on a lift the index
-       counts. The index takes real weights and pull-ups, chin-ups and dips
-       only (Decision log D-022), and about two accounts in five open Day A on
-       a Leg Press, Hack Squat, Smith squat or bodyweight squat — one set of
-       which rightly starts no score. Left to a random account, this test
-       failed that often. */
-    let id = '';
-    for (let i = 0; i < 50 && !id; i++) {
-      const candidate = randomUUID();
-      const lift = openingLift(candidate);
-      if (loadRuleOf(lift).mass || isWholeBody(lift)) id = candidate;
-    }
-    expect(id, 'no account id in fifty opened on a lift the index counts').not.toBe('');
+       Any account will do. The index takes real weights and pull-ups,
+       chin-ups and dips only (Decision log D-022), and Day A opens on the
+       squat's main slot, which prefers a lift the index counts. Before that,
+       about two accounts in five opened on a Leg Press or a Hack Squat, and
+       this test had to pick an account that did not. The id is still ours,
+       so the card it opens on can be named. */
+    const id = randomUUID();
     const user = await createUser({ id });
     await context.addCookies([sessionCookie(user, baseURL!)]);
 

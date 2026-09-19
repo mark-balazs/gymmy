@@ -279,7 +279,8 @@ export const fr: Record<Key, string> = {
   'prog.strengthNot':
     'C’est juste pour toi : il montre si tu progresses, pas de quoi te comparer aux autres. Seuls comptent les exercices à la barre, aux haltères et au kettlebell, plus les tractions (pronation ou supination) et les dips, à ton poids de corps plus la charge ajoutée. Un mouvement compte dès que tu as fait une série de 10 répétitions ou moins, donc travailler les cinq fait monter le chiffre.',
   'prog.needWeight': 'Renseigne ton poids de corps et le suivi démarre.',
-  'prog.needLifts': 'Note quelques séances et le suivi démarre.',
+  'prog.needLifts':
+    'Note un exercice à la barre, aux haltères ou au kettlebell, ou des tractions ou des dips, et le suivi démarre.',
   'prog.deltaUp': '{by} de plus qu’{ago}',
   'prog.deltaDown': '{by} de moins qu’{ago}',
   'prog.deltaFlat': 'Inchangé par rapport à {ago}',

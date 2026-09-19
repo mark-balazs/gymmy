@@ -221,6 +221,34 @@ test.describe('The two strength numbers', () => {
     ).toHaveText('6.3');
   });
 
+  test('says which lifts count when only machines were trained', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* The index counts real weights and pull-ups, chin-ups and dips, nothing
+       else (D-022). Three weeks of Leg Press and Lat Pulldown leave it empty,
+       and "log a few sessions" told somebody who had logged nine to do what
+       they had done. It names the lifts that count instead. */
+    await signInAs(page, context, baseURL!, {
+      onboarded: true,
+      history: {
+        split: 'sevenPattern',
+        weeksBack: 3,
+        exercises: ['Leg Press', 'Lat Pulldown'],
+        sessions: 3,
+      },
+    });
+    await page.goto('/progress');
+    await weighIn(page, 83);
+
+    await expect(
+      page.getByText(
+        'Log a barbell, dumbbell or kettlebell lift, or a pull-up, chin-up or dip, and this starts tracking.',
+      ),
+    ).toBeVisible();
+  });
+
   test('shows a DOTS score once all three lifts are there', async ({ page, context, baseURL }) => {
     await signInAs(page, context, baseURL!, theMeet);
     await page.goto('/progress');
