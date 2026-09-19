@@ -291,6 +291,50 @@ test.describe('The ruler', () => {
     // And one tick — the one under the needle — is marked to stand out.
     await expect(weight.locator('[data-on]')).toHaveCount(1);
   });
+
+  test('with reduced motion, the number under the needle darkens but never grows', async ({
+    onboardedApp: app,
+  }) => {
+    /* Reduced motion means no rolling and no scaling, just the change. The
+       stylesheet zeroes every transition for it, which left the label under
+       the needle jumping to 1.25× and back at every stop instead of easing
+       there. The colour is kept: it is how the stop is found, not motion. */
+    await chooseEntry(app, { mode: 'Ruler' });
+    await onGoblet(app);
+    const weight = ruler(app, 'Weight');
+    // 10 kg: a labelled stop on a 1 kg ruler, which writes every 5.
+    await expect(weight).toHaveAttribute('aria-valuenow', '10');
+    const marked = weight.locator('[data-on] [data-label]');
+    await expect(marked).toHaveText('10');
+    const other = weight.locator('[data-label]').filter({ hasText: /^15$/ });
+    const style = (el: Element) => {
+      const s = getComputedStyle(el);
+      return { scale: s.scale, color: s.color };
+    };
+
+    await app.emulateMedia({ reducedMotion: 'reduce' });
+    await expect.poll(async () => (await marked.evaluate(style)).scale).toBe('none');
+    const quiet = await marked.evaluate(style);
+    expect(quiet.color, 'the marked label no longer stands out').not.toBe(
+      (await other.evaluate(style)).color,
+    );
+
+    // Still none after a move: a stop reached under reduced motion does not grow either.
+    await weight.focus();
+    await app.keyboard.press('ArrowRight');
+    await app.keyboard.press('ArrowRight');
+    await app.keyboard.press('ArrowRight');
+    await app.keyboard.press('ArrowRight');
+    await app.keyboard.press('ArrowRight');
+    await expect(weight).toHaveAttribute('aria-valuenow', '15');
+    await expect(marked).toHaveText('15');
+    expect((await marked.evaluate(style)).scale).toBe('none');
+
+    /* The same label, motion allowed: it grows. Without this the check above
+       would pass just as well on a selector that found nothing grown at all. */
+    await app.emulateMedia({ reducedMotion: 'no-preference' });
+    await expect.poll(async () => (await marked.evaluate(style)).scale).toBe('1.25');
+  });
 });
 
 test.describe('Loading the bar', () => {

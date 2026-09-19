@@ -286,6 +286,11 @@ const sameList = (a: readonly number[], b: readonly number[]) =>
  * spring curve while the rest stay muted, so the scale reads like a dial
  * turning under a fixed pointer. Size and colour only: nothing that moves
  * layout, so it costs no reflow in the middle of a flick.
+ *
+ * With reduced motion it darkens and does not grow. Zeroing the transition —
+ * what the stylesheet does for everything — is not enough here: the label
+ * would still jump to 1.25× and back at every stop, which is exactly the
+ * scaling the setting asks to be spared.
  */
 const Ticks = memo(
   function Ticks({
@@ -318,7 +323,7 @@ const Ticks = memo(
                    away. Grown to 1.25× it still clears the top at 56 px. */
                 'num absolute bottom-[33px] left-1/2 origin-bottom -translate-x-1/2 text-xs font-semibold whitespace-nowrap text-[var(--color-muted)]',
                 'transition-[scale,color] duration-200 ease-[var(--ease-spring)]',
-                'group-data-[on]:scale-125 group-data-[on]:font-bold group-data-[on]:text-[var(--color-ink)]',
+                'group-data-[on]:font-bold group-data-[on]:text-[var(--color-ink)] motion-safe:group-data-[on]:scale-125',
               )}
             >
               {formatOnScale(v, places)}

@@ -22,6 +22,8 @@ sets**:
   goes up in whole kilos to 60 per hand. Every number on a ruler has the same
   decimals (60.0, 62.5; whole kilos stay whole) in a box of one width, so the
   number does not jump about as it moves, and its digits roll the way it moved.
+  With reduced motion on, numbers just change: no rolling, and the label under
+  the needle darkens without growing.
 - **Load the bar** — for barbell lifts, on unless switched off: tap the plates
   you put on one side, and gymmy adds the bar and the other side. The bar weight
   is a chip, remembered per exercise on the device.
@@ -51,6 +53,9 @@ header and the tab bar of a 640 px phone.
   changes width, and the labels under the ticks follow the same rule. A
   whole-kilo ruler stays whole, a screen reader still hears "20 kg", and the
   buttons and the keypad write a barbell's 20 as 20.0 too.
+- **Reduced motion means no growing**: with the setting on, the label under the
+  needle darkens but stays its size, at rest and after a move; with it off, the
+  same label grows to 1.25×.
 - **Loading the bar**: a plate adds twice its weight, comes off with a tap, the
   bar chip moves the total, and a total plates cannot make is logged exactly.
   Each lift keeps its own bar, and a trap bar deadlift starts on its own 25 kg.
