@@ -111,7 +111,8 @@ export function GoalForm({
 
   /* Opening the form fills in a target that would pass every check, so the
      first thing on screen is a workable goal rather than an empty box the app
-     then finds fault with. */
+     then finds fault with. `checkGoal` never warns about that number either;
+     only a higher one the person types gets the ambition check. */
   const start = () => {
     setTyped(String(check.suggestedTarget));
     setOpen(true);

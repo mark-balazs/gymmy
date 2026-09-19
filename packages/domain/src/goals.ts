@@ -200,7 +200,10 @@ export interface GoalCheck {
    */
   warning: 'ambitious' | null;
   reason: 'tooSmall' | 'tooShort' | 'tooLong' | 'tooMany' | null;
-  /** A target that would clear every check, for the app to offer instead. */
+  /**
+   * A target that would clear every check, for the app to offer instead — and
+   * never carry the warning: the warning is only for a number above it.
+   */
   suggestedTarget: number;
   /** Percent a week the goal implies, for the warning to quote. */
   impliedWeeklyPct: number;
@@ -261,7 +264,11 @@ export function checkGoal(req: GoalRequest): GoalCheck {
 
   return {
     allowed: true,
-    warning: distance > affordable * 1.5 ? 'ambitious' : null,
+    /* Never on the app's own offer. Rounding up to the 0.5 step can carry a
+       light lift's offer past the line (13 offers 14, +7.7%), and the sheet
+       would warn about the number it had just filled in. Anything higher is the
+       person's own, and gets the ordinary check. */
+    warning: req.target > suggestedTarget && distance > affordable * 1.5 ? 'ambitious' : null,
     reason: null,
     suggestedTarget,
     impliedWeeklyPct,

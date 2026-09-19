@@ -2,6 +2,8 @@ import { describe, expect, expectTypeOf, it } from 'vitest';
 import {
   EVIDENCE,
   MAX_LIVE_GOALS,
+  MIN_DISTANCE,
+  addDays,
   checkGoal,
   goalProgress,
   growingExercises,
@@ -203,6 +205,69 @@ describe('the guardrails', () => {
         `${baseline}`,
       ).toBe(true);
     }
+  });
+
+  it('never warns about the target it offers, and still warns one step above', () => {
+    /* The owner, 2026-09-19: "The target the app fills in never shows the
+       warning. If you change it to something higher yourself, the warning
+       still appears." Rounding the offer up to the sheet's 0.5 step carries a
+       light lift past the warning line, so the sheet warned about its own
+       number. */
+    const ask = (baseline: number, weeks: number, gain: number | null, target: number) =>
+      checkGoal(
+        request({
+          baseline,
+          target,
+          targetDate: addDays('2026-07-01', 7 * weeks),
+          ownRecentGain: gain,
+        }),
+      );
+    const offered = (baseline: number, weeks: number, gain: number | null) =>
+      ask(baseline, weeks, gain, 0).suggestedTarget;
+
+    // 13 with no history: the offer is 14, +7.7% against a 7.5% line.
+    expect(offered(13, 12, null)).toBe(14);
+    expect(ask(13, 12, null, 14).warning).toBeNull();
+    expect(ask(13, 12, null, 14.5).warning).toBe('ambitious');
+    // 9.5 gaining 20% in six months, over eight weeks: the line is 9.2% and
+    // the offer 10.5 is +10.5%.
+    expect(offered(9.5, 8, 0.2)).toBe(10.5);
+    expect(ask(9.5, 8, 0.2, 10.5).warning).toBeNull();
+    expect(ask(9.5, 8, 0.2, 11).warning).toBe('ambitious');
+
+    // The round trip's baselines plus light ones, on every horizon the sheet
+    // offers, with no history, a flat one and a fast one.
+    for (const baseline of [100, 101, 41, 57.3, 20.1, 13, 9.5]) {
+      for (const weeks of [8, 12, 16, 24, 52]) {
+        for (const gain of [null, 0, 0.05, 0.2]) {
+          const check = ask(baseline, weeks, gain, offered(baseline, weeks, gain));
+          const label = `${baseline} over ${weeks} weeks, gain ${gain}`;
+          expect(check.allowed, label).toBe(true);
+          expect(check.warning, label).toBeNull();
+        }
+      }
+    }
+
+    /* Every one-decimal baseline to 300 on the short horizons, with no
+       history: the line sits at 1.5 × 5%. The offer never warns, and wherever
+       it is past the line — so it used to warn — one step above it does. */
+    const line = MIN_DISTANCE * 1.5;
+    let heaviest = 0;
+    for (let tenths = 10; tenths <= 3000; tenths++) {
+      const baseline = tenths / 10;
+      for (const weeks of [8, 12]) {
+        const offer = offered(baseline, weeks, null);
+        expect(ask(baseline, weeks, null, offer).warning, `${baseline}`).toBeNull();
+        if ((offer - baseline) / baseline > line) {
+          heaviest = baseline;
+          expect(ask(baseline, weeks, null, offer + 0.5).warning, `${baseline} + 0.5`).toBe(
+            'ambitious',
+          );
+        }
+      }
+    }
+    // Only light lifts are affected, as training-model.md says.
+    expect(heaviest).toBe(18.6);
   });
 
   it('refuses a run too short to accumulate anything', () => {

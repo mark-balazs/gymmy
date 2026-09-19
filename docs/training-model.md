@@ -531,11 +531,17 @@ what it knows and leaves the decision with the person doing the training.
 The sheet opens on `suggestedTarget`, and the "too small" line offers it too.
 It is rounded **up** to the input's 0.5 step, never to the nearest one: rounding
 to nearest fell under +5% for about half of all baselines, and the app refused
-its own offer. A test holds every one-decimal baseline to 300 to that. The cost
-is on very light lifts: below a baseline of about 18.6, rounding up can carry
-the offer past the 7.5% at which the warning fires (for a lift with no history
-and a horizon under six months), so the offer can come with the ambition
-warning.
+its own offer. A test holds every one-decimal baseline to 300 to that.
+
+**The offer never carries the ambition warning**, and neither does anything
+below it; a higher number the person types gets the ordinary check (the owner,
+2026-09-19). Rounding up is why the rule is needed: on a light lift it can
+carry the offer past the line — with no history and a horizon under six months,
+any baseline up to about 18.6; 13 offers 14, +7.7% against 7.5% — and the sheet
+warned about the number it had just filled in. The rule lives in `checkGoal`,
+beside the offer, so every caller gets it. The sheet fills the offer in once,
+for the horizon on screen: switch to a shorter one afterwards and the same
+number is checked like any other, so it can warn.
 
 **There is deliberately no expected pace.** The first version of this feature
 gave every goal a linear rate and flagged you for being behind it — and that is

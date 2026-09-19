@@ -130,6 +130,46 @@ test.describe('The app pushes only where it was asked to', () => {
     await expect(sheet.getByRole('button', { name: 'Set the goal' })).toBeEnabled();
   });
 
+  test('never warns about the target it fills in, only about a higher one', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* The owner: "The target the app fills in never shows the warning. If you
+       change it to something higher yourself, the warning still appears." A
+       light lift is where it bit: 9.75 kg for 8 with two in reserve estimates
+       13, and the offer, rounded up to the sheet's 0.5 step, is 14 — 7.7% up,
+       past the 7.5% at which a lift this new to the app is warned. */
+    await signInAs(page, context, baseURL!, {
+      onboarded: true,
+      history: {
+        split: 'sevenPattern',
+        weeksBack: 3,
+        exercises: ['Goblet Squat'],
+        sessions: 3,
+        weights: [9.75, 9.75, 9.75],
+      },
+    });
+    await page.goto('/progress');
+
+    await page.getByRole('button', { name: 'Show Goblet Squat' }).click();
+    const sheet = page.getByRole('dialog');
+    await sheet.getByRole('button', { name: 'Push this lift' }).click();
+
+    const target = sheet.getByLabel(/^Target, for a single rep/);
+    await expect(sheet.getByText('Now at 13 kg')).toBeVisible();
+    await expect(target).toHaveValue('14');
+    // The line under the form explains goals instead of warning.
+    await expect(sheet.getByText(/^The app only comments/)).toBeVisible();
+    await expect(sheet.getByText(/^That is about/)).toHaveCount(0);
+
+    // One step higher is the person's own number, and gets the usual check:
+    // a warning, and still a goal they can set.
+    await target.fill('14.5');
+    await expect(sheet.getByText(/^That is about [\d.]+% a week/)).toBeVisible();
+    await expect(sheet.getByRole('button', { name: 'Set the goal' })).toBeEnabled();
+  });
+
   test('will not build a goal on a single set', async ({ page, context, baseURL }) => {
     /* The other end of the same argument. One session is a data point, and a
        goal set 5% above it can have its target inside the error bar of its own
