@@ -299,6 +299,13 @@ input[type='checkbox'][switch]:disabled {
  *   --rise        how far a sheet rises as it appears
  *   --slide-by    how far a page slides between tabs
  *
+ * One value is not a token but a measurement of the movement happening now:
+ *   --swipe-ms    how long *this* move between tabs takes. `--dur-page` for a
+ *                 tapped tab; a committed swipe replaces it with the time the
+ *                 finger's own speed gives (`components/navigate.tsx`), and
+ *                 everything moving with the page — the pages themselves, the
+ *                 tab bar's mark — reads it, so one movement has one duration.
+ *
  * Rules: animate transform, scale, translate and opacity only. Transitions for
  * a change of state, keyframes only for something appearing. `will-change`
  * only while a finger is down. In a class: `duration-(--dur-fast)
@@ -323,6 +330,8 @@ input[type='checkbox'][switch]:disabled {
   --pop-from: 0.94;
   --rise: 24px;
   --slide-by: 56px;
+
+  --swipe-ms: var(--dur-page);
 }
 
 /* A real spring where the browser can draw one: damping ratio 0.7, about 5%
@@ -548,34 +557,44 @@ input[type='checkbox'][switch]:disabled {
 }
 
 /*
- * A swipe that commits (`components/swipe-tabs.ts`). The page is already part
- * of the way out under the finger when the move starts, and the old page's
- * picture is taken from there — so instead of the usual 56 px it carries on to
- * the edge (`--swipe-rest`), at the finger's own speed (`--swipe-ms`, never
- * longer than `--dur-page`), on the drawer curve. The new page comes in the
- * usual way, in the same time and without waiting.
+ * A swipe that commits (`components/swipe-tabs.ts`).
+ *
+ * **The two pages are one sheet of paper**, and the gesture says where that
+ * sheet is. The finger left the old page part of the way out, and the picture
+ * of it is taken there; what is left of the width is `--swipe-rest`, so the
+ * old page carries on that far and the new one starts exactly that far out on
+ * the other side. The two stay one screen apart the whole way, at the finger's
+ * own speed (`--swipe-ms`, never longer than `--dur-page`), on the drawer
+ * curve.
+ *
+ * Both halves of that are the fix for "it lags and then jumps to the new page"
+ * (GYM-92). The new page used to take the tap's 56 px and the tap's fade, so a
+ * finger that let go 263 px out handed over to a page arriving from 56 px and
+ * from nothing: the movement stopped and a crossfade happened somewhere else.
+ * **No fade, either way.** A crossfade is how a tap arrives, where the two
+ * pages share no position to carry the eye across; here they do.
+ *
+ * A tapped tab is untouched and still slides `--slide-by` and fades.
  *
  * Only with motion: under reduced motion the swipe never adds its type, and a
  * swipe is the same crossfade as any other move.
  */
 @media (prefers-reduced-motion: no-preference) {
-  html:active-view-transition-type(swipe)::view-transition-old(.nav-forward) {
+  html:active-view-transition-type(swipe)::view-transition-old(.nav-forward),
+  html:active-view-transition-type(swipe)::view-transition-new(.nav-back) {
     --slide: calc(-1 * var(--swipe-rest, var(--slide-by)));
-    animation:
-      var(--swipe-ms, var(--dur-page)) var(--ease-in) both fade reverse,
-      var(--swipe-ms, var(--dur-page)) var(--ease-drawer) both slide reverse;
   }
-  html:active-view-transition-type(swipe)::view-transition-old(.nav-back) {
+  html:active-view-transition-type(swipe)::view-transition-old(.nav-back),
+  html:active-view-transition-type(swipe)::view-transition-new(.nav-forward) {
     --slide: var(--swipe-rest, var(--slide-by));
-    animation:
-      var(--swipe-ms, var(--dur-page)) var(--ease-in) both fade reverse,
-      var(--swipe-ms, var(--dur-page)) var(--ease-drawer) both slide reverse;
+  }
+  html:active-view-transition-type(swipe)::view-transition-old(.nav-forward),
+  html:active-view-transition-type(swipe)::view-transition-old(.nav-back) {
+    animation: var(--swipe-ms) var(--ease-drawer) both slide reverse;
   }
   html:active-view-transition-type(swipe)::view-transition-new(.nav-forward),
   html:active-view-transition-type(swipe)::view-transition-new(.nav-back) {
-    animation:
-      var(--swipe-ms, var(--dur-page)) var(--ease-out) both fade,
-      var(--swipe-ms, var(--dur-page)) var(--ease-drawer) both slide;
+    animation: var(--swipe-ms) var(--ease-drawer) both slide;
   }
 }
 

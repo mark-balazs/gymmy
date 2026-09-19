@@ -301,20 +301,43 @@ same journey.
 - **A swipe drags the page** (`components/swipe-tabs.ts`, the arithmetic in
   `swipe.ts`). After 10 px the drag is sideways or a scroll, decided once;
   sideways, the transform is written straight onto `[data-page]` (no CSS
-  variable, which would restyle every card each frame) with `will-change`
-  only while a finger is down, and `touchmove` is not passive so it can stop
-  the page scrolling. Past the first or last tab it resists. Letting go moves
-  on after a flick faster than 0.2 px/ms or a drag past 30% of the width,
-  unless the finger was flicking back; otherwise the page springs back on a
-  CSS transition, which a finger can catch mid-way.
-- **A committed swipe carries on from where the page is.** The page is left
-  where the finger let go, so the transition's picture of it is taken there;
-  the move adds a `swipe` type, and `globals.css` carries the old page on to
-  the edge (`--swipe-rest`) in the time the finger's speed gives it
-  (`--swipe-ms`, never longer than `--dur-page`). Left alone: touches within
-  24 px of either edge (the phone's own Back), `[data-no-swipe]`, dialogs, a
-  second finger, and any screen that is not a tab itself. Under reduced motion
-  nothing moves under the finger; the swipe still changes tab, as a crossfade.
+  variable, which would restyle every card each frame), and `touchmove` is not
+  passive so it can stop the page scrolling. Past the first or last tab it
+  resists. Letting go moves on after a flick faster than 0.2 px/ms or a drag
+  past 30% of the width, unless the finger was flicking back; otherwise the
+  page springs back on a CSS transition, which a finger can catch mid-way.
+- **`will-change` goes on at `touchstart`, not at the axis lock.** Giving the
+  page a layer of its own repaints it once (6 ms on Train, 18 ms on Progress
+  at 6× CPU throttling), and at the lock that repaint landed in the middle of
+  the gesture. Promoted when the finger arrives, it lands while nothing is
+  moving: measured from a trace, the drag after its first transform went from
+  5–19 ms of paint to none. Every touch pays it, so `demote` takes it away the
+  moment the gesture turns out to be a tap or a scroll.
+- **A committed swipe carries on from where the page is, and both pages move
+  as one sheet of paper.** The page is left where the finger let go, so the
+  transition's picture of it is taken there; the move adds a `swipe` type and
+  a `Pace` (`useMove`), and `globals.css` carries the old page on to the edge
+  and starts the new one exactly one screen further out (`--swipe-rest`), in
+  the time the finger's speed gives (`--swipe-ms`, never longer than
+  `--dur-page`). **Neither page fades** — a crossfade is how a tap arrives,
+  where the two share no position. The new page used to take the tapped tab's
+  56 px and its fade, which is what "it jumps to the new page" was (GYM-92).
+  A tapped tab is unchanged and still slides `--slide-by` and fades. Left
+  alone: touches within 24 px of either edge (the phone's own Back),
+  `[data-no-swipe]`, dialogs, a second finger, and any screen that is not a
+  tab itself. Under reduced motion nothing moves under the finger; the swipe
+  still changes tab, as a crossfade.
+- **`--swipe-ms` and `--swipe-rest` sit on the document element**, because the
+  view-transition pseudo-elements can read nothing else. They inherit, so each
+  write restyles the whole document (139 elements on Train, 391 on Progress —
+  1–2 ms on a desktop, 15–21 ms at 6× throttling) inside the task that starts
+  the navigation. Measured and left: removing the write altogether moved
+  letting-go-to-first-moving-frame by less than the run-to-run spread at 1×,
+  4× and 6×, and every way of keeping it off the root (a registered
+  non-inherited property handed down the pseudo tree by `inherit`, plus a
+  second write for the tab mark) costs a hand-copied duplicate of `--dur-page`
+  and `--slide-by`, the reduced-motion shortening of it, and a mechanism
+  nobody reading the file would expect.
 - The header and the tab bar carry their own `viewTransitionName` and are
   pinned. Without a fixed reference the whole viewport appears to move rather
   than the page inside it. The title is named apart (`app-title`) and
@@ -324,9 +347,11 @@ same journey.
   was lost. `usePinnedTaps` in `app-shell.tsx` hands a click that lands on one
   of the page's containers, at a point inside a bar, to the control drawn
   there.
-- **The tab bar's mark is one element** that glides (`translate`, `--dur-page`)
+- **The tab bar's mark is one element** that glides (`translate`, `--swipe-ms`)
   to the tab you are on; the bar is drawn live during a slide, so the two move
-  together. It jumps under reduced motion. Tabs take the `press` utility.
+  together. One movement, one duration: on `--dur-page` it kept gliding for
+  about 110 ms after a swiped page had already landed. It jumps under reduced
+  motion. Tabs take the `press` utility.
 - The flex column that spaces the cards lives on `[data-page]`, not on `<main>`.
   `<main>` persists; spacing applied there would leave the cards travelling
   independently of the box supposed to be carrying them.
@@ -351,6 +376,10 @@ of these are read by JavaScript alone.
   otherwise, for reward moments only.
 - **Distances** are tokens too: `--press`, `--press-deep`, `--pop-from`,
   `--rise`, `--slide-by`.
+- **`--swipe-ms` is not a token but a measurement**: how long *this* move
+  between tabs takes. `--dur-page` for a tapped tab; a committed swipe
+  replaces it with what the finger's speed gives (`navigate.tsx`), and
+  everything moving with the page reads it, so one movement has one duration.
 - **In a class**, `duration-(--dur-fast) ease-(--ease-out)`. A pressable
   control takes the `press` (or `press-deep`) utility, never its own
   `active:scale-*` — Tailwind's scale sets `scale`, and the hand-written ones

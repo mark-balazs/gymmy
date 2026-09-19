@@ -335,6 +335,84 @@ function pageState(page: Page) {
   });
 }
 
+interface FirstFrame {
+  /** The two page pictures, as the very first frame of the move draws them. */
+  pages: { side: 'old' | 'new'; translate: number; opacity: number; ms: number }[];
+  /** How long the tab bar's mark takes to reach the tab you chose. */
+  markMs: number | null;
+}
+
+/**
+ * Arms a reader for the first frame of the next move.
+ *
+ * `ready` is the moment the browser has both pictures and has not drawn either
+ * of them yet, so this is where "the page arrives from ..." is decided. Each
+ * animation is paused at time zero, the pseudo-element's computed style read,
+ * and everything played again inside the same task — nothing is ever rendered
+ * paused. The pinned bars and the title are named and animate on their own
+ * terms; only the two pages are read.
+ */
+async function watchFirstFrame(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const start = document.startViewTransition.bind(document);
+    const w = window as unknown as { firstFrame: unknown };
+    w.firstFrame = null;
+    document.startViewTransition = ((arg: never) => {
+      const t = start(arg);
+      t.ready.then(() => {
+        const root = document.documentElement;
+        const held: [Animation, CSSNumberish | null][] = [];
+        for (const a of document.getAnimations()) {
+          const pseudo = (a.effect as KeyframeEffect | null)?.pseudoElement ?? '';
+          if (!/^::view-transition-(old|new)\(/.test(pseudo)) continue;
+          if (/\((root|app-title|app-header|app-nav)\)/.test(pseudo)) continue;
+          held.push([a, a.currentTime]);
+          a.pause();
+          a.currentTime = 0;
+        }
+        const pages: unknown[] = [];
+        const seen = new Set<string>();
+        for (const [a] of held) {
+          const pseudo = (a.effect as KeyframeEffect).pseudoElement!;
+          if (seen.has(pseudo)) continue;
+          seen.add(pseudo);
+          const s = getComputedStyle(root, pseudo);
+          pages.push({
+            side: pseudo.startsWith('::view-transition-old') ? 'old' : 'new',
+            translate: Number.parseFloat(s.translate) || 0,
+            opacity: Number(s.opacity),
+            ms: Number((a.effect as KeyframeEffect).getTiming().duration),
+          });
+        }
+        for (const [a, was] of held) {
+          if (was !== null) a.currentTime = was;
+          a.play();
+        }
+        /* The mark's glide starts in the navigation's own commit, which may be
+           a frame behind the pictures; read on the next frame, where it is
+           certainly running and has 100 ms of its shortest run left. */
+        requestAnimationFrame(() => {
+          const glide = document
+            .querySelector('[data-tab-mark]')!
+            .getAnimations()
+            .find((a) => (a as CSSTransition).transitionProperty === 'translate');
+          w.firstFrame = {
+            pages,
+            markMs: glide ? Number(glide.effect!.getTiming().duration) : null,
+          };
+        });
+      });
+      return t;
+    }) as typeof document.startViewTransition;
+  });
+}
+
+/** What the armed reader saw. */
+async function firstFrame(page: Page): Promise<FirstFrame> {
+  await page.waitForFunction(() => (window as unknown as { firstFrame: unknown }).firstFrame);
+  return page.evaluate(() => (window as unknown as { firstFrame: FirstFrame }).firstFrame);
+}
+
 test.describe('The page follows the finger', () => {
   /* The owner's decision: the page moves with the finger from the moment the
      drag is plainly sideways, resists past the last tab, and on letting go
@@ -411,6 +489,80 @@ test.describe('The page follows the finger', () => {
     const pictured = await app.evaluate(() => (window as unknown as { pictured: number }).pictured);
     expect(pictured).toBeCloseTo(left, 0);
     await app.waitForURL('**/week');
+  });
+
+  test('the page arriving starts where the gesture was pointing, not 56 px out', async ({
+    onboardedApp: app,
+  }) => {
+    /*
+     * The owner, on an Android phone: "Swipes between pages are not so smooth,
+     * its laggy and then jumps to the new page." The jump was this. The swipe
+     * rules gave the leaving page the gesture's distance but left the arriving
+     * one on the tapped tab's 56 px and the tapped tab's fade — so a finger
+     * that let go 263 px out handed over to a page appearing from 56 px away
+     * and from nothing. The movement stopped and a crossfade happened
+     * somewhere else.
+     *
+     * The two pages are one sheet of paper: whatever the gesture did, they
+     * start exactly one screen apart and both are solid.
+     */
+    await watchFirstFrame(app);
+    const f = await finger(app);
+    await f.down(330, 300);
+    await f.move(314, 300, 1);
+    await f.move(164, 302); // 150 px of 412, let go while still moving
+    const left = await app.evaluate(
+      () => document.querySelector('[data-page]')!.getBoundingClientRect().left,
+    );
+    await f.up();
+    await app.waitForURL('**/week');
+
+    const { pages, markMs } = await firstFrame(app);
+    const old = pages.find((p) => p.side === 'old')!;
+    const arriving = pages.find((p) => p.side === 'new')!;
+
+    // Where each picture actually sits on screen on that first frame.
+    const { home, width } = await app.evaluate(() => ({
+      home: document.querySelector('[data-page]')!.getBoundingClientRect().left,
+      width: window.innerWidth,
+    }));
+    expect(old.translate).toBeCloseTo(0, 0); // leaving: from where it was let go
+    expect(home + arriving.translate - (left + old.translate)).toBeCloseTo(width, -1);
+
+    // Solid, both of them. A fade here is the page being replaced, not moved.
+    expect(old.opacity).toBe(1);
+    expect(arriving.opacity).toBe(1);
+
+    /* One movement, one duration: the pages and the tab bar's mark all run for
+       as long as the finger's speed says, so the mark is not still gliding
+       after the page has landed. */
+    expect(arriving.ms).toBe(old.ms);
+    expect(arriving.ms).toBeLessThan(300); // the finger was quicker than a tap
+    expect(markMs).toBe(arriving.ms);
+  });
+
+  test('the page takes its layer as the finger lands, and hands it straight back', async ({
+    onboardedApp: app,
+  }) => {
+    /* Giving the page a layer of its own repaints it. That used to happen at
+       the moment the drag turned out to be sideways — in the middle of the
+       gesture, where it is a stall the finger feels. Now it happens while the
+       finger is still still. */
+    const f = await finger(app);
+    await f.down(300, 300);
+    expect(await pageState(app)).toEqual({ x: 0, willChange: 'transform' });
+
+    // A scroll is not a swipe, and the page does not keep a layer for one.
+    await f.move(302, 360);
+    expect(await pageState(app)).toEqual({ x: 0, willChange: '' });
+    await f.up();
+
+    // Nor for a tap that never went anywhere.
+    const g = await finger(app);
+    await g.down(300, 300);
+    expect((await pageState(app)).willChange).toBe('transform');
+    await g.up();
+    await expect.poll(() => pageState(app)).toEqual({ x: 0, willChange: '' });
   });
 
   test('a quick flick moves however short it was', async ({ onboardedApp: app }) => {
