@@ -252,11 +252,16 @@ first sync onto an empty device, the sign-out wipe.
 - **No drag-and-drop in the split editor.** Slots reorder with ↑/↓ buttons.
   That is deliberate for now — dragging inside a scrolling column on a phone is
   its own engineering problem — but it is the obvious next improvement.
-- **Single user.** Multi-tenancy is enforced at the query level (`userId` on
-  every row and index), but there is no signup funnel, billing, rate limiting or
-  account deletion yet.
+- **No billing, and no self-service trainer role.** Anyone can sign up, every
+  row is scoped to its account (`userId` on every row and index), and a person
+  can delete their own account (Settings → Delete your account). But nothing is
+  billed yet, and a trainer is made by a manual database change.
+- **Only sign-in codes are rate limited**, per address and per client
+  (`sign-in-throttle.ts`). Sync and the plans API have no limit.
 - `middleware.ts` triggers a Next 16 deprecation warning in favour of `proxy.ts`.
   It still works; the rename is untested against the live OAuth flow, so it is
   deliberately not done blind.
-- The service worker caches the shell and static assets but has no precache
-  manifest, so a deploy is picked up on the next navigation rather than instantly.
+- The service worker has no precache manifest. At install it caches the Train,
+  Week and Progress pages; everything else is cached only once it has loaded
+  online. An installed app picks up a deploy the next time it is out of view,
+  not at once (`sw-register.tsx` says why).
