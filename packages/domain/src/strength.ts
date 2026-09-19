@@ -71,7 +71,7 @@
  */
 
 import { addDays, allLogs, blockWeeks, est1RM, type DecoratedLog, type Indexed } from './model';
-import { isWholeBody, loadClassOf, loadRuleOf } from './load';
+import { LOAD_CONVENTION_FROM, isWholeBody, loadClassOf, loadRuleOf } from './load';
 import type { PatternKey, Sex, Unit } from './types';
 
 /**
@@ -445,10 +445,17 @@ export interface StrengthPoint {
  * The bodyweight is the one the index divides by: the latest on record up to
  * the end of the scored week. So the pull-up and the denominator always agree,
  * and a week with no bodyweight has no index for any lift to be missing from.
+ *
+ * **A pull-up, chin-up or dip logged before `LOAD_CONVENTION_FROM` adds
+ * nothing.** Until then the box said only "Weight (kg)", and some people typed
+ * their bodyweight into it — so an old 80 is either 80 kg added or the person
+ * themselves, and bodyweight on top of the second would count them twice.
+ * Nothing stored says which, so the row is left out rather than guessed at.
  */
 const indexEstimate = (log: DecoratedLog, bodyWeight: number | null): number | null => {
   const name = log.exercise!.name;
   if (isWholeBody(name)) {
+    if (log.date < LOAD_CONVENTION_FROM) return null;
     return bodyWeight ? est1RM(bodyWeight + (log.weight ?? 0), log.reps, log.rir) : null;
   }
   return loadRuleOf(name).mass ? log.e1rm : null;

@@ -293,7 +293,9 @@ decimal place.
   10-rep ceiling). A machine, landmine or push-up best adds nothing, however
   heavy; it still charts against itself. So a pattern trained only on machines
   counts as zero, and a new account whose first lift is a Leg Press has no index
-  until it logs a real weight — about two in five gym accounts open on one.
+  until it logs a real weight — about two in five gym accounts open on one. A
+  pull-up, chin-up or dip logged before `LOAD_CONVENTION_FROM` adds nothing:
+  the box then said only "Weight (kg)", and some people typed their bodyweight.
 - **Two-thirds, not one.** From geometric similarity: force goes with
   cross-sectional area (length squared) while mass is a length cubed. A plain
   bodyweight multiple is wrong at both ends.
@@ -342,9 +344,8 @@ lift.
   strength. Rotation is trained light and anti-rotational by design.
 - **An eight-week trailing window**, because they describe what you can do
   *now*: the scored week and the seven before it, so from the Monday seven
-  weeks back. Seven, not eight — going back eight Mondays makes nine weeks,
-  which the code did until GYM-46. `strength.test.ts` pins both edges for both
-  numbers.
+  weeks back. Seven, not eight — going back eight Mondays makes nine weeks.
+  `strength.test.ts` pins both edges for both numbers.
 - **Null rather than a guess** when bodyweight is unknown. Both are ratios;
   inventing the denominator invents the answer. They are null for two different
   reasons and the screen distinguishes them — "still missing: …" for an absent
