@@ -177,6 +177,34 @@ describe('the guardrails', () => {
     expect(checkGoal(request({ target: 105 })).allowed).toBe(true);
   });
 
+  it('never offers a target it would then refuse', () => {
+    /* The goal sheet opens on `suggestedTarget` and the "too small" line offers
+       it too. Rounded to the nearest 0.5 it fell under +5% about half the
+       time — 101 offered 106 — and the app refused its own number. So: up to
+       the sheet's step, and no further. One step lower must be refused, or the
+       app is asking for more than the rule needs. */
+    const offered = (baseline: number) =>
+      checkGoal(request({ baseline, target: 0 })).suggestedTarget;
+    for (const baseline of [100, 101, 41, 57.3, 20.1]) {
+      const target = offered(baseline);
+      const check = checkGoal(request({ baseline, target }));
+      expect(check.allowed, `${baseline} → ${target}`).toBe(true);
+      expect(check.reason, `${baseline} → ${target}`).toBeNull();
+      expect(checkGoal(request({ baseline, target: target - 0.5 })).reason).toBe('tooSmall');
+    }
+    expect([100, 101, 41, 57.3, 20.1].map(offered)).toEqual([105, 106.5, 43.5, 60.5, 21.5]);
+
+    // Every baseline the app can produce (one decimal) up to 300, not only the
+    // five that were caught.
+    for (let tenths = 10; tenths <= 3000; tenths++) {
+      const baseline = tenths / 10;
+      expect(
+        checkGoal(request({ baseline, target: offered(baseline) })).allowed,
+        `${baseline}`,
+      ).toBe(true);
+    }
+  });
+
   it('refuses a run too short to accumulate anything', () => {
     /* Strength is added when a session goes well, not on a schedule — so the
        horizon has to hold enough good sessions for the increments to add up

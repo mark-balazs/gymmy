@@ -508,6 +508,15 @@ at all and a goal somebody has rejected as not theirs performs *worse* than no
 goal (Locke & Latham, *American Psychologist* 2002;57(9):705-717). The app says
 what it knows and leaves the decision with the person doing the training.
 
+The sheet opens on `suggestedTarget`, and the "too small" line offers it too.
+It is rounded **up** to the input's 0.5 step, never to the nearest one: rounding
+to nearest fell under +5% for about half of all baselines, and the app refused
+its own offer. A test holds every one-decimal baseline to 300 to that. The cost
+is on very light lifts: below a baseline of about 18.6, rounding up can carry
+the offer past the 7.5% at which the warning fires (for a lift with no history
+and a horizon under six months), so the offer can come with the ambition
+warning.
+
 **There is deliberately no expected pace.** The first version of this feature
 gave every goal a linear rate and flagged you for being behind it — and that is
 the one shape the literature does not support. ACSM's 2–10% load increase is

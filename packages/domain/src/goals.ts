@@ -238,8 +238,10 @@ export function checkGoal(req: GoalRequest): GoalCheck {
     req.ownRecentGain !== null ? req.ownRecentGain * 2 : EVIDENCE.trainedFirstYearGain;
   const affordable = Math.max(MIN_DISTANCE, (reference * weeks) / 52);
 
-  const suggestedTarget =
-    Math.round(req.baseline * (1 + Math.max(MIN_DISTANCE, affordable)) * 2) / 2;
+  /* Up to the goal sheet's step of 0.5, never to the nearest one: rounding
+     down lands under +5% about half the time (101 → 106), and the app would
+     then refuse the number it had just offered. */
+  const suggestedTarget = Math.ceil(req.baseline * (1 + affordable) * 2) / 2;
   const impliedWeeklyPct = weeks > 0 ? Math.round((distance / weeks) * 1000) / 10 : 0;
 
   const refuse = (reason: GoalCheck['reason']): GoalCheck => ({
