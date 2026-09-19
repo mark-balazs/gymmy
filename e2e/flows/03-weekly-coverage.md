@@ -44,6 +44,18 @@ This is asserted explicitly — a curl is logged and the week read back, with al
 seven tiles still gaps — because it is the kind of rule that a well-meaning
 refactor silently breaks.
 
+## Which weeks you can page through
+
+The tab opens on **this week**, and the back arrow reaches every week back to
+the one the account began in. A new account can also page ahead through its
+first eight weeks.
+
+The pages are built around today by `weekPages` in the domain. The block on the
+profile (`blockStart`, `blockWeeks`) is written once, when the account is made,
+and never moves on. Paging through that block alone lost this week from week
+nine, and the tab opened on the account's first week with no way forward. The
+test that guards this signs in as an account ten weeks old.
+
 ## Weeks keep their own meaning
 
 A week is scored against the split that was in force **that week**, not the one

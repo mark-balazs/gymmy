@@ -7,7 +7,7 @@ import { Page } from '@/components/page';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import { setEntryExercise } from '@/lib/client/mutations';
 import { DEFAULT_PREFS, swapOptions, type Exercise } from '@athletic/domain';
-import { blockWeeks, mondayOf, programRows, sessionLabel, weekCoverage } from '@athletic/domain';
+import { mondayOf, programRows, sessionLabel, weekCoverage, weekPages } from '@athletic/domain';
 import { fmtDay } from '@/lib/client/format';
 import { ExerciseSheet } from '@/components/exercise-sheet';
 import { ExercisePicker } from '@/components/exercise-picker';
@@ -21,12 +21,13 @@ export default function WeekPage() {
   const where = profile?.where ?? DEFAULT_PREFS.where;
   const blockLen = profile?.blockWeeks ?? DEFAULT_PREFS.blockWeeks;
 
-  const weeks = useMemo(
-    () => blockWeeks(profile?.blockStart ?? mondayOf(new Date()), blockLen),
-    [profile?.blockStart, blockLen],
-  );
   const thisWeek = mondayOf(new Date());
-  const [week, setWeek] = useState(() => (weeks.includes(thisWeek) ? thisWeek : weeks[0]!));
+  // Always includes this week, however long ago the block began — see weekPages.
+  const weeks = useMemo(
+    () => weekPages(profile?.blockStart ?? thisWeek, blockLen, thisWeek),
+    [profile?.blockStart, blockLen, thisWeek],
+  );
+  const [week, setWeek] = useState(thisWeek);
   const idx = Math.max(0, weeks.indexOf(week));
 
   const cov = useMemo(() => weekCoverage(ix, week), [ix, week]);

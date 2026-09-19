@@ -102,10 +102,11 @@ export default function ProgressPage() {
    * squeezed into 340 pixels is a hairball, and "how am I doing" is a question
    * about the recent past. All time is one tap away for when it is not.
    *
-   * It used to be the current *block* — `blockStart` plus `blockWeeks` — which
-   * quietly hid everything. A block is eight weeks long and restarts; anyone
-   * whose block began after their training did saw charts with fewer than two
-   * points in range, and a strength score that never moved.
+   * It used to be the *block* — `blockStart` plus `blockWeeks` — which quietly
+   * hid everything. A block is the account's first eight weeks and never moves
+   * on, so from week nine it showed nothing recent at all, and anyone whose
+   * block began after their training did saw charts with fewer than two points
+   * in range and a strength score that never moved.
    */
   const { from, recentFrom } = useMemo(() => {
     const earliest = ix.logs[0]?.date;

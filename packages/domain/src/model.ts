@@ -532,6 +532,25 @@ export function blockWeeks(blockStart: string, weeks: number): string[] {
   return Array.from({ length: weeks }, (_, i) => addDays(start, i * 7));
 }
 
+/**
+ * The weeks the Week tab pages through: from the first week of the account's
+ * block up to this week, and always the whole first block.
+ *
+ * The block is written once, when the account is made, and never moves on. The
+ * tab used to page through that block alone, so from week nine, or a week after
+ * the demo was seeded, this week was not a page at all: the tab opened on the
+ * account's first week and could not reach today. Built around today instead, so
+ * this week is always the last page, or inside the first block. A block that
+ * starts after today, which only a phone clock set ahead can produce, starts this
+ * week instead.
+ */
+export function weekPages(blockStart: string, blockLength: number, today: Date | string): string[] {
+  const thisWeek = mondayOf(today);
+  const start = mondayOf(blockStart) < thisWeek ? mondayOf(blockStart) : thisWeek;
+  const weeksToToday = daysBetween(start, thisWeek) / 7 + 1;
+  return blockWeeks(start, Math.max(blockLength, weeksToToday));
+}
+
 export function weekCoverage(ix: Indexed, weekOf: string): WeekCoverage {
   const logs = allLogs(ix).filter((l) => l.weekOf === weekOf);
   // Scored against the goal that was in force that week, not today's.

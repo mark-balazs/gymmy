@@ -1,6 +1,6 @@
 /** Flow 03 — see ../flows/03-weekly-coverage.md */
 
-import { expect, logSet, openCard, test } from '../fixtures/test';
+import { expect, logSet, openCard, signInAs, test } from '../fixtures/test';
 
 test.describe('Weekly coverage', () => {
   test('an empty week reports gaps, not silence', async ({ onboardedApp: app }) => {
@@ -55,5 +55,35 @@ test.describe('Weekly coverage', () => {
       app.getByText('7 gaps: squat, hinge, lunge, push, pull, rotate, carry.'),
     ).toBeVisible();
     await expect(tiles.getByText('✓', { exact: true })).toHaveCount(0);
+  });
+
+  test('an account older than its first block still opens on this week', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* The block is written once, when the account is made, and never moves on,
+       and the tab used to page through that block alone. So an account ten
+       weeks old — past its eight-week block, as every real account is from week
+       nine — opened on its first week with no way forward to today. */
+    await signInAs(page, context, baseURL!, {
+      onboarded: true,
+      history: { split: 'sevenPattern', weeksBack: 10, exercises: ['Goblet Squat'] },
+    });
+    await page.getByRole('link', { name: 'Week', exact: true }).click();
+    await page.waitForURL('**/week');
+
+    await expect(page.getByText('This week', { exact: true })).toBeVisible();
+    await expect(page.getByText('Nothing logged this week yet.')).toBeVisible();
+    // This week is the last page: eleven of them, the first ten weeks back.
+    await expect(page.getByRole('button', { name: 'Week 12', exact: true })).toBeDisabled();
+
+    // And every week back to the first is still a page, with its own sets.
+    for (let i = 0; i < 10; i++)
+      await page.getByRole('button', { name: 'Back', exact: true }).click();
+    await expect(page.getByText('Week 1', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Back', exact: true })).toBeDisabled();
+    const tiles = page.getByRole('list', { name: 'Movement coverage' });
+    await expect(tiles.getByRole('listitem').filter({ hasText: 'Squat' })).toContainText('✓');
   });
 });

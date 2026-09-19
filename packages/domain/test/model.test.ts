@@ -13,6 +13,7 @@ import {
   mondayOf,
   periodFor,
   weekCoverage,
+  weekPages,
 } from '../src/model';
 import { buildProgram } from '../src/coach';
 import { logsFor, period, seedSnapshot } from './fixture';
@@ -96,6 +97,44 @@ describe('weeks', () => {
   it('crosses a year boundary without drifting', () => {
     const weeks = blockWeeks('2026-12-21', 4);
     expect(weeks).toEqual(['2026-12-21', '2026-12-28', '2027-01-04', '2027-01-11']);
+  });
+
+  /* The Week tab pages through these. The block is written once, when the
+   * account is made, and never moves on — so paging through the block alone
+   * lost this week from week nine, and the tab opened on the account's first
+   * week with no way forward to today. */
+  describe('the Week tab’s pages', () => {
+    const today = '2026-09-17'; // a Thursday; its week starts 2026-09-14
+
+    it('reach this week once the first block is over', () => {
+      const pages = weekPages('2026-07-06', 8, today); // ten weeks back
+      expect(pages[0]).toBe('2026-07-06');
+      expect(pages.at(-1)).toBe('2026-09-14');
+      expect(pages).toHaveLength(11);
+      // Every week between, a week apart: paging back reaches each one.
+      pages.slice(1).forEach((w, i) => expect(w).toBe(addDays(pages[i]!, 7)));
+    });
+
+    it('reach this week on the demo, a week after it was seeded', () => {
+      // Seeded 22 weeks back with a 23-week block, which ended last week.
+      const seeded = '2026-09-07';
+      const pages = weekPages(addDays(seeded, -7 * 22), 23, today);
+      expect(pages.at(-1)).toBe('2026-09-14');
+      expect(pages).toHaveLength(24);
+    });
+
+    it('keep the whole first block while the account is inside it', () => {
+      // Unchanged for a young account: its eight weeks, this one among them.
+      expect(weekPages('2026-08-31', 8, today)).toEqual(blockWeeks('2026-08-31', 8));
+      expect(weekPages('2026-08-31', 8, today)).toContain('2026-09-14');
+    });
+
+    it('include this week when the block starts after it', () => {
+      // Only a phone clock set ahead can write a block start in the future.
+      const pages = weekPages('2026-10-05', 8, today);
+      expect(pages[0]).toBe('2026-09-14');
+      expect(pages).toHaveLength(8);
+    });
   });
 
   /* Built from local date parts rather than toISOString(), which is UTC and

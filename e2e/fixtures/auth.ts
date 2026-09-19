@@ -139,10 +139,10 @@ export interface CreateUserOptions {
   /** Extra logged sets, to push a single table past one sync page. */
   bulkLogs?: number;
   /**
-   * Starts the training block *this* week even though the history is older —
-   * which is what every account looks like once its eight-week block rolls
-   * over. The Progress tab used to window itself by the block and showed such
-   * an account nothing at all.
+   * Starts the training block *this* week even though the history is older.
+   * The Progress tab used to window itself by the block and showed such an
+   * account nothing at all. (A real block never moves: it starts the week the
+   * account was made. Without this option the fixture starts it at the history.)
    */
   blockStartsNow?: boolean;
   /**
