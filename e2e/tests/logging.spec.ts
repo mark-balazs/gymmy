@@ -3,7 +3,9 @@
 import type { Page } from '@playwright/test';
 import { serverSets, sessionCookie } from '../fixtures/auth';
 import {
+  dayCounter,
   expect,
+  heardCounter,
   logSet,
   logSuggested,
   numberButton,
@@ -25,7 +27,7 @@ test.describe('Logging a session', () => {
     await logSuggested(app);
     await logSuggested(app);
 
-    await expect(app.getByText(/3 of \d+ sets/)).toBeVisible();
+    await expect(dayCounter(app)).toHaveText(/^3 of \d+ sets$/);
 
     /* Three of three finishes the exercise, which folds it away and takes its
        set list with it — so inspecting what was logged means opening it again,
@@ -70,7 +72,7 @@ test.describe('Logging a session', () => {
   });
 
   test('logs a set and shows it back', async ({ onboardedApp: app }) => {
-    await expect(app.getByText(/0 of \d+ sets/)).toBeVisible();
+    await expect(dayCounter(app)).toHaveText(/^0 of \d+ sets$/);
 
     /* With no history the card says it has none. It used to suggest a starting
        weight and a rep target here; the app no longer proposes a load it has no
@@ -83,8 +85,20 @@ test.describe('Logging a session', () => {
     // line above it first, and that line appears the moment the set lands
     // whether or not the row does.
     expect(await recordedSet(app, 8)).toBe('60 kg × 8');
-    await expect(app.getByText(/1 of \d+ sets/)).toBeVisible();
+    await expect(dayCounter(app)).toHaveText(/^1 of \d+ sets$/);
     await expect(app.getByRole('button', { name: 'Log set 2' })).toBeVisible();
+  });
+
+  test("a screen reader hears the day's count as one line", async ({ onboardedApp: app }) => {
+    /* The count is drawn a digit to a box so that it can roll, and a screen
+       reader reads the boxes one at a time: "1", "5", "of 15 sets" (GYM-18).
+       So the drawn count is hidden from it, and it hears the line whole. */
+    await logSuggested(app);
+    const drawn = dayCounter(app);
+    await expect(drawn).toHaveText(/^1 of \d+ sets$/);
+    await expect(drawn).toHaveAttribute('aria-hidden', 'true');
+    const total = (await drawn.textContent())!.match(/of (\d+)/)![1];
+    await expect(heardCounter(app)).toHaveText(`1 of ${total} sets`);
   });
 
   test('shows effort in plain words, never as RIR', async ({ onboardedApp: app }) => {
@@ -114,16 +128,16 @@ test.describe('Logging a session', () => {
       .poll(async () => (await serverSets(user.id)).length, { timeout: 30_000 })
       .toBeGreaterThan(0);
     await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(1);
-    await expect(page.getByText(/^1 of \d+ sets$/)).toBeVisible();
+    await expect(dayCounter(page)).toHaveText(/^1 of \d+ sets$/);
     expect((await serverSets(user.id)).length).toBe(1);
   });
 
   test('a deleted set stops counting', async ({ onboardedApp: app }) => {
     await logSet(app, 60, 8);
-    await expect(app.getByText(/1 of \d+ sets/)).toBeVisible();
+    await expect(dayCounter(app)).toHaveText(/^1 of \d+ sets$/);
 
     await app.getByRole('button', { name: 'Delete' }).first().click();
-    await expect(app.getByText(/0 of \d+ sets/)).toBeVisible();
+    await expect(dayCounter(app)).toHaveText(/^0 of \d+ sets$/);
   });
 
   test('a deleted set is deleted everywhere', async ({ page, context, browser, baseURL }) => {
@@ -151,7 +165,7 @@ test.describe('Logging a session', () => {
       await second.addCookies([sessionCookie(user, baseURL!)]);
       const other = await second.newPage();
       await other.goto('/train');
-      await expect(other.getByText(/^1 of \d+ sets$/)).toBeVisible({ timeout: 30_000 });
+      await expect(dayCounter(other)).toHaveText(/^1 of \d+ sets$/, { timeout: 30_000 });
       // The logged rows, not the page: the "Last time" line repeats numbers.
       await expect(other.locator('main .num').filter({ hasText: /kg ×/ })).toHaveText([
         /^60 kg × 9/,

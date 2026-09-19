@@ -124,6 +124,10 @@ Two ways the suite lies to you if you skip that:
   And copy in a tip on Train or Home must avoid the phrases
   `progression.spec.ts` checks never appear ("add weight", "reps to spare",
   "nothing left", "too easy", "earned more weight").
+- **The day's count on Train is on the page twice**: drawn (`aria-hidden`, a
+  digit to a box so it can roll) and whole in an `sr-only` span for a screen
+  reader. `getByText('1 of 15 sets')` finds both and a strict assertion fails;
+  use `dayCounter` (drawn) or `heardCounter` (heard) from the fixtures.
 - **A tip owns Escape.** It listens on `window` in the capture phase and stops
   the event, so a tip inside a sheet closes alone. A test for a tip in a sheet
   should press Escape and assert the sheet survived.

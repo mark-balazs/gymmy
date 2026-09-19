@@ -259,6 +259,23 @@ export async function recordedSet(page: Page, reps: number): Promise<string> {
 }
 
 /**
+ * The day's counter at the top of Train, as it is drawn — "1 of 15 sets".
+ *
+ * Not found by its words, because they are on the page twice: drawn, a digit
+ * to a box so the number can roll and hidden from screen readers, and again
+ * whole for a screen reader to hear (`heardCounter`). A page-wide search for
+ * "1 of 15 sets" finds both, and fails as ambiguous.
+ */
+export function dayCounter(page: Page): Locator {
+  return page.locator('main .num').filter({ hasText: /^\d+ of \d+ sets?$/ });
+}
+
+/** The day's counter as a screen reader hears it: the drawn one's twin. */
+export function heardCounter(page: Page): Locator {
+  return dayCounter(page).locator('..').locator('.sr-only');
+}
+
+/**
  * Opens a named exercise's card, if it is not already the open one.
  *
  * A collapsed card is a button showing the exercise name; the open one shows

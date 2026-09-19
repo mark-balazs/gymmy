@@ -17,6 +17,10 @@
  * Lines up from the right: the scale gives every value the same decimals, so
  * the columns match from the end even when a digit is added in front (97.5 to
  * 100.0).
+ *
+ * Not for a screen reader to read: each digit is a box of its own, and it
+ * reads them one at a time — "1", "5" (GYM-18). Hide it (`aria-hidden`) or put
+ * it in a control named by its label, and say the words in an `sr-only` span.
  */
 
 import { useLayoutEffect, useRef } from 'react';

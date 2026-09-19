@@ -378,6 +378,11 @@ changed, once, and none runs past `--dur-base`.
   from `0fr`, through `@starting-style`), its numbers starting in the accent
   colour. **The dot it filled pops** (`animate-dot-pop`). **The day's count
   ticks** through `RollingNumber`, as the −/+ numbers and the plate total do.
+  `RollingNumber` puts each digit in a box of its own, which a screen reader
+  reads box by box ("1", "5", "of 15 sets"). So a screen reader never reads a
+  rolling number as drawn: its words sit beside it in an `sr-only` span, and
+  the drawn number is `aria-hidden` (the day's count, the stepper, the plate
+  total) or inside a button named by its label (the Ruler) — GYM-18.
 - **Finishing an exercise draws its tick** (`components/tick.tsx`, a stroke
   with `pathLength="1"`). **Finishing the day** draws the tick on its tab, adds
   one line ("Day A done", in a `role="status"` region, so a screen reader hears

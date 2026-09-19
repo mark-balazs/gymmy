@@ -8,6 +8,7 @@
 import type { BrowserContext } from '@playwright/test';
 import { serverSets } from '../fixtures/auth';
 import {
+  dayCounter,
   expect,
   logSet,
   openCard,
@@ -22,7 +23,7 @@ test.describe('Training offline', () => {
   test('logs sets with no network at all', async ({ onboardedApp: app, context }) => {
     const name = await openExercise(app);
     await logSet(app, 60, 8);
-    await expect(app.getByText(/1 of \d+ sets/)).toBeVisible();
+    await expect(dayCounter(app)).toHaveText(/^1 of \d+ sets$/);
 
     await waitForServiceWorker(app);
     await context.setOffline(true);
@@ -31,7 +32,7 @@ test.describe('Training offline', () => {
     await logSet(app, 60, 9);
     await logSet(app, 60, 10);
 
-    await expect(app.getByText(/3 of \d+ sets/)).toBeVisible();
+    await expect(dayCounter(app)).toHaveText(/^3 of \d+ sets$/);
 
     /* The third set finishes the exercise, so it folds away and its set list
        goes with it. Reopening is the read-back, and doing it while still
@@ -195,12 +196,12 @@ test.describe('Writing while a push is travelling', () => {
     await logSet(page, 60, 8);
     const first = await pushes.next(carriesSet);
     await page.getByRole('button', { name: 'Delete' }).click();
-    await expect(page.getByText(/^0 of \d+ sets$/)).toBeVisible();
+    await expect(dayCounter(page)).toHaveText(/^0 of \d+ sets$/);
 
     pushes.release(first);
     // The delete's push leaves only once the first has been applied.
     const second = await pushes.next(carriesSet, first + 1);
-    await expect(page.getByText(/^0 of \d+ sets$/)).toBeVisible();
+    await expect(dayCounter(page)).toHaveText(/^0 of \d+ sets$/);
     await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(0);
     pushes.release(second);
     pushes.releaseAll();

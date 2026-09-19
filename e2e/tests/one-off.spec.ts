@@ -1,6 +1,6 @@
 /** Flow 10 — see ../flows/10-something-else.md */
 
-import { expect, logSet, openExercise, test } from '../fixtures/test';
+import { dayCounter, expect, logSet, openExercise, test } from '../fixtures/test';
 import type { Page } from '@playwright/test';
 
 /**
@@ -27,9 +27,6 @@ async function pickOther(page: Page, name: string, search = name): Promise<void>
   await sheet.getByRole('button', { name, exact: true }).click();
   await expect(sheet).toHaveCount(0);
 }
-
-/** The day's own counter at the top of the screen, e.g. "1 of 15 sets". */
-const dayCounter = (page: Page) => page.locator('main .num').filter({ hasText: /of \d+ sets/ });
 
 test.describe('Logging something outside the plan', () => {
   test('is one button below the day, and the card opens on the chosen lift', async ({

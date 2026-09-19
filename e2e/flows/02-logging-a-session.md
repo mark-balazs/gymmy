@@ -26,7 +26,8 @@ all — the card sets its numbers with its own controls, described in
 - The set appears under the card as `60 kg × 8`, with its effort chip in words —
   never `RIR`. Reps in reserve is stored as a number and never shown as one;
   logged as *Maxed*, the chip reads *"Nothing left"*.
-- The day counter reads `1 of N sets`, and one dot fills.
+- The day counter reads `1 of N sets`, and one dot fills. A screen reader hears
+  it as that one line, not digit by digit.
 - The button reads **Log set 2**, and the numbers hold still for it — they do
   not follow history once a set is done.
 - A double tap on the button logs one set, not two.

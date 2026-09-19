@@ -192,12 +192,17 @@ export default function TrainPage() {
 
   /* The day's count, with its number apart so that it can tick. Rolls only
      once the logs have loaded: the first render reads every day as empty, and
-     the real count arriving is not a set being logged. */
+     the real count arriving is not a set being logged.
+
+     Drawn a digit to a box, which a screen reader reads box by box — "1", "5",
+     "of 15 sets" (GYM-18). So the drawn count is hidden from it, as the
+     number on a stepper is, and it hears `said`, the whole line. */
   const MARK = '';
   const counter = total
     ? tr.count('train.ofSets', total, { done: MARK })
     : tr.plural(done, 'set').replace(String(done), MARK);
   const [before, after] = counter.split(MARK);
+  const said = total ? tr.count('train.ofSets', total, { done }) : tr.plural(done, 'set');
 
   /**
    * Training that is not a day of the plan: a class, a test, anything else.
@@ -282,16 +287,19 @@ export default function TrainPage() {
               }}
               className="min-h-[var(--spacing-tap)] max-w-[180px] rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
             />
-            <span className="num text-sm text-[var(--color-muted)]">
-              {after === undefined ? (
-                counter
-              ) : (
-                <>
-                  {before}
-                  <RollingNumber text={String(done)} value={ready ? done : null} />
-                  {after}
-                </>
-              )}
+            <span className="text-sm text-[var(--color-muted)]">
+              <span aria-hidden className="num">
+                {after === undefined ? (
+                  counter
+                ) : (
+                  <>
+                    {before}
+                    <RollingNumber text={String(done)} value={ready ? done : null} />
+                    {after}
+                  </>
+                )}
+              </span>
+              <span className="sr-only">{said}</span>
             </span>
           </div>
           {/* Always there, so a screen reader hears the line when it arrives —

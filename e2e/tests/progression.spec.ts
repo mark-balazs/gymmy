@@ -1,6 +1,6 @@
 /** Flow 04 — see ../flows/04-progression.md */
 
-import { cardNumber, expect, logSet, test } from '../fixtures/test';
+import { cardNumber, dayCounter, expect, logSet, test } from '../fixtures/test';
 import type { Page } from '@playwright/test';
 
 /**
@@ -149,7 +149,7 @@ test.describe('The app no longer says what to lift', () => {
        returns before its write lands — so an absence checked straight away
        passed before a restored banner could ever have rendered. The day's
        counter comes from the same snapshot the banner would. */
-    await expect(app.getByText('6 of 15 sets')).toBeVisible();
+    await expect(dayCounter(app)).toHaveText('6 of 15 sets');
     await expect(app.getByText(/too easy/i)).toHaveCount(0);
   });
 
