@@ -17,10 +17,14 @@
  *    nothing a local-first client can rely on anyway. They are the two most
  *    important arrows on the diagram, so they are written down in `LINKS` and
  *    the test checks that both ends still exist.
- *  - **Which diagram a table belongs to.** Twenty-one entities with their
- *    columns on one canvas is a picture nobody reads. They are split the way
- *    `docs/data.md` already splits them in prose, and a table in no group fails
- *    the test — which is what makes a new table impossible to forget.
+ *  - **Which diagram a table belongs to.** Every table with its columns on one
+ *    canvas is a picture nobody reads. They are split the way `docs/data.md`
+ *    already splits them in prose, and a table in no group fails the test —
+ *    which is what makes a new table impossible to forget.
+ *
+ * How many tables there are is stated once, in `docs/facts/twenty-tables.md`,
+ * and the test holds that count against the schema. It is not repeated here,
+ * because a count in a comment drifts and nothing notices.
  */
 
 import { getTableName, is } from 'drizzle-orm';

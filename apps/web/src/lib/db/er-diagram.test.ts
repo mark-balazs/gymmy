@@ -63,9 +63,31 @@ describe('every table has a home', () => {
     expect(ghosts, `diagram names tables that do not exist: ${ghosts.join(', ')}`).toEqual([]);
   });
 
+  it('holds the count the fact register gives', () => {
+    /* docs/facts/twenty-tables.md: 20 tables — 9 synced ones for a person's
+       own training, 6 for trainer plans and 5 for sign-in (the user among
+       them). Nothing else checks that sentence, and a count written in prose
+       drifts: the header of er-diagram.ts said twenty-one when there were
+       twenty. A new table fails here until the fact says so. */
+    const without = (g: string) =>
+      GROUPS.find((x) => x.key === g)!.tables.filter((t) => t !== 'user').length;
+    const counts = {
+      all: allTables().size,
+      training: without('training'),
+      plans: without('plans'),
+      auth: without('auth') + 1,
+    };
+    expect(counts, 'update docs/facts/twenty-tables.md, then this count').toEqual({
+      all: 20,
+      training: 9,
+      plans: 6,
+      auth: 5,
+    });
+  });
+
   it('puts each table in exactly one diagram, apart from the user', () => {
-    // Twenty-one entities on one canvas is a picture nobody reads, so they are
-    // split — but a table in two diagrams is two places to keep right.
+    // Every table on one canvas is a picture nobody reads, so they are split —
+    // but a table in two diagrams is two places to keep right.
     const counts = new Map<string, number>();
     for (const t of placed) counts.set(t, (counts.get(t) ?? 0) + 1);
     const repeated = [...counts].filter(([t, n]) => n > 1 && t !== 'user').map(([t]) => t);
