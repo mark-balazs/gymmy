@@ -24,7 +24,7 @@ export function Recovery({
   detail?: string;
   onRetry?: () => void;
 }) {
-  const { t } = useT();
+  const { t, count } = useT();
   const status = useSyncStatus();
   const [confirming, setConfirming] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -59,9 +59,7 @@ export function Recovery({
           <div className="flex flex-col gap-2 rounded-[11px] border border-[var(--color-bad)]/40 p-3">
             <p className="text-sm font-semibold">{t('err.resetQ')}</p>
             <p className="text-xs text-[var(--color-muted)]">
-              {status.pending > 0
-                ? t('err.resetPending', { n: status.pending })
-                : t('err.resetSafe')}
+              {status.pending > 0 ? count('err.resetPending', status.pending) : t('err.resetSafe')}
             </p>
             <div className="flex gap-2">
               <Button className="flex-1" onClick={() => setConfirming(false)}>

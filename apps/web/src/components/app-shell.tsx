@@ -129,7 +129,7 @@ function useSwipeTabs(pathname: string): void {
 }
 
 function SyncBadge() {
-  const { t } = useT();
+  const { t, count } = useT();
   const status = useSyncStatus();
 
   const label =
@@ -142,7 +142,7 @@ function SyncBadge() {
           : status.state === 'error'
             ? t('sync.error')
             : status.pending > 0
-              ? t('sync.pending', { n: status.pending })
+              ? count('sync.pending', status.pending)
               : t('sync.idle');
 
   const dot =

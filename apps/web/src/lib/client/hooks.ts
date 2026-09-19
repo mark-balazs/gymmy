@@ -14,6 +14,7 @@ import { barKey, getMeta, local, snapshot } from './db';
 import { onSyncStatus, type SyncStatus } from './sync';
 import { exerciseName, index, type Indexed } from '@athletic/domain';
 import {
+  count,
   dayName,
   detectLang,
   patternName,
@@ -22,6 +23,7 @@ import {
   slotName,
   splitName,
   translate,
+  type CountKey,
   type Key,
   type Params,
 } from '@/lib/i18n';
@@ -100,6 +102,8 @@ export function useLang(): Lang {
 
 export interface Translator {
   t: (key: Key, params?: Params) => string;
+  /** A sentence holding a number, in that number's form — "1 change", "3 changes". */
+  count: (stem: CountKey, n: number, params?: Params) => string;
   plural: (n: number, noun: 'set' | 'session') => string;
   pattern: (p: Pattern | null | undefined) => string;
   exercise: (e: { name: string } | null | undefined) => string;
@@ -116,6 +120,7 @@ export function useT(): Translator {
     () => ({
       lang,
       t: (key: Key, params?: Params) => translate(lang, key, params),
+      count: (stem: CountKey, n: number, params?: Params) => count(lang, stem, n, params),
       plural: (n: number, noun: 'set' | 'session') => pluralise(lang, n, noun),
       pattern: (p: Pattern | null | undefined) => patternName(lang, p),
       exercise: (e: { name: string } | null | undefined) => exerciseName(lang, e),

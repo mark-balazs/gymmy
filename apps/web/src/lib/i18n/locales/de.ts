@@ -36,7 +36,9 @@ export const de: Record<Key, string> = {
   'err.reset': 'Gerät zurücksetzen',
   'err.resetQ': 'Dieses Gerät zurücksetzen?',
   'err.resetSafe': 'Alles ist synchronisiert, es geht nichts verloren.',
-  'err.resetPending': '{n} Änderungen sind noch nicht synchronisiert und würden verloren gehen.',
+  'err.resetPending.one': '{n} Änderung ist noch nicht synchronisiert und würde verloren gehen.',
+  'err.resetPending.other':
+    '{n} Änderungen sind noch nicht synchronisiert und würden verloren gehen.',
   'err.resetGo': 'Zurücksetzen',
   'err.stuckTitle': 'Das dauert zu lange',
   'err.stuckDetail': 'Dein Training ist noch nicht vom Server angekommen.',
@@ -65,7 +67,8 @@ export const de: Record<Key, string> = {
   'sync.error': 'Synchronisieren fehlgeschlagen',
   // Bewusst nicht "Synchronisieren fehlgeschlagen": hier wurde gar nichts geschrieben.
   'sync.storage': 'Nicht auf diesem Gerät gespeichert',
-  'sync.pending': '{n} warten auf Sync',
+  'sync.pending.one': '{n} wartet auf Sync',
+  'sync.pending.other': '{n} warten auf Sync',
 
   'common.back': 'Zurück',
   'common.cancel': 'Abbrechen',

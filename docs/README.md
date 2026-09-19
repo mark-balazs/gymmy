@@ -53,7 +53,9 @@ as a distinct state from a sync failure, because "saved here, not there yet" and
 
 **Nothing user-visible is English-only by accident.** Copy goes through the
 dictionary; pattern, slot, day and split names translate by key with the user's
-own wording winning where they renamed something.
+own wording winning where they renamed something. A sentence with a number in
+it has a `.one` and an `.other` key and goes through `count()`, which asks the
+language's own plural rule — `{n} changes` written once reads "1 changes".
 
 **The database stores what happened, never what it means.** A set row carries the
 weight, the reps and the reps in reserve that were logged, and nothing else.

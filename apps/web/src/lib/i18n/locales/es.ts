@@ -39,7 +39,8 @@ export const es: Record<Key, string> = {
   'err.reset': 'Restablecer este dispositivo',
   'err.resetQ': '¿Restablecer este dispositivo?',
   'err.resetSafe': 'Todo está sincronizado, no se pierde nada.',
-  'err.resetPending': 'Hay {n} cambios sin sincronizar que se perderían.',
+  'err.resetPending.one': 'Hay {n} cambio sin sincronizar que se perdería.',
+  'err.resetPending.other': 'Hay {n} cambios sin sincronizar que se perderían.',
   'err.resetGo': 'Restablecer',
   'err.stuckTitle': 'Esto está tardando demasiado',
   'err.stuckDetail': 'Tu entrenamiento todavía no llega desde el servidor.',
@@ -68,7 +69,8 @@ export const es: Record<Key, string> = {
   'sync.error': 'No se pudo sincronizar',
   // Nada llegó a escribirse, así que no es "no se pudo sincronizar".
   'sync.storage': 'No se guardó en este dispositivo',
-  'sync.pending': '{n} pendientes de sincronizar',
+  'sync.pending.one': '{n} pendiente de sincronizar',
+  'sync.pending.other': '{n} pendientes de sincronizar',
 
   'common.back': 'Atrás',
   'common.cancel': 'Cancelar',

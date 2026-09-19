@@ -35,7 +35,9 @@ export const fr: Record<Key, string> = {
   'err.reset': 'Réinitialiser cet appareil',
   'err.resetQ': 'Réinitialiser cet appareil ?',
   'err.resetSafe': 'Tout est synchronisé, rien ne sera perdu.',
-  'err.resetPending': '{n} modifications ne sont pas encore synchronisées et seraient perdues.',
+  'err.resetPending.one': "{n} modification n'est pas encore synchronisée et serait perdue.",
+  'err.resetPending.other':
+    '{n} modifications ne sont pas encore synchronisées et seraient perdues.',
   'err.resetGo': 'Réinitialiser',
   'err.stuckTitle': 'Ça prend trop de temps',
   'err.stuckDetail': 'Ton entraînement n’est pas encore arrivé du serveur.',
@@ -64,7 +66,8 @@ export const fr: Record<Key, string> = {
   'sync.error': 'Synchronisation impossible',
   // Rien n’a été écrit du tout : ce n’est pas un échec de synchro.
   'sync.storage': 'Pas enregistré sur cet appareil',
-  'sync.pending': '{n} en attente de synchro',
+  'sync.pending.one': '{n} en attente de synchro',
+  'sync.pending.other': '{n} en attente de synchro',
 
   'common.back': 'Retour',
   'common.cancel': 'Annuler',

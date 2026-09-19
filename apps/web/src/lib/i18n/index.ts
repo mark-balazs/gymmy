@@ -1,7 +1,7 @@
 /**
  * Translation runtime.
  *
- * `plural()` consults the language's own rule via Intl.PluralRules rather than
+ * `count()` consults the language's own rule via Intl.PluralRules rather than
  * appending an "s" — Hungarian takes no plural after a numeral, so "3 sorozat"
  * is correct and "3 sorozatok" is not.
  */
@@ -36,11 +36,28 @@ export function translate(lang: Lang, key: Key, params?: Params): string {
   return fill(value ?? key, params);
 }
 
-export function pluralise(lang: Lang, n: number, noun: 'set' | 'session'): string {
+/**
+ * Every key stem with both a `.one` and an `.other` form — what `count` takes.
+ * A stem missing either half is not one, so a sentence that forgot its singular
+ * is a compile error rather than "1 changes" on screen.
+ */
+export type CountKey = {
+  [K in Key]: K extends `${infer Stem}.one` ? (`${Stem}.other` extends Key ? Stem : never) : never;
+}[Key];
+
+/**
+ * A sentence with a number in it, in the form the language uses for that
+ * number. Only two forms are kept, because every language here needs no more:
+ * whatever the language's rule calls `one` takes `.one` (French counts 0 there
+ * too), and everything else takes `.other`.
+ */
+export function count(lang: Lang, stem: CountKey, n: number, params?: Params): string {
   const rule = new Intl.PluralRules(lang).select(n);
-  const key = (rule === 'one' ? `plural.${noun}.one` : `plural.${noun}.other`) as Key;
-  return translate(lang, key, { n });
+  return translate(lang, `${stem}.${rule === 'one' ? 'one' : 'other'}` as Key, { ...params, n });
 }
+
+export const pluralise = (lang: Lang, n: number, noun: 'set' | 'session'): string =>
+  count(lang, `plural.${noun}`, n);
 
 /** Built-in names translate; a name the user typed themselves always wins. */
 export function patternName(lang: Lang, p: Pattern | null | undefined): string {

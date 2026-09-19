@@ -28,7 +28,8 @@ export const en = {
   'err.reset': 'Reset this device',
   'err.resetQ': 'Reset this device?',
   'err.resetSafe': 'Everything is synced, so nothing will be lost.',
-  'err.resetPending': '{n} changes have not synced yet and would be lost.',
+  'err.resetPending.one': '{n} change has not synced yet and would be lost.',
+  'err.resetPending.other': '{n} changes have not synced yet and would be lost.',
   'err.resetGo': 'Reset',
   'err.stuckTitle': 'This is taking too long',
   'err.stuckDetail': 'Your training has not arrived from the server yet.',
@@ -57,7 +58,8 @@ export const en = {
   'sync.error': 'Could not sync',
   // Deliberately not "could not sync": nothing was written at all.
   'sync.storage': 'Not saved on this device',
-  'sync.pending': '{n} waiting to sync',
+  'sync.pending.one': '{n} waiting to sync',
+  'sync.pending.other': '{n} waiting to sync',
 
   'common.back': 'Back',
   'common.cancel': 'Cancel',

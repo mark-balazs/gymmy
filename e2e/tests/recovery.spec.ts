@@ -190,8 +190,10 @@ test.describe('Not getting stuck', () => {
       timeout: 30_000,
     });
     await page.getByRole('button', { name: 'Reset this device' }).click();
-    // Singular or plural: the copy says "1 changes" today, which is its own bug.
-    await expect(page.getByText(/1 changes? have not synced yet/)).toBeVisible();
+    // One change, in the singular — it once read "1 changes have".
+    await expect(
+      page.getByText('1 change has not synced yet and would be lost.', { exact: true }),
+    ).toBeVisible();
     await page.getByRole('button', { name: 'Reset', exact: true }).click();
     await page.waitForURL('**/home');
 
