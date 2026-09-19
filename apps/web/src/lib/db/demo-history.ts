@@ -374,8 +374,8 @@ export interface DemoGoal {
  * Which lift each goal is on, and the **oldest** it should be.
  *
  * The two ages are the point. Set on the same day, the climbing one would
- * already be finished — eight percent is about five weeks of a lift that gains
- * a third over a block, and a goal that arrives complete shows the ending and
+ * already be finished — seven percent is a few weeks of a lift that gains a
+ * third over a block, and a goal that arrives complete shows the ending and
  * never the bar. So the stalled one has been running long enough to have
  * visibly not moved, and the climbing one is recent enough to still be
  * climbing. Which is also how goals turn up on a real account: at different
@@ -397,8 +397,15 @@ const GOAL_PLAN: { want: DemoArc['kind'] | null; weeksAgo: number }[] = [
 
 /** Long enough to clear the app's own eight-week minimum comfortably. */
 const GOAL_WEEKS = 14;
-/** Eight percent: comfortably past the retest noise, short of a warning. */
-export const GOAL_DISTANCE = 0.08;
+/**
+ * Seven percent: past the 5% floor, and short of the ambition warning.
+ *
+ * The warning fires past 1.5 times what the lift can afford, and the least it
+ * can afford is 5%, so 7.5% is the ceiling for a lift with slow or no recent
+ * gain — the stalled bench is exactly that. Eight percent tripped it on both
+ * goals, and the demo showed goals the app itself called unrealistic.
+ */
+export const GOAL_DISTANCE = 0.07;
 
 /**
  * The two goals the demo account arrives with.

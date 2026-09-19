@@ -496,12 +496,17 @@ describe('the demo goals', () => {
     ).not.toContain(other.exerciseId);
   });
 
-  it('passes the app’s own guardrails', () => {
+  it('passes the app’s own guardrails, without a warning', () => {
     /* A seeded goal the app itself would have refused is a demo of a bug. Asked
        the way the goal sheet asks it: with the goals already running counted,
        and with this lift's own trailing gain from before the goal was set.
        Zero and null for every goal, as this used to pass, is a question the
-       app never asks — it held with room for only one live goal. */
+       app never asks — it held with room for only one live goal.
+
+       And no ambition warning either. At 8% both goals tripped it — the
+       stalled bench on its slow trailing gain, a lift with little history on
+       the 7.5% the warning allows — so the demo showed goals the app itself
+       called unrealistic. `allowed` alone could not see that. */
     goals.forEach((g, i) => {
       const before: Indexed = { ...ix, logs: ix.logs.filter((l) => l.date < g.startedOn) };
       const check = checkGoal({
@@ -511,6 +516,7 @@ describe('the demo goals', () => {
       });
       expect(check.allowed, g.exerciseId).toBe(true);
       expect(check.reason, g.exerciseId).toBeNull();
+      expect(check.warning, `${g.exerciseId}: ${g.baseline} → ${g.target}`).toBeNull();
     });
   });
 
@@ -565,7 +571,7 @@ describe('the demo goals', () => {
       if (g === bench) continue;
 
       // Re-derive what a goal one week older would have been, the way the
-      // generator does: baseline off the preceding eight weeks, target 8% on.
+      // generator does: baseline off the preceding eight weeks, GOAL_DISTANCE on.
       const older = addDays(today, -7 * (age + 1));
       const bestIn = (from: string, to: string | null) =>
         Math.max(

@@ -375,6 +375,17 @@ charts dip together, while the rep wobble is per lift — without that, five cha
 gain and lose the same rep in lockstep, which is the tell that one generator drew
 all of them.
 
+**Two goals**, because without one the app judges nothing and the goal and
+verdict cards stay blank. `demoGoals` puts one on the stalled lift, so the
+verdict card has a stall to report, and one on the first steady lift in the
+plan, so a climbing bar sits beside it. Each baseline is the lift's best in the
+eight weeks before the goal, and each goal is as old as it can be without
+arriving already reached. The target is **7%** up: past the 5% floor and under
+the 7.5% at which the goal sheet warns "ambitious" for a lift gaining slowly.
+8% tripped that warning on both, so the demo showed goals the app itself called
+unrealistic. A test asks `checkGoal` about each goal the way the goal sheet
+does and wants no warning.
+
 All of it is derived rather than random — the same account seeded twice produces
 identical history, which is what keeps the seed safe to re-run.
 
