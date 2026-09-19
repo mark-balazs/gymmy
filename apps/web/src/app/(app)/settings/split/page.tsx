@@ -14,8 +14,7 @@
  * be asked, and because a preset is a perfectly good first draft of one.
  */
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { NavLink, useMove } from '@/components/navigate';
 import { useState } from 'react';
 import { Button, Card, Field, Sheet, Summary, cn } from '@/components/ui';
 import { Page } from '@/components/page';
@@ -76,7 +75,7 @@ export default function CustomSplitPage() {
   const { snap, ix } = useSnapshot();
   const profile = useProfile();
   const tr = useT();
-  const router = useRouter();
+  const go = useMove();
 
   /**
    * Null until something is edited, exactly as the Settings form works and for
@@ -168,7 +167,7 @@ export default function CustomSplitPage() {
       setConfirm(false);
       // Straight to the week it just built — the whole point of saving was to
       // see what the arrangement produced.
-      router.push('/week');
+      go('/week');
     } finally {
       setSaving(false);
     }
@@ -180,9 +179,9 @@ export default function CustomSplitPage() {
   return (
     <Page>
       <Card className="flex flex-col gap-2">
-        <Link href="/settings" className="text-xs font-semibold text-[var(--color-muted)]">
+        <NavLink href="/settings" className="text-xs font-semibold text-[var(--color-muted)]">
           ‹ {tr.t('split.backToSettings')}
-        </Link>
+        </NavLink>
         <h2 className="text-[22px] leading-tight font-bold">{tr.t('split.editTitle')}</h2>
         <p className="text-sm text-[var(--color-muted)]">{tr.t('split.editIntro')}</p>
       </Card>

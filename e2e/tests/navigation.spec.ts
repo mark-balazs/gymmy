@@ -31,6 +31,142 @@ async function swipe(page: Page, from: [number, number], to: [number, number]): 
   await cdp.detach();
 }
 
+/**
+ * Which way the move `act` starts slides: the view transition type the browser
+ * reports while it runs. Armed before the act, because a 300 ms slide is easy
+ * to miss if you go looking for it afterwards; `none` if nothing slid.
+ */
+async function slideOf(page: Page, act: () => Promise<unknown>): Promise<string> {
+  // The move before this one may still be sliding, and it is not this one.
+  await page.waitForFunction(() => !document.documentElement.matches(':active-view-transition'));
+  const seen = page.waitForFunction(
+    () => {
+      const html = document.documentElement;
+      if (html.matches(':active-view-transition-type(nav-forward)')) return 'nav-forward';
+      if (html.matches(':active-view-transition-type(nav-back)')) return 'nav-back';
+      return false;
+    },
+    null,
+    { polling: 'raf', timeout: 3000 },
+  );
+  await act();
+  const direction = await seen.then((h) => h.jsonValue() as Promise<string>).catch(() => 'none');
+  await page.waitForFunction(() => !document.documentElement.matches(':active-view-transition'));
+  return direction;
+}
+
+const tab = (page: Page, name: string) =>
+  page.getByRole('navigation').getByRole('link', { name, exact: true });
+
+test.describe('Back and the history', () => {
+  /* The fixture opens /train from a blank page, so the history is
+     [about:blank, /train] — and "Back leaves the app" is Back reaching the
+     blank page. */
+
+  test('switching tabs, by tap or swipe, adds nothing for Back to walk through', async ({
+    onboardedApp: app,
+  }) => {
+    await swipe(app, [300, 300], [60, 310]);
+    await app.waitForURL('**/week');
+    await tab(app, 'Progress').click();
+    await app.waitForURL('**/progress');
+    await tab(app, 'Home').click();
+    await app.waitForURL('**/home');
+
+    await app.goBack();
+    await expect(app).toHaveURL('about:blank');
+  });
+
+  test('Back comes out of a screen, sliding back, and then leaves', async ({
+    onboardedApp: app,
+  }) => {
+    await tab(app, 'Settings').click();
+    await app.waitForURL('**/settings');
+    await app.getByRole('link', { name: /Build your own/ }).click();
+    await app.waitForURL('**/settings/split');
+    await expect(app.getByRole('heading', { name: 'Your own split' })).toBeVisible();
+
+    /* Next.js restores Back with no transition at all; the app takes it over
+       and replays it as a move, so it slides the way it went. */
+    expect(await slideOf(app, () => app.goBack())).toBe('nav-back');
+    await expect(app).toHaveURL(/\/settings$/);
+    await expect(app.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
+
+    await app.goBack();
+    await expect(app).toHaveURL('about:blank');
+  });
+
+  test('leaving a screen for another tab leaves one entry, not three', async ({
+    onboardedApp: app,
+  }) => {
+    await tab(app, 'Settings').click();
+    await app.waitForURL('**/settings');
+    await app.getByRole('link', { name: /Build your own/ }).click();
+    await app.waitForURL('**/settings/split');
+
+    expect(await slideOf(app, () => tab(app, 'Week').click())).toBe('nav-back');
+    await expect(app).toHaveURL(/\/week$/);
+    await expect(app.getByRole('list', { name: 'Movement coverage' })).toBeVisible();
+
+    await app.goBack();
+    await expect(app).toHaveURL('about:blank');
+  });
+
+  test("the screen's own back link steps back rather than piling on", async ({
+    onboardedApp: app,
+  }) => {
+    await tab(app, 'Settings').click();
+    await app.waitForURL('**/settings');
+    await app.getByRole('link', { name: /Build your own/ }).click();
+    await app.waitForURL('**/settings/split');
+
+    const back = app.locator('main a[href="/settings"]');
+    expect(await slideOf(app, () => back.click())).toBe('nav-back');
+    await expect(app).toHaveURL(/\/settings$/);
+
+    await app.goBack();
+    await expect(app).toHaveURL('about:blank');
+  });
+});
+
+test.describe('Every move slides its way', () => {
+  test('the links inside pages, the avatar and a button carry a direction', async ({
+    onboardedApp: app,
+  }) => {
+    // Home → Train and Home → Week: tabs to the right.
+    await tab(app, 'Home').click();
+    await app.waitForURL('**/home');
+    expect(await slideOf(app, () => app.locator('main a[href="/train"]').click())).toBe(
+      'nav-forward',
+    );
+    await tab(app, 'Home').click();
+    await app.waitForURL('**/home');
+    expect(await slideOf(app, () => app.locator('main a[href="/week"]').click())).toBe(
+      'nav-forward',
+    );
+
+    // Week's "Train this": a tab to the left.
+    expect(
+      await slideOf(app, () => app.getByRole('button', { name: 'Train this' }).first().click()),
+    ).toBe('nav-back');
+    await expect(app).toHaveURL(/\/train$/);
+
+    // The avatar: Settings is the last tab.
+    expect(await slideOf(app, () => app.getByRole('link', { name: 'Your profile' }).click())).toBe(
+      'nav-forward',
+    );
+    await expect(app).toHaveURL(/\/settings$/);
+
+    // Into the split editor, and out of it by the browser's Back.
+    expect(
+      await slideOf(app, () => app.getByRole('link', { name: /Build your own/ }).click()),
+    ).toBe('nav-forward');
+    await expect(app).toHaveURL(/\/settings\/split$/);
+    expect(await slideOf(app, () => app.goBack())).toBe('nav-back');
+    await expect(app).toHaveURL(/\/settings$/);
+  });
+});
+
 test.describe('Swiping between tabs', () => {
   test('left goes forward, right goes back', async ({ onboardedApp: app }) => {
     await app.goto('/train');

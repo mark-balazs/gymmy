@@ -80,6 +80,7 @@ second implementation to disagree with the first.
 | `apps/web/src/components/` | The UI kit, the charts, the calendar, the sheets, the lightbox, the profile card, the recovery screens |
 | `apps/web/src/components/entry/` | Train's number controls — buttons, the ruler, the plate loader, gymmy's keypad — and the card's open/close. `rolling-number.tsx` rolls a changed digit in from the way the number moved |
 | `apps/web/src/components/motion.ts` | The motion tokens for JavaScript — easings, durations, reduced motion. See [Motion](#motion) |
+| `apps/web/src/components/tabs.ts` `navigate.tsx` `history-first.ts` | The tabs and where every screen sits among them; every move between screens (`NavLink`, `useMove`), its direction and what it does to the history; Back and Forward as moves. See [Moving between tabs](#moving-between-tabs) |
 | `apps/web/src/components/info-tip.tsx` `place-tip.ts` | The ⓘ that holds an explanation instead of a paragraph on the screen, and where its popover goes. See [Explanations behind an info button](#explanations-behind-an-info-button) |
 | `apps/web/src/components/switch.tsx` | An on/off setting, as the platform's own `<input type="checkbox" switch>` |
 
@@ -266,10 +267,28 @@ same journey.
   **It lives in the page, not the layout** — a layout persists across
   navigation, so its enter and exit animations never fire. Only something that
   genuinely unmounts can be animated out.
-- The direction is a *transition type*: `transitionTypes` on the tab `<Link>`,
-  and the same on `router.push` for a swipe. `default: 'none'` means a
-  navigation carrying no type — the browser's back button, `router.refresh()`,
-  a Suspense reveal — does not slide, because it was not a move.
+- The direction is a *transition type* (`nav-forward`, `nav-back`), and
+  **every** move between screens carries one: `NavLink` and `useMove()` in
+  `components/navigate.tsx` work it out from `tabs.ts` — a tab to the right is
+  forward, into a screen is forward, out of one is back. No link to another
+  screen is a bare `<Link>`. `default: 'none'` means a navigation with no type
+  (`router.refresh()`, a Suspense reveal) does not slide.
+- **Tabs do not stack up in history.** A move between tabs replaces the entry;
+  going into a screen inside a tab (`/settings/split`, `/coach`) pushes one;
+  leaving that screen steps back out of it (`history.back()`, then a replace
+  if the destination is another tab), so Back leaves the screen and then the
+  app. Whether the entry under a screen is its tab is known only if this page
+  load opened it; after a reload it is replaced instead. `historyFor` in
+  `tabs.ts` holds the rule, `tabs.test.ts` the cases, `navigation.spec.ts`
+  the browser.
+- **Back and Forward slide too.** Next.js restores them synchronously, outside
+  any transition, so they never animated. `useHistorySlides` takes them over:
+  it stops Next's `popstate` listener and navigates to the same place as a
+  typed replace. To be heard first it goes through a listener the root layout
+  inlines ahead of every bundle (`history-first.ts`) — see
+  [Things that will surprise you](#things-that-will-surprise-you). A Back the
+  phone animates itself (`hasUAVisualTransition`, iOS's edge swipe) is left
+  alone.
 - The header and the tab bar carry their own `viewTransitionName` and are
   pinned. Without a fixed reference the whole viewport appears to move rather
   than the page inside it.
@@ -351,9 +370,10 @@ action, consequences before a destructive or replacing action.
 
 ## Things that will surprise you
 
-- **React Compiler is on.** It rejects a `useMemo` whose dependency comes through
-  a cross-package call. Read `DEFAULT_PREFS.days` directly rather than calling
-  `prefs(profile).days` inside a dependency array.
+- **The React Compiler's lint rules are on** (through `eslint-config-next`),
+  though the compiler itself is not installed. They reject a `useMemo` whose
+  dependency comes through a cross-package call. Read `DEFAULT_PREFS.days`
+  directly rather than calling `prefs(profile).days` inside a dependency array.
 - **`next start` serves the last `next build`.** The e2e suite does not rebuild,
   so a UI change tests the *previous* build unless you build first.
 - **`drizzle.config.ts` reads `.env.local` with `override: true`**, but captures
@@ -361,3 +381,10 @@ action, consequences before a destructive or replacing action.
   db:migrate` really does migrate the remote.
 - **Auth.js reads email-callback params from the query string**, never the body.
   This broke email sign-in for the entire life of the feature.
+- **Next.js restores Back and Forward with no transition**, so no
+  `<ViewTransition>` sees them, and **Chrome runs a window's `popstate`
+  listeners in the order they were added, capture or not.** So a listener
+  added by app code — always after Next's, which is added at hydration — can
+  neither stop Next nor make its restore animate. That is why the app's
+  listener is an inline script in the root layout (`history-first.ts`), which
+  hands the event to `window.__gymmyPopstate`.

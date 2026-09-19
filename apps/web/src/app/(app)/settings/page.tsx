@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { NavLink } from '@/components/navigate';
 import { useId, useState } from 'react';
 import { Button, Card, Field, Segmented, Sheet, cn } from '@/components/ui';
 import { Page } from '@/components/page';
@@ -58,8 +58,8 @@ const draftOf = (p: Profile | null): Draft => ({
 
 const SPLIT_OPTIONS: SplitKey[] = SPLITS.map((s) => s.key);
 
-/** Compared rather than by object identity: `useLiveQuery` hands back a fresh
- *  object on every IndexedDB write, including ones that change none of this. */
+/** Compared rather than by object identity: the profile is a new object
+ *  whenever any of it changes, including the fields that are none of this. */
 const signatureOf = (d: Draft): string => `${d.split}|${d.days}|${d.where}|${d.bias}`;
 
 export default function SettingsPage() {
@@ -205,7 +205,7 @@ export default function SettingsPage() {
               nothing to apply until the week has actually been arranged. It is
               always offered now; the old picker revealed it only once you had a
               custom split already, which no screen could give you. */}
-          <Link
+          <NavLink
             href="/settings/split"
             className={cn(
               'flex items-center gap-3 rounded-[11px] border bg-[var(--color-surface-2)] px-3.5 py-3',
@@ -226,7 +226,7 @@ export default function SettingsPage() {
             <span aria-hidden className="text-[var(--color-muted)]">
               ›
             </span>
-          </Link>
+          </NavLink>
         </div>
       </Card>
 
@@ -246,12 +246,12 @@ export default function SettingsPage() {
               {tr.count('sub.daysPerWeek', days)}{' '}
               <span className="text-[var(--color-muted)]">{tr.t('set.daysCustom')}</span>
             </p>
-            <Link
+            <NavLink
               href="/settings/split"
               className="text-xs font-semibold text-[var(--color-accent)]"
             >
               {tr.t('set.editSplit')}
-            </Link>
+            </NavLink>
           </div>
         ) : (
           <Field label={tr.t('set.days')}>

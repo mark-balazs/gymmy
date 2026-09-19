@@ -8,57 +8,15 @@
  * are standing in a basement with no signal.
  */
 
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { cn } from '@/components/ui';
 import { Avatar } from '@/components/avatar';
+import { NavLink, useHistorySlides, useMove } from '@/components/navigate';
+import { TABS } from '@/components/tabs';
 import { useProfile, useSyncStatus, useT } from '@/lib/client/hooks';
 import { dismissStorageFailure, startSync } from '@/lib/client/sync';
 import type { Key } from '@/lib/i18n';
-
-/**
- * The tab bar.
- *
- * Each icon has to say what the tab *is* at twenty pixels, with a word beneath
- * it that is doing most of the work anyway. Two were saying the wrong thing:
- *
- *  - **Train** was a bulleted list with a plus — the universal icon for "add a
- *    row to a list". It described the mechanics of logging rather than the
- *    reason you opened the app, and it was the one icon nothing about it
- *    suggested a gym.
- *  - **Week** was a two-by-two grid, which every operating system on earth uses
- *    for "all apps". A week is a calendar; drawing it as a dashboard meant the
- *    icon had to be read twice.
- *
- * The other three are left alone. A house, a bar chart and a cog are not
- * original, and that is exactly why they work.
- */
-const TABS = [
-  {
-    href: '/home',
-    key: 'tab.home',
-    icon: 'M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
-  },
-  {
-    href: '/train',
-    key: 'tab.train',
-    // A dumbbell: two collars, two plates, one bar.
-    icon: 'M4.5 10v4M7.5 7.5v9M16.5 7.5v9M19.5 10v4M7.5 12h9',
-  },
-  {
-    href: '/week',
-    key: 'tab.week',
-    // A calendar, divided into days rather than left as an empty page.
-    icon: 'M4 6h16v14H4zM4 10h16M9 3v4M15 3v4M9 14v6M15 14v6',
-  },
-  { href: '/progress', key: 'tab.progress', icon: 'M4 19V5M4 19h16M8 16v-5M12 16V8M16 16v-3' },
-  {
-    href: '/settings',
-    key: 'tab.settings',
-    icon: 'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 13a7.5 7.5 0 000-2l2-1.5-2-3.4-2.3 1a7 7 0 00-1.8-1L14.9 3H9.1l-.4 2.9a7 7 0 00-1.8 1l-2.3-1-2 3.4L4.6 11a7.5 7.5 0 000 2l-2 1.5 2 3.4 2.3-1a7 7 0 001.8 1l.4 2.9h5.8l.4-2.9a7 7 0 001.8-1l2.3 1 2-3.4z',
-  },
-] as const;
 
 /** Far enough that it cannot be a tap, and clearly sideways rather than a
  *  scroll that drifted. */
@@ -79,7 +37,7 @@ const SIDEWAYS = 1.5;
  *    that away silently.
  */
 function useSwipeTabs(pathname: string): void {
-  const router = useRouter();
+  const move = useMove();
 
   useEffect(() => {
     const index = TABS.findIndex((t) => t.href === pathname);
@@ -114,9 +72,7 @@ function useSwipeTabs(pathname: string): void {
       // has taught people to expect.
       const forward = dx < 0;
       const next = TABS[forward ? index + 1 : index - 1];
-      // The type is what the slide direction is read from; without it the
-      // navigation happens with no animation at all.
-      if (next) router.push(next.href, { transitionTypes: [forward ? 'nav-forward' : 'nav-back'] });
+      if (next) move(next.href);
     };
 
     document.addEventListener('touchstart', start, { passive: true });
@@ -125,7 +81,7 @@ function useSwipeTabs(pathname: string): void {
       document.removeEventListener('touchstart', start);
       document.removeEventListener('touchend', end);
     };
-  }, [pathname, router]);
+  }, [pathname, move]);
 }
 
 function SyncBadge() {
@@ -275,13 +231,13 @@ function ProfileLink() {
   const { t } = useT();
 
   return (
-    <Link
+    <NavLink
       href="/settings"
       aria-label={t('nav.you')}
       className="press-deep block h-8 w-8 shrink-0 rounded-full"
     >
       <Avatar src={profile?.avatar} />
-    </Link>
+    </NavLink>
   );
 }
 
@@ -290,12 +246,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { t } = useT();
 
   useSwipeTabs(pathname);
+  useHistorySlides(pathname);
 
   useEffect(() => {
     startSync();
   }, []);
 
-  const active = TABS.find((tab) => pathname.startsWith(tab.href)) ?? TABS[0];
+  const active = TABS.find((tab) => pathname.startsWith(tab.href)) ?? TABS[0]!;
   const titleKey = active.key.replace('tab.', 'title.') as Key;
 
   return (
@@ -326,17 +283,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         style={{ viewTransitionName: 'app-nav' }}
         className="safe-bottom fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-[var(--color-line)]/70 bg-[var(--color-surface)]/80 backdrop-blur-xl"
       >
-        {TABS.map((tab, i) => {
+        {TABS.map((tab) => {
           const on = pathname.startsWith(tab.href);
           // Tapping a tab is the same movement as swiping to it, so it gets
-          // the same direction rather than a different animation for the same
-          // journey.
-          const forward = i > TABS.indexOf(active);
+          // the same direction (from `NavLink`) rather than a different
+          // animation for the same journey.
           return (
-            <Link
+            <NavLink
               key={tab.href}
               href={tab.href}
-              transitionTypes={[forward ? 'nav-forward' : 'nav-back']}
               aria-current={on ? 'page' : undefined}
               className={cn(
                 'relative flex h-[62px] flex-col items-center justify-center gap-0.5 text-[10.5px] font-semibold',
@@ -363,7 +318,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   className="absolute top-0 h-0.5 w-8 rounded-full bg-[image:var(--gradient-accent)]"
                 />
               )}
-            </Link>
+            </NavLink>
           );
         })}
       </nav>

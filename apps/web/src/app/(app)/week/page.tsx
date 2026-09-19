@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button, Card, Chip, Summary, cn } from '@/components/ui';
+import { useMove } from '@/components/navigate';
 import { Page } from '@/components/page';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import { setEntryExercise } from '@/lib/client/mutations';
@@ -16,7 +16,7 @@ export default function WeekPage() {
   const { ix } = useSnapshot();
   const profile = useProfile();
   const tr = useT();
-  const router = useRouter();
+  const move = useMove();
   const days = profile?.days ?? DEFAULT_PREFS.days;
   const where = profile?.where ?? DEFAULT_PREFS.where;
   const blockLen = profile?.blockWeeks ?? DEFAULT_PREFS.blockWeeks;
@@ -148,7 +148,7 @@ export default function WeekPage() {
               <Button
                 variant="ghost"
                 className="min-h-8 px-2 text-xs text-[var(--color-muted)]"
-                onClick={() => router.push('/train')}
+                onClick={() => move('/train')}
               >
                 {tr.t('week.trainThis')}
               </Button>
