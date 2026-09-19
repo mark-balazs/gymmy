@@ -5,7 +5,7 @@
 | Layer | Runs | Covers | Cost |
 | --- | --- | --- | --- |
 | `packages/domain/test` | Vitest, no IO | Every training rule | Instant |
-| `apps/web/src/**/*.test.ts` | Vitest, **real Postgres** | Anything that is SQL | ~1s |
+| `apps/web/src/**/*.test.ts` | Vitest, **real Postgres** | Anything that is SQL, and rules the source and stylesheet must keep (motion tokens, CSS variables) | ~1s |
 | `e2e/tests` | Playwright, production build, Pixel 7 | What a person does | ~25s for all of it |
 
 Put logic in the domain layer and test it there. The domain has no dependencies,

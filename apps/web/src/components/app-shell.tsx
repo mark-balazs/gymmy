@@ -220,7 +220,7 @@ function StorageWarning() {
         type="button"
         aria-label={t('sync.dismiss')}
         onClick={dismissStorageFailure}
-        className="grid h-[var(--spacing-tap)] w-[var(--spacing-tap)] shrink-0 cursor-pointer place-items-center rounded-[10px] text-[var(--color-muted)] transition-transform duration-150 active:scale-90"
+        className="press-deep grid h-[var(--spacing-tap)] w-[var(--spacing-tap)] shrink-0 cursor-pointer place-items-center rounded-[10px] text-[var(--color-muted)]"
       >
         <svg
           viewBox="0 0 16 16"
@@ -278,7 +278,7 @@ function ProfileLink() {
     <Link
       href="/settings"
       aria-label={t('nav.you')}
-      className="block h-8 w-8 shrink-0 rounded-full transition-transform duration-150 active:scale-95"
+      className="press-deep block h-8 w-8 shrink-0 rounded-full"
     >
       <Avatar src={profile?.avatar} />
     </Link>
@@ -340,7 +340,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               aria-current={on ? 'page' : undefined}
               className={cn(
                 'relative flex h-[62px] flex-col items-center justify-center gap-0.5 text-[10.5px] font-semibold',
-                'transition-colors duration-200',
+                'transition-colors duration-(--dur-fast) ease-(--ease-out)',
                 on ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]',
               )}
             >

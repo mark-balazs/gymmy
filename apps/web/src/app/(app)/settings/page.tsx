@@ -533,14 +533,14 @@ function Switch({
         aria-hidden
         className={cn(
           'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full p-[3px]',
-          'transition-colors duration-200 ease-[var(--ease-out-soft)]',
+          'transition-colors duration-(--dur-fast) ease-(--ease-out)',
           on ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-surface-3)]',
         )}
       >
         <span
           className={cn(
             'size-[22px] rounded-full shadow-sm',
-            'transition-[translate,background-color] duration-200 ease-[var(--ease-out-soft)]',
+            'transition-[translate,background-color] duration-(--dur-fast) ease-(--ease-out) motion-reduce:transition-colors',
             on
               ? 'translate-x-5 bg-[var(--color-accent-ink)]'
               : 'translate-x-0 bg-[var(--color-muted)]',

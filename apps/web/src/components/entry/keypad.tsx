@@ -171,8 +171,8 @@ function Sheet({ title, unit, value, places, decimals, onDone, onClose, opener }
 
   const keyClass =
     'num min-h-[56px] cursor-pointer rounded-[12px] bg-[var(--color-surface-2)] text-[22px] font-semibold ' +
-    'transition-[transform,background-color,opacity] duration-100 active:scale-[0.96] active:bg-[var(--color-surface-3)] ' +
-    'disabled:cursor-not-allowed disabled:opacity-30 disabled:active:scale-100';
+    'press active:bg-[var(--color-surface-3)] ' +
+    'disabled:cursor-not-allowed disabled:opacity-30';
 
   return (
     <div

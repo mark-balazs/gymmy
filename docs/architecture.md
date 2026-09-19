@@ -77,7 +77,8 @@ second implementation to disagree with the first.
 | `apps/web/src/lib/api/plans.ts` | The session/trainer guard and the wire schema for the plan endpoints |
 | `apps/web/src/app/(app)/` | The five tabs |
 | `apps/web/src/components/` | The UI kit, the charts, the calendar, the sheets, the lightbox, the profile card, the recovery screens |
-| `apps/web/src/components/entry/` | Train's number controls — buttons, the ruler, the plate loader, gymmy's keypad — and the card's open/close. `rolling-number.tsx` rolls a changed digit in from the way the number moved; `motion.ts` lets JavaScript-driven motion use the CSS easing tokens |
+| `apps/web/src/components/entry/` | Train's number controls — buttons, the ruler, the plate loader, gymmy's keypad — and the card's open/close. `rolling-number.tsx` rolls a changed digit in from the way the number moved |
+| `apps/web/src/components/motion.ts` | The motion tokens for JavaScript — easings, durations, reduced motion. See [Motion](#motion) |
 
 ## How a set gets saved
 
@@ -242,12 +243,48 @@ same journey.
 - The flex column that spaces the cards lives on `[data-page]`, not on `<main>`.
   `<main>` persists; spacing applied there would leave the cards travelling
   independently of the box supposed to be carrying them.
-- The per-card stagger is suppressed during a transition
-  (`html:active-view-transition`) — two animations describing one event read as
-  jitter.
+- There is no per-card entry animation. The slide is the arrival; a card
+  animation on top restarted the moment the transition ended and read as the
+  page reloading (`globals.css` says why, `navigation.spec.ts` guards it).
 
-`prefers-reduced-motion` zeroes the view-transition pseudo-elements explicitly:
-they sit outside the `*` selector that handles everything else.
+Under reduced motion a tab change is a short crossfade: the reduced-motion block
+in `globals.css` replaces the two directional animations with a fade and stops
+named elements travelling (`::view-transition-group(*)`).
+
+## Motion
+
+One set of tokens in `globals.css`, in a plain `:root` block rather than
+`@theme`: Tailwind emits a theme variable only when a class uses it, and some
+of these are read by JavaScript alone.
+
+- **Durations** `--dur-press` 100, `--dur-fast` 160, `--dur-base` 240,
+  `--dur-page` 300, `--dur-sheet` 360 and `--dur-sheet-out` 220 ms. **Easings**
+  `--ease-out`, `--ease-in`, `--ease-drawer` (sheets, slides) and
+  `--ease-spring` — a real spring through `linear()` where supported, a cubic
+  otherwise, for reward moments only.
+- **Distances** are tokens too: `--press`, `--press-deep`, `--pop-from`,
+  `--rise`, `--slide-by`.
+- **In a class**, `duration-(--dur-fast) ease-(--ease-out)`. A pressable
+  control takes the `press` (or `press-deep`) utility, never its own
+  `active:scale-*` — Tailwind's scale sets `scale`, and the hand-written ones
+  transitioned `transform`, so every press snapped.
+- **Reduced motion** keeps short fades and removes movement. The media block
+  sets every distance to nothing and every duration longer than `--dur-fast`
+  to it, so a pop becomes a fade and a sheet fades in where it stands. What it
+  cannot reach opts out itself: a size change with `motion-reduce:`
+  (`Collapse` drops to 1 ms so `transitionend` still fires), and anything
+  JavaScript moves with `reducedMotion()`. It used to zero every animation and
+  transition, fades included.
+- **JavaScript** reads the same tokens through `components/motion.ts`:
+  `easing()` for the Web Animations API, `curve()` for a frame loop (it reads
+  `cubic-bezier()` and `linear()`), `duration()` in milliseconds (already
+  shortened under reduced motion), `reducedMotion()`.
+
+`motion.test.ts` holds the stylesheet and the source to this: the JavaScript
+fallbacks equal the CSS, reduced motion removes every distance, the press
+transitions `scale`, and no hard-coded duration, easing, `active:scale-*` or
+reduced-motion media query appears outside the system. `motion.spec.ts` checks
+what the browser does with it.
 
 ## Things that will surprise you
 

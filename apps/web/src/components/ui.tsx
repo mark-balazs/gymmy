@@ -40,9 +40,8 @@ type Variant = 'default' | 'primary' | 'ghost' | 'danger';
 export const buttonClass = (variant: Variant = 'default', className?: string): string =>
   cn(
     'inline-flex min-h-[var(--spacing-tap)] cursor-pointer items-center justify-center gap-2',
-    'rounded-[12px] border px-4 font-semibold',
-    'transition-[transform,background-color,box-shadow,opacity] duration-150 ease-[var(--ease-out-soft)]',
-    'active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100',
+    'press rounded-[12px] border px-4 font-semibold',
+    'disabled:cursor-not-allowed disabled:opacity-40',
     variant === 'primary' &&
       'border-transparent bg-[image:var(--gradient-accent)] text-[var(--color-accent-ink)] shadow-[var(--shadow-accent)]',
     variant === 'default' &&
@@ -94,7 +93,7 @@ export function InfoButton({
         // "Tell me more" is the second voice everywhere it appears, so the
         // affordance is recognisable as the same thing across screens.
         'text-[var(--color-accent-2)] hover:opacity-80',
-        'transition-colors duration-150 active:scale-[0.94]',
+        'press',
         className,
       )}
     >
@@ -170,8 +169,7 @@ export function Segmented<T extends string | number>({
           onClick={() => onChange(o.value)}
           className={cn(
             'min-h-[38px] flex-1 cursor-pointer rounded-[10px] text-sm font-semibold',
-            'transition-[background-color,color,box-shadow,transform] duration-200 ease-[var(--ease-out-soft)]',
-            'active:scale-[0.97]',
+            'press',
             'inline-flex items-center justify-center gap-1',
             o.value === value
               ? 'bg-[var(--color-surface)] text-[var(--color-accent)] shadow-[var(--shadow-card)]'

@@ -22,9 +22,7 @@
 import { useLayoutEffect, useRef } from 'react';
 import type { CSSProperties } from 'react';
 import { cn } from '@/components/ui';
-import { easing, reducedMotion } from './motion';
-
-const ROLL_MS = 180;
+import { duration, easing, reducedMotion } from '@/components/motion';
 
 export function RollingNumber({
   text,
@@ -50,6 +48,7 @@ export function RollingNumber({
     if (value === before.value || typeof el.animate !== 'function' || reducedMotion()) return;
 
     const from = value > before.value ? 60 : -60;
+    const timing = { duration: duration('--dur-fast'), easing: easing('--ease-out') };
     const cells = el.children;
     for (let k = 1; k <= text.length; k++) {
       if (text[text.length - k] === before.text[before.text.length - k]) continue;
@@ -61,7 +60,7 @@ export function RollingNumber({
           { transform: `translateY(${from}%)`, opacity: 0 },
           { transform: 'translateY(0)', opacity: 1 },
         ],
-        { duration: ROLL_MS, easing: easing('--ease-out-soft') },
+        timing,
       );
     }
   }, [text, value]);
