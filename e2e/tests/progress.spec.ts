@@ -122,9 +122,12 @@ test.describe('Progress covers the training, not the block', () => {
        missed. Attribute locators, because the cells are plain divs. */
     const row = (n: string) =>
       grid.locator('tr').filter({ has: page.getByRole('rowheader', { name: n, exact: true }) });
-    await expect(row('Squat').locator('[aria-label="1 sets"]')).toHaveCount(1);
+    // "1 set": the label is counted, so one set is said in the singular.
+    await expect(row('Squat').locator('[aria-label="1 set"]')).toHaveCount(1);
     await expect(
-      row('Carry').locator('[aria-label$=" sets"]:not([aria-label="0 sets"])'),
+      row('Carry').locator(
+        '[aria-label$=" set"], [aria-label$=" sets"]:not([aria-label="0 sets"])',
+      ),
     ).toHaveCount(0);
     await expect(row('Carry').locator('[aria-label="This week, still going"]')).toHaveCount(1);
   });

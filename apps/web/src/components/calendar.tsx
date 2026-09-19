@@ -172,7 +172,7 @@ export function Calendar() {
                 onClick={() => setOpen(date)}
                 aria-label={
                   sets
-                    ? tr.t('cal.dayTrained', { day: dayName(date, tr.lang), n: sets })
+                    ? tr.count('cal.dayTrained', sets, { day: dayName(date, tr.lang) })
                     : tr.t('cal.dayEmpty', { day: dayName(date, tr.lang) })
                 }
                 className={cn(

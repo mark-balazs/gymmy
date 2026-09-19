@@ -130,7 +130,8 @@ test.describe('The calendar on Home', () => {
       day: 'numeric',
       month: 'long',
     });
-    await page.getByRole('listitem', { name: `${label} — 1 sets` }).click();
+    // One set, said in the singular: the label used to read "1 sets".
+    await page.getByRole('listitem', { name: `${label} — 1 set`, exact: true }).click();
 
     // What was logged, and only that: the plan that day's letter now points
     // at is Upper / Lower's, and none of the old Day A that was not lifted.

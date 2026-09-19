@@ -111,8 +111,8 @@ export function PlansCard() {
                   </div>
                   <div className="truncate text-[11px] text-[var(--color-muted)]">
                     {p.ownerName
-                      ? tr.t('plan.by', { name: p.ownerName, n: p.days })
-                      : tr.t('plan.days', { n: p.days })}
+                      ? tr.count('plan.by', p.days, { name: p.ownerName })
+                      : tr.count('plan.days', p.days)}
                   </div>
                 </div>
                 {inEffect && !stale && (
@@ -142,8 +142,8 @@ export function PlansCard() {
           )}
           <p className="text-sm text-[var(--color-muted)]">
             {open.ownerName
-              ? tr.t('plan.by', { name: open.ownerName, n: planSessions(open.plan) })
-              : tr.t('plan.days', { n: planSessions(open.plan) })}
+              ? tr.count('plan.by', planSessions(open.plan), { name: open.ownerName })
+              : tr.count('plan.days', planSessions(open.plan))}
           </p>
 
           {/* Said before applying, not discovered months later by noticing you

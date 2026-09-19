@@ -266,7 +266,7 @@ export default function ProgressPage() {
             {delta !== null && (
               <Delta
                 value={Math.round(delta * 10) / 10}
-                label={deltaLabel(tr, Math.round(delta * 10) / 10, tr.t('prog.agoWeeks', { n: 8 }))}
+                label={deltaLabel(tr, Math.round(delta * 10) / 10, tr.count('prog.agoWeeks', 8))}
                 className="text-base"
               />
             )}
@@ -407,7 +407,7 @@ export default function ProgressPage() {
             aria-pressed={allTime}
             onClick={() => setAllTime((v) => !v)}
           >
-            {allTime ? tr.t('prog.windowAll') : tr.t('prog.window', { n: WINDOW_WEEKS })}
+            {allTime ? tr.t('prog.windowAll') : tr.count('prog.window', WINDOW_WEEKS)}
           </Button>
         </div>
 
@@ -616,14 +616,11 @@ function PatternGrid({
                   <td key={w.weekOf} className="p-[1.5px]">
                     <div
                       title={`${w.weekOf} · ${w.sets}`}
-                      aria-label={tr.t(
+                      aria-label={
                         pending
-                          ? 'prog.cellThisWeek'
-                          : w.wanted
-                            ? 'prog.cellSets'
-                            : 'prog.cellNotAsked',
-                        { n: w.sets },
-                      )}
+                          ? tr.t('prog.cellThisWeek')
+                          : tr.count(w.wanted ? 'prog.cellSets' : 'prog.cellNotAsked', w.sets)
+                      }
                       className={cn(
                         'h-4 w-full min-w-3 rounded-[3px]',
                         pending && 'border border-[var(--color-line)]',

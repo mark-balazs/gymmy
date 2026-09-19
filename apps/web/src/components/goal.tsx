@@ -126,7 +126,7 @@ export function GoalForm({
     return (
       <p className="num border-t border-[var(--color-line)] pt-3 text-[11px] text-[var(--color-muted)]">
         {tr.t('goal.of', { current: round(p.current), target: round(mine.target), unit })} ·{' '}
-        {tr.t('goal.daysLeft', { n: Math.max(0, p.daysLeft) })}
+        {tr.count('goal.daysLeft', Math.max(0, p.daysLeft))}
       </p>
     );
   }
@@ -216,7 +216,7 @@ export function GoalForm({
                       : 'border border-[var(--color-line)] text-[var(--color-muted)]',
                   )}
                 >
-                  {tr.t('goal.weeksN', { n: w })}
+                  {tr.count('goal.weeksN', w)}
                 </button>
               ))}
             </div>
@@ -234,7 +234,7 @@ export function GoalForm({
             {check.reason === 'tooSmall'
               ? tr.t('goal.tooSmall', { n: round(check.suggestedTarget), unit })
               : check.reason === 'tooShort'
-                ? tr.t('goal.tooShort', { n: MIN_WEEKS })
+                ? tr.count('goal.tooShort', MIN_WEEKS)
                 : check.reason === 'tooLong'
                   ? tr.t('goal.tooLong')
                   : check.warning === 'ambitious'
@@ -352,7 +352,7 @@ function GoalRow({
         <span>
           {tr.t('goal.of', { current: round(current), target: round(goal.target), unit })}
         </span>
-        {!ended && <span>{tr.t('goal.daysLeft', { n: daysLeft })}</span>}
+        {!ended && <span>{tr.count('goal.daysLeft', daysLeft)}</span>}
       </div>
 
       {ended ? (

@@ -169,7 +169,7 @@ export function CoachScreen() {
                 >
                   <div className="truncate text-sm font-semibold">{p.name}</div>
                   <div className="text-[11px] text-[var(--color-muted)]">
-                    {tr.t('coach.published', { n: p.version })} · {tr.t('plan.days', { n: p.days })}
+                    {tr.t('coach.published', { n: p.version })} · {tr.count('plan.days', p.days)}
                   </div>
                 </button>
                 <Button
@@ -562,7 +562,7 @@ function GroupsCard({ groups, onChange }: { groups: Group[]; onChange: () => voi
             >
               <span className="min-w-0 flex-1 truncate text-sm font-semibold">{g.name}</span>
               <span className="shrink-0 text-[11px] text-[var(--color-muted)]">
-                {tr.t('coach.members', { n: g.members.length })}
+                {tr.count('coach.members', g.members.length)}
               </span>
             </button>
           ))}

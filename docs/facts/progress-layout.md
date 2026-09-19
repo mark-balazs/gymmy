@@ -4,7 +4,7 @@ status: current
 decided: "f31e53a; Confluence 934608916"
 appears:
   repo: ["docs/testing.md#fragilities-worth-knowing", "apps/web/src/app/(app)/progress/page.tsx"]
-  copy: ["title.progress", "prog.needsLook", "goal.yours", "prog.strength", "prog.dots", "prog.patterns", "prog.patternsBody", "prog.allLifts", "prog.deltaUp", "prog.deltaDown", "prog.deltaFlat", "prog.agoWeeks", "prog.agoFirst", "prog.empty"]
+  copy: ["title.progress", "prog.needsLook", "goal.yours", "prog.strength", "prog.dots", "prog.patterns", "prog.patternsBody", "prog.allLifts", "prog.deltaUp", "prog.deltaDown", "prog.deltaFlat", "prog.agoWeeks.one", "prog.agoWeeks.other", "prog.agoFirst", "prog.empty"]
   tests: ["e2e/tests/progress.spec.ts", "e2e/tests/goals.spec.ts", "packages/domain/test/insights.test.ts"]
   confluence: ["934543418", "934608916", "934576168"]
 ---

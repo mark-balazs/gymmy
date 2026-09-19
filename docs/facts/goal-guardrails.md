@@ -4,7 +4,7 @@ status: current
 decided: "D-012; 3f0416d"
 appears:
   repo: ["docs/training-model.md#the-guardrails-and-what-the-evidence-does-not-say", "docs/openapi.yaml#/components/schemas/Goal", "packages/domain/src/goals.ts"]
-  copy: ["goal.tooSmall", "goal.tooShort", "goal.tooLong", "goal.tooMany", "goal.ambitious", "goal.noHistory", "goal.why", "goal.whyBody"]
+  copy: ["goal.tooSmall", "goal.tooShort.one", "goal.tooShort.other", "goal.tooLong", "goal.tooMany", "goal.ambitious", "goal.noHistory", "goal.why", "goal.whyBody"]
   tests: ["packages/domain/test/goals.test.ts", "e2e/tests/goals.spec.ts", "apps/web/src/lib/db/demo-history.test.ts"]
   confluence: ["934608897", "934608916", "934608935", "934543399"]
 ---

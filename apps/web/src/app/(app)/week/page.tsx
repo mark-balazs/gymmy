@@ -48,13 +48,13 @@ export default function WeekPage() {
       : cov.complete
         ? {
             tone: 'good' as const,
-            text: tr.t('week.complete', { n: cov.total, s: tr.plural(cov.sessions, 'session') }),
+            text: tr.count('week.complete', cov.total, { s: tr.plural(cov.sessions, 'session') }),
           }
         : missing.length === 1
           ? { tone: 'near' as const, text: tr.t('week.oneGap', { name: missing[0]! }) }
           : {
               tone: 'gap' as const,
-              text: tr.t('week.gaps', { n: missing.length, list: missing.join(', ') }),
+              text: tr.count('week.gaps', missing.length, { list: missing.join(', ') }),
             };
 
   return (

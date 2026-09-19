@@ -258,7 +258,7 @@ export default function Onboarding() {
           {dayOptions.map((n) => (
             <Option
               key={n}
-              label={tr.t('sub.daysPerWeek', { n })}
+              label={tr.count('sub.daysPerWeek', n)}
               hint={n <= 4 ? tr.t(`onboard.days.${n}h` as Key) : undefined}
               selected={days === n}
               onClick={() => {

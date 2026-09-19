@@ -4,7 +4,7 @@ status: current
 decided: "f8b210c"
 appears:
   repo: []
-  copy: ["title.home", "home.today", "home.resume", "home.start", "home.continue", "home.thisWeek", "home.seeWeek", "home.covered", "cal.title", "cal.sets", "cal.prevMonth", "cal.nextMonth", "cal.nothing", "cal.dayTrained", "cal.dayEmpty"]
+  copy: ["title.home", "home.today", "home.resume", "home.start", "home.continue.one", "home.continue.other", "home.thisWeek", "home.seeWeek", "home.covered.one", "home.covered.other", "cal.title", "cal.sets", "cal.prevMonth", "cal.nextMonth", "cal.nothing", "cal.dayTrained.one", "cal.dayTrained.other", "cal.dayEmpty"]
   tests: ["e2e/tests/calendar.spec.ts", "packages/domain/test/days.test.ts"]
   confluence: ["934608916"]
 ---

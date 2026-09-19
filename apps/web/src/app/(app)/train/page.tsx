@@ -227,7 +227,7 @@ export default function TrainPage() {
             className="min-h-[var(--spacing-tap)] max-w-[180px] rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
           />
           <span className="num text-sm text-[var(--color-muted)]">
-            {total ? tr.t('train.ofSets', { done, total }) : tr.plural(done, 'set')}
+            {total ? tr.count('train.ofSets', total, { done }) : tr.plural(done, 'set')}
           </span>
         </div>
       </Card>

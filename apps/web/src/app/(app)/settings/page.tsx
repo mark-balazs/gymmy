@@ -177,7 +177,7 @@ export default function SettingsPage() {
                   </span>
                   <span className={sub}>{tr.t(`split.${key}H` as Key)}</span>
                   {preset && preset.minDays > 2 && (
-                    <span className={sub}>{tr.t('split.minDays', { n: preset.minDays })}</span>
+                    <span className={sub}>{tr.count('split.minDays', preset.minDays)}</span>
                   )}
                 </button>
                 {/* A one-line hint is not enough to choose on: which days it
@@ -234,7 +234,7 @@ export default function SettingsPage() {
               {tr.t('set.days')}
             </span>
             <p className="text-sm">
-              {tr.t('sub.daysPerWeek', { n: days })}{' '}
+              {tr.count('sub.daysPerWeek', days)}{' '}
               <span className="text-[var(--color-muted)]">{tr.t('set.daysCustom')}</span>
             </p>
             <Link
@@ -417,8 +417,8 @@ export default function SettingsPage() {
             across 22 weeks" is one they read. */}
         <p className="text-sm">
           {tr.t('set.deleteWhat', {
-            sets: ix.logs.length,
-            weeks: trainedWeeks,
+            sets: tr.count('set.deleteSets', ix.logs.length),
+            weeks: tr.count('set.deleteWeeks', trainedWeeks),
           })}
         </p>
         <p className="text-sm text-[var(--color-muted)]">{tr.t('set.deleteForever')}</p>

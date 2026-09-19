@@ -10,7 +10,7 @@
  *     around {name} or {split} may carry an article: 'diese Woche fehlt {name}',
  *     'Was ist {split}?' — never 'kein {name}' or 'der {split}'.
  *   - 'von' takes the dative, so counted nouns are in the dative plural:
- *     '{done} von {total} Sätzen', not '… Sätze'.
+ *     '{done} von {n} Sätzen', not '… Sätze'.
  *
  * 'Einheit' means a training session; the unit setting is 'Maßeinheit' so the
  * two never read as the same word.
@@ -47,10 +47,12 @@ export const de: Record<Key, string> = {
   'home.today': 'Heutiges Training',
   'home.resume': 'Mach weiter, wo du aufgehört hast',
   'home.start': 'Training starten',
-  'home.continue': 'Weiter – {done} von {total} Sätzen',
+  'home.continue.one': 'Weiter – {done} von {n} Satz',
+  'home.continue.other': 'Weiter – {done} von {n} Sätzen',
   'home.thisWeek': 'Diese Woche',
   'home.seeWeek': 'Woche ansehen',
-  'home.covered': '{hit} von {total} Bewegungen abgedeckt',
+  'home.covered.one': '{hit} von {n} Bewegung abgedeckt',
+  'home.covered.other': '{hit} von {n} Bewegungen abgedeckt',
   'tab.train': 'Training',
   'tab.week': 'Woche',
   'tab.progress': 'Fortschritt',
@@ -88,7 +90,8 @@ export const de: Record<Key, string> = {
   'common.previous': 'Zurück',
   'common.next': 'Weiter',
   'common.loading': 'Lädt…',
-  'sub.daysPerWeek': '{n} Tage pro Woche',
+  'sub.daysPerWeek.one': '{n} Tag pro Woche',
+  'sub.daysPerWeek.other': '{n} Tage pro Woche',
 
   'plural.set.one': '{n} Satz',
   'plural.set.other': '{n} Sätze',
@@ -152,7 +155,8 @@ export const de: Record<Key, string> = {
   'train.logSet': 'Satz {n} eintragen',
   'train.addAnother': 'Noch einen Satz',
   'train.saveSet': 'Satz {n} speichern',
-  'train.ofSets': '{done} von {total} Sätzen',
+  'train.ofSets.one': '{done} von {n} Satz',
+  'train.ofSets.other': '{done} von {n} Sätzen',
   'train.rowDone': '{done} von {total} erledigt',
   'load.barbell': 'Stange und Scheiben zusammen zählen.',
   'load.dumbbellPair': 'Eine Hantel — erfasst werden {w}, beide zusammen.',
@@ -171,9 +175,11 @@ export const de: Record<Key, string> = {
   'train.deleteSetBody': 'Damit verschwindet er aus deinem Verlauf.',
 
   'week.noneYet': 'Diese Woche ist noch nichts eingetragen.',
-  'week.complete': 'Alle {n} in {s} abgedeckt. Das ist eine vollständige Woche.',
+  'week.complete.one': '{n} von {n} in {s} abgedeckt. Das ist eine vollständige Woche.',
+  'week.complete.other': 'Alle {n} in {s} abgedeckt. Das ist eine vollständige Woche.',
   'week.oneGap': 'Eine Lücke: diese Woche fehlt {name}.',
-  'week.gaps': '{n} Lücken: {list}.',
+  'week.gaps.one': '{n} Lücke: {list}.',
+  'week.gaps.other': '{n} Lücken: {list}.',
   'week.explain':
     'Sieben Arten, wie sich dein Körper bewegt. Alle zu trainieren macht den Unterschied – weggelassen werden meistens Tragen und Rotation.',
   'week.explainSplit':
@@ -192,7 +198,8 @@ export const de: Record<Key, string> = {
   'cal.prevMonth': 'Vorheriger Monat',
   'cal.nextMonth': 'Nächster Monat',
   'cal.nothing': 'An diesem Tag ist nichts erfasst.',
-  'cal.dayTrained': '{day} – {n} Sätze',
+  'cal.dayTrained.one': '{day} – {n} Satz',
+  'cal.dayTrained.other': '{day} – {n} Sätze',
   'cal.dayEmpty': '{day} – nichts erfasst',
   'goal.yours': 'Woran du arbeitest',
   'goal.notLately': 'Geplant, aber nicht trainiert',
@@ -201,11 +208,13 @@ export const de: Record<Key, string> = {
     'Die App sagt nur etwas dazu, ob eine Übung vorangeht, wenn du sie darum bittest. Setz hier ein Ziel, und sie meldet sich, wenn es stehen bleibt. Lässt du es, führt sie einfach nur das Protokoll.',
   'goal.target': 'Ziel, für eine Wiederholung ({unit})',
   'goal.weeks': 'Zeitraum',
-  'goal.weeksN': '{n} Wochen',
+  'goal.weeksN.one': '{n} Woche',
+  'goal.weeksN.other': '{n} Wochen',
   'goal.nowAt': 'Aktuell {n} {unit}',
   'goal.noHistory': 'Trag zuerst ein paar Einheiten ein, damit es eine Grundlage gibt.',
   'goal.of': '{current} von {target} {unit}',
-  'goal.daysLeft': 'Noch {n} Tage',
+  'goal.daysLeft.one': 'Noch {n} Tag',
+  'goal.daysLeft.other': 'Noch {n} Tage',
   'goal.save': 'Ziel setzen',
   'goal.stop': 'Nicht weiter verfolgen',
   'goal.ended': 'Dieses Ziel ist beendet.',
@@ -215,7 +224,9 @@ export const de: Record<Key, string> = {
   'goal.again': 'Neues Ziel',
   'goal.tooSmall':
     'Zu klein zum Messen – dieselbe Übung schwankt von Tag zu Tag um etwa 4 %. Nimm dir mindestens 5 % vor: {n} {unit}.',
-  'goal.tooShort':
+  'goal.tooShort.one':
+    'Gib dir mindestens {n} Woche. Kraft wächst über viele gute Einheiten, und ein kürzeres Ziel hat dafür nicht genug Platz.',
+  'goal.tooShort.other':
     'Gib dir mindestens {n} Wochen. Kraft wächst über viele gute Einheiten, und ein kürzeres Ziel hat dafür nicht genug Platz.',
   'goal.tooLong': 'Bleib unter einem Jahr. Länger ist eine Hoffnung, kein Ziel.',
   'goal.tooMany': 'Drei gleichzeitig. Alles auf einmal zu schieben ist der Weg, dass nichts geht.',
@@ -237,11 +248,14 @@ export const de: Record<Key, string> = {
   'prog.patterns': 'Was du trainiert hast',
   'prog.patternsBody':
     'Die letzten zwölf Wochen. Ein volles Kästchen ist eine Woche, in der du diese Bewegung trainiert hast; ein gestricheltes eine Woche, in der dein Split sie gar nicht verlangt hat.',
-  'prog.cellSets': '{n} Sätze',
+  'prog.cellSets.one': '{n} Satz',
+  'prog.cellSets.other': '{n} Sätze',
   'prog.cellThisWeek': 'Diese Woche, noch nicht vorbei',
-  'prog.cellNotAsked': '{n} Sätze – in dieser Woche nicht Teil deines Splits',
+  'prog.cellNotAsked.one': '{n} Satz – in dieser Woche nicht Teil deines Splits',
+  'prog.cellNotAsked.other': '{n} Sätze – in dieser Woche nicht Teil deines Splits',
   'prog.allLifts': 'Alle Übungen',
-  'prog.window': 'Letzte {n} Wochen',
+  'prog.window.one': 'Letzte {n} Woche',
+  'prog.window.other': 'Letzte {n} Wochen',
   'prog.windowAll': 'Gesamter Zeitraum',
   'prog.noMetric':
     'Das wird in Metern und Sekunden erfasst, es gibt also kein Gewicht zum Zeichnen. Die Sätze zählen trotzdem für deine Woche.',
@@ -269,7 +283,8 @@ export const de: Record<Key, string> = {
   'prog.deltaUp': '{by} mehr als {ago}',
   'prog.deltaDown': '{by} weniger als {ago}',
   'prog.deltaFlat': 'Unverändert gegenüber {ago}',
-  'prog.agoWeeks': 'vor {n} Wochen',
+  'prog.agoWeeks.one': 'vor {n} Woche',
+  'prog.agoWeeks.other': 'vor {n} Wochen',
   'prog.agoFirst': 'der ersten hier sichtbaren Einheit',
   'prog.bodyWeight': 'Körpergewicht',
   'prog.weightToday': 'Heute ({unit})',
@@ -354,8 +369,10 @@ export const de: Record<Key, string> = {
   'entry.less': '{label} −',
 
   'plan.shared': 'Mit dir geteilte Pläne',
-  'plan.by': 'Von {name} · {n} Tage pro Woche',
-  'plan.days': '{n} Tage pro Woche',
+  'plan.by.one': 'Von {name} · {n} Tag pro Woche',
+  'plan.by.other': 'Von {name} · {n} Tage pro Woche',
+  'plan.days.one': '{n} Tag pro Woche',
+  'plan.days.other': '{n} Tage pro Woche',
   'plan.newVersion': 'Aktualisiert',
   'plan.orYourOwn': 'Oder wähle unten eine Aufteilung oder baue dir deine eigene Woche.',
   'plan.missing': 'Nicht in deiner Bibliothek: {list}. Deine Woche wählt dafür Alternativen.',
@@ -389,7 +406,8 @@ export const de: Record<Key, string> = {
   'coach.shareGroup': 'Mit einer Gruppe teilen',
   'coach.emailHint':
     'Mit einem gymmy-Konto erscheint der Plan dort. Ohne Konto wird nichts preisgegeben.',
-  'coach.members': '{n} Personen',
+  'coach.members.one': '{n} Person',
+  'coach.members.other': '{n} Personen',
   'coach.addMember': 'Hinzufügen',
   'coach.remove': 'Entfernen',
   'coach.deletePlan': 'Plan löschen',
@@ -405,7 +423,11 @@ export const de: Record<Key, string> = {
     'Alles, was du erfasst hast, wird von unseren Servern und von diesem Gerät entfernt. Es bleibt keine Kopie zurück.',
   'set.deleteGo': 'Mein Konto löschen',
   'set.deleteQ': 'Konto wirklich löschen?',
-  'set.deleteWhat': 'Damit werden {sets} erfasste Sätze aus {weeks} Trainingswochen gelöscht.',
+  'set.deleteWhat': 'Damit löschst du {sets} aus {weeks}.',
+  'set.deleteSets.one': '{n} erfassten Satz',
+  'set.deleteSets.other': '{n} erfasste Sätze',
+  'set.deleteWeeks.one': '{n} Trainingswoche',
+  'set.deleteWeeks.other': '{n} Trainingswochen',
   'set.deleteForever': 'Das passiert sofort und lässt sich nicht rückgängig machen.',
   'set.deleteConfirm': 'Alles löschen',
   'set.rebuildQ': 'Deine Woche neu aufbauen?',
@@ -443,7 +465,8 @@ export const de: Record<Key, string> = {
   'split.upperLowerH': 'Im Wechsel. Läuft gut von zwei bis vier Tagen pro Woche.',
   'split.custom': 'Eigener Split',
   'split.customH': 'Stell dir jeden Tag selbst zusammen, ausgehend von deiner jetzigen Woche.',
-  'split.minDays': 'Braucht mindestens {n} Tage pro Woche',
+  'split.minDays.one': 'Braucht mindestens {n} Tag pro Woche',
+  'split.minDays.other': 'Braucht mindestens {n} Tage pro Woche',
 
   'split.info': 'Was ist {split}?',
   'split.about': 'Über {split}',

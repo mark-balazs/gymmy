@@ -87,7 +87,7 @@ export default function HomePage() {
             </div>
 
             <Link href="/train" className={buttonClass('primary', 'w-full')}>
-              {started ? tr.t('home.continue', { done, total }) : tr.t('home.start')}
+              {started ? tr.count('home.continue', total, { done }) : tr.t('home.start')}
             </Link>
           </>
         )}
@@ -104,7 +104,7 @@ export default function HomePage() {
         <Summary tone={cov.complete ? 'good' : cov.sessions === 0 ? 'idle' : 'near'}>
           {cov.sessions === 0
             ? tr.t('week.noneYet')
-            : tr.t('home.covered', { hit: cov.hit, total: cov.total })}
+            : tr.count('home.covered', cov.total, { hit: cov.hit })}
         </Summary>
 
         <div className="flex gap-1.5" aria-label={tr.t('week.coverage')}>

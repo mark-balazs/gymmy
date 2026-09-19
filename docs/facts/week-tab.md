@@ -4,7 +4,7 @@ status: current
 decided: "Confluence 934608916; f542589; GYM-77"
 appears:
   repo: ["e2e/flows/03-weekly-coverage.md#expected", "e2e/flows/03-weekly-coverage.md#which-weeks-you-can-page-through", "e2e/flows/07-choosing-a-split.md#expected-1", "docs/training-model.md#how-far-into-the-library-a-week-reaches", "packages/domain/src/coach.ts", "packages/domain/src/model.ts"]
-  copy: ["title.week", "common.thisWeek", "common.week", "week.noneYet", "week.complete", "week.oneGap", "week.gaps", "week.explain", "week.explainSplit", "week.coverage", "week.yourWeek", "week.trainThis", "week.swap", "week.swapTitle", "week.swapBody", "picker.search", "picker.none", "plural.session.one", "plural.session.other"]
+  copy: ["title.week", "common.thisWeek", "common.week", "week.noneYet", "week.complete.one", "week.complete.other", "week.oneGap", "week.gaps.one", "week.gaps.other", "week.explain", "week.explainSplit", "week.coverage", "week.yourWeek", "week.trainThis", "week.swap", "week.swapTitle", "week.swapBody", "picker.search", "picker.none", "plural.session.one", "plural.session.other"]
   tests: ["e2e/tests/coverage.spec.ts", "e2e/tests/splits.spec.ts", "packages/domain/test/coach.test.ts", "packages/domain/test/model.test.ts", "e2e/tests/exercise-detail.spec.ts"]
   confluence: ["934543418", "934608916", "934608935"]
 ---

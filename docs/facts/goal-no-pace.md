@@ -4,7 +4,7 @@ status: current
 decided: "D-012"
 appears:
   repo: ["docs/training-model.md#the-guardrails-and-what-the-evidence-does-not-say", "docs/README.md#invariants"]
-  copy: ["goal.of", "goal.daysLeft", "goal.whyBody"]
+  copy: ["goal.of", "goal.daysLeft.one", "goal.daysLeft.other", "goal.whyBody"]
   tests: ["packages/domain/test/goals.test.ts"]
   confluence: ["934608897", "934608935", "934543399"]
 ---
