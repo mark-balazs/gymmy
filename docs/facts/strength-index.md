@@ -1,7 +1,7 @@
 ---
 id: strength-index
 status: current
-decided: "D-015; owner, week of 2026-09-14; GYM-46, owner 2026-09-19; D-022, owner 2026-09-19; owner 2026-09-19 (older pull-ups left out)"
+decided: "D-015; owner, week of 2026-09-14; GYM-46, owner 2026-09-19; D-022, owner 2026-09-19 (every row, whatever its date)"
 appears:
   repo: ["README.md#two-strength-numbers", "docs/training-model.md#strengthat--gymmys-own-index", "docs/training-model.md#true-of-both", "docs/training-model.md#what-fills-a-slot", "packages/domain/src/strength.ts", "packages/domain/src/load.ts"]
   copy: ["prog.strength", "prog.strengthWhat", "prog.strengthBody", "prog.strengthNot", "prog.needWeight", "prog.needLifts", "prog.scoreOverTime", "prog.score"]
@@ -9,6 +9,8 @@ appears:
   confluence: ["934608916", "934608935", "934543399", "934576168"]
 ---
 
-The strength index adds the best estimated one-rep max in squat, hinge, lunge, push and pull over the last eight weeks and divides by bodyweight to the power 2/3; a pattern never trained counts as zero, and it is only ever compared with the same person's past. Only barbell, dumbbell and kettlebell lifts count, plus pull-ups, chin-ups and dips at that week's bodyweight plus what was added (those logged before 2026-09-17 are left out); machines, partial loads and other bodyweight moves never do.
+The strength index adds the best estimated one-rep max in squat, hinge, lunge, push and pull over the last eight weeks and divides by bodyweight to the power 2/3; a pattern never trained counts as zero, and it is only ever compared with the same person's past. Only barbell, dumbbell and kettlebell lifts count, plus pull-ups, chin-ups and dips at that week's bodyweight plus what was added; machines, partial loads and other bodyweight moves never do.
 
 Counting untrained patterns as zero is the coverage thesis in number form. The consequence: a movement trained only on machines counts as zero, so a generated week gives each scored movement's first slot a lift that counts.
+
+Every row counts that way, whatever its date. Pull-ups, chin-ups and dips logged before 2026-09-17, when the box did not yet say "added", count as added weight too, so anyone who typed their bodyweight there counts double until those sets leave the eight-week window (from the week of 9 November 2026).

@@ -318,9 +318,12 @@ decimal place.
   10-rep ceiling). A machine, landmine or push-up best adds nothing, however
   heavy; it still charts against itself. So a pattern trained only on machines
   counts as zero — which is why a generated week gives each scored movement's
-  main slot a lift that counts ([What fills a slot](#what-fills-a-slot)). A
-  pull-up, chin-up or dip logged before `LOAD_CONVENTION_FROM` adds nothing:
-  the box then said only "Weight (kg)", and some people typed their bodyweight.
+  main slot a lift that counts ([What fills a slot](#what-fills-a-slot)).
+  Every row counts, whatever its date: a pull-up, chin-up or dip logged before
+  `LOAD_CONVENTION_FROM` (2026-09-17), when the box did not yet say "added",
+  counts as added weight, so anyone who typed their bodyweight there counts
+  double until those sets leave the eight-week window (from the week of 9
+  November 2026).
 - **Two-thirds, not one.** From geometric similarity: force goes with
   cross-sectional area (length squared) while mass is a length cubed. A plain
   bodyweight multiple is wrong at both ends.

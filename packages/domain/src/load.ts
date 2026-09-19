@@ -272,9 +272,8 @@ export const loadRuleOf = (name: string): LoadRule => LOAD_RULES[loadClassOf(nam
  * The strength index counts these at bodyweight plus what was added, because
  * bodyweight strength is strength, and without this an unweighted pull-up
  * would have no number and a weighted one would count only the belt (Decision
- * log D-022) — from `LOAD_CONVENTION_FROM` on, since before it the box did not
- * say what to type (`indexEstimate`). The Train card is unchanged: the box
- * still takes only what was added, as for every `bodyweight` lift.
+ * log D-022). The Train card is unchanged: the box still takes only what was
+ * added, as for every `bodyweight` lift.
  *
  * **Deliberately short.** A push-up, an inverted row or a Nordic curl moves
  * part of the body, and what share of bodyweight that is would be a guess — so

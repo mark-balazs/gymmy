@@ -651,10 +651,7 @@ describe('gymmy own index', () => {
  */
 describe('what the index counts', () => {
   const snap = seedSnapshot('sevenPattern', 3);
-  /* A fixed week, two after `LOAD_CONVENTION_FROM`, rather than this one: a
-     pull-up logged before that day is left out (below), and a week taken from
-     the clock sat on the far side of it when these tests were written. */
-  const thisWeek = '2026-09-28';
+  const thisWeek = mondayOf(new Date());
   const who = { unit: 'kg', sex: 'male' } as const;
   const BODY = 80;
 
@@ -722,6 +719,31 @@ describe('what the index counts', () => {
     );
   });
 
+  it('reads a pull-up from before the box said "added" the same way, every row', () => {
+    /* Owner, 2026-09-19: every row counts at bodyweight plus what was typed,
+       whatever its date. Before LOAD_CONVENTION_FROM the box said only
+       "Weight (kg)", so somebody who typed their bodyweight there counts
+       double — until those sets leave the eight-week window. Leaving the old
+       rows out instead made the index step up on the cutover day with no
+       note, on real accounts and on the demo. Scored on fixed weeks, because
+       the rows have to sit inside the window being scored. */
+    const before = addDays(LOAD_CONVENTION_FROM, -1);
+    const cutoverWeek = mondayOf(LOAD_CONVENTION_FROM);
+    const pullAt = (logs: SetLog[], week: string) =>
+      strengthAt(index({ ...snap, logs, bodyLogs: [bw(BODY, cutoverWeek)] }), week, who).parts.find(
+        (p) => p.key === 'pull',
+      )!.best;
+    const old = (name: string, weight: number | null) => lift(name, weight, { date: before });
+
+    expect(pullAt([old('Pull-Up', null)], cutoverWeek)).toBe(est1RM(BODY, 5, 0));
+    // A bodyweight typed into the old box is read as weight added: counted twice.
+    expect(pullAt([old('Pull-Up', BODY)], cutoverWeek)).toBe(est1RM(2 * BODY, 5, 0));
+    expect(pullAt([old('Chin-Up', 10)], cutoverWeek)).toBe(est1RM(BODY + 10, 5, 0));
+    // Until the set leaves the window: the scored week and the seven before it.
+    expect(pullAt([old('Pull-Up', BODY)], addDays(cutoverWeek, 49))).toBe(est1RM(2 * BODY, 5, 0));
+    expect(pullAt([old('Pull-Up', BODY)], addDays(cutoverWeek, 56))).toBe(0);
+  });
+
   it('does not count a push-up, with or without weight', () => {
     /* A push-up moves part of the body, and what share would be a guess — so
        it stays out, like a machine. Same for the other part-body moves. */
@@ -756,23 +778,6 @@ describe('what the index counts', () => {
       est1RM(90, 5, 0),
       est1RM(80, 5, 0),
     ]);
-  });
-
-  it('leaves out a pull-up, chin-up or dip logged before the box said what to type', () => {
-    /* Until LOAD_CONVENTION_FROM the box said only "Weight (kg)", and some
-       people typed their bodyweight into it. An old 80 is either 80 kg added
-       or the person themselves, and bodyweight on top of the second counts
-       them twice — so the row adds nothing rather than a guess. */
-    const before = addDays(LOAD_CONVENTION_FROM, -1);
-    expect(part([lift('Pull-Up', 80, { date: before })], 'pull')).toBe(0);
-    expect(part([lift('Chin-Up', null, { date: before })], 'pull')).toBe(0);
-    expect(part([lift('Dip', 10, { date: before })], 'push')).toBe(0);
-    // From that day on, counted as usual.
-    expect(part([lift('Pull-Up', null, { date: LOAD_CONVENTION_FROM })], 'pull')).toBe(
-      est1RM(BODY, 5, 0),
-    );
-    // And only these were ambiguous: a real weight from before the day counts.
-    expect(part([lift('Barbell Row', 60, { date: before })], 'pull')).toBe(est1RM(60, 5, 0));
   });
 
   it('has no pull-up number and no index without a bodyweight', () => {

@@ -71,7 +71,7 @@
  */
 
 import { addDays, allLogs, blockWeeks, est1RM, type DecoratedLog, type Indexed } from './model';
-import { LOAD_CONVENTION_FROM, isWholeBody, loadClassOf, loadRuleOf } from './load';
+import { isWholeBody, loadClassOf, loadRuleOf } from './load';
 import type { PatternKey, Sex, Unit } from './types';
 
 /**
@@ -457,17 +457,16 @@ export interface StrengthPoint {
  * the end of the scored week. So the pull-up and the denominator always agree,
  * and a week with no bodyweight has no index for any lift to be missing from.
  *
- * **A pull-up, chin-up or dip logged before `LOAD_CONVENTION_FROM` adds
- * nothing.** Until then the box said only "Weight (kg)", and some people typed
- * their bodyweight into it — so an old 80 is either 80 kg added or the person
- * themselves, and bodyweight on top of the second would count them twice.
- * Nothing stored says which, so the row is left out rather than guessed at.
+ * **Every row, whatever its date** (owner, 2026-09-19). Before
+ * `LOAD_CONVENTION_FROM` the box did not say "added", so a bodyweight typed
+ * there counts twice until the set leaves the window. Leaving those rows out
+ * instead was tried and reverted: the index then stepped up on the cutover day
+ * with nothing on screen to say why.
  */
 const indexEstimate = (log: DecoratedLog, bodyWeight: number | null): number | null => {
   const name = log.exercise!.name;
   if (!countsForIndex(name)) return null;
   if (!isWholeBody(name)) return log.e1rm;
-  if (log.date < LOAD_CONVENTION_FROM) return null;
   return bodyWeight ? est1RM(bodyWeight + (log.weight ?? 0), log.reps, log.rir) : null;
 };
 
