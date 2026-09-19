@@ -327,17 +327,7 @@ export function swapOptions(
   });
 }
 
-/* ------------------------------------------------------------ progression */
-
-function parseRange(repRange: string | undefined): [number, number] {
-  const m = /(\d+)\s*-\s*(\d+)/.exec(repRange ?? '');
-  return m ? [Number(m[1]), Number(m[2])] : [6, 12];
-}
-
-const isTimed = (repRange: string | undefined): boolean => {
-  const s = repRange ?? '';
-  return /\d\s*-\s*\d+\s*m|min|sec/i.test(s) && !/rep/i.test(s);
-};
+/* -------------------------------------------------------------- last time */
 
 /**
  * What you did last time. Not what to do next.
