@@ -431,7 +431,10 @@ keypad is its own component but leaves the same way.
 - **Drag down to dismiss** (`components/sheet-gesture.ts`, Vaul's rules). Touch
   only. It decides on the first move whose gesture it is, because a browser
   stops letting the page cancel a touch once it has started scrolling; it
-  starts moving past 10 px, so a wobbly tap is still a tap. A drag is the
+  starts moving past 10 px, so a wobbly tap is still a tap. Until then it
+  cancels only moves its own way, and at 10 px it asks again for the way the
+  finger went: at the top of a list, a wobble down then a swipe up scrolls the
+  list (iOS Safari sends moves that small; Chrome does not). A drag is the
   sheet's only where the content under the finger is scrolled to its top and
   has not scrolled in the last 100 ms; sideways is never its. Pulled up, it
   resists (iOS's rubber band). A second finger cancels. Let go, it closes on a

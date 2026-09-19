@@ -11,6 +11,11 @@ import { expect, numberButton, test } from '../fixtures/test';
  * release speed is read over leaves the finger with no speed, so only the
  * distance decides.
  *
+ * One exception: a move of a few pixels. Chrome keeps it from the page (its
+ * touch slop), so a CDP move that small never reaches the sheet, while iOS
+ * Safari passes it through. `nudge()` makes that one move inside the page,
+ * for the finger CDP put down; everything before and after it is still CDP.
+ *
  * The drags use the "Log something else" sheet: it holds the whole library,
  * so it is always as tall as a sheet gets and always scrolls.
  */
@@ -32,6 +37,84 @@ async function touch(page: Page) {
     },
   };
 }
+
+/** What the page notes about the finger `touch()` puts down, once `watch()` has run. */
+interface Watched {
+  id: number;
+  target: Element | null;
+  x: number;
+  y: number;
+  /** For each move Chrome delivered, whether the page cancelled it. */
+  delivered: boolean[];
+}
+type Watching = Window & { __watched?: Watched };
+
+/**
+ * Starts noting the finger that goes down, so `nudge()` can move it, and for
+ * every move Chrome delivers whether the page cancelled it: a move nobody
+ * cancelled is one the browser is free to scroll with. Passive, so it changes
+ * nothing about what it watches.
+ */
+async function watch(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const seen: Watched = { id: -1, target: null, x: 0, y: 0, delivered: [] };
+    (window as Watching).__watched = seen;
+    document.addEventListener(
+      'touchstart',
+      (e) => {
+        const t = e.touches[0]!;
+        seen.id = t.identifier;
+        seen.target = e.target instanceof Element ? e.target : null;
+        seen.x = t.clientX;
+        seen.y = t.clientY;
+      },
+      { capture: true, passive: true },
+    );
+    // On `window`, so it hears each move after the sheet has had it.
+    window.addEventListener(
+      'touchmove',
+      (e) => {
+        if (e.isTrusted) seen.delivered.push(e.defaultPrevented);
+      },
+      { passive: true },
+    );
+  });
+}
+
+/**
+ * Moves the finger `dy` pixels down (up if negative) from where it went down,
+ * as a touchmove built in the page: the move Chrome would not have delivered.
+ * Answers whether the page cancelled it, and how far down the panel is after.
+ */
+async function nudge(page: Page, dy: number): Promise<{ cancelled: boolean; offset: number }> {
+  return page.evaluate((dy) => {
+    const seen = (window as Watching).__watched;
+    if (!seen?.target) throw new Error('No finger down: watch(), then touch().down()');
+    const at = new Touch({
+      identifier: seen.id,
+      target: seen.target,
+      clientX: seen.x,
+      clientY: seen.y + dy,
+    });
+    const move = new TouchEvent('touchmove', {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      touches: [at],
+      targetTouches: [at],
+      changedTouches: [at],
+    });
+    const cancelled = !seen.target.dispatchEvent(move);
+    const panel = document.querySelector('[data-sheet][data-state="open"] .animate-sheet')!;
+    const t = getComputedStyle(panel).transform;
+    // `|| 0`: never -0, which `toEqual` would not take for 0.
+    return { cancelled, offset: (t === 'none' ? 0 : new DOMMatrixReadOnly(t).m42) || 0 };
+  }, dy);
+}
+
+/** Whether the page cancelled each move Chrome delivered since `watch()`. */
+const delivered = (page: Page): Promise<boolean[]> =>
+  page.evaluate(() => (window as Watching).__watched?.delivered ?? []);
 
 /** The open sheet's panel — the part that moves. */
 const panelOf = (page: Page): Locator =>
@@ -127,9 +210,12 @@ test.describe('A sheet', () => {
 
     const finger = await touch(app);
     await finger.down([x, y]);
-    await finger.move([x, y + 4]); // the sheet's gesture now, but still a tap
+    // Chrome keeps a move this small from the page, so this holds nothing
+    // about a wobble; 'a wobble of a few pixels…' below does.
+    await finger.move([x, y + 4]);
     expect(await offsetOf(panel)).toBe(0);
-    await finger.move([x, y + 24]); // past the slop: it moves from here
+    // The first move the page sees, already past `SLOP`: it moves from here.
+    await finger.move([x, y + 24]);
     await finger.move([x, y + 124]);
     // Follows the finger: a hundred pixels on, a hundred pixels down.
     expect(await offsetOf(panel)).toBeCloseTo(100, 0);
@@ -235,6 +321,68 @@ test.describe('A sheet', () => {
     await expect(app.getByRole('dialog')).toBeVisible();
     expect(await offsetOf(panelOf(app))).toBe(0);
     await expect.poll(() => scroller.evaluate((el) => el.scrollTop)).toBeLessThan(400);
+  });
+
+  test('at the top of a list, a wobble down and then a swipe up scrolls the list', async ({
+    onboardedApp: app,
+  }) => {
+    await openPicker(app);
+    const panel = panelOf(app);
+    const scroller = app.locator('[data-sheet] .overflow-auto');
+    expect(await scroller.evaluate((el) => el.scrollTop)).toBe(0);
+    const box = (await scroller.boundingBox())!;
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 2;
+
+    await watch(app);
+    const finger = await touch(app);
+    await finger.down([x, y]);
+    /* Two pixels down: at the top of the list that is the sheet's way, so it
+       claims the gesture and holds the page still, without moving. Then four
+       up, still inside the slop: the list's way, so it is left alone. */
+    expect(await nudge(app, 2)).toEqual({ cancelled: true, offset: 0 });
+    expect(await nudge(app, -4)).toEqual({ cancelled: false, offset: 0 });
+    /* On up, well past the slop, through Chrome. The sheet used to keep the
+       claim from the wobble: it cancelled every move and stretched up, and
+       the list never scrolled. */
+    for (let i = 1; i <= 6; i++) await finger.move([x, y - i * 40]);
+    expect(await offsetOf(panel)).toBe(0);
+    await finger.up();
+
+    // Nothing Chrome delivered was cancelled, so Chrome scrolled the list.
+    const moves = await delivered(app);
+    expect(moves.length).toBeGreaterThan(0);
+    expect(moves).not.toContain(true);
+    await expect.poll(() => scroller.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+    await expect(app.getByRole('dialog')).toBeVisible();
+    expect(await offsetOf(panel)).toBe(0);
+  });
+
+  test('a wobble of a few pixels moves nothing, and the tap still lands', async ({
+    onboardedApp: app,
+  }) => {
+    await openPicker(app);
+    const sheet = app.getByRole('dialog', { name: 'Log something else' });
+    const row = sheet.locator('section button').first();
+    const name = (await row.innerText()).trim();
+    const box = (await row.boundingBox())!;
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 2;
+
+    await watch(app);
+    const finger = await touch(app);
+    await finger.down([x, y]);
+    /* Four pixels down, then eight, both under `SLOP`: the sheet's gesture, as
+       the list is at its top, but not a drag. Held still, and not moved. Two
+       moves, because one cannot tell: a drag starts from wherever the finger
+       is when it starts, so its first move never shifts the panel. */
+    expect(await nudge(app, 4)).toEqual({ cancelled: true, offset: 0 });
+    expect(await nudge(app, 8)).toEqual({ cancelled: true, offset: 0 });
+    await finger.up();
+
+    // Still a tap: the lift is picked, and its card opens.
+    await expect(sheet).toHaveCount(0);
+    await expect(app.getByRole('heading', { name, exact: true })).toBeVisible();
   });
 
   test('a sideways swipe on it does not change the tab behind it', async ({

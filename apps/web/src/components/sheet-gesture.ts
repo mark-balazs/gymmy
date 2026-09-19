@@ -15,6 +15,11 @@
  *   under it. At the top, a finger going down has nothing to scroll anyway.
  *   But it only starts moving past `SLOP`, so a tap that wobbled is still a
  *   tap, and never a flick.
+ * - Until `SLOP` it holds the page still only for a move its own way, and at
+ *   `SLOP` it asks again, for the way the finger actually went. At the top of
+ *   a list, a wobble down and then a swipe up is a scroll: the list gets it,
+ *   and the sheet does not stretch. (Chrome never shows the page a move that
+ *   small; iOS Safari does.)
  * - Sideways is not its business — a chart that scrubs, a row of chips.
  * - Pulled up past where it rests, it gives, with the resistance iOS uses: it
  *   follows less the further it goes, and never runs away.
@@ -209,8 +214,10 @@ export function dragToDismiss(
    * idle     no finger down
    * pending  a finger is down and has not moved
    * claimed  the first move made it the sheet's, but not past `SLOP` yet:
-   *          the page is held still and the sheet does not move, so a tap
-   *          that wobbled is still a tap
+   *          the sheet does not move, so a tap that wobbled is still a tap.
+   *          A move the sheet could take holds the page still; one it could
+   *          not is left to the page. Past `SLOP` it is asked again, for the
+   *          way the finger went: `drag` if that is the sheet's, else `off`
    * drag     the sheet follows the finger
    * off      not the sheet's gesture, until every finger is up
    */
@@ -231,7 +238,7 @@ export function dragToDismiss(
   };
 
   /**
-   * Whether a drag that starts going `dy` (down is positive) is the sheet's.
+   * Whether a drag going `dy` (down is positive) is the sheet's.
    * Anything between the finger and the panel that can scroll that way gets
    * it instead: down, when it is not at its top; up, always — there is more
    * below.
@@ -306,8 +313,18 @@ export function dragToDismiss(
         phase = 'off';
         return;
       }
-      if (e.cancelable) e.preventDefault();
-      if (Math.abs(dy) < SLOP) return;
+      /* Asked again, for the way the finger is going now. The first move only
+         says which way it started: at the top of a list, a wobble down makes
+         the claim, and a swipe up after it is still the list's. */
+      const owns = claims(dy);
+      if (Math.abs(dy) < SLOP) {
+        if (owns && e.cancelable) e.preventDefault();
+        return;
+      }
+      if (!owns) {
+        phase = 'off';
+        return;
+      }
       phase = 'drag';
       // From here, not from where the finger landed: the sheet moves with
       // the finger rather than jumping to catch up with it.

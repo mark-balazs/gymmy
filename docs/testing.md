@@ -112,6 +112,12 @@ Two ways the suite lies to you if you skip that:
 - **Drag a sheet through CDP touches**, as `sheets.spec.ts` does, not with
   events built in the page. Speed is set by pausing: after more than 100 ms
   still, the finger has no speed and only distance decides.
+- **Chrome drops a move of a few pixels** before the page sees it (its touch
+  slop); iOS Safari does not. So a CDP move of 4 px tests nothing, and a test
+  about a wobble builds that one move in the page — `nudge()` in
+  `sheets.spec.ts`, for a finger CDP put down — and leaves the rest to CDP. A
+  drag starts from where the finger is when it starts, so its first move never
+  shifts the panel: a wobble test needs two moves to see one.
 - **Anything named "Next" needs `exact: true` and a scope.** Next.js's own
   dev-tools button is called "Next", so an unscoped `getByRole('button', { name:
   'Next' })` passes against a production build and fails the moment a dev server
