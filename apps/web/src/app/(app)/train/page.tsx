@@ -42,6 +42,7 @@ import {
   lastSession,
   loadClassOf,
   prefs,
+  scalePlaces,
   scaleValues,
   startReps,
   startWeight,
@@ -593,6 +594,12 @@ function ExerciseCard({
   const scale = weightScale(load, unit, load === 'barbell' ? bar : undefined);
   const noneLabel = load === 'bodyweight' ? tr.t('entry.none') : undefined;
   const lastReps = s?.reps ?? null;
+  /* The ruler's stops, and the decimals they are all written with. Every
+     control gets the same count, so the number keeps its shape when Settings
+     swaps one control for another: 60.0 on the ruler is 60.0 on the buttons,
+     on the bar and on the keypad. */
+  const weightStops = scaleValues(scale, weight, lastWeight);
+  const weightPlaces = scalePlaces(weightStops);
 
   const weightControl = plates ? (
     <PlateLoader
@@ -604,10 +611,11 @@ function ExerciseCard({
       onChange={setWeight}
       onBarChange={chooseBar}
       describedBy={howId}
+      places={weightPlaces}
     />
   ) : entryMode === 'ruler' ? (
     <Ruler
-      values={scaleValues(scale, weight, lastWeight)}
+      values={weightStops}
       value={weight}
       onChange={setWeight}
       label="weight"
@@ -631,6 +639,7 @@ function ExerciseCard({
       describedBy={howId}
       typeLabel={tr.t('entry.typeWeight')}
       decimals
+      places={weightPlaces}
       noneLabel={noneLabel}
     />
   );

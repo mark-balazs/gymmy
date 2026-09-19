@@ -19,7 +19,9 @@ sets**:
 - **Ruler** — drag or flick a ruler sideways; it glides and settles on a step.
   Sideways, so scrolling the page up and down can never change a number. Its
   range is realistic for the equipment: a barbell starts at the bar, a dumbbell
-  goes up in whole kilos to 60 per hand.
+  goes up in whole kilos to 60 per hand. Every number on a ruler has the same
+  decimals (60.0, 62.5; whole kilos stay whole) in a box of one width, so the
+  number does not jump about as it moves, and its digits roll the way it moved.
 - **Load the bar** — for barbell lifts, on unless switched off: tap the plates
   you put on one side, and gymmy adds the bar and the other side. The bar weight
   is a chip, remembered per exercise on the device.
@@ -44,6 +46,11 @@ header and the tab bar of a 640 px phone.
 - **The keypad**: Done applies, Cancel and Escape do not, reps have no decimal
   point, focus goes in and comes back.
 - **The ruler's range follows the equipment**, and an arrow key moves one step.
+- **The ruler's number keeps one shape**: dragged with a pointer through
+  half-kilo stops and past 100, the readout stays `\d+.\d` in a box that never
+  changes width, and the labels under the ticks follow the same rule. A
+  whole-kilo ruler stays whole, a screen reader still hears "20 kg", and the
+  buttons and the keypad write a barbell's 20 as 20.0 too.
 - **Loading the bar**: a plate adds twice its weight, comes off with a tap, the
   bar chip moves the total, and a total plates cannot make is logged exactly.
   Each lift keeps its own bar, and a trap bar deadlift starts on its own 25 kg.
@@ -67,6 +74,9 @@ header and the tab bar of a 640 px phone.
 
 - **The feel of the ruler's glide on a real phone.** Pointer physics can be
   driven from a test, but whether a flick feels right cannot; that was judged by
-  hand on the prototype.
+  hand on the prototype. The same goes for the digits rolling, the label under
+  the needle growing, the spring as it settles and the haptic tick per stop
+  (Android only; iOS has no web vibration) — and WebKit is not in the e2e
+  matrix at all.
 - **iOS VoiceOver's swipe to adjust** the ruler. It is wired to the arrow keys,
   which is what WebKit sends, and only a device can confirm it.

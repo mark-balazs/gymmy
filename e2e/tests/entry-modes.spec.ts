@@ -208,6 +208,8 @@ test.describe('The ruler', () => {
     // The ruler is the number the card holds, not a second copy of it.
     const start = Number(await cardNumber(app, 'weight'));
     await expect(weight).toHaveAttribute('aria-valuenow', String(start));
+    // A scale of whole kilos is written in whole kilos: no ".0" on a dumbbell.
+    await expect(numberButton(app, 'weight').locator('.num')).toHaveText(String(start));
 
     // One arrow, one stop — a kilo on this ruler.
     await weight.focus();
@@ -231,6 +233,63 @@ test.describe('The ruler', () => {
 
     await app.getByRole('button', { name: /^Log set 1$/ }).click();
     expect(await recordedSet(app, 5)).toBe('33 kg × 5');
+  });
+
+  test('keeps the number one shape and one width while dragged through half-kilo stops', async ({
+    onboardedApp: app,
+  }) => {
+    /* The owner, from the gym: the numbers jumped around. Each value was
+       written at its own length — 20, 22.5, 25, 27.5 — so the number changed
+       width at every other stop and the unit beside it hopped sideways. Every
+       value on a scale now has the same decimals, and the readout is one
+       width. Driven with a real pointer, stop by stop, because the drag is
+       where it was seen. */
+    await chooseEntry(app, { mode: 'Ruler', plates: false });
+    await openCard(app, BENCH);
+    const weight = ruler(app, 'Weight');
+    const readout = numberButton(app, 'weight').locator('.num');
+    await expect(weight).toHaveAttribute('aria-valuenow', '20');
+    await expect(readout).toHaveText('20.0');
+    // Heard as anybody would say it, not as it is drawn.
+    await expect(weight).toHaveAttribute('aria-valuetext', '20 kg');
+
+    // The labels under the ticks follow the same rule.
+    const labels = await weight.locator('[data-label]').allTextContents();
+    expect(labels.length).toBeGreaterThan(5);
+    for (const label of labels) expect(label).toMatch(/^\d+\.\d$/);
+
+    /* From just under 100, so the drag also crosses into three digits: the
+       one place where the same decimals alone would still let the number grow,
+       and only the fixed-width box keeps the unit where it was. */
+    await typeNumber(app, 'weight', 95);
+    await expect(readout).toHaveText('95.0');
+
+    const track = (await weight.boundingBox())!;
+    const y = track.y + track.height / 2;
+    const x = track.x + track.width / 2;
+    await app.mouse.move(x, y);
+    await app.mouse.down();
+    const seen: string[] = [];
+    const widths = new Set<number>();
+    // Leftwards is up the scale: one stop is 14 px.
+    for (let stop = 1; stop <= 8; stop++) {
+      await app.mouse.move(x - stop * 14, y, { steps: 4 });
+      seen.push((await readout.textContent()) ?? '');
+      widths.add(Math.round((await readout.boundingBox())!.width));
+    }
+    await app.mouse.move(x - 8 * 14, y, { steps: 2 });
+    await app.mouse.up();
+
+    // It really moved, through whole and half kilos alike, and past 100…
+    expect(new Set(seen).size, seen.join(' ')).toBeGreaterThanOrEqual(6);
+    expect(seen.some((s) => s.endsWith('.5'))).toBe(true);
+    expect(seen.some((s) => s.endsWith('.0'))).toBe(true);
+    expect(seen.some((s) => s.length === 4) && seen.some((s) => s.length === 5)).toBe(true);
+    // …in one format, in one box.
+    for (const s of seen) expect(s).toMatch(/^\d+\.\d$/);
+    expect([...widths], seen.join(' ')).toHaveLength(1);
+    // And one tick — the one under the needle — is marked to stand out.
+    await expect(weight.locator('[data-on]')).toHaveCount(1);
   });
 });
 
@@ -358,8 +417,16 @@ test.describe('Loading the bar', () => {
 
     // Buttons, stepping a barbell's 2.5 kg from the empty bar.
     await expect(numberButton(app, 'weight')).toHaveAttribute('data-value', '20');
+    // Written as the ruler writes it, so a switch of control changes nothing
+    // about the number — and so is the faded number on the keypad.
+    await expect(numberButton(app, 'weight').locator('.num')).toHaveText('20.0');
+    await numberButton(app, 'weight').click();
+    const pad = app.getByRole('dialog', { name: 'Weight' });
+    await expect(pad.locator('output')).toHaveText(/^20\.0\s*kg$/);
+    await pad.getByRole('button', { name: 'Cancel', exact: true }).click();
     await app.getByRole('button', { name: 'weight +', exact: true }).click();
     await expect(numberButton(app, 'weight')).toHaveAttribute('data-value', '22.5');
+    await expect(numberButton(app, 'weight').locator('.num')).toHaveText('22.5');
 
     // And the ruler, from the bar to 300 kg.
     await chooseEntry(app, { mode: 'Ruler' });

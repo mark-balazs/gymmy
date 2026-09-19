@@ -62,7 +62,7 @@ second implementation to disagree with the first.
 | `packages/domain/src/model.ts` | Pure derived values — coverage, progress, `index()` |
 | `packages/domain/src/strength.ts` | The two strength numbers: gymmy's index and DOTS |
 | `packages/domain/src/load.ts` | What the number in the weight box means per exercise — per hand, the bar, a machine setting |
-| `packages/domain/src/entry.ts` | Setting a number on Train: each equipment's ruler range and step, the plates, the bars, where a first set starts |
+| `packages/domain/src/entry.ts` | Setting a number on Train: each equipment's ruler range and step, the plates, the bars, where a first set starts, and how many decimals a scale's numbers are written with |
 | `packages/domain/src/coach.ts` | Program generation, and reading back the last session on a lift |
 | `packages/domain/src/insights.ts` | What Progress and the calendar *say* — session series, drawdowns, the triage, a day |
 | `packages/domain/src/splits.ts` | Split presets, slot materialisation, coverage sets |
@@ -77,7 +77,7 @@ second implementation to disagree with the first.
 | `apps/web/src/lib/api/plans.ts` | The session/trainer guard and the wire schema for the plan endpoints |
 | `apps/web/src/app/(app)/` | The five tabs |
 | `apps/web/src/components/` | The UI kit, the charts, the calendar, the sheets, the lightbox, the profile card, the recovery screens |
-| `apps/web/src/components/entry/` | Train's number controls — buttons, the ruler, the plate loader, gymmy's keypad — and the card's open/close |
+| `apps/web/src/components/entry/` | Train's number controls — buttons, the ruler, the plate loader, gymmy's keypad — and the card's open/close. `rolling-number.tsx` rolls a changed digit in from the way the number moved; `motion.ts` lets JavaScript-driven motion use the CSS easing tokens |
 
 ## How a set gets saved
 

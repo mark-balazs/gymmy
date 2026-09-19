@@ -24,12 +24,15 @@
 
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { formatOnScale } from '@athletic/domain';
 import { buttonClass } from '@/components/ui';
 import { useT } from '@/lib/client/hooks';
 
 /** Two decimal places at most and no trailing zeros — 61.25, 60, 7. The
  *  resolution every number on the card is kept at, written the way the rest of
- *  the app writes a weight. */
+ *  the app writes a weight — and the way a screen reader says one. A number
+ *  shown on a scale (the ruler, the buttons, the bar's total) uses
+ *  `formatOnScale` instead, so it keeps one width as it changes. */
 export const formatAmount = (n: number): string => String(Math.round(n * 100) / 100);
 
 /** Four digits before the point reaches past anything `logSet` will store, and
@@ -62,6 +65,9 @@ export interface KeypadProps {
   /** The number on the card now. Shown faded until the first key, so Done
    *  with nothing typed leaves it exactly as it was. */
   value: number | null;
+  /** The decimals the control that opened it writes the number with
+   *  (`scalePlaces`), so 60.0 on the ruler is not 60 on the keypad. */
+  places?: number;
   /** Whether the point key works. Off for reps: nobody does half a rep, and a
    *  key that cannot be pressed is clearer than one that is ignored. */
   decimals: boolean;
@@ -89,7 +95,7 @@ export function Keypad(props: KeypadProps) {
   return createPortal(<Sheet {...props} />, document.body);
 }
 
-function Sheet({ title, unit, value, decimals, onDone, onClose, opener }: KeypadProps) {
+function Sheet({ title, unit, value, places, decimals, onDone, onClose, opener }: KeypadProps) {
   const tr = useT();
   const titleId = useId();
   const [typed, setTyped] = useState('');
@@ -210,7 +216,13 @@ function Sheet({ title, unit, value, decimals, onDone, onClose, opener }: Keypad
           {typed === '' ? (
             // The number it will stay if nothing is typed — faded, so it reads
             // as where you are rather than as something already entered.
-            <span className="opacity-35">{value === null ? '0' : formatAmount(value)}</span>
+            <span className="opacity-35">
+              {value === null
+                ? '0'
+                : places === undefined
+                  ? formatAmount(value)
+                  : formatOnScale(value, places)}
+            </span>
           ) : (
             <span>{typed}</span>
           )}

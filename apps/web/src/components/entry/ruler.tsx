@@ -29,11 +29,14 @@
  * the keypad, and why Buttons stays the default.
  */
 
-import { memo, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { memo, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, PointerEvent } from 'react';
+import { formatOnScale, scalePlaces } from '@athletic/domain';
 import { cn } from '@/components/ui';
 import { useT } from '@/lib/client/hooks';
 import { Keypad, formatAmount } from './keypad';
+import { curve, reducedMotion as reduced } from './motion';
+import { RollingNumber } from './rolling-number';
 
 /** Pixels between two neighbouring stops — wide enough to aim at with a slow
  *  drag, narrow enough that a 2.5 kg change is a small movement. */
@@ -49,8 +52,10 @@ const FLICK = 0.15;
 const FRICTION = 0.994;
 const REST = 0.03;
 /** Long enough to be seen settling, short enough that the next tap is not
- *  waiting on it. */
-const SNAP_MS = 160;
+ *  waiting on it. The settle runs on `--ease-spring`, so it lands with a small
+ *  give rather than a hard stop; every motion here stays under a quarter of a
+ *  second, so none of it is still running when the next touch comes. */
+const SNAP_MS = 200;
 const TWEEN_MS = 200;
 
 type Mode = 'idle' | 'drag' | 'glide' | 'snap' | 'tween';
@@ -88,6 +93,8 @@ interface Physics {
   placed: boolean;
   buzzAt: number;
   el: HTMLDivElement | null;
+  /** The tick under the needle, marked so its label stands out. */
+  marked: Element | null;
   report: (v: number) => void;
   settled: () => void;
 }
@@ -97,13 +104,6 @@ const easeOut = (k: number) => 1 - (1 - k) ** 3;
 const lastPos = (ph: Physics) => Math.max(0, (ph.list.length - 1) * GAP);
 const indexAt = (ph: Physics, pos: number) =>
   clamp(Math.round(pos / GAP), 0, Math.max(0, ph.list.length - 1));
-
-/** Read at the moment of moving, not once, so changing the setting mid-session
- *  applies to the next flick. Optional-called: a browser without `matchMedia`
- *  gets motion rather than an exception in the middle of a drag. */
-const reduced = () =>
-  typeof window !== 'undefined' &&
-  window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
 
 /** The stop closest to a value. The value is normally one of them — the caller
  *  adds it — but a caller that forgets gets the nearest, not a crash. */
@@ -153,14 +153,31 @@ function place(ph: Physics) {
   if (ph.el) ph.el.style.transform = `translate3d(${-ph.pos}px, 0, 0)`;
 }
 
+/**
+ * Mark the tick under the needle, so its label can stand up out of the scale.
+ *
+ * An attribute set straight on the element, not state: it changes once per
+ * stop crossed, and re-rendering a hundred ticks to move one highlight would
+ * put React on the hot path of a flick. The label's own CSS transition does the
+ * easing, so nothing here waits on it.
+ */
+function mark(ph: Physics) {
+  const tick = ph.el?.children[ph.shown] ?? null;
+  if (tick === ph.marked) return;
+  ph.marked?.removeAttribute('data-on');
+  tick?.setAttribute('data-on', '');
+  ph.marked = tick;
+}
+
 /** A tiny tick per stop, where the platform has one — Android only; iOS has no
  *  web vibration at all. Throttled, or a fast glide is a buzz. */
 function buzz(ph: Physics) {
+  if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return;
   const now = performance.now();
   if (now - ph.buzzAt < 40) return;
   ph.buzzAt = now;
   try {
-    navigator.vibrate?.(4);
+    navigator.vibrate(4);
   } catch {
     /* Refused without a user gesture; a missing tick is no loss. */
   }
@@ -172,6 +189,7 @@ function follow(ph: Physics) {
   const i = indexAt(ph, ph.pos);
   if (i === ph.shown) return;
   ph.shown = i;
+  mark(ph);
   const v = ph.list[i];
   if (v === undefined) return;
   ph.report(v);
@@ -201,9 +219,12 @@ function snap(ph: Physics) {
   }
   ph.mode = 'snap';
   const t0 = performance.now();
+  const spring = curve('--ease-spring');
   const frame = (t: number) => {
     const k = clamp((t - t0) / SNAP_MS, 0, 1);
-    ph.pos = from + (to - from) * easeOut(k);
+    // A snap is never more than half a stop, so the spring's overshoot cannot
+    // carry the needle onto the next one.
+    ph.pos = from + (to - from) * spring(k);
     follow(ph);
     if (k < 1) ph.raf = requestAnimationFrame(frame);
     else settle(ph);
@@ -255,32 +276,59 @@ function tween(ph: Physics, to: number) {
 const sameList = (a: readonly number[], b: readonly number[]) =>
   a === b || (a.length === b.length && a.every((v, i) => v === b[i]));
 
-/** A hundred-odd ticks that only change when the stops do. Compared by content,
- *  because the caller builds a fresh array every render and the ruler renders
- *  once per stop crossed. */
+/**
+ * A hundred-odd ticks that only change when the stops do. Compared by content,
+ * because the caller builds a fresh array every render and the ruler renders
+ * once per stop crossed.
+ *
+ * Labels are written with the scale's decimals, like the readout. The one
+ * under the needle — `data-on`, set by `mark` — grows and darkens on the
+ * spring curve while the rest stay muted, so the scale reads like a dial
+ * turning under a fixed pointer. Size and colour only: nothing that moves
+ * layout, so it costs no reflow in the middle of a flick.
+ */
 const Ticks = memo(
-  function Ticks({ list, every }: { list: readonly number[]; every: number }) {
+  function Ticks({
+    list,
+    every,
+    places,
+  }: {
+    list: readonly number[];
+    every: number;
+    places: number;
+  }) {
     return list.map((v, i) => {
       const major = isMultiple(v, every);
       return (
         <span
           key={v}
           className={cn(
-            'absolute bottom-0 w-0.5 -translate-x-1/2 rounded-full bg-[var(--color-muted)]',
-            major ? 'h-[22px] opacity-80' : 'h-3 opacity-45',
+            'group absolute bottom-0 w-0.5 -translate-x-1/2 rounded-full bg-[var(--color-muted)]',
+            major ? 'h-[22px] opacity-80 data-[on]:opacity-100' : 'h-3 opacity-45',
           )}
           style={{ left: i * GAP }}
         >
           {major && (
-            <span className="num absolute bottom-[25px] left-1/2 -translate-x-1/2 text-xs font-semibold whitespace-nowrap text-[var(--color-muted)]">
-              {formatAmount(v)}
+            <span
+              data-label
+              className={cn(
+                /* Above the needle's tip (32 px), not beside it: with every
+                   value written to the scale's decimals a label is wide
+                   enough — "100.0", "60.00" — to reach the needle one stop
+                   away. Grown to 1.25× it still clears the top at 56 px. */
+                'num absolute bottom-[33px] left-1/2 origin-bottom -translate-x-1/2 text-xs font-semibold whitespace-nowrap text-[var(--color-muted)]',
+                'transition-[scale,color] duration-200 ease-[var(--ease-spring)]',
+                'group-data-[on]:scale-125 group-data-[on]:font-bold group-data-[on]:text-[var(--color-ink)]',
+              )}
+            >
+              {formatOnScale(v, places)}
             </span>
           )}
         </span>
       );
     });
   },
-  (a, b) => a.every === b.every && sameList(a.list, b.list),
+  (a, b) => a.every === b.every && a.places === b.places && sameList(a.list, b.list),
 );
 
 /* ------------------------------------------------------------ the control */
@@ -357,9 +405,19 @@ export function Ruler({
     placed: false,
     buzzAt: 0,
     el: null,
+    marked: null,
     report: onChange,
     settled: () => {},
   });
+
+  /* One count of decimals for the whole scale, and the widest value on it, so
+     the readout is one width from end to end. Read from the frozen list during
+     a gesture, so neither can change under a moving finger. */
+  const places = useMemo(() => scalePlaces(list), [list]);
+  const widest = useMemo(
+    () => Math.max(1, ...list.map((v) => formatOnScale(v, places).length)),
+    [list, places],
+  );
 
   /* The latest of everything the frames call out to. Declared first, so it
      has run before the effect below positions anything. */
@@ -388,6 +446,7 @@ export function Ruler({
     const i = nearest(list, value ?? min);
     ph.shown = i;
     const to = i * GAP;
+    mark(ph);
     if (!ph.placed || before === list[i] || reduced()) {
       halt(ph);
       ph.mode = 'idle';
@@ -495,6 +554,7 @@ export function Ruler({
     ph.pos = d.index * GAP;
     ph.shown = d.index;
     place(ph);
+    mark(ph);
     const back = d.from ?? ph.list[d.index];
     if (changed && back !== undefined) ph.report(back);
     settle(ph);
@@ -514,8 +574,11 @@ export function Ruler({
   };
 
   const empty = value === null || (noneLabel !== undefined && value === 0);
-  const shown = empty ? (noneLabel ?? '—') : formatAmount(value);
-  const spoken = empty || !unit ? shown : `${shown} ${unit}`;
+  // On screen, every value on the scale has the same decimals: 60.0, 62.5.
+  const shown = empty ? (noneLabel ?? '—') : formatOnScale(value, places);
+  // Heard, the number as anybody would say it: "60 kilograms", not "60.0".
+  const said = empty ? shown : formatAmount(value);
+  const spoken = empty || !unit ? said : `${said} ${unit}`;
   const word = tr.t(label === 'weight' ? 'entry.weight' : 'entry.reps');
 
   return (
@@ -536,9 +599,15 @@ export function Ruler({
           onClick={(e) => setOpener(e.currentTarget)}
           className="-mr-1 inline-flex min-h-[var(--spacing-tap)] min-w-[var(--spacing-tap)] cursor-pointer items-baseline justify-end gap-1 rounded-[11px] px-2 transition-[transform,background-color] duration-150 hover:bg-[var(--color-surface-2)] active:scale-[0.97]"
         >
-          <span aria-hidden className="num self-center text-[24px] leading-none font-bold">
-            {shown}
-          </span>
+          {/* Tabular figures and a box as wide as the widest value on the
+              scale, right-aligned: the number changes, the space it takes does
+              not, and the unit beside it never moves. */}
+          <RollingNumber
+            text={shown}
+            value={empty ? null : value}
+            className="num justify-end self-center text-[24px] leading-none font-bold"
+            style={{ minWidth: `${widest}ch` }}
+          />
           {unit && !empty && (
             <span
               aria-hidden
@@ -578,7 +647,7 @@ export function Ruler({
           className="absolute inset-0 overflow-hidden rounded-[12px] [mask-image:linear-gradient(90deg,transparent,#000_18%,#000_82%,transparent)]"
         >
           <div ref={strip} className="absolute inset-y-0 left-1/2 will-change-transform">
-            <Ticks list={list} every={labelEvery(gridStep(list))} />
+            <Ticks list={list} every={labelEvery(gridStep(list))} places={places} />
           </div>
         </div>
         <div
@@ -593,6 +662,7 @@ export function Ruler({
         title={word}
         unit={unit}
         value={value}
+        places={places}
         decimals={decimals}
         onDone={onChange}
         onClose={() => setOpener(null)}

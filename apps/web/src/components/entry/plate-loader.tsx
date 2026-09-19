@@ -26,7 +26,7 @@
  */
 
 import { useId, useState } from 'react';
-import { platesFor, plateTotal } from '@athletic/domain';
+import { formatOnScale, platesFor, plateTotal } from '@athletic/domain';
 import type { Unit } from '@athletic/domain';
 import { cn } from '@/components/ui';
 import { useT } from '@/lib/client/hooks';
@@ -92,6 +92,9 @@ export interface PlateLoaderProps {
   onBarChange: (bar: number) => void;
   /** Id of the note that says what the number means — the load caption. */
   describedBy?: string;
+  /** The decimals the total is written with — the barbell ruler's
+   *  `scalePlaces` — so the total reads 60.0 here as it does on the ruler. */
+  places?: number;
 }
 
 export function PlateLoader({
@@ -103,6 +106,7 @@ export function PlateLoader({
   onChange,
   onBarChange,
   describedBy,
+  places,
 }: PlateLoaderProps) {
   const tr = useT();
   const id = useId();
@@ -193,7 +197,11 @@ export function PlateLoader({
           className="-ml-2 flex min-h-[var(--spacing-tap)] min-w-0 cursor-pointer flex-col items-start rounded-[11px] px-2 py-1 text-left transition-[transform,background-color] duration-150 hover:bg-[var(--color-surface-2)] active:scale-[0.98]"
         >
           <span id={totalId} className="num text-[28px] leading-tight font-bold">
-            {formatAmount(value)}{' '}
+            {/* Seen with the scale's decimals, heard as anybody says it. */}
+            <span aria-hidden>
+              {places === undefined ? formatAmount(value) : formatOnScale(value, places)}
+            </span>
+            <span className="sr-only">{formatAmount(value)}</span>{' '}
             <span className="text-sm font-semibold text-[var(--color-muted)]">{unit}</span>
           </span>
           <span id={splitId} className="num text-xs text-[var(--color-muted)]">
@@ -353,6 +361,7 @@ export function PlateLoader({
         title={tr.t('entry.weight')}
         unit={unit}
         value={value}
+        places={places}
         decimals
         onDone={(v) => {
           // A typed total is laid out afresh: whatever was tapped before no

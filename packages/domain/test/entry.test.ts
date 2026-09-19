@@ -8,9 +8,12 @@ import {
   REPS_SCALE,
   barWeightOf,
   buttonStep,
+  formatOnScale,
   loadClassOf,
+  placesOf,
   plateTotal,
   platesFor,
+  scalePlaces,
   scaleValues,
   startReps,
   startWeight,
@@ -182,6 +185,61 @@ describe('scaleValues', () => {
       grid,
     );
     expect(grid[0]).toBe(5);
+  });
+});
+
+describe('writing the numbers on a scale', () => {
+  /* The ruler's number used to change width as it moved — 60, 62.5, 65, 67.5 —
+     because each value was written at its own length. One scale, one count of
+     decimals: the number stays the same shape the whole way along. */
+  const written = (values: readonly number[]) =>
+    values.map((v) => formatOnScale(v, scalePlaces(values)));
+
+  it('keeps a whole-number scale whole', () => {
+    const dumbbells = scaleValues(weightScale('dumbbellPair', 'kg'));
+    expect(scalePlaces(dumbbells)).toBe(0);
+    expect(written(dumbbells).slice(0, 3)).toEqual(['1', '2', '3']);
+    expect(scalePlaces(scaleValues(REPS_SCALE, 8, 12))).toBe(0);
+    expect(scalePlaces(scaleValues(weightScale('barbell', 'lb')))).toBe(0);
+  });
+
+  it('writes every value on a half-kilo scale to one decimal', () => {
+    const bar = scaleValues(weightScale('barbell', 'kg'));
+    expect(scalePlaces(bar)).toBe(1);
+    expect(written(bar).slice(16, 20)).toEqual(['60.0', '62.5', '65.0', '67.5']);
+    // A half kilo anywhere on a whole-kilo ruler turns the whole ruler.
+    const rack = scaleValues(weightScale('dumbbellOne', 'kg'), 12.5);
+    expect(written(rack).slice(11, 14)).toEqual(['12.0', '12.5', '13.0']);
+  });
+
+  it('writes every value to two decimals once a 1.25 is on the scale', () => {
+    const bar = scaleValues(weightScale('barbell', 'kg'), 61.25);
+    expect(scalePlaces(bar)).toBe(2);
+    expect(written(bar).slice(16, 19)).toEqual(['60.00', '61.25', '62.50']);
+  });
+
+  it('gives every value the same decimals, on every scale a card can show', () => {
+    for (const cls of CLASSES) {
+      for (const unit of UNITS) {
+        for (const extra of [null, 12.5, 61.25]) {
+          const decimals = new Set(
+            written(scaleValues(weightScale(cls, unit), extra)).map(
+              (s) => s.split('.')[1]?.length ?? 0,
+            ),
+          );
+          expect(decimals.size, `${cls} ${unit} ${extra}`).toBe(1);
+        }
+      }
+    }
+  });
+
+  it('never rounds a value away to fit the scale', () => {
+    expect(formatOnScale(61.25, 0)).toBe('61.25');
+    expect(formatOnScale(62.5, 0)).toBe('62.5');
+    expect(formatOnScale(60, 2)).toBe('60.00');
+    // Arithmetic noise is not a decimal of its own.
+    expect(formatOnScale(0.1 + 0.2, 1)).toBe('0.3');
+    expect(placesOf(60.000000001)).toBe(0);
   });
 });
 

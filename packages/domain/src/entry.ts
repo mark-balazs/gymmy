@@ -147,6 +147,44 @@ export function scaleValues(scale: EntryScale, ...extras: (number | null | undef
   return [...out].sort((a, b) => a - b);
 }
 
+/** The decimals a number needs at the card's resolution: 0 for 60, 1 for
+ *  62.5, 2 for 61.25. */
+export function placesOf(v: number): 0 | 1 | 2 {
+  const r = round2(v);
+  if (Number.isInteger(r)) return 0;
+  return Math.abs(r * 10 - Math.round(r * 10)) < 1e-6 ? 1 : 2;
+}
+
+/**
+ * How many decimals every value on a scale is written with: the most that any
+ * of its stops needs.
+ *
+ * Written each at its own length, a barbell ruler read 60, 62.5, 65, 67.5 — a
+ * number that changed width at every other stop, with the unit beside it
+ * jumping sideways as the needle moved. One count for the whole scale reads
+ * 60.0, 62.5, 65.0; a 61.25 anywhere on it makes that 60.00, 61.25, 62.50; and
+ * a scale of whole numbers (reps, a one-kilo dumbbell rack) stays whole.
+ * Pass the same stops the control shows — `scaleValues` — so the number looks
+ * the same on the ruler, the buttons and the keypad.
+ */
+export function scalePlaces(values: readonly number[]): 0 | 1 | 2 {
+  let most: 0 | 1 | 2 = 0;
+  for (const v of values) {
+    const p = placesOf(v);
+    if (p > most) most = p;
+    if (most === 2) break;
+  }
+  return most;
+}
+
+/**
+ * A value written with a scale's decimals, and never fewer than the value
+ * itself needs — formatting may add a trailing zero, but it never rounds a
+ * number somebody has away. Display only: the stored value is unchanged.
+ */
+export const formatOnScale = (v: number, places: number): string =>
+  round2(v).toFixed(Math.max(places, placesOf(v)));
+
 /**
  * What one tap on `−` or `+` moves the weight by.
  *

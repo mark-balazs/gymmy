@@ -9,4 +9,4 @@ appears:
   confluence: ["934608916", "934445118", "934445138"]
 ---
 
-Train never opens the phone's keyboard: weight and reps are set with Buttons (default) or a Ruler, and tapping a number opens gymmy's own keypad. 'Load the bar' (on by default) shows barbell weight as plates.
+Train never opens the phone's keyboard: weight and reps are set with Buttons (default) or a Ruler, and tapping a number opens gymmy's own keypad. 'Load the bar' (on by default) shows barbell weight as plates. Every weight on a scale is written with the same decimals (60.0, 62.5; whole kilos stay whole) on every control, so the number keeps its width as it changes.

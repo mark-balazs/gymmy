@@ -16,6 +16,7 @@
  */
 
 import { useId, useState } from 'react';
+import { formatOnScale } from '@athletic/domain';
 import { useT } from '@/lib/client/hooks';
 import { Keypad, formatAmount } from './keypad';
 
@@ -52,6 +53,13 @@ export interface ValueStepperProps {
   /** Whether the keypad's point key works. */
   decimals: boolean;
   /**
+   * The decimals the number is written with — `scalePlaces` of the ruler's
+   * stops for the same lift — so 60.0 on the ruler is 60.0 here too, and the
+   * number keeps its shape as `−` and `+` move it. Without it, a number is
+   * written at its own length.
+   */
+  places?: number;
+  /**
    * What nothing reads as, when nothing is a real answer — "None" for the
    * weight on a bodyweight lift, where 0 and empty both mean no added weight.
    * Without it an empty value shows as a dash and 0 as 0.
@@ -70,6 +78,7 @@ export function ValueStepper({
   describedBy,
   typeLabel,
   decimals,
+  places,
   noneLabel,
 }: ValueStepperProps) {
   const tr = useT();
@@ -85,7 +94,13 @@ export function ValueStepper({
 
   const current = value ?? 0;
   const empty = value === null || (noneLabel !== undefined && value === 0);
-  const shown = empty ? (noneLabel ?? '—') : formatAmount(current);
+  const shown = empty
+    ? (noneLabel ?? '—')
+    : places === undefined
+      ? formatAmount(current)
+      : formatOnScale(current, places);
+  // Heard as anybody would say it: "60 kg", not "60.0 kg".
+  const said = empty ? shown : formatAmount(current);
 
   const bump = (dir: 1 | -1) => {
     const next = Math.round((current + dir * step) * 100) / 100;
@@ -143,7 +158,7 @@ export function ValueStepper({
         +
       </button>
       <span id={valueId} className="sr-only">
-        {empty || !unit ? shown : `${shown} ${unit}`}
+        {empty || !unit ? said : `${said} ${unit}`}
       </span>
       <Keypad
         open={opener !== null}
@@ -151,6 +166,7 @@ export function ValueStepper({
         title={word}
         unit={unit}
         value={value}
+        places={places}
         decimals={decimals}
         onDone={onChange}
         onClose={() => setOpener(null)}
