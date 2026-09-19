@@ -35,7 +35,7 @@ somebody a day.
 apps/web            Next.js app — UI, auth, sync endpoint, database schema
 packages/domain     the training logic: types, model, coach, seed
 e2e                 user-flow write-ups and Playwright tests
-legacy/             the pre-Next vanilla build, kept for reference
+legacy/             the pre-Next vanilla build: gitignored, so never in a clone
 ```
 
 `@athletic/domain` has **no runtime dependencies at all**. That is enforced
