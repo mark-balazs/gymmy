@@ -162,8 +162,8 @@ const isScored = (pattern: Pattern | null): pattern is Pattern =>
  * can (owner, 2026-09-19).
  *
  * The index counts only real weights, plus pull-ups, chin-ups and dips at
- * bodyweight (`countsForIndex`). Left to the pool order, about two in five
- * generated weeks gave a trained movement nothing but a Leg Press, a Smith
+ * bodyweight (`countsForIndex`). Left to the pool order, 41% of generated
+ * weeks gave a trained movement nothing but a Leg Press, a Smith
  * squat or a Lat Pulldown, and so a zero in the index for a movement the person
  * trains every week. The movement's first slot in the week now takes a lift
  * that counts; a machine still goes to any other slot.

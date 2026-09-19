@@ -58,9 +58,12 @@ The pattern is chosen first; two rules then act inside it.
   gives what it forces in the same preference, and when it overwrites a
   movement's main slot, that movement's next slot takes the preference over.
   `countsForIndex` in `strength.ts` is the one test for both the generator and
-  the index. Across every preset, day count, location, bias and all 997
-  offsets, weeks that left a trained scored movement with nothing the index
-  counts went from 41% (65% of seven-pattern gym weeks) to none.
+  the index. Before this rule, 41% of generated weeks left a trained scored
+  movement with nothing the index counts — measured over every preset, legal
+  day count, gym or home, bias and all 997 offsets, 143,568 weeks. After it,
+  none do. The only case left is a pool with no lift that counts, and no
+  scored movement has one today, at the gym or at home (`coach.test.ts`
+  checks every main slot in every configuration).
 - **The range follows the movement, not the slot** (GYM-67): 6–12 reps, 8–12
   for rotation, 10–15 for isolation, 30–40 m for a carry — in a finisher, a
   full-body accessory slot or whatever the repair writes.

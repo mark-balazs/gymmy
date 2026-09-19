@@ -232,9 +232,9 @@ describe('program generation', () => {
 
 describe('a lift the strength index counts', () => {
   /* The index counts only real weights, plus pull-ups, chin-ups and dips at
-     bodyweight (D-022). Left to the pool order, 41% of generated weeks — 65% of
-     seven-pattern gym weeks — gave a movement the person trains nothing but a
-     machine or a push-up, and so a zero in the index for it. The owner's
+     bodyweight (D-022). Left to the pool order, 41% of generated weeks (all
+     144 `configs` at all 997 offsets) gave a movement the person trains nothing
+     but a machine or a push-up, and so a zero in the index for it. The owner's
      decision (2026-09-19): keep the rule, and have each scored movement's main
      slot, its first in the week, prefer a lift that counts. */
   const varieties = Array.from({ length: 91 }, (_, i) => i * 11);
