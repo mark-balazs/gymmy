@@ -2,8 +2,6 @@
 id: bgf-min-group
 status: planned
 decided: "owner, week of 2026-09-14; Confluence 935034881"
-supersedes:
-superseded_by:
 appears:
   repo: []
   copy: []

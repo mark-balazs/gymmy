@@ -2,8 +2,6 @@
 id: name-placeholder
 status: current
 decided: "Confluence 949649424; owner, week of 2026-09-14"
-supersedes:
-superseded_by:
 appears:
   repo: []
   copy: ["app.name", "title.home"]

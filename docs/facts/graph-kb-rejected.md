@@ -2,8 +2,6 @@
 id: graph-kb-rejected
 status: current
 decided: "D-009; 511419a"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/README.md#why-this-is-markdown-and-not-a-graph"]
   copy: []

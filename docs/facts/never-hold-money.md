@@ -2,8 +2,6 @@
 id: never-hold-money
 status: current
 decided: "Confluence 949551107"
-supersedes:
-superseded_by:
 appears:
   repo: []
   copy: []

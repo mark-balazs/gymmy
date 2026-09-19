@@ -2,8 +2,6 @@
 id: bgf-open-questions
 status: current
 decided: "Confluence 945881099"
-supersedes:
-superseded_by:
 appears:
   repo: []
   copy: []

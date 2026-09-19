@@ -2,8 +2,6 @@
 id: trainer-tiers
 status: planned
 decided: "Confluence 949551107; owner, week of 2026-09-14"
-supersedes: coach-flat-price
-superseded_by:
 appears:
   repo: []
   copy: []

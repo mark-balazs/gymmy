@@ -2,8 +2,6 @@
 id: one-sync-endpoint
 status: current
 decided: "D-001; 0782e80"
-supersedes:
-superseded_by:
 appears:
   repo: ["README.md#offline-first", "docs/architecture.md#how-a-set-gets-saved", "docs/architecture.md#the-cursor-is-the-subtle-part", "docs/data.md#sync-protocol", "docs/data.md#two-stores-one-shape", "docs/openapi.yaml#/info", "docs/openapi.yaml#/paths/~1api~1sync"]
   copy: []

@@ -2,8 +2,6 @@
 id: off-plan-movements
 status: current
 decided: "D-013"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/training-model.md#movements-the-app-records-but-never-prescribes", "e2e/flows/10-something-else.md#what-the-person-does", "packages/domain/src/catalogue.ts"]
   copy: []

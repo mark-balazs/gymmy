@@ -2,8 +2,6 @@
 id: checked-docs
 status: current
 decided: "D-010"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/README.md#the-map", "docs/data.md#two-stores-one-shape", "CLAUDE.md#the-api-is-the-one-exception", "CLAUDE.md#diagrams-in-confluence", "docs/openapi.yaml#/info"]
   copy: []

@@ -2,8 +2,6 @@
 id: train-last-time
 status: current
 decided: "D-014; c048e7a"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/training-model.md#what-the-train-card-offers-you", "e2e/flows/04-progression.md#expected--the-record-is-there", "e2e/flows/11-entering-a-set.md#what-the-person-does", "e2e/flows/02-logging-a-session.md#steps"]
   copy: ["train.lastTime", "train.noHistory", "entry.emptyBar"]

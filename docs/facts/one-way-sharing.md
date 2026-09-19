@@ -2,8 +2,6 @@
 id: one-way-sharing
 status: current
 decided: "D-011"
-supersedes:
-superseded_by:
 appears:
   repo: []
   copy: []

@@ -2,8 +2,6 @@
 id: bgf-distribution
 status: planned
 decided: "Confluence 945881099; 945848321"
-supersedes:
-superseded_by:
 appears:
   repo: []
   copy: []

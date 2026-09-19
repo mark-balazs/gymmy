@@ -2,8 +2,6 @@
 id: exercise-ids-permanent
 status: current
 decided: "D-017; owner, week of 2026-09-14"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/data.md#the-exercise-library", "docs/data.md#what-is-stored", "docs/architecture.md#plans-and-the-one-place-two-people-share-a-row", "packages/domain/src/catalogue-ids.ts"]
   copy: []

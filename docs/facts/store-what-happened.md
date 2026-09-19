@@ -2,8 +2,6 @@
 id: store-what-happened
 status: current
 decided: "80b1d9b"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/README.md#invariants", "docs/data.md#the-demo-account"]
   copy: []

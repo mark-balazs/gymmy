@@ -2,8 +2,6 @@
 id: goal-entry-point
 status: current
 decided: "D-012; Confluence 934608916"
-supersedes:
-superseded_by:
 appears:
   repo: ["apps/web/src/components/goal.tsx"]
   copy: ["goal.set", "goal.target", "goal.weeks", "goal.weeksN", "goal.nowAt", "goal.save"]

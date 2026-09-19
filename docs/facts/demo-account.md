@@ -2,8 +2,6 @@
 id: demo-account
 status: current
 decided: "80b1d9b; e3aa49a"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/data.md#the-demo-account", "README.md#the-demo-account"]
   copy: []

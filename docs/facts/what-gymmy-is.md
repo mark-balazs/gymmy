@@ -2,8 +2,6 @@
 id: what-gymmy-is
 status: current
 decided: "Confluence 934608897 (What gymmy is)"
-supersedes:
-superseded_by:
 appears:
   repo: ["README.md#gymmy", "docs/architecture.md#the-system-and-what-it-talks-to"]
   copy: []

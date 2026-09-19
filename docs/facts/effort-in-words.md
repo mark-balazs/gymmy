@@ -2,8 +2,6 @@
 id: effort-in-words
 status: current
 decided: "D-014; 2cc3b1b"
-supersedes:
-superseded_by:
 appears:
   repo: ["e2e/flows/02-logging-a-session.md#expected", "e2e/flows/02-logging-a-session.md#notes", "docs/training-model.md#what-the-train-card-offers-you", "docs/training-model.md#it-refuses-to-estimate-above-10-reps-to-failure", "docs/openapi.yaml#/components/schemas/SetLog"]
   copy: ["effort.q", "effort.0", "effort.1", "effort.2", "effort.4", "effort.0s", "effort.1s", "effort.2s", "effort.4s"]

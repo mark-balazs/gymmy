@@ -2,8 +2,6 @@
 id: ownership-open
 status: current
 decided: "Confluence 934838274"
-supersedes:
-superseded_by:
 appears:
   repo: []
   copy: []

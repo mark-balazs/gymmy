@@ -2,8 +2,6 @@
 id: goals-grant-permission
 status: current
 decided: "D-012"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/README.md#invariants", "docs/training-model.md#goals-and-the-permission-they-grant", "docs/data.md#what-is-stored", "docs/openapi.yaml#/components/schemas/Goal"]
   copy: ["goal.explain", "goal.set", "prog.kregressed", "prog.kstalled", "prog.kdormant"]

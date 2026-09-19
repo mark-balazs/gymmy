@@ -164,9 +164,9 @@ offline; it would simply reappear on that device's next push.
 ```bash
 npm run dev              # app against the local database
 npm run build            # production build
-npm run typecheck        # both workspaces
-npm test                 # domain unit tests
-npm run test:e2e         # Playwright flows (needs db + build)
+npm run typecheck        # every workspace
+npm test                 # domain, web and e2e suites (needs db + build)
+npm run test:e2e         # Playwright flows only; E2E_PORT picks the port
 npm run lint
 npm run format
 npm run db:generate      # new migration from schema changes

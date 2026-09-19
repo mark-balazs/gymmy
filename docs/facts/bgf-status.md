@@ -2,8 +2,6 @@
 id: bgf-status
 status: current
 decided: "Confluence 945881099; 934543460"
-supersedes:
-superseded_by:
 appears:
   repo: []
   copy: []

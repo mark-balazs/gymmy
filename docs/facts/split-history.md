@@ -2,8 +2,6 @@
 id: split-history
 status: current
 decided: "D-004"
-supersedes:
-superseded_by:
 appears:
   repo: ["README.md#coverage-is-historised", "docs/README.md#invariants", "docs/training-model.md#historisation", "e2e/flows/07-choosing-a-split.md#historisation--the-part-that-is-easy-to-get-wrong", "e2e/flows/07-choosing-a-split.md#expected-2", "e2e/flows/07-choosing-a-split.md#boundaries", "e2e/flows/03-weekly-coverage.md#weeks-keep-their-own-meaning", "docs/data.md#what-is-stored", "docs/openapi.yaml#/components/schemas/SplitPeriod"]
   copy: ["week.scoredAs", "week.scoredAsWhy", "onboard.q0.sub", "split.editIntro", "prog.patternsBody", "prog.cellNotAsked"]

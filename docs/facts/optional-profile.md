@@ -2,8 +2,6 @@
 id: optional-profile
 status: current
 decided: "6f8cd02; Confluence 934608916"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/training-model.md#true-of-both", "docs/openapi.yaml#/components/schemas/Profile"]
   copy: ["set.you", "set.aboutYou", "set.name", "set.namePlaceholder", "set.birthYear", "set.birthYearPlaceholder", "set.birthYearWhy", "set.yearBad", "set.picAdd", "set.picChange", "set.picRemove", "set.picHint", "set.picRemoved", "set.picUndo", "set.picBad", "set.picTooBig", "set.sex", "set.sexWhy", "sex.unspecified", "sex.female", "sex.male", "set.height"]

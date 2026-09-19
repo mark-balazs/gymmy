@@ -2,8 +2,6 @@
 id: dumbbell-pair
 status: current
 decided: "D-016; owner, week of 2026-09-14"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/training-model.md#what-the-weight-box-is-counting", "docs/training-model.md#history-before-the-convention", "e2e/flows/09-load-convention.md#the-convention", "e2e/flows/09-load-convention.md#what-the-person-does", "e2e/flows/09-load-convention.md#deliberately-not-covered-here"]
   copy: ["load.dumbbellPair", "prog.conventionChanged"]

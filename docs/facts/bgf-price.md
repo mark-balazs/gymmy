@@ -2,8 +2,6 @@
 id: bgf-price
 status: planned
 decided: "Confluence 934543460; 945848321"
-supersedes:
-superseded_by:
 appears:
   repo: []
   copy: []

@@ -2,8 +2,6 @@
 id: local-first
 status: current
 decided: "D-001"
-supersedes:
-superseded_by:
 appears:
   repo: ["README.md#offline-first", "docs/README.md#invariants", "docs/architecture.md#the-pieces-that-run", "docs/architecture.md#how-a-set-gets-saved", "e2e/flows/05-offline.md#flow-05--training-offline", "e2e/flows/05-offline.md#expected", "docs/openapi.yaml#/info"]
   copy: ["sync.offline", "sync.pending"]

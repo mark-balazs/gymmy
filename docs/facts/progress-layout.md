@@ -2,8 +2,6 @@
 id: progress-layout
 status: current
 decided: "f31e53a; Confluence 934608916"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/testing.md#fragilities-worth-knowing", "apps/web/src/app/(app)/progress/page.tsx"]
   copy: ["title.progress", "prog.needsLook", "goal.yours", "prog.strength", "prog.dots", "prog.patterns", "prog.patternsBody", "prog.allLifts", "prog.deltaUp", "prog.deltaDown", "prog.deltaFlat", "prog.agoWeeks", "prog.agoFirst", "prog.empty"]

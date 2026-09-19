@@ -2,8 +2,6 @@
 id: coverage-thesis
 status: current
 decided: "Confluence 934608897 (v6)"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/training-model.md#patterns", "e2e/flows/03-weekly-coverage.md#flow-03--weekly-coverage"]
   copy: ["week.explain", "split.sevenPatternWhy"]

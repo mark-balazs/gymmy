@@ -14,6 +14,7 @@ folder says how it is *built*, and which parts will bite you.
 | [openapi.yaml](./openapi.yaml) | **The HTTP contract.** Every endpoint, every row schema, every status code |
 | [testing.md](./testing.md) | The three test layers and which one a change belongs in |
 | [facts/](./facts/README.md) | **What is true about gymmy**, one file per rule, decision, plan or price, each saying where else it is stated |
+| [fact-check.md](./fact-check.md) | The weekly check that compares the register with Confluence and the code, and files each mismatch |
 
 `openapi.yaml` is the only document here a build can check: `openapi.test.ts`
 holds it against the Zod schemas the server validates with, so it cannot quietly

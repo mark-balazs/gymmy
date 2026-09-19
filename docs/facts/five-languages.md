@@ -2,8 +2,6 @@
 id: five-languages
 status: current
 decided: "ed4067a"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/README.md#invariants", "e2e/flows/06-language.md#flow-06--language", "e2e/flows/06-language.md#expected", "e2e/flows/06-language.md#not-translated-deliberately", "docs/openapi.yaml#/components/schemas/Profile", "legacy/README.md#languages"]
   copy: ["set.language"]

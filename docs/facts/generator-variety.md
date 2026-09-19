@@ -2,8 +2,6 @@
 id: generator-variety
 status: current
 decided: "8053cfc"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/training-model.md#how-far-into-the-library-a-week-reaches", "docs/data.md#the-exercise-library"]
   copy: ["onboard.q2.title", "onboard.q2.sub", "onboard.where.gym", "onboard.where.gymh", "onboard.where.home", "onboard.where.homeh", "onboard.q3.title", "onboard.q3.sub", "bias.none", "bias.shoulders", "bias.arms", "bias.glutes", "bias.back", "bias.chest", "set.where", "set.bias"]

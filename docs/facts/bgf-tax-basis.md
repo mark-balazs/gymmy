@@ -2,8 +2,6 @@
 id: bgf-tax-basis
 status: current
 decided: "Confluence 934543460; 945815554"
-supersedes:
-superseded_by:
 appears:
   repo: []
   copy: []

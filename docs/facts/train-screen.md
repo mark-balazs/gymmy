@@ -2,8 +2,6 @@
 id: train-screen
 status: current
 decided: "cbb4db0"
-supersedes:
-superseded_by:
 appears:
   repo: ["e2e/flows/02-logging-a-session.md#steps", "e2e/flows/11-entering-a-set.md#what-the-person-does", "e2e/flows/06-language.md#expected", "e2e/flows/01-first-run.md#steps"]
   copy: ["title.train", "common.day", "train.ofSets", "train.rowDone", "train.logSet", "train.addAnother", "train.nothingPlanned"]

@@ -2,8 +2,6 @@
 id: new-field-rollout
 status: current
 decided: "7ddf6b1; Confluence 934445138"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/data.md#adding-a-field-to-an-existing-table", "docs/data.md#rollout-windows-what-a-device-one-build-behind-sees", "docs/architecture.md#plans-and-the-one-place-two-people-share-a-row", "docs/architecture.md#things-that-will-surprise-you"]
   copy: []

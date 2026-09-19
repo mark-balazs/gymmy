@@ -2,8 +2,6 @@
 id: rejected-routes
 status: current
 decided: "Confluence 934609007"
-supersedes:
-superseded_by:
 appears:
   repo: []
   copy: []

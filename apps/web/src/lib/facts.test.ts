@@ -28,8 +28,7 @@ type Fact = {
   id: string;
   status: string;
   decided: unknown;
-  supersedes: string[];
-  supersededBy: string[];
+  statement: string;
   appears: { repo: string[]; copy: string[]; tests: string[]; confluence: string[] };
 };
 
@@ -42,15 +41,22 @@ const facts: Fact[] = readdirSync(DIR)
     const text = readFileSync(join(DIR, file), 'utf8');
     const head = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/.exec(text);
     if (!head) throw new Error(`${file}: no front matter`);
-    const m = yaml.load(head[1]) as Record<string, unknown>;
+    const m = yaml.load(head[1] ?? '') as Record<string, unknown>;
     const a = (m.appears ?? {}) as Record<string, unknown>;
     return {
       file,
       id: String(m.id),
       status: String(m.status),
       decided: m.decided,
-      supersedes: list(m.supersedes),
-      supersededBy: list(m.superseded_by),
+      // The first paragraph after the front matter, on one line.
+      statement: (
+        text
+          .slice(head[0].length)
+          .trim()
+          .split(/\r?\n\s*\r?\n/)[0] ?? ''
+      )
+        .replace(/\s*\r?\n\s*/g, ' ')
+        .trim(),
       appears: {
         repo: list(a.repo),
         copy: list(a.copy),
@@ -71,7 +77,7 @@ function anchorsOf(markdown: string): Set<string> {
     if (/^\s*(```|~~~)/.test(line)) fenced = !fenced;
     const h = !fenced && /^#{1,6}\s+(.*?)\s*#*\s*$/.exec(line);
     if (!h) continue;
-    const base = h[1]
+    const base = (h[1] ?? '')
       .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
       .replace(/<[^>]+>/g, '')
       .toLowerCase()
@@ -96,7 +102,7 @@ function resolvesInYaml(file: string, pointer: string): boolean {
 }
 
 function resolves(pointer: string): boolean {
-  const [path, anchor] = pointer.split('#', 2);
+  const [path = '', anchor] = pointer.split('#', 2);
   if (!existsSync(join(ROOT, path))) return false;
   if (anchor === undefined) return true;
   if (/\.ya?ml$/.test(path)) return resolvesInYaml(path, anchor);
@@ -114,36 +120,11 @@ describe('the fact register', () => {
   it('names every file after its id, with a status and where it was decided', () => {
     const bad = facts.flatMap((f) => [
       ...(f.file === `${f.id}.md` ? [] : [`${f.file}: id is ${f.id}`]),
-      ...(['current', 'planned', 'superseded'].includes(f.status)
-        ? []
-        : [`${f.file}: status ${f.status}`]),
+      // No 'superseded': a replaced fact is deleted, not kept (git and the
+      // Decision log hold the history), so the register does not only grow.
+      ...(['current', 'planned'].includes(f.status) ? [] : [`${f.file}: status ${f.status}`]),
       ...(list(f.decided).join('').trim() ? [] : [`${f.file}: no decided`]),
     ]);
-    expect(bad).toEqual([]);
-  });
-
-  it('links a superseded fact to what replaced it, both ways', () => {
-    /* The old fact stays so the reasoning survives; a reader landing on it
-       has to be able to find what is true now, and the new one has to say
-       what it replaced. */
-    const bad = facts.flatMap((f) => {
-      const out: string[] = [];
-      if (f.status === 'superseded' && f.supersededBy.length === 0)
-        out.push(`${f.id}: superseded by nothing`);
-      for (const next of f.supersededBy) {
-        const n = byId.get(next);
-        if (!n) out.push(`${f.id}: superseded_by ${next}, which does not exist`);
-        else if (!n.supersedes.includes(f.id))
-          out.push(`${next}: does not say it supersedes ${f.id}`);
-      }
-      for (const old of f.supersedes) {
-        const o = byId.get(old);
-        if (!o) out.push(`${f.id}: supersedes ${old}, which does not exist`);
-        else if (!o.supersededBy.includes(f.id))
-          out.push(`${old}: does not say it was superseded by ${f.id}`);
-      }
-      return out;
-    });
     expect(bad).toEqual([]);
   });
 
@@ -172,13 +153,22 @@ describe('the fact register', () => {
     expect(bad).toEqual([]);
   });
 
-  it('indexes every fact, and nothing that is not one', () => {
+  it('indexes every fact, word for word, and nothing that is not one', () => {
     /* The index is what an AI session actually loads. A fact missing from it
-       is a fact nobody starts from. */
+       is a fact nobody starts from, and an index line that says something
+       other than its file is the very drift this register exists to stop. */
     const index = readFileSync(join(DIR, 'README.md'), 'utf8');
-    const linked = new Set([...index.matchAll(/\]\(([^)#\s]+)\.md\)/g)].map((m) => m[1]));
-    expect(facts.filter((f) => !linked.has(f.id)).map((f) => f.id)).toEqual([]);
-    expect([...linked].filter((id) => !byId.has(id))).toEqual([]);
+    const lines = new Map<string, string>(
+      [...index.matchAll(/^- \[[^\]]+\]\(([^)#\s]+)\.md\) — (.*)$/gm)].map((m) => [m[1]!, m[2]!]),
+    );
+    const bad = facts.flatMap((f) => {
+      const got = lines.get(f.id);
+      if (got === undefined) return [`${f.id}: not in the index`];
+      const want = (f.status === 'planned' ? '(planned) ' : '') + f.statement;
+      return got === want ? [] : [`${f.id}: the index line differs from the file`];
+    });
+    expect(bad).toEqual([]);
+    expect([...lines.keys()].filter((id) => !byId.has(id))).toEqual([]);
   });
 });
 

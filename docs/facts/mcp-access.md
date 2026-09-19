@@ -2,8 +2,6 @@
 id: mcp-access
 status: planned
 decided: "Confluence 934838294"
-supersedes:
-superseded_by:
 appears:
   repo: []
   copy: []

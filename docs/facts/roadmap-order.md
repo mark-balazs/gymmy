@@ -2,8 +2,6 @@
 id: roadmap-order
 status: planned
 decided: "Confluence 934838274"
-supersedes:
-superseded_by:
 appears:
   repo: []
   copy: []

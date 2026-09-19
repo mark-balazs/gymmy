@@ -2,8 +2,6 @@
 id: e1rm-rule
 status: current
 decided: "D-019; owner, week of 2026-09-14"
-supersedes: e1rm-twelve-reps
-superseded_by:
 appears:
   repo: ["docs/training-model.md#it-refuses-to-estimate-above-10-reps-to-failure", "README.md#two-strength-numbers", "packages/domain/src/model.ts"]
   copy: ["prog.strengthNot", "prog.dotsEstimate"]

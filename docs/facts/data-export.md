@@ -2,8 +2,6 @@
 id: data-export
 status: planned
 decided: "Confluence 934608916"
-supersedes:
-superseded_by:
 appears:
   repo: []
   copy: []

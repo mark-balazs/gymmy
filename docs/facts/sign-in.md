@@ -2,8 +2,6 @@
 id: sign-in
 status: current
 decided: "Confluence 934576149; 5736c24"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/architecture.md#the-system-and-what-it-talks-to", "e2e/flows/08-a-full-journey.md#preconditions", "e2e/flows/08-a-full-journey.md#notes", "docs/testing.md#fragilities-worth-knowing", "docs/openapi.yaml#/paths/~1api~1auth~1email-code", "docs/openapi.yaml#/paths/~1api~1auth~1callback~1resend", "README.md#known-gaps"]
   copy: ["app.signIn"]

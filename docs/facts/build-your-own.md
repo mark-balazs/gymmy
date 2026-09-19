@@ -2,8 +2,6 @@
 id: build-your-own
 status: current
 decided: "d37556d"
-supersedes:
-superseded_by:
 appears:
   repo: ["README.md#splits-and-coverage", "README.md#known-gaps", "e2e/flows/07-choosing-a-split.md#building-your-own", "e2e/flows/07-choosing-a-split.md#expected-3", "e2e/flows/07-choosing-a-split.md#notes", "docs/training-model.md#historisation"]
   copy: ["split.buildOwn", "split.customH", "split.editTitle", "split.editIntro", "split.dayType", "split.slotName", "split.slotHolds", "split.addSlot", "split.addDay", "split.removeDay", "split.lastSlot", "split.moveUp", "split.moveDown", "split.editSlot", "split.removeSlot", "split.pinTitle", "split.pinNote", "split.reach", "split.drops", "split.save", "split.saveQ", "split.saveBody", "set.editSplit", "set.daysCustom"]

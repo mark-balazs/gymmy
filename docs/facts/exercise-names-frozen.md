@@ -2,8 +2,6 @@
 id: exercise-names-frozen
 status: current
 decided: "D-017"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/data.md#rollout-windows-what-a-device-one-build-behind-sees", "packages/domain/src/catalogue.ts"]
   copy: []

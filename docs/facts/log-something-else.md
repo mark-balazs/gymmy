@@ -2,8 +2,6 @@
 id: log-something-else
 status: current
 decided: "D-018; owner, week of 2026-09-14"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/training-model.md#training-outside-the-plan", "e2e/flows/10-something-else.md#why-this-flow-exists", "e2e/flows/10-something-else.md#what-the-person-does", "e2e/flows/10-something-else.md#what-these-tests-hold", "docs/data.md#rollout-windows-what-a-device-one-build-behind-sees"]
   copy: ["train.logOther", "train.offPlan", "train.offPlanNote", "picker.search", "picker.none"]

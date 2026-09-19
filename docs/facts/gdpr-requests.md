@@ -2,8 +2,6 @@
 id: gdpr-requests
 status: current
 decided: "Confluence 934608974"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/data.md#deleting-an-account"]
   copy: ["set.deleteTitle", "set.deleteBody"]

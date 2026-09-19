@@ -2,8 +2,6 @@
 id: twenty-tables
 status: current
 decided: "Confluence 934445138; schema.ts"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/data.md#what-is-stored", "docs/data.md#two-stores-one-shape", "docs/data.md#the-tables-that-are-not-synced", "docs/data.md#sync-protocol", "docs/data-model.mmd", "docs/openapi.yaml#/components/schemas/Synced", "apps/web/src/lib/db/schema.ts"]
   copy: []

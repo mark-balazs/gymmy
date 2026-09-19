@@ -2,8 +2,6 @@
 id: plans-server-only
 status: current
 decided: "D-011"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/architecture.md#plans-and-the-one-place-two-people-share-a-row", "docs/data.md#the-tables-that-are-not-synced", "docs/openapi.yaml#/tags"]
   copy: ["coach.offline"]

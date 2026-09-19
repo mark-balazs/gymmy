@@ -2,8 +2,6 @@
 id: silence-is-success
 status: current
 decided: "D-012; Confluence 934608897"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/training-model.md#goals-and-the-permission-they-grant", "docs/openapi.yaml#/components/schemas/Goal"]
   copy: ["goal.explain"]

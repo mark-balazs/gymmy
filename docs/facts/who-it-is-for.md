@@ -2,8 +2,6 @@
 id: who-it-is-for
 status: current
 decided: "Confluence 934543418 (Who it is for)"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/architecture.md#the-system-and-what-it-talks-to"]
   copy: []

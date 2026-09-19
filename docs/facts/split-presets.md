@@ -2,8 +2,6 @@
 id: split-presets
 status: current
 decided: "d37556d (splits.ts)"
-supersedes:
-superseded_by:
 appears:
   repo: ["README.md#splits-and-coverage", "docs/training-model.md#splits", "e2e/flows/07-choosing-a-split.md#the-presets", "e2e/flows/07-choosing-a-split.md#understanding-one-before-choosing-it", "e2e/flows/07-choosing-a-split.md#steps--at-first-run", "packages/domain/src/splits.ts"]
   copy: ["set.split", "onboard.q0.title", "split.sevenPattern", "split.sevenPatternH", "split.pushPullLegs", "split.pushPullLegsH", "split.upperLower", "split.upperLowerH", "split.custom", "split.minDays", "split.info", "split.about", "split.range", "split.complete", "split.completeBody", "split.sevenPatternWhy", "split.pushPullLegsWhy", "split.upperLowerWhy"]

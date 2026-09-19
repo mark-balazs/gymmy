@@ -70,10 +70,12 @@ Two ways the suite lies to you if you skip that:
 
 - **`next start` serves the previous build.** A UI change tests the old one and
   passes for the wrong reason.
-- **`reuseExistingServer` is on outside CI.** A `next dev` server left on :3000
-  gets reused, and the service worker does not register in development — so the
-  offline and PWA-update specs fail for a reason that has nothing to do with your
-  change.
+- **`reuseExistingServer` is on outside CI.** A `next dev` server left on the
+  suite's port gets reused, and the service worker does not register in
+  development — so the offline and PWA-update specs fail for a reason that has
+  nothing to do with your change. Worse, a server from another project answers
+  every page with a 404. The port is 3000 unless `E2E_PORT` says otherwise;
+  point it at a free port rather than stopping somebody else's server.
 
 ## Fragilities worth knowing
 

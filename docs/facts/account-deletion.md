@@ -2,8 +2,6 @@
 id: account-deletion
 status: current
 decided: "D-008"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/data.md#deleting-an-account", "docs/data.md#what-is-stored", "docs/openapi.yaml#/components/securitySchemes/sessionCookie", "README.md#known-gaps"]
   copy: ["set.deleteTitle", "set.deleteBody", "set.deleteGo", "set.deleteQ", "set.deleteWhat", "set.deleteForever", "set.deleteConfirm"]

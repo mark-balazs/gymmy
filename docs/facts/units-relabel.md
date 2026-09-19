@@ -2,8 +2,6 @@
 id: units-relabel
 status: current
 decided: "2cc3b1b"
-supersedes:
-superseded_by:
 appears:
   repo: []
   copy: ["set.units"]

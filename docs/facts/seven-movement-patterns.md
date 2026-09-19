@@ -2,8 +2,6 @@
 id: seven-movement-patterns
 status: current
 decided: "2cc3b1b; Confluence 934608935"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/training-model.md#patterns", "README.md#splits-and-coverage", "e2e/flows/03-weekly-coverage.md#the-isolation-rule", "docs/data.md#what-is-stored", "docs/openapi.yaml#/components/schemas/Pattern", "packages/domain/src/seed.ts"]
   copy: ["pattern.squat", "pattern.hinge", "pattern.lunge", "pattern.push", "pattern.pull", "pattern.rotate", "pattern.carry", "pattern.isolation", "week.explain", "role.Accessory", "slot.isolation"]

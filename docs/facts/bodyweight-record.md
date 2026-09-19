@@ -2,8 +2,6 @@
 id: bodyweight-record
 status: current
 decided: "80b1d9b; D-015"
-supersedes:
-superseded_by:
 appears:
   repo: ["README.md#two-strength-numbers", "docs/training-model.md#true-of-both", "docs/data.md#what-is-stored", "docs/openapi.yaml#/components/schemas/BodyLog"]
   copy: ["prog.bodyWeight", "prog.weightToday", "prog.needWeight", "onboard.q4.sub"]

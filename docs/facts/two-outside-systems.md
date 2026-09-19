@@ -2,8 +2,6 @@
 id: two-outside-systems
 status: current
 decided: "Confluence 934379522 (C1); 5736c24"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/architecture.md#the-system-and-what-it-talks-to", "docs/openapi.yaml#/tags"]
   copy: ["app.signIn", "app.signInWhy"]

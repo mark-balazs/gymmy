@@ -2,8 +2,6 @@
 id: plan-sharing-today
 status: current
 decided: "9e2ea1f; D-011"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/data.md#the-tables-that-are-not-synced", "docs/architecture.md#plans-and-the-one-place-two-people-share-a-row", "docs/openapi.yaml#/paths/~1api~1plans~1{id}~1shares", "docs/openapi.yaml#/paths/~1api~1plans~1{id}"]
   copy: ["coach.openBody", "coach.sharedWith", "coach.nobody", "coach.shareEmail", "coach.shareGroup", "coach.emailHint", "coach.groups", "coach.newGroup", "coach.noGroups", "coach.members", "coach.addMember", "coach.remove"]

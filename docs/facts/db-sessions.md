@@ -2,8 +2,6 @@
 id: db-sessions
 status: current
 decided: "D-005"
-supersedes:
-superseded_by:
 appears:
   repo: ["README.md#stack", "docs/openapi.yaml#/components/securitySchemes/sessionCookie", "docs/openapi.yaml#/paths/~1api~1auth~1signout", "docs/openapi.yaml#/paths/~1api~1plans", "apps/web/src/lib/auth.ts"]
   copy: []

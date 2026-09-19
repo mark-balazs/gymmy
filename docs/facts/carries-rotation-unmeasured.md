@@ -2,8 +2,6 @@
 id: carries-rotation-unmeasured
 status: current
 decided: "D-015; 79155ec (insights.ts)"
-supersedes:
-superseded_by:
 appears:
   repo: ["README.md#two-strength-numbers", "docs/training-model.md#true-of-both", "docs/training-model.md#the-triage"]
   copy: ["prog.noMetric"]

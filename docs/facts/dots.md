@@ -2,8 +2,6 @@
 id: dots
 status: current
 decided: "D-015; owner, week of 2026-09-14"
-supersedes:
-superseded_by:
 appears:
   repo: ["README.md#two-strength-numbers", "docs/training-model.md#dotsat--a-real-dots", "docs/training-model.md#true-of-both", "docs/training-model.md#history-before-the-convention", "docs/openapi.yaml#/components/schemas/Profile"]
   copy: ["prog.dots", "prog.dotsWhat", "prog.dotsBody", "prog.dotsNot", "prog.dotsNeed", "prog.dotsEstimate", "prog.dotsNeedsSex", "prog.dotsFrom", "set.sexWhy", "sex.unspecified"]

@@ -2,8 +2,6 @@
 id: goal-guardrails
 status: current
 decided: "D-012; 3f0416d"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/training-model.md#the-guardrails-and-what-the-evidence-does-not-say", "docs/openapi.yaml#/components/schemas/Goal", "packages/domain/src/goals.ts"]
   copy: ["goal.tooSmall", "goal.tooShort", "goal.tooLong", "goal.tooMany", "goal.ambitious", "goal.noHistory", "goal.why", "goal.whyBody"]

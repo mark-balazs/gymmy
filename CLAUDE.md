@@ -16,11 +16,16 @@ it, not from memory.
 - **Write a decision down when it is made.** When the owner decides something,
   write or change the fact file in the same change and quote the sentence back
   in your reply, so a wrong one can be vetoed.
+- **Curated, never add-only.** Every update reviews the register as a whole:
+  merge facts that overlap, rewrite the ones the change touches, and delete
+  what no longer holds or no longer earns its place. A replaced fact is
+  deleted, not kept — git and the Decision log hold the history. It should get
+  sharper over time, not longer; if the index still grows past ~7,500 tokens,
+  say so.
 - **A changed fact** means its file first, then every place under `appears`.
-- A weekly check compares the register with Confluence and the code and opens
-  one GYM issue per mismatch. It edits nothing.
-- If the index grows much past ~7,500 tokens, propose trimming it — do not drop
-  facts to make it fit.
+- A weekly check ([`docs/fact-check.md`](./docs/fact-check.md)) compares the
+  register with Confluence and the code and opens one GYM issue per mismatch.
+  It edits nothing.
 
 @docs/facts/README.md
 
@@ -51,6 +56,17 @@ Note which layer the test belongs in — `packages/domain` for logic, `apps/web`
 for anything touching the database, `e2e` for what a person does. And remember
 that a fixture starting from a session row can never cover a step that only
 happens on the way in; that is what `e2e/flows/08` exists for.
+
+**The queue lives in Jira, not in anyone's memory.** Open work is project
+**GYM** ([board](https://dextra.atlassian.net/jira/software/projects/GYM/boards/647)).
+Look there before starting. File what you find instead of carrying it in a
+session: a bug as a bug, a question only the owner can settle as
+"Decide: …". Move an issue as its work lands, and comment the commit hash.
+
+**Sweep between features.** The owner asked for housekeeping without being
+prompted: between landed features, look through the tree for bugs, stale docs,
+dead code and tests that pass for the wrong reason. The bar is a concrete
+failure, not a smell. Fix what is safe and in scope; file the rest.
 
 **Update the documentation after you implement.** There are two sets and they
 are not duplicates. Both are part of the change, not a follow-up.
@@ -106,9 +122,10 @@ so a field added there and not added to the spec fails `npm test`.
 
 **Do not re-describe endpoints, fields or status codes on Confluence.** That is
 what the spec is for, and two copies means one of them is wrong. The Confluence
-API page carries the things a spec cannot: why there is one endpoint rather than
-a REST resource per table, and what the held-back cursor is protecting against.
-It links to the YAML for everything else.
+API pages (**API** and its child **POST /api/sync**) carry the things a spec
+cannot: why training data goes through one endpoint rather than a REST resource
+per table, and what the held-down cursor is protecting against. They link to
+the YAML for everything else.
 
 **Prose, not a changelog.** These pages say what is true now and why, in the
 same voice as the rest. Do not append "as of March we also…"; rewrite the
@@ -128,8 +145,9 @@ everyday words:
 - Keep every rule, number, link and warning someone would act on; cut the rest.
   If a page cannot lose half its words, ask whether it is two pages.
 
-The same goes for text in the app itself: explanations belong behind an ⓘ,
-not in paragraphs on the screen.
+The same goes for text in the app itself — explanations belong behind an ⓘ,
+not in paragraphs on the screen — and for replies to the owner: the answer
+first, in plain words.
 
 ### Diagrams in Confluence
 
@@ -195,9 +213,17 @@ on GitHub alike.
 
 `npm test` runs the domain, web and e2e suites. The e2e suite serves the last
 **production build**, so an untested UI change will silently test the previous
-one — build first, always. It also reuses anything already listening on :3000,
-so stop a dev server before running it.
+one — build first, always. It also reuses anything already listening on its
+port (3000 by default), so stop your own dev server first. Other projects on
+this machine may hold 3000 and 3100 — never stop those; run with `E2E_PORT`
+set to a free port instead. A 404 page in a failure snapshot means the suite
+reached the wrong server, not that the app broke.
 
 And the part no command checks: **is the documentation current?** Both sets.
+
+**Done means pushed.** Commit, then push, once per landed piece of work — not
+batched at the end of a session. The owner follows the work from GitHub and
+other devices. If you cannot see CI, say what you verified locally rather than
+calling it green.
 
 @AGENTS.md

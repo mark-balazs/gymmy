@@ -2,8 +2,6 @@
 id: worth-knowing
 status: current
 decided: "D-012"
-supersedes: needs-a-look
-superseded_by:
 appears:
   repo: ["docs/training-model.md#the-triage", "apps/web/src/app/(app)/progress/page.tsx"]
   copy: ["prog.needsLook", "prog.allClear", "prog.kregressed", "prog.kstalled", "prog.kdormant"]

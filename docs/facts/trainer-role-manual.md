@@ -2,8 +2,6 @@
 id: trainer-role-manual
 status: current
 decided: "Confluence 934379679; c81cb8a"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/openapi.yaml#/paths/~1api~1plans", "docs/architecture.md#the-layers-and-what-may-import-what", "apps/web/src/lib/api/plans.ts"]
   copy: []

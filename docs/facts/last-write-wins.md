@@ -2,8 +2,6 @@
 id: last-write-wins
 status: current
 decided: "D-002"
-supersedes:
-superseded_by:
 appears:
   repo: ["README.md#offline-first", "docs/data.md#sync-protocol", "docs/data.md#two-stores-one-shape", "docs/architecture.md#how-a-set-gets-saved", "docs/openapi.yaml#/info", "docs/openapi.yaml#/components/schemas/Synced"]
   copy: []

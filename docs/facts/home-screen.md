@@ -2,8 +2,6 @@
 id: home-screen
 status: current
 decided: "f8b210c"
-supersedes:
-superseded_by:
 appears:
   repo: []
   copy: ["title.home", "home.today", "home.resume", "home.start", "home.continue", "home.thisWeek", "home.seeWeek", "home.covered", "cal.title", "cal.sets", "cal.prevMonth", "cal.nextMonth", "cal.nothing", "cal.dayTrained", "cal.dayEmpty"]

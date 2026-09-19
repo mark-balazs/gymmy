@@ -2,8 +2,6 @@
 id: stripe-billing
 status: planned
 decided: "Confluence 949551107; owner, week of 2026-09-14"
-supersedes:
-superseded_by:
 appears:
   repo: []
   copy: []

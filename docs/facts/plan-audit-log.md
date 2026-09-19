@@ -2,8 +2,6 @@
 id: plan-audit-log
 status: current
 decided: "D-011"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/data.md#the-tables-that-are-not-synced"]
   copy: []

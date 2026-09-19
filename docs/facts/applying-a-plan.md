@@ -2,8 +2,6 @@
 id: applying-a-plan
 status: current
 decided: "D-011"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/architecture.md#plans-and-the-one-place-two-people-share-a-row", "docs/data.md#the-tables-that-are-not-synced", "docs/openapi.yaml#/paths/~1api~1plans~1{id}", "docs/openapi.yaml#/components/schemas/Profile"]
   copy: ["plan.shared", "plan.by", "plan.days", "plan.apply", "plan.applyBody", "plan.applyFailed", "plan.missing", "plan.orYourOwn", "coach.deleteBody"]

@@ -2,8 +2,6 @@
 id: age-allowance
 status: current
 decided: "D-015; owner, week of 2026-09-14"
-supersedes:
-superseded_by:
 appears:
   repo: ["README.md#two-strength-numbers", "docs/training-model.md#dotsat--a-real-dots", "docs/training-model.md#strengthat--gymmys-own-index", "docs/openapi.yaml#/components/schemas/Profile"]
   copy: ["set.birthYearWhy"]

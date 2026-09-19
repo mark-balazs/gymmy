@@ -2,8 +2,6 @@
 id: no-unfair-verdicts
 status: current
 decided: "f31e53a; Confluence 934608935"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/README.md#invariants", "packages/domain/src/insights.ts"]
   copy: ["prog.unrated"]

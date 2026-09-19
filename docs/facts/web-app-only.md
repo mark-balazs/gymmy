@@ -2,8 +2,6 @@
 id: web-app-only
 status: current
 decided: "Confluence 949551107; owner, week of 2026-09-14"
-supersedes:
-superseded_by:
 appears:
   repo: ["docs/architecture.md#the-pieces-that-run", "docs/architecture.md#offline-and-recovery", "docs/data.md#rollout-windows-what-a-device-one-build-behind-sees", "README.md#known-gaps", "apps/web/src/components/sw-register.tsx"]
   copy: []

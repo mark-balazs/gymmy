@@ -2,8 +2,6 @@
 id: plain-words
 status: current
 decided: "owner, week of 2026-09-14"
-supersedes:
-superseded_by:
 appears:
   repo: ["CLAUDE.md#the-api-is-the-one-exception"]
   copy: []
