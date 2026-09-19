@@ -51,11 +51,11 @@
   --color-bad-bg: #3a2426;
   --color-good-bg: #22332c;
   /* A write that never landed: "not saved on this device". Its own hue, not a
-     stronger red, because red already means "saved here, not synced yet" and
-     the two must never be mistaken for each other. Magenta is the hue furthest
-     from every other status colour in both themes (red, amber, green, grey);
-     its nearest neighbour is the strength violet, which never sits beside the
-     status dot. */
+     stronger red, because red already means "a sync failed, the change is
+     safe here" and the two must never be mistaken for each other. Magenta is
+     the hue furthest from every other status colour in both themes (red, amber,
+     green, grey); its nearest neighbour is the strength violet, which never
+     sits beside the status dot. */
   --color-storage: #e040fb;
 
   --gradient-accent: linear-gradient(135deg, #4ade80 0%, #22c55e 45%, #0ea5a3 100%);

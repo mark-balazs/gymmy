@@ -159,15 +159,17 @@ function SyncBadge() {
   /* The dot alone. The words beside it were a running commentary on something
      that is almost always fine — "All saved", every screen, all day — and they
      cost the header the width the title needed. The colour is the whole
-     message: green is fine, amber is offline, red wants you.
+     message: green is fine (a change waiting its turn included), grey is
+     saving, amber is offline, red wants you.
      The label is kept for screen readers and as a hover tooltip, because a
      bare coloured dot is meaningless without one. `sr-only` rather than a live
      region: this changes on every sync, and announcing each one would be a
      stream of interruptions to say nothing happened.
 
-     A storage failure is not a dot at all. Red means "saved here, not synced
-     yet", which sorts itself out; this means the change was saved nowhere, and
-     a person who reads it as the milder one loses a set believing it is
+     A storage failure is not a dot at all. Red means a sync attempt failed —
+     the change is safe on this device and goes with the next sync that works,
+     so it sorts itself out; this means the change was saved nowhere, and a
+     person who reads it as the milder one loses a set believing it is
      queued. So it gets its own colour and a shape — a warning triangle — that
      no sync state ever uses, and still reads as different to somebody who
      cannot tell the colours apart. `data-state` names what is showing, and
