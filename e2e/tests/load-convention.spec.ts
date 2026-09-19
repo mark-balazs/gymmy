@@ -1,6 +1,14 @@
 /** Flow 09 — see ../flows/09-load-convention.md */
 
-import { expect, logSet, openExercise, test } from '../fixtures/test';
+import {
+  cardNumber,
+  expect,
+  logSet,
+  numberButton,
+  openExercise,
+  test,
+  typeNumber,
+} from '../fixtures/test';
 import type { Page } from '@playwright/test';
 
 /**
@@ -49,15 +57,27 @@ test.describe('The app says what it is counting', () => {
   }) => {
     await openPairDay(app);
 
-    // Before anything is typed there is no figure to name, so it asks plainly.
-    await expect(app.getByText('Enter one dumbbell. Both get recorded.')).toBeVisible();
+    /* There is no empty box any more — a card with no history starts on a light
+       pair — so the line names the recorded figure from the first moment,
+       rather than asking plainly and naming it once something is typed. */
+    const start = Number(await cardNumber(app, 'weight'));
+    expect(start).toBeGreaterThan(0);
+    await expect(
+      app.getByText(`One dumbbell — recorded as ${start * 2} kg, both together.`),
+    ).toBeVisible();
 
-    await app.getByLabel('weight', { exact: true }).fill('20');
+    await typeNumber(app, 'weight', 20);
 
-    // And the moment there is one, the doubling happens in view. This is the
-    // whole mitigation for storing something other than what was typed: nobody
-    // has to be told twice, or find out from a chart three weeks later.
+    // And it follows the number as it changes, so the doubling happens in view.
+    // This is the whole mitigation for storing something other than what was
+    // typed: nobody has to be told twice, or find out from a chart three weeks
+    // later.
     await expect(app.getByText('One dumbbell — recorded as 40 kg, both together.')).toBeVisible();
+
+    // The buttons move the one dumbbell too — a pair goes up 2 kg at a time,
+    // which is 4 kg recorded.
+    await app.getByRole('button', { name: 'weight +', exact: true }).click();
+    await expect(app.getByText('One dumbbell — recorded as 44 kg, both together.')).toBeVisible();
   });
 
   test('records both dumbbells while the box keeps showing one', async ({ onboardedApp: app }) => {
@@ -71,9 +91,9 @@ test.describe('The app says what it is counting', () => {
        appears the moment the first set lands, so a page-wide text match is
        ambiguous by construction and a count of it would be off by one. */
     await expect(loggedSets(app)).toHaveText([/^40 kg × 10/]);
-    // The box is still per dumbbell, so logging a second identical set is one
-    // tap and not a doubling of the first.
-    await expect(app.getByLabel('weight', { exact: true })).toHaveValue('20');
+    // The card still holds one dumbbell, so logging a second identical set is
+    // one tap and not a doubling of the first.
+    await expect(numberButton(app, 'weight')).toHaveAttribute('data-value', '20');
 
     await logSet(app, 20, 10);
     await expect(loggedSets(app)).toHaveText([/^40 kg × 10/, /^40 kg × 10/]);
@@ -100,10 +120,9 @@ test.describe('The app says what it is counting', () => {
     const notes = [
       'Count the bar and the plates together.',
       'One dumbbell — recorded as',
-      'Enter one dumbbell. Both get recorded.',
       'The one weight you are holding.',
       'The setting on the stack',
-      'Leave this empty unless you added weight.',
+      'Leave it at None unless you added weight.',
       'What you loaded — not what reaches your hands.',
     ];
 

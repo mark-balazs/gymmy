@@ -286,6 +286,11 @@ export const profiles = pgTable(
     unit: text('unit').notNull().default('kg'),
     lang: text('lang').notNull().default('en'),
     theme: text('theme').notNull().default('system'),
+    /* How Train takes a weight and a rep count ('buttons' | 'ruler'), and
+       whether a barbell lift is entered by loading plates on a drawn bar.
+       Defaulted to `DEFAULT_PREFS`, so the migration only adds columns. */
+    entryMode: text('entry_mode').notNull().default('buttons'),
+    plateLoader: boolean('plate_loader').notNull().default(true),
     heightCm: integer('height_cm'),
     sex: text('sex').notNull().default('unspecified'),
     name: text('name').notNull().default(''),

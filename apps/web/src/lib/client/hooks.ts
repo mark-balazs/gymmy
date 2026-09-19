@@ -10,7 +10,7 @@
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
-import { local, snapshot } from './db';
+import { barKey, getMeta, local, snapshot } from './db';
 import { onSyncStatus, type SyncStatus } from './sync';
 import { exerciseName, index, type Indexed } from '@athletic/domain';
 import {
@@ -35,6 +35,7 @@ import type {
   SlotRole,
   Snapshot,
   SplitKey,
+  Unit,
 } from '@athletic/domain';
 
 const EMPTY: Snapshot = {
@@ -59,6 +60,21 @@ export function useSnapshot(): { snap: Snapshot; ix: Indexed; ready: boolean } {
 export function useProfile(): Profile | null {
   const rows = useLiveQuery(() => local.profile.toArray(), [], undefined);
   return rows?.[0] ?? null;
+}
+
+/**
+ * The bar picked for a lift on this device, following it as it changes.
+ *
+ * Three answers, and the difference between the first two matters: `undefined`
+ * while it is still being read, `null` once read and nothing was ever picked,
+ * or the bar. Train starts a new lift on its bar, so it has to know when "no
+ * choice yet" is a fact rather than a read in flight.
+ */
+export function useRememberedBar(exerciseId: string, unit: Unit): number | null | undefined {
+  return useLiveQuery(
+    () => getMeta<number | null>(barKey(exerciseId, unit), null),
+    [exerciseId, unit],
+  );
 }
 
 /** Nothing to subscribe to: the browser's language list does not change

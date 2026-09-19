@@ -1130,6 +1130,21 @@ components:
             unit: { type: string, enum: [kg, lb] }
             lang: { type: string, enum: [en, hu, de, fr, es] }
             theme: { type: string, enum: [system, dark, light], default: system }
+            entryMode:
+              type: string
+              enum: [buttons, ruler]
+              default: buttons
+              description: |
+                How the Train card sets a weight and a rep count — steppers
+                either side of the number, or a ruler dragged sideways. Both
+                open the app's own keypad when the number is tapped.
+            plateLoader:
+              type: boolean
+              default: true
+              description: |
+                Whether a barbell lift is entered by loading plates onto a
+                drawn bar. When false, barbell lifts use `entryMode` like
+                everything else. Reps always use `entryMode`.
             heightCm: { type: [integer, 'null'], minimum: 80, maximum: 260, default: null }
             sex:
               type: string

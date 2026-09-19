@@ -69,7 +69,12 @@ referencing column carries only the id half.
 | `logs` (`set_logs`) | The dominant write. One row per set |
 | `bodyLogs` | Bodyweight, dated. The denominator of both strength numbers |
 | `goals` | One lift the user has asked to be judged on, until a date. Nothing else in the app evaluates progression without one |
-| `profile` | One row per user; `id` equals `userId` |
+| `profile` | One row per user; `id` equals `userId`. Also carries how Train takes numbers — `entryMode` (buttons or ruler) and `plateLoader` — because, like the unit, the choice belongs to the person, not the phone |
+
+One thing lives on the device and nowhere else: the **bar weight** picked on a
+barbell card, per exercise, in Dexie's `meta` table under
+`bar:<unit>:<exerciseId>`. It is equipment in one gym, not training, so it is
+not synced — and `wipeLocal` clears it on sign-out with everything else.
 
 Server-side every table has a composite primary key `(user_id, id)` and a `seq`
 index. `seq` comes from one shared Postgres sequence, `change_seq`, so a single
@@ -124,7 +129,10 @@ Two things are therefore required:
 
 1. **Default it in `index()`** in `model.ts`, which is the single point every
    consumer reads through. That is where `description ?? ''` and `images ?? []`
-   live.
+   live. A **profile setting** is defaulted in `prefs()` in `prefs.ts` instead
+   — the one way settings are read — and screens must read it through
+   `prefs(profile)`, never off the row: `entryMode` and `plateLoader` arrived
+   this way, and a row synced before them has neither key.
 2. **Backfill in the migration** if existing rows need a real value, and bump
    their `seq` if devices must re-fetch them.
 
@@ -224,6 +232,11 @@ are the known cases:
   the new exercise are affected. Aliasing only works old-to-new.
 - **An off-plan set.** The previous build reads its `X` label as day 23, clamped
   to the last day, and opens Train and Home on the wrong day until it reloads.
+- **A new profile setting.** An old build rebuilds the whole profile row on any
+  settings change and pushes it without the new key; the server's schema fills
+  in the default, so a device one build behind that changes, say, its theme
+  also resets "Logging sets" to Buttons. The next change on a current device
+  puts it back. Accepted because it is a preference, not training data.
 - **What does not correct itself:** a new column (the `seq` trap above) and a
   new table. An old build's `applyChanges` walks only the tables *it* knows, but
   the cursor moves past everything, so rows of a table it has never heard of are

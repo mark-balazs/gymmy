@@ -10,6 +10,7 @@ import { z } from 'zod';
 import {
   BIASES,
   DAY_KEYS,
+  ENTRY_MODES,
   LANG_CODES,
   PATTERN_KEYS,
   ROLES,
@@ -126,6 +127,11 @@ export const rowSchemas = {
     unit: z.enum(['kg', 'lb']),
     lang: z.enum(LANG_CODES),
     theme: z.enum(THEMES).default('system'),
+    // Defaulted like every column added after launch: a client built before
+    // these existed still pushes its profile, and without the default every
+    // such push would be refused and that phone would stop syncing entirely.
+    entryMode: z.enum(ENTRY_MODES).default('buttons'),
+    plateLoader: z.boolean().default(true),
     heightCm: z.number().int().min(80).max(260).nullable().default(null),
     sex: z.enum(SEXES).default('unspecified'),
     name: z.string().max(60).default(''),

@@ -6,7 +6,13 @@
  * every flow except the first-run one.
  */
 
-import { test as base, expect, type BrowserContext, type Page } from '@playwright/test';
+import {
+  test as base,
+  expect,
+  type BrowserContext,
+  type Locator,
+  type Page,
+} from '@playwright/test';
 import { closeDb, createUser, sessionCookie, type CreateUserOptions, type TestUser } from './auth';
 
 interface Fixtures {
@@ -142,13 +148,67 @@ export async function completeOnboarding(
   await page.waitForURL('**/train');
 }
 
+/** Which of the open card's two numbers. */
+export type CardNumber = 'weight' | 'reps';
+
+/**
+ * The button that shows one of the open card's numbers and opens the keypad
+ * for it — "Type weight" or "Type reps".
+ *
+ * There is no number input on Train any more: an input means the phone's
+ * keyboard, and the keyboard shoves the card up the screen between sets. Every
+ * way of setting a number — the buttons, the ruler, the picture of the bar —
+ * has this one button, which is what lets a test reach the keypad the same way
+ * in all three. Exact, because the buttons either side of it are named
+ * "weight −" and "weight +".
+ */
+export function numberButton(page: Page, which: CardNumber): Locator {
+  return page.getByRole('button', {
+    name: which === 'weight' ? 'Type weight' : 'Type reps',
+    exact: true,
+  });
+}
+
+/**
+ * The number the open card holds, exactly as it holds it — without the unit,
+ * per hand for a dumbbell pair, and "0" where the card says "None".
+ *
+ * Read from the attribute the controls keep for this, not from the text: the
+ * visible number drops its unit when space is short and reads "None" for no
+ * added weight, and neither is the number that gets logged.
+ */
+export async function cardNumber(page: Page, which: CardNumber): Promise<string> {
+  return (await numberButton(page, which).getAttribute('data-value')) ?? '';
+}
+
+/**
+ * Sets one of the open card's numbers on gymmy's keypad, key by key, the way a
+ * thumb does — and waits for the card to show it.
+ *
+ * The keys are tapped rather than typed on a hardware keyboard because tapping
+ * them is the path somebody in a gym takes; `entry-modes.spec.ts` covers the
+ * keyboard separately. Scoped to the dialog, because while it is open the page
+ * behind it has buttons called "1" and "Delete" too.
+ */
+export async function typeNumber(page: Page, which: CardNumber, value: number): Promise<void> {
+  await numberButton(page, which).click();
+  const pad = page.getByRole('dialog', { name: which === 'weight' ? 'Weight' : 'Reps' });
+  await expect(pad).toBeVisible();
+  for (const key of String(value)) {
+    await pad.getByRole('button', { name: key, exact: true }).click();
+  }
+  await pad.getByRole('button', { name: 'Done', exact: true }).click();
+  await expect(pad).toHaveCount(0);
+  await expect(numberButton(page, which)).toHaveAttribute('data-value', String(value));
+}
+
 /**
  * Logs one set of the exercise currently open on Train.
  *
  * There is nothing to disambiguate: Train is an accordion, one exercise open at
- * a time, and a collapsed card renders no inputs at all. So these locators are
- * deliberately *unscoped* — Playwright's strict mode then fails loudly if two
- * cards are ever open at once, which is a bug worth a failing test.
+ * a time, and a collapsed card renders no controls at all. So these locators
+ * are deliberately *unscoped* — Playwright's strict mode then fails loudly if
+ * two cards are ever open at once, which is a bug worth a failing test.
  *
  * This used to take an `index` and scope every locator with `.nth(index)`.
  * Every one of its thirty-five call sites passed 0, and the argument became a
@@ -164,10 +224,8 @@ export async function logSet(
   reps: number,
   effort: 'Maxed' | '1 more' | '2 more' | 'Easy' = '2 more',
 ): Promise<void> {
-  // Exact, because the stepper's − and + buttons are labelled "weight −"/"weight +"
-  // and a substring match would hit all three.
-  await page.getByLabel('weight', { exact: true }).fill(String(weight));
-  await page.getByLabel('reps', { exact: true }).fill(String(reps));
+  await typeNumber(page, 'weight', weight);
+  await typeNumber(page, 'reps', reps);
 
   await page.getByRole('button', { name: effort, exact: true }).click();
   await page.getByRole('button', { name: /^Log set|Add another set/ }).click();
@@ -265,9 +323,13 @@ export async function finishDay(page: Page): Promise<string[]> {
  * Waits for the first row: `count()` does not, and read before Train has
  * rendered it answers an empty list — whose `[0]!` is undefined, which a
  * `getByRole('heading', { name })` then treats as "any heading".
+ *
+ * The bar chip on an open barbell card ("Bar 20 kg") is a collapsed disclosure
+ * too, correctly — it opens the list of bars — so it is left out by name. It is
+ * a control on the open card, not an exercise.
  */
 export async function collapsedExercises(page: Page): Promise<string[]> {
-  const rows = page.getByRole('button', { expanded: false });
+  const rows = page.getByRole('button', { expanded: false }).filter({ hasNotText: /^Bar \d/ });
   await expect(rows.first()).toBeVisible();
   const out: string[] = [];
   for (let i = 0; i < (await rows.count()); i++) {

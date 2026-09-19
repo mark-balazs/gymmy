@@ -1,6 +1,14 @@
 /** Flow 02 — see ../flows/02-logging-a-session.md */
 
-import { expect, logSet, logSuggested, openCard, openExercise, test } from '../fixtures/test';
+import {
+  expect,
+  logSet,
+  logSuggested,
+  numberButton,
+  openCard,
+  openExercise,
+  test,
+} from '../fixtures/test';
 
 test.describe('Logging a session', () => {
   test('a straight set costs one tap', async ({ onboardedApp: app }) => {
@@ -25,12 +33,12 @@ test.describe('Logging a session', () => {
   });
 
   test('the numbers hold still between sets', async ({ onboardedApp: app }) => {
-    // If the inputs re-read history after every set they would drift mid-
+    // If the numbers re-read history after every set they would drift mid-
     // exercise, and straight sets would cost typing again.
     await logSet(app, 62.5, 7, '2 more');
 
-    await expect(app.getByLabel('weight', { exact: true }).first()).toHaveValue('62.5');
-    await expect(app.getByLabel('reps', { exact: true }).first()).toHaveValue('7');
+    await expect(numberButton(app, 'weight')).toHaveAttribute('data-value', '62.5');
+    await expect(numberButton(app, 'reps')).toHaveAttribute('data-value', '7');
 
     await logSuggested(app);
     await expect(app.getByRole('button', { name: 'Delete' })).toHaveCount(2);

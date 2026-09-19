@@ -92,6 +92,13 @@
       "when": 1789757767384,
       "tag": "0012_jazzy_jetstream",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1789762164480,
+      "tag": "0013_curious_stark_industries",
+      "breakpoints": true
     }
   ]
 }

@@ -19,10 +19,11 @@
  *           compounds move least: adding 20% to a five-month-old bench is
  *           already a good run, and the 100%+ the pattern-based version
  *           produced was fantasy.
- *   bw      fraction of bodyweight the movement carries, for the ones where the
- *           load *is* you. `start` is then the added weight, and `repGain` is
- *           how many reps are earned across the block — which is how these
- *           actually progress.
+ *   bw      the load *is* you. Only weight added to the body is logged — none
+ *           until there is some, which is how the app logs it — and `repGain`
+ *           is how many reps are earned across the block, which is how these
+ *           actually progress. (It once held the share of bodyweight the
+ *           movement carries, logged as the weight; see `setFor`.)
  *   arc     what happened to this lift over the block. Absent means it simply
  *           went up, which is the boring majority.
  *
@@ -62,7 +63,9 @@ export interface DemoLoad {
   reps: number;
   inc: number;
   gain: number;
-  bw?: number;
+  /** A bodyweight lift: progress shows in reps, and only weight added to the
+   *  body is logged — none until there is some. */
+  bw?: true;
   repGain?: number;
   arc?: DemoArc;
 }
@@ -142,8 +145,8 @@ export const DEMO_LOADS: Record<string, DemoLoad> = {
   'Machine Chest Press': { start: 60, reps: 10, inc: 5, gain: 0.25 },
   'Landmine Press': { start: 30, reps: 8, inc: 2.5, gain: 0.27 },
   // The load is you. Reps are where the progress shows.
-  'Push-Up': { start: 0, reps: 12, inc: 2.5, gain: 0, bw: 0.65, repGain: 9 },
-  Dip: { start: 0, reps: 8, inc: 2.5, gain: 0, bw: 1, repGain: 6 },
+  'Push-Up': { start: 0, reps: 12, inc: 2.5, gain: 0, bw: true, repGain: 9 },
+  Dip: { start: 0, reps: 8, inc: 2.5, gain: 0, bw: true, repGain: 6 },
 
   /* -------------------------------------------------------------- pull -- */
   'Lat Pulldown': { start: 60, reps: 10, inc: 5, gain: 0.25 },
@@ -159,9 +162,9 @@ export const DEMO_LOADS: Record<string, DemoLoad> = {
     arc: { kind: 'irregular' },
   },
   'Face Pull': { start: 25, reps: 15, inc: 2.5, gain: 0.28 },
-  'Pull-Up': { start: 0, reps: 6, inc: 2.5, gain: 0, bw: 1, repGain: 5 },
-  'Chin-Up': { start: 0, reps: 7, inc: 2.5, gain: 0, bw: 1, repGain: 5 },
-  'Inverted Row': { start: 0, reps: 12, inc: 2.5, gain: 0, bw: 0.6, repGain: 8 },
+  'Pull-Up': { start: 0, reps: 6, inc: 2.5, gain: 0, bw: true, repGain: 5 },
+  'Chin-Up': { start: 0, reps: 7, inc: 2.5, gain: 0, bw: true, repGain: 5 },
+  'Inverted Row': { start: 0, reps: 12, inc: 2.5, gain: 0, bw: true, repGain: 8 },
 
   /* ------------------------------------------------------------ rotate -- */
   'Pallof Press': { start: 15, reps: 12, inc: 2.5, gain: 0.25 },

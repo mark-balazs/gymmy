@@ -1,6 +1,6 @@
 /** Flow 04 — see ../flows/04-progression.md */
 
-import { expect, logSet, signInAs, test } from '../fixtures/test';
+import { cardNumber, expect, logSet, signInAs, test } from '../fixtures/test';
 import type { Page } from '@playwright/test';
 
 /**
@@ -20,10 +20,8 @@ import type { Page } from '@playwright/test';
  * usable, and the advice is gone. The second half is the one that matters —
  * it is what fails if a suggestion engine ever comes back.
  */
-async function prefilled(page: Page, index = 0): Promise<string> {
-  const weight = await page.getByLabel('weight', { exact: true }).nth(index).inputValue();
-  const reps = await page.getByLabel('reps', { exact: true }).nth(index).inputValue();
-  return `${weight} × ${reps}`;
+async function prefilled(page: Page): Promise<string> {
+  return `${await cardNumber(page, 'weight')} × ${await cardNumber(page, 'reps')}`;
 }
 
 /**

@@ -90,6 +90,8 @@ export function seedSnapshot(
       unit: 'kg',
       lang: 'en',
       theme: 'system',
+      entryMode: 'buttons',
+      plateLoader: true,
       heightCm: null,
       sex: 'unspecified',
       name: '',

@@ -566,6 +566,15 @@ recent session on that lift, the fewest reps at that weight, and the date. The
 Train card prefills those numbers so repeating a session costs one tap, and
 captions them as history: *"Last time 60 kg × 8 · 12/09/2026"*.
 
+With no history there is nothing to repeat, so the card starts somewhere
+neutral rather than empty (`startWeight` / `startReps` in `entry.ts`): the bar
+for a barbell lift, 10 kg dumbbells, 20 kg on a machine, no added weight on a
+bodyweight lift, and the bottom of the plan's rep range — the plan's own shape,
+not a judgement about you. The numbers are set without the phone's keyboard,
+in one of three styles chosen in Settings (buttons, a ruler with a range
+realistic for the equipment, or loading the bar plate by plate); flow 11 in
+`e2e/flows` describes them.
+
 **There is no rule here, and that is the design.** This section used to describe
 double progression: `suggest()` read your last session, and if you had hit the
 top of the rep range with reps to spare it told you to add 2.5 kg and drop back

@@ -13,15 +13,42 @@
  * app no longer tells anybody what to lift. See Decision log D-014.
  */
 
-import { useMemo, useState } from 'react';
-import { Button, Card, Chip, Segmented, Stepper, cn } from '@/components/ui';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
+import { Button, Card, Chip, Segmented, cn } from '@/components/ui';
 import { Page } from '@/components/page';
 import { ExerciseSheet } from '@/components/exercise-sheet';
 import { ExercisePicker } from '@/components/exercise-picker';
-import { useProfile, useSnapshot, useT, useToday, type Translator } from '@/lib/client/hooks';
-import { fireAndForget, logSet, removeSet } from '@/lib/client/mutations';
+import { Collapse } from '@/components/entry/collapse';
+import { PlateLoader } from '@/components/entry/plate-loader';
+import { Ruler } from '@/components/entry/ruler';
+import { ValueStepper } from '@/components/entry/value-stepper';
+import {
+  useProfile,
+  useRememberedBar,
+  useSnapshot,
+  useT,
+  useToday,
+  type Translator,
+} from '@/lib/client/hooks';
+import { fireAndForget, logSet, rememberBar, removeSet } from '@/lib/client/mutations';
 import { EFFORTS, fmtDay } from '@/lib/client/format';
-import { DEFAULT_PREFS, lastSession, loadClassOf, toEntered, toStored } from '@athletic/domain';
+import {
+  BAR_CHOICES,
+  PLATES,
+  REPS_SCALE,
+  barWeightOf,
+  buttonStep,
+  lastSession,
+  loadClassOf,
+  prefs,
+  scaleValues,
+  startReps,
+  startWeight,
+  toEntered,
+  toStored,
+  weightScale,
+} from '@athletic/domain';
 import {
   OFF_PLAN_SESSION,
   mondayOf,
@@ -34,15 +61,16 @@ import {
   type Indexed,
 } from '@athletic/domain';
 import type { Key } from '@/lib/i18n';
-import type { LastSession, PlanRow } from '@athletic/domain';
+import type { EntryMode, LastSession, PlanRow, Unit } from '@athletic/domain';
 
 export default function TrainPage() {
   const { ix } = useSnapshot();
   const profile = useProfile();
   const tr = useT();
   const today = useToday();
-  const days = profile?.days ?? DEFAULT_PREFS.days;
-  const unit = profile?.unit ?? DEFAULT_PREFS.unit;
+  /* Through `prefs()`, not off the row: a profile synced before the entry
+     settings existed has no `entryMode` or `plateLoader` at all. */
+  const { days, unit, entryMode, plateLoader } = prefs(profile);
 
   const [date, setDate] = useState(today);
   const [day, setDay] = useState(0);
@@ -90,14 +118,30 @@ export default function TrainPage() {
    *
    * Nothing is open once every exercise is finished. A session you have
    * completed should read as a list of ticks, not re-open its first card.
+   *
+   * `advancedTo` is the card the app moved on to by itself when the one before
+   * it was finished. That card is scrolled into view once it has opened, since
+   * it is where the thumb goes next and it can open below the fold. Nothing
+   * else scrolls: the first card on arrival is already at the top, and a card
+   * somebody tapped is already where they are looking — moving the page under
+   * a deliberate tap would be the screen jumping again.
    */
   const nextUp = plan.find((r) => r.exercise && !(r.target > 0 && r.done >= r.target))?.key ?? null;
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [autoKey, setAutoKey] = useState<string | null>(null);
+  const [advancedTo, setAdvancedTo] = useState<string | null>(null);
   if (autoKey !== nextUp) {
+    // Null before: the first pick on arrival, not a move from one card on.
+    setAdvancedTo(autoKey === null ? null : nextUp);
     setAutoKey(nextUp);
     setOpenKey(nextUp);
   }
+  /** Opening a card by hand. Clears `advancedTo`, so tapping back to the card
+   *  the app once moved to does not scroll the page a second time. */
+  const choose = (key: string) => {
+    setAdvancedTo(null);
+    setOpenKey(key);
+  };
 
   const done = plan.reduce((a, p) => a + p.done, 0);
   const total = plan.reduce((a, p) => a + p.target, 0);
@@ -142,14 +186,14 @@ export default function TrainPage() {
        outside it would leave the day's own card unticked. */
     const planned = plan.find((r) => r.exercise?.id === exercise.id);
     if (planned) {
-      setOpenKey(planned.key);
+      choose(planned.key);
       return;
     }
     setPicked((p) => ({
       date,
       ids: p.date === date ? [...new Set([...p.ids, exercise.id])] : [exercise.id],
     }));
-    setOpenKey(`off:${exercise.id}`);
+    choose(`off:${exercise.id}`);
   };
 
   return (
@@ -202,13 +246,17 @@ export default function TrainPage() {
             // collapse, or every set after the first costs taps again.
             key={`${row.key}|${date}|${row.exercise.id}`}
             row={row}
+            repRange={row.entry?.repRange ?? null}
             ix={ix}
             tr={tr}
             date={date}
             session={sessionLabel(day)}
             unit={unit}
+            entryMode={entryMode}
+            plateLoader={plateLoader}
             open={openKey === row.key}
-            onOpen={() => setOpenKey(row.key)}
+            reveal={advancedTo === row.key}
+            onOpen={() => choose(row.key)}
           />
         ) : null,
       )}
@@ -230,13 +278,18 @@ export default function TrainPage() {
         <ExerciseCard
           key={`off:${row.exercise.id}|${date}`}
           row={{ ...row, target: 0 }}
+          // No plan, so no range to start the reps from.
+          repRange={null}
           ix={ix}
           tr={tr}
           date={date}
           session={OFF_PLAN_SESSION}
           unit={unit}
+          entryMode={entryMode}
+          plateLoader={plateLoader}
           open={openKey === `off:${row.exercise.id}`}
-          onOpen={() => setOpenKey(`off:${row.exercise.id}`)}
+          reveal={false}
+          onOpen={() => choose(`off:${row.exercise.id}`)}
         />
       ))}
 
@@ -284,23 +337,36 @@ type CardRow = Pick<PlanRow, 'exercise' | 'done' | 'target' | 'logs'>;
 
 function ExerciseCard({
   row,
+  repRange,
   ix,
   tr,
   date,
   session,
   unit,
+  entryMode,
+  plateLoader,
   open,
+  reveal,
   onOpen,
 }: {
   row: CardRow;
+  /** The plan's rep range for this slot, which a card with no history starts
+   *  its reps from. Null off the plan. */
+  repRange: string | null;
   ix: Indexed;
   tr: Translator;
   date: string;
   /** The label each set is logged under: the open day's letter, or
    *  `OFF_PLAN_SESSION` for training that is not a day of the plan. */
   session: string;
-  unit: string;
+  unit: Unit;
+  /** How the numbers are set — Settings → Logging sets. */
+  entryMode: EntryMode;
+  /** Whether a barbell lift gets the picture of the bar instead. */
+  plateLoader: boolean;
   open: boolean;
+  /** Scroll the card into view once it has opened: the app moved on to it. */
+  reveal: boolean;
   onOpen: () => void;
 }) {
   const offPlan = session === OFF_PLAN_SESSION;
@@ -309,8 +375,8 @@ function ExerciseCard({
   const s = useMemo(() => lastSession(ix, exercise.id), [ix, exercise.id]);
 
   /**
-   * The weight box holds **what you type**, which is not always what is
-   * stored: for a pair of dumbbells you enter one and both are recorded. See
+   * The weight on the card holds **what you enter**, which is not always what
+   * is stored: for a pair of dumbbells you enter one and both are recorded. See
    * `load.ts` for why that is the convention and where it comes from.
    *
    * The conversion lives at this boundary and nowhere else. Every other surface
@@ -319,34 +385,70 @@ function ExerciseCard({
    * place it is converted, in view of the caption that explains it.
    */
   const load = loadClassOf(exercise.name);
-  /** Ties the measuring note to the weight box, so a screen reader hears it on
-   *  focus rather than only if it happens to read past the control. */
+  /** Ties the measuring note to the weight control, so a screen reader hears
+   *  it on focus rather than only if it happens to read past the control. */
   const howId = `how-${exercise.id}`;
-  const [weight, setWeight] = useState<number | null>(() =>
-    toEntered(exercise.name, s?.weight ?? null),
-  );
-  const [reps, setReps] = useState<number | null>(() => s?.reps ?? null);
+
+  /**
+   * The empty bar, for a barbell lift: picked on the bar chip, remembered on
+   * this device, and otherwise the bar the exercise is usually done on.
+   *
+   * The pick is also held here, so the chip, the picture and the total change
+   * in the same render — the stored copy arrives a read later, and for that
+   * read the plates would be drawn on the old bar. Held with its unit, so a
+   * unit change mid-session never reads 20 kg back as 20 lb.
+   */
+  const remembered = useRememberedBar(exercise.id, unit);
+  const [chosen, setChosen] = useState<{ unit: Unit; bar: number } | null>(null);
+  const bar =
+    (chosen?.unit === unit ? chosen.bar : null) ?? remembered ?? barWeightOf(exercise.name, unit);
+  const chooseBar = (next: number) => {
+    setChosen({ unit, bar: next });
+    fireAndForget(rememberBar(exercise.id, unit, next));
+  };
+
+  /**
+   * Where the numbers start: last time, and failing that something plausible
+   * to adjust from — never a blank.
+   *
+   * There is no empty state any more, because there is no box to leave empty:
+   * every control sets a number. So a lift with no history starts on its bar,
+   * a light dumbbell, a plate or two on a stack, or nothing added for
+   * bodyweight — and the reps on the bottom of the plan's range. A number from
+   * history always wins, field by field.
+   */
+  const lastWeight = toEntered(exercise.name, s?.weight ?? null);
+  const startW = () => (load === 'barbell' ? bar : startWeight(load, unit, exercise.name));
+  const startR = () => s?.reps ?? startReps(repRange);
+  const [weight, setWeight] = useState<number>(() => lastWeight ?? startW());
+  const [reps, setReps] = useState<number>(startR);
   const [rir, setRir] = useState<number>(2);
   const [saving, setSaving] = useState(false);
   const [detail, setDetail] = useState(false);
-  const [seeded, setSeeded] = useState(() => seedOf(s));
 
   /**
-   * The inputs follow last time's numbers up until the first set, then hold
-   * still.
+   * The numbers follow last time's up until the first set, then hold still.
    *
    * Both halves matter. Holding still is the whole point of the redesign — if
    * the numbers moved after every set, straight sets would cost taps again. But
    * holding from *mount* was too early: the history comes from logs in
    * IndexedDB, which arrive a tick after the first paint, so the card would
-   * freeze onto empty inputs and stay there for an exercise with months behind
-   * it.
+   * freeze onto empty numbers and stay there for an exercise with months
+   * behind it.
+   *
+   * A remembered bar arrives the same way, so a barbell lift with no weight in
+   * its history also waits for that read. Only for the read, though — whether
+   * it has finished, not which bar it found. Picking a bar on the chip moves
+   * the total by the difference; re-seeding on the pick would throw away the
+   * plates that were on it.
    */
-  const seed = seedOf(s);
+  const waitingForBar = lastWeight === null && load === 'barbell' && remembered === undefined;
+  const seed = `${seedOf(s)}|${waitingForBar}`;
+  const [seeded, setSeeded] = useState(seed);
   if (row.done === 0 && seeded !== seed) {
     setSeeded(seed);
-    setWeight(toEntered(exercise.name, s?.weight ?? null));
-    setReps(s?.reps ?? null);
+    setWeight(lastWeight ?? startW());
+    setReps(startR());
   }
 
   const complete = row.target > 0 && row.done >= row.target;
@@ -398,7 +500,10 @@ function ExerciseCard({
         session,
         exerciseId: exercise.id,
         setNo: row.done + 1,
-        weight: toStored(exercise.name, weight),
+        // Nothing added to yourself is no added weight, and is stored that way
+        // — the bodyweight card shows it as "None", and always has logged it
+        // as empty.
+        weight: load === 'bodyweight' && weight === 0 ? null : toStored(exercise.name, weight),
         reps,
         rir,
       });
@@ -410,19 +515,238 @@ function ExerciseCard({
   };
 
   /**
-   * Closed: the name and the dots, and nothing else.
+   * Once the card has opened by itself, bring all of it into view — the next
+   * exercise can open below the fold, with its log button under the tab bar.
    *
-   * The component stays mounted rather than being swapped out — a weight you
-   * typed and have not logged yet lives in this component's state, and
-   * unmounting would throw it away and then re-seed from history on the way
-   * back, silently changing the number under somebody mid-session.
+   * `nearest`, so a card already on screen does not move. Every card is sized
+   * to fit between the header and the tab bar of a 640 px phone; on a smaller
+   * one, or in landscape, a card that still does not fit is brought in by its
+   * **bottom**, not its top — the controls and the log button are what the
+   * next set needs, and the name was on screen a moment ago in the row that
+   * just opened. Smooth unless the person has asked for less motion, which CSS
+   * cannot switch off for a script-driven scroll.
    */
-  if (!open) {
-    return (
-      <Card className={cn('transition-opacity duration-300', complete && 'opacity-60')}>
+  const card = useRef<HTMLDivElement>(null);
+  const bringIntoView = () => {
+    const el = card.current;
+    if (!el) return;
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+    const style = getComputedStyle(el);
+    const room =
+      window.innerHeight - parseFloat(style.scrollMarginTop) - parseFloat(style.scrollMarginBottom);
+    const fits = el.getBoundingClientRect().height <= room;
+    el.scrollIntoView({ block: fits ? 'nearest' : 'end', behavior: still ? 'auto' : 'smooth' });
+  };
+
+  /**
+   * A card opened by a tap stays where it was tapped.
+   *
+   * Opening one card closes another, and when the one closing is above, the
+   * page under the thumb slides up by that card's height. Chrome hides this
+   * with scroll anchoring; Safari has none, so on an iPhone the card you just
+   * tapped would jump away from your finger — the jumping this whole change
+   * was meant to end. So the card's position is taken at the tap and held for
+   * the length of the other card's closing, one frame at a time. Where the
+   * browser has already anchored, the drift is zero and this does nothing.
+   *
+   * Only for a tap: a card that opened by itself is brought into view instead.
+   */
+  const tapTop = useRef<number | null>(null);
+  const openByTap = () => {
+    tapTop.current = card.current?.getBoundingClientRect().top ?? null;
+    onOpen();
+  };
+  useLayoutEffect(() => {
+    const from = tapTop.current;
+    tapTop.current = null;
+    if (!open || from === null) return;
+    const until = performance.now() + 450;
+    let frame = 0;
+    const hold = () => {
+      const el = card.current;
+      if (!el) return;
+      const drift = el.getBoundingClientRect().top - from;
+      if (Math.abs(drift) >= 1) window.scrollBy({ top: drift, behavior: 'instant' });
+      if (performance.now() < until) frame = requestAnimationFrame(hold);
+    };
+    hold();
+    return () => cancelAnimationFrame(frame);
+  }, [open]);
+
+  /* ------------------------------------------------------------ the numbers */
+
+  /**
+   * Which control sets each number — Settings decides, once, for every card.
+   *
+   * A barbell lift with the plate loader on gets the picture of the bar, since
+   * "which plates did you put on" is the question somebody at a rack can answer
+   * without doing sums. Everything else, and the reps always, gets buttons or a
+   * ruler. Whichever it is, each number has a button named "Type weight" or
+   * "Type reps" that opens the keypad, so nothing is ever out of reach and the
+   * tests can reach every mode the same way.
+   *
+   * The ruler for a barbell starts at its bar, and each ruler also stops at the
+   * number on the card and at last time's, wherever those fall — a ruler that
+   * rounded last week's 61.25 to 60 would be changing a number nobody touched.
+   */
+  const plates = plateLoader && load === 'barbell';
+  const scale = weightScale(load, unit, load === 'barbell' ? bar : undefined);
+  const noneLabel = load === 'bodyweight' ? tr.t('entry.none') : undefined;
+  const lastReps = s?.reps ?? null;
+
+  const weightControl = plates ? (
+    <PlateLoader
+      value={weight}
+      bar={bar}
+      unit={unit}
+      plates={PLATES[unit]}
+      barChoices={BAR_CHOICES[unit]}
+      onChange={setWeight}
+      onBarChange={chooseBar}
+      describedBy={howId}
+    />
+  ) : entryMode === 'ruler' ? (
+    <Ruler
+      values={scaleValues(scale, weight, lastWeight)}
+      value={weight}
+      onChange={setWeight}
+      label="weight"
+      unit={unit}
+      describedBy={howId}
+      typeLabel={tr.t('entry.typeWeight')}
+      decimals
+      min={scale.min}
+      max={scale.max}
+      noneLabel={noneLabel}
+    />
+  ) : (
+    <ValueStepper
+      value={weight}
+      onChange={setWeight}
+      step={buttonStep(load, unit)}
+      min={scale.min}
+      max={scale.max}
+      label="weight"
+      unit={unit}
+      describedBy={howId}
+      typeLabel={tr.t('entry.typeWeight')}
+      decimals
+      noneLabel={noneLabel}
+    />
+  );
+
+  const repsControl =
+    entryMode === 'ruler' ? (
+      <Ruler
+        values={scaleValues(REPS_SCALE, reps, lastReps)}
+        value={reps}
+        onChange={setReps}
+        label="reps"
+        unit=""
+        typeLabel={tr.t('entry.typeReps')}
+        decimals={false}
+        min={REPS_SCALE.min}
+        max={REPS_SCALE.max}
+      />
+    ) : (
+      <ValueStepper
+        value={reps}
+        onChange={setReps}
+        step={REPS_SCALE.step}
+        min={REPS_SCALE.min}
+        max={REPS_SCALE.max}
+        label="reps"
+        unit=""
+        typeLabel={tr.t('entry.typeReps')}
+        decimals={false}
+      />
+    );
+
+  /* A caption over a pair of buttons. A `div`, not the `label` it used to be:
+     a label forwards a tap on its text to the first control inside it, which
+     is now the "−" button. The ruler and the bar carry their own. */
+  const captioned = (caption: string, control: ReactNode) => (
+    <div className="min-w-0 flex-1">
+      <span className="mb-1 block text-[10.5px] font-bold tracking-wider text-[var(--color-muted)] uppercase">
+        {caption}
+      </span>
+      {control}
+    </div>
+  );
+
+  /* What the number actually means.
+
+     The app asked for a "weight" for months without ever saying what it was
+     counting — which for two dumbbells is a factor of two, and once stored
+     there is nothing to say which side of it a row is on. This is the line
+     that fixes it, and it is attached to the weight control rather than hidden
+     in the exercise sheet because it is only useful at the moment of setting.
+
+     For a pair it names the figure that will be recorded, so the doubling
+     happens in view: set 30 and it says 60. That is what every other screen
+     will show, so nothing is a surprise later. */
+  const how = (
+    <p id={howId} className="-mt-1 text-xs text-[var(--color-muted)]">
+      {load === 'dumbbellPair'
+        ? tr.t('load.dumbbellPair', { w: `${toStored(exercise.name, weight)} ${unit}` })
+        : tr.t(`load.${load}` as Key)}
+    </p>
+  );
+
+  return (
+    <Card
+      ref={card}
+      className={cn(
+        // Clear of the sticky header (46 px) and the tab bar (62 px) when
+        // scrolled to, with a few pixels of air. Measured, not generous: at
+        // 4.5rem each the margins alone made a 518 px card "taller than the
+        // screen" on a 640 px phone, and the scroll then hid its log button.
+        'scroll-mt-[calc(env(safe-area-inset-top)+3.25rem)] scroll-mb-[calc(env(safe-area-inset-bottom)+4.25rem)]',
+        'transition-opacity duration-300',
+        complete && (open ? 'opacity-70' : 'opacity-60'),
+      )}
+    >
+      {open ? (
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            {/* The name is the affordance: needing to know what a movement is
+                happens while reading its name, not on a separate library screen. */}
+            <button
+              type="button"
+              onClick={() => setDetail(true)}
+              aria-label={tr.t('ex.about', { name: tr.exercise(exercise) })}
+              className="flex max-w-full min-w-0 cursor-pointer items-center gap-1.5 text-left"
+            >
+              <h2 className="truncate text-[17px] font-semibold">{tr.exercise(exercise)}</h2>
+              <span
+                aria-hidden
+                className="grid h-4 w-4 shrink-0 place-items-center rounded-full border border-[var(--color-line)] text-[10px] font-bold text-[var(--color-muted)]"
+              >
+                i
+              </span>
+            </button>
+            {/* History, stated as history. The numbers below start as these
+                numbers, so repeating a session is one tap — but nothing here
+                says to beat them. */}
+            <p className="mt-0.5 text-xs text-[var(--color-muted)]">
+              {s
+                ? tr.t('train.lastTime', {
+                    w: s.weight ? `${s.weight} ${unit}` : '—',
+                    r: s.reps ?? 0,
+                    d: fmtDay(s.date),
+                  })
+                : tr.t('train.noHistory')}
+            </p>
+          </div>
+          {complete && <Chip tone="ok">✓</Chip>}
+        </div>
+      ) : (
+        /* Closed: the name and the dots, and nothing else. A row, not a
+           heading — the open card's name is the page's only exercise heading,
+           which is how both screen-reader users and the tests find it. */
         <button
           type="button"
-          onClick={onOpen}
+          onClick={openByTap}
           aria-expanded={false}
           className="flex min-h-[var(--spacing-tap)] w-full cursor-pointer items-center gap-3 text-left"
         >
@@ -456,141 +780,86 @@ function ExerciseCard({
           </span>
           {dotRow}
         </button>
-      </Card>
-    );
-  }
-
-  return (
-    <Card
-      className={cn(
-        'flex flex-col gap-2.5 transition-opacity duration-300',
-        complete && 'opacity-70',
       )}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          {/* The name is the affordance: needing to know what a movement is
-              happens while reading its name, not on a separate library screen. */}
-          <button
-            type="button"
-            onClick={() => setDetail(true)}
-            aria-label={tr.t('ex.about', { name: tr.exercise(exercise) })}
-            className="flex max-w-full min-w-0 cursor-pointer items-center gap-1.5 text-left"
-          >
-            <h2 className="truncate text-[17px] font-semibold">{tr.exercise(exercise)}</h2>
-            <span
-              aria-hidden
-              className="grid h-4 w-4 shrink-0 place-items-center rounded-full border border-[var(--color-line)] text-[10px] font-bold text-[var(--color-muted)]"
-            >
-              i
-            </span>
-          </button>
-          {/* History, stated as history. The numbers in the steppers below are
-              these numbers, so repeating a session is one tap — but nothing
-              here says to beat them. */}
-          <p className="mt-0.5 text-xs text-[var(--color-muted)]">
-            {s
-              ? tr.t('train.lastTime', {
-                  w: s.weight ? `${s.weight} ${unit}` : '—',
-                  r: s.reps ?? 0,
-                  d: fmtDay(s.date),
-                })
-              : tr.t('train.noHistory')}
-          </p>
-        </div>
-        {complete && <Chip tone="ok">✓</Chip>}
-      </div>
 
-      <div className="flex items-end gap-2">
-        <label className="min-w-0 flex-1">
-          <span className="mb-1 block text-[10.5px] font-bold tracking-wider text-[var(--color-muted)] uppercase">
-            {unit}
-          </span>
-          <Stepper
-            value={weight}
-            onChange={setWeight}
-            step={2.5}
-            label="weight"
-            describedBy={howId}
+      {/* The body opens and closes rather than swapping in and out, so the
+          cards below slide instead of jumping by a card's height. It is
+          unmounted once closed; what it shows lives in this component, so a
+          number set and not logged yet survives the collapse — re-seeding it
+          from history on the way back would silently change it. */}
+      <Collapse open={open} onOpened={reveal ? bringIntoView : undefined}>
+        <div className="flex flex-col gap-2 pt-2">
+          {plates || entryMode === 'ruler' ? (
+            <>
+              {weightControl}
+              {how}
+              {entryMode === 'ruler' ? repsControl : captioned(tr.t('common.reps'), repsControl)}
+            </>
+          ) : (
+            <>
+              <div className="flex items-end gap-2">
+                {captioned(unit, weightControl)}
+                {captioned(tr.t('common.reps'), repsControl)}
+              </div>
+              {how}
+            </>
+          )}
+
+          {/* Kept visible rather than tucked behind a tap. The estimate behind
+              the strength score and every chart reads it — a set at
+              nothing-left and a set with three to spare are different
+              measurements — and anything hidden gets left at its default,
+              which would quietly feed that estimate a guess every set. */}
+          <Segmented
+            value={rir}
+            onChange={setRir}
+            options={EFFORTS.map((v) => ({
+              value: v as number,
+              label: tr.t(`effort.${v}s` as Key),
+            }))}
           />
-        </label>
-        <label className="min-w-0 flex-1">
-          <span className="mb-1 block text-[10.5px] font-bold tracking-wider text-[var(--color-muted)] uppercase">
-            {tr.t('common.reps')}
-          </span>
-          <Stepper value={reps} onChange={setReps} step={1} max={100} label="reps" />
-        </label>
-      </div>
 
-      {/* What the number in the box actually means.
-
-          The app asked for a "weight" for months without ever saying what it was
-          counting — which for two dumbbells is a factor of two, and once stored
-          there is nothing to say which side of it a row is on. This is the line
-          that fixes it, and it is attached to the input rather than hidden in
-          the exercise sheet because it is only useful at the moment of typing.
-
-          For a pair it names the figure that will be recorded, so the doubling
-          happens in view: type 30 and it says 60. That is what every other
-          screen will show, so nothing is a surprise later. */}
-      <p id={howId} className="-mt-1 text-xs text-[var(--color-muted)]">
-        {load === 'dumbbellPair'
-          ? weight === null
-            ? tr.t('load.dumbbellPairEmpty')
-            : tr.t('load.dumbbellPair', { w: `${toStored(exercise.name, weight)} ${unit}` })
-          : tr.t(`load.${load}` as Key)}
-      </p>
-
-      {/* Kept visible rather than tucked behind a tap. The estimate behind the
-          strength score and every chart reads it — a set at nothing-left and a
-          set with three to spare are different measurements — and anything
-          hidden gets left at its default, which would quietly feed that
-          estimate a guess every set. */}
-      <Segmented
-        value={rir}
-        onChange={setRir}
-        options={EFFORTS.map((v) => ({ value: v as number, label: tr.t(`effort.${v}s` as Key) }))}
-      />
-
-      <div className="flex items-center gap-3">
-        <Button
-          variant={complete ? 'default' : 'primary'}
-          className="flex-1"
-          disabled={saving}
-          onClick={() => void save()}
-        >
-          {complete ? tr.t('train.addAnother') : tr.t('train.logSet', { n: row.done + 1 })}
-        </Button>
-        {dotRow}
-      </div>
-
-      {detail && <ExerciseSheet exercise={exercise} onClose={() => setDetail(false)} />}
-
-      {row.logs.length > 0 && (
-        <div className="flex flex-col">
-          {row.logs.map((l) => (
-            <div
-              key={l.id}
-              className="animate-pop flex items-center justify-between border-t border-[var(--color-line)] py-1.5 text-[13px] first:border-t-0"
+          <div className="flex items-center gap-3">
+            <Button
+              variant={complete ? 'default' : 'primary'}
+              className="flex-1"
+              disabled={saving}
+              onClick={() => void save()}
             >
-              <span className="num text-[var(--color-muted)]">
-                {l.weight ?? 0} {unit} × {l.reps ?? 0}
-                <span className="ml-2 rounded-full bg-[var(--color-surface-2)] px-2 py-0.5 text-[11px]">
-                  {tr.t(`effort.${(l.rir ?? 2) >= 4 ? 4 : (l.rir ?? 2)}` as Key)}
-                </span>
-              </span>
-              <Button
-                variant="danger"
-                className="min-h-8 px-2 text-xs"
-                aria-label={tr.t('common.delete')}
-                onClick={() => fireAndForget(removeSet(l.id))}
-              >
-                ✕
-              </Button>
+              {complete ? tr.t('train.addAnother') : tr.t('train.logSet', { n: row.done + 1 })}
+            </Button>
+            {dotRow}
+          </div>
+
+          {row.logs.length > 0 && (
+            <div className="flex flex-col">
+              {row.logs.map((l) => (
+                <div
+                  key={l.id}
+                  className="animate-pop flex items-center justify-between border-t border-[var(--color-line)] py-1.5 text-[13px] first:border-t-0"
+                >
+                  <span className="num text-[var(--color-muted)]">
+                    {l.weight ?? 0} {unit} × {l.reps ?? 0}
+                    <span className="ml-2 rounded-full bg-[var(--color-surface-2)] px-2 py-0.5 text-[11px]">
+                      {tr.t(`effort.${(l.rir ?? 2) >= 4 ? 4 : (l.rir ?? 2)}` as Key)}
+                    </span>
+                  </span>
+                  <Button
+                    variant="danger"
+                    className="min-h-8 px-2 text-xs"
+                    aria-label={tr.t('common.delete')}
+                    onClick={() => fireAndForget(removeSet(l.id))}
+                  >
+                    ✕
+                  </Button>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
-      )}
+      </Collapse>
+
+      {open && detail && <ExerciseSheet exercise={exercise} onClose={() => setDetail(false)} />}
     </Card>
   );
 }

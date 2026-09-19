@@ -19,6 +19,7 @@ import type {
   Goal,
   Snapshot,
   TableName,
+  Unit,
 } from '@athletic/domain';
 
 /** A queued change waiting to reach the server. */
@@ -116,6 +117,16 @@ export async function getMeta<T>(key: string, fallback: T): Promise<T> {
 export async function setMeta(key: string, value: unknown): Promise<void> {
   await local.meta.put({ key, value });
 }
+
+/**
+ * Where the bar picked for a lift on Train is kept: in `meta`, on this device.
+ *
+ * Not a column and not synced, because it is a fact about somebody's gym — the
+ * trap bar there weighs 25, the EZ bar 10 — rather than a record of training;
+ * every set still logs its whole total. Keyed by unit as well, so a bar chosen
+ * in kilos is never read back as that many pounds.
+ */
+export const barKey = (exerciseId: string, unit: Unit): string => `bar:${unit}:${exerciseId}`;
 
 /** Everything the domain layer needs, read in one pass. */
 export async function snapshot(): Promise<Snapshot> {

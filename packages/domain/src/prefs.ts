@@ -8,7 +8,7 @@
  * should just not be re-invented each time.
  */
 
-import type { Bias, Lang, Profile, Sex, SplitKey, Theme, Unit, Where } from './types';
+import type { Bias, EntryMode, Lang, Profile, Sex, SplitKey, Theme, Unit, Where } from './types';
 
 export interface Prefs {
   split: SplitKey;
@@ -18,6 +18,8 @@ export interface Prefs {
   unit: Unit;
   lang: Lang;
   theme: Theme;
+  entryMode: EntryMode;
+  plateLoader: boolean;
   blockWeeks: number;
   sex: Sex;
   heightCm: number | null;
@@ -33,6 +35,12 @@ export const DEFAULT_PREFS: Prefs = {
   unit: 'kg',
   lang: 'en',
   theme: 'system',
+  /* Buttons first: a stepper is what the card has always had, and the one of
+     the two a screen reader can adjust. The plate loader starts on because for
+     a barbell lift "which plates did you put on" is the question people can
+     answer without doing sums between sets. */
+  entryMode: 'buttons',
+  plateLoader: true,
   blockWeeks: 8,
   sex: 'unspecified',
   heightCm: null,
@@ -51,6 +59,8 @@ export const prefs = (profile: Profile | null | undefined): Prefs =>
         unit: profile.unit ?? DEFAULT_PREFS.unit,
         lang: profile.lang ?? DEFAULT_PREFS.lang,
         theme: profile.theme ?? DEFAULT_PREFS.theme,
+        entryMode: profile.entryMode ?? DEFAULT_PREFS.entryMode,
+        plateLoader: profile.plateLoader ?? DEFAULT_PREFS.plateLoader,
         blockWeeks: profile.blockWeeks ?? DEFAULT_PREFS.blockWeeks,
         sex: profile.sex ?? DEFAULT_PREFS.sex,
         heightCm: profile.heightCm ?? DEFAULT_PREFS.heightCm,

@@ -5,7 +5,7 @@
 ```mermaid
 flowchart TB
     person["A person who trains<br/>two to four times a week, on a phone"]
-    gymmy["<b>gymmy</b><br/>Builds the week, suggests the next load,<br/>reports what has stalled.<br/>Holds a full copy on the device."]
+    gymmy["<b>gymmy</b><br/>Builds the week, records what you lift,<br/>measures what has moved or stalled.<br/>Holds a full copy on the device."]
     google["Google<br/>OAuth identity"]
     resend["Resend<br/>sign-in code email (optional)"]
 
@@ -59,7 +59,10 @@ second implementation to disagree with the first.
 | Where | What lives there |
 | --- | --- |
 | `packages/domain/src/types.ts` | Every record shape, and the `TABLES` list the sync layer is generated from |
-| `packages/domain/src/model.ts` | Pure derived values — coverage, progress, the strength score, `index()` |
+| `packages/domain/src/model.ts` | Pure derived values — coverage, progress, `index()` |
+| `packages/domain/src/strength.ts` | The two strength numbers: gymmy's index and DOTS |
+| `packages/domain/src/load.ts` | What the number in the weight box means per exercise — per hand, the bar, a machine setting |
+| `packages/domain/src/entry.ts` | Setting a number on Train: each equipment's ruler range and step, the plates, the bars, where a first set starts |
 | `packages/domain/src/coach.ts` | Program generation, and reading back the last session on a lift |
 | `packages/domain/src/insights.ts` | What Progress and the calendar *say* — session series, drawdowns, the triage, a day |
 | `packages/domain/src/splits.ts` | Split presets, slot materialisation, coverage sets |
@@ -74,6 +77,7 @@ second implementation to disagree with the first.
 | `apps/web/src/lib/api/plans.ts` | The session/trainer guard and the wire schema for the plan endpoints |
 | `apps/web/src/app/(app)/` | The five tabs |
 | `apps/web/src/components/` | The UI kit, the charts, the calendar, the sheets, the lightbox, the profile card, the recovery screens |
+| `apps/web/src/components/entry/` | Train's number controls — buttons, the ruler, the plate loader, gymmy's keypad — and the card's open/close |
 
 ## How a set gets saved
 
@@ -103,7 +107,10 @@ sequenceDiagram
 1. A tap calls a function in `lib/client/mutations.ts`. **Every** write goes
    through `put()` there — it stamps `updatedAt`, writes to IndexedDB, and
    queues an outbox row. Nothing in the UI writes to Dexie directly, so no
-   screen can save something the server will never hear about.
+   screen can save something the server will never hear about. The one write
+   that skips `put()` does so on purpose: `rememberBar`, the bar weight picked
+   on a barbell card, goes to the local `meta` table only — it describes a
+   gym's equipment, not training, and is not meant to reach the server.
 2. The UI re-renders from the local write. `useLiveQuery` is watching, so this
    is immediate and does not wait on anything.
 3. `sync.ts` debounces ~800ms, then posts the outbox to `/api/sync` along with

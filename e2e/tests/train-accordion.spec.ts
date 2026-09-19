@@ -4,9 +4,11 @@ import {
   finishDay,
   finishOpenExercise,
   logSuggested,
+  numberButton,
   openCard,
   openExercise,
   test,
+  typeNumber,
 } from '../fixtures/test';
 
 /**
@@ -24,9 +26,9 @@ test.describe('Train shows one exercise at a time', () => {
   test('opens the first exercise and collapses the rest', async ({ onboardedApp: app }) => {
     const first = await openExercise(app);
 
-    // The open one has its name as a heading and its inputs on the page.
+    // The open one has its name as a heading and its controls on the page.
     await expect(app.getByRole('heading', { name: first, exact: true })).toBeVisible();
-    await expect(app.getByLabel('weight', { exact: true })).toHaveCount(1);
+    await expect(numberButton(app, 'weight')).toHaveCount(1);
     await expect(app.getByRole('button', { name: /^Log set/ })).toHaveCount(1);
 
     // The others are rows you can tap, and nothing more.
@@ -44,25 +46,28 @@ test.describe('Train shows one exercise at a time', () => {
 
     await expect(app.getByRole('heading', { name: second, exact: true })).toBeVisible();
     await expect(app.getByRole('heading', { name: first, exact: true })).toHaveCount(0);
-    // Still exactly one set of inputs, which is the whole point.
-    await expect(app.getByLabel('weight', { exact: true })).toHaveCount(1);
+    /* Still exactly one set of controls, which is the whole point. The closing
+       card's body animates shut and is then unmounted, so this also waits out
+       the transition. */
+    await expect(numberButton(app, 'weight')).toHaveCount(1);
   });
 
   test('keeps a weight you typed but have not logged across a collapse', async ({
     onboardedApp: app,
   }) => {
-    /* The card is hidden, never unmounted. Unmounting would throw away what you
-       typed and then re-seed from history on the way back — silently changing
-       the number under somebody mid-session, which is the one thing a logging
-       screen must never do. */
+    /* The card's body is unmounted once it has closed, but the numbers do not
+       live in the body — they live in the card, which stays. Kept in the body,
+       they would be thrown away on a collapse and re-seeded from history on the
+       way back: silently changing the number under somebody mid-session, which
+       is the one thing a logging screen must never do. */
     const first = await openExercise(app);
     const second = (await collapsedExercises(app))[0]!;
 
-    await app.getByLabel('weight', { exact: true }).fill('77.5');
+    await typeNumber(app, 'weight', 77.5);
     await openCard(app, second);
     await openCard(app, first);
 
-    await expect(app.getByLabel('weight', { exact: true })).toHaveValue('77.5');
+    await expect(numberButton(app, 'weight')).toHaveAttribute('data-value', '77.5');
   });
 
   test('finishing an exercise collapses it and opens the next', async ({ onboardedApp: app }) => {

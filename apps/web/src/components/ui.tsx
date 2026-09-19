@@ -1,15 +1,26 @@
 'use client';
 
 import { clsx } from 'clsx';
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react';
 import { useEffect } from 'react';
 import { useT } from '@/lib/client/hooks';
 
 export const cn = clsx;
 
-export function Card({ className, children }: { className?: string; children: ReactNode }) {
+export function Card({
+  className,
+  children,
+  ref,
+}: {
+  className?: string;
+  children: ReactNode;
+  /** For a card that has to be scrolled to — Train brings the next exercise
+   *  into view once it has opened. */
+  ref?: Ref<HTMLDivElement>;
+}) {
   return (
     <div
+      ref={ref}
       className={cn(
         'rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4',
         'shadow-[var(--shadow-card)]',
@@ -185,60 +196,6 @@ export function Segmented<T extends string | number>({
           )}
         </button>
       ))}
-    </div>
-  );
-}
-
-export function Stepper({
-  value,
-  onChange,
-  step = 1,
-  min = 0,
-  max = 9999,
-  label,
-  describedBy,
-}: {
-  value: number | null;
-  onChange: (v: number | null) => void;
-  step?: number;
-  min?: number;
-  max?: number;
-  label: string;
-  /** Id of a note explaining what the number means — read out on focus. The
-   *  label stays the plain noun so the control is still addressable by it. */
-  describedBy?: string;
-}) {
-  const bump = (d: number) => {
-    const next = Math.min(max, Math.max(min, Math.round(((value ?? 0) + d * step) * 100) / 100));
-    onChange(next);
-  };
-  return (
-    <div className="grid grid-cols-[var(--spacing-tap)_1fr_var(--spacing-tap)] items-center gap-1.5">
-      <button
-        type="button"
-        aria-label={`${label} −`}
-        onClick={() => bump(-1)}
-        className="h-[var(--spacing-tap)] cursor-pointer rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] text-xl font-semibold"
-      >
-        −
-      </button>
-      <input
-        type="number"
-        inputMode="decimal"
-        aria-label={label}
-        aria-describedby={describedBy}
-        value={value ?? ''}
-        onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
-        className="num min-h-[var(--spacing-tap)] w-full min-w-0 rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] text-center text-[17px] font-semibold"
-      />
-      <button
-        type="button"
-        aria-label={`${label} +`}
-        onClick={() => bump(1)}
-        className="h-[var(--spacing-tap)] cursor-pointer rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] text-xl font-semibold"
-      >
-        +
-      </button>
     </div>
   );
 }

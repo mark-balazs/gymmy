@@ -6,9 +6,10 @@
  * Nothing here awaits the network — the UI updates from the local write.
  */
 
-import { local } from './db';
+import { barKey, local, setMeta } from './db';
 import { enqueue, reportStorageFailure } from './sync';
 import type {
+  Unit,
   Bias,
   BodyLog,
   Exercise,
@@ -73,11 +74,38 @@ export function fireAndForget(p: Promise<unknown>): void {
 /* --------------------------------------------------------------- logging */
 
 /** A whole number in range, or null. Rounds rather than truncating. */
-const intIn = (v: number | null, lo: number, hi: number): number | null =>
+export const intIn = (v: number | null, lo: number, hi: number): number | null =>
   v === null || !Number.isFinite(v) ? null : Math.min(hi, Math.max(lo, Math.round(v)));
 /** A number in range, or null. */
-const numIn = (v: number | null, lo: number, hi: number): number | null =>
+export const numIn = (v: number | null, lo: number, hi: number): number | null =>
   v === null || !Number.isFinite(v) ? null : Math.min(hi, Math.max(lo, v));
+
+/** The numbers of a set, as the card hands them over. */
+interface SetNumbers {
+  setNo: number;
+  weight: number | null;
+  reps: number | null;
+  rir: number | null;
+}
+
+/**
+ * A set's numbers held to the server's row rules — reps and set numbers whole,
+ * everything inside the bounds `rowSchemas.logs` accepts.
+ *
+ * Why this exists at all is on `logSet`, its only caller. It is a function of
+ * its own so the bounds can be tested against the schema without a browser:
+ * `mutations.test.ts` feeds it the worst the card can hand over and parses the
+ * result with the server's own validator.
+ */
+export function boundSet<T extends SetNumbers>(input: T): T {
+  return {
+    ...input,
+    setNo: intIn(input.setNo, 1, 100) ?? 1,
+    weight: numIn(input.weight, 0, 2000),
+    reps: intIn(input.reps, 0, 1000),
+    rir: intIn(input.rir, 0, 20),
+  };
+}
 
 export async function logSet(input: {
   date: string;
@@ -96,21 +124,19 @@ export async function logSet(input: {
      then on that device neither pushes nor pulls, for good, and the only way
      out is a sign-out that throws away every set still waiting.
 
-     And it was one typo away. The steppers clamp their buttons but not what is
-     typed, so "8.5" reps off a decimal keypad, or a weight typed as "-20",
-     went straight in. An off-plan card logged past its hundredth set would
-     have done it too. Rounding reps and clamping to the schema's bounds is
-     less surprising than a device that silently stops syncing. */
+     And it was one typo away, back when the card had number inputs: "8.5"
+     reps off a decimal keypad, or a weight typed as "-20", went straight in.
+     gymmy's own keypad has no minus key and no point for reps, but it still
+     takes four digits, so 9999 reps or a 9999 kg dumbbell a hand can be typed
+     — past what the server accepts. An off-plan card logged past its
+     hundredth set would do it too. Rounding reps and clamping to the schema's
+     bounds is less surprising than a device that silently stops syncing. */
   return put<SetLog>('logs', {
     id: id(),
     updatedAt: now(),
     deletedAt: null,
     note: '',
-    ...input,
-    setNo: intIn(input.setNo, 1, 100) ?? 1,
-    weight: numIn(input.weight, 0, 2000),
-    reps: intIn(input.reps, 0, 1000),
-    rir: intIn(input.rir, 0, 20),
+    ...boundSet(input),
   });
 }
 
@@ -119,6 +145,23 @@ export async function removeSet(setId: string): Promise<void> {
   const row = await local.logs.get(setId);
   if (!row) return;
   await put<SetLog>('logs', { ...row, deletedAt: now(), updatedAt: now() });
+}
+
+/**
+ * Remembers the bar picked for a lift, on this device only.
+ *
+ * The one write here that skips `put`, on purpose: it is not a row of any table
+ * the server holds, so there is nothing to stamp or queue — see `barKey`. A
+ * failure is reported like any other storage failure, and the set it was picked
+ * for still logs its total either way.
+ */
+export async function rememberBar(exerciseId: string, unit: Unit, bar: number): Promise<void> {
+  try {
+    await setMeta(barKey(exerciseId, unit), bar);
+  } catch (err) {
+    reportStorageFailure(err);
+    throw err;
+  }
 }
 
 /* ----------------------------------------------------------- bodyweight */
@@ -260,6 +303,8 @@ export async function patchProfile(patch: Partial<Omit<Profile, 'id'>>): Promise
     unit: existing?.unit ?? 'kg',
     lang: existing?.lang ?? 'en',
     theme: existing?.theme ?? 'system',
+    entryMode: existing?.entryMode ?? DEFAULT_PREFS.entryMode,
+    plateLoader: existing?.plateLoader ?? DEFAULT_PREFS.plateLoader,
     heightCm: existing?.heightCm ?? null,
     sex: existing?.sex ?? 'unspecified',
     name: existing?.name ?? '',
@@ -526,6 +571,8 @@ export async function applySharedPlan(
 export const setLang = (lang: Profile['lang']) => patchProfile({ lang });
 export const setUnit = (unit: Profile['unit']) => patchProfile({ unit });
 export const setTheme = (theme: Profile['theme']) => patchProfile({ theme });
+export const setEntryMode = (entryMode: Profile['entryMode']) => patchProfile({ entryMode });
+export const setPlateLoader = (plateLoader: boolean) => patchProfile({ plateLoader });
 export const setTrainingPrefs = (p: { days: number; where: Where; bias: Bias }) => patchProfile(p);
 export const setName = (name: string) => patchProfile({ name: name.trim().slice(0, 60) });
 export const setAvatar = (avatar: string | null) => patchProfile({ avatar });

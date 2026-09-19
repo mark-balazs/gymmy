@@ -32,6 +32,18 @@ export const THEMES = ['system', 'dark', 'light'] as const;
 export type Theme = (typeof THEMES)[number];
 
 /**
+ * How the Train card takes a weight and a rep count: steppers either side of
+ * the number, or a ruler dragged sideways. Both open the same keypad when the
+ * number is tapped, so neither ever needs the phone's own keyboard — which
+ * shoved the card around the screen mid-set.
+ *
+ * Stored on the profile rather than on the device, like the theme, so the
+ * choice follows the account onto a new phone.
+ */
+export const ENTRY_MODES = ['buttons', 'ruler'] as const;
+export type EntryMode = (typeof ENTRY_MODES)[number];
+
+/**
  * Used for one thing only: the reference standards the strength score is
  * measured against, which differ enough by sex that a single set of them would
  * mean two different things to two people.
@@ -218,6 +230,16 @@ export interface Profile extends Synced {
   unit: Unit;
   lang: Lang;
   theme: Theme;
+  /**
+   * How weight and reps are set on Train, and whether a barbell lift is
+   * entered by loading plates onto a drawn bar instead.
+   *
+   * **Read these through `prefs()`, never directly.** A device that synced
+   * before the columns existed holds a profile row without the keys, and the
+   * server does not re-send a row just because a column was added.
+   */
+  entryMode: EntryMode;
+  plateLoader: boolean;
   /** Centimetres. Null until someone says — nothing in the app requires it,
    *  and guessing it would be worse than not having it. */
   heightCm: number | null;

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { Button, Card, Field, InfoButton, Segmented, Sheet, cn } from '@/components/ui';
 import { Page } from '@/components/page';
 import { SplitSheet } from '@/components/split-sheet';
@@ -13,7 +13,9 @@ import {
   applyCustomSplit,
   applySplit,
   fireAndForget,
+  setEntryMode,
   setLang,
+  setPlateLoader,
   setTheme,
   setUnit,
 } from '@/lib/client/mutations';
@@ -28,6 +30,7 @@ import {
   DEFAULT_PREFS,
   findSplit,
   mondayOf,
+  prefs,
   SPLITS,
   type Bias,
   type Lang,
@@ -109,6 +112,11 @@ export default function SettingsPage() {
       </Card>
     );
   }
+
+  // Through `prefs()`, not off the row: a profile that synced before these
+  // columns existed has no such keys, and the server will not re-send it just
+  // because they were added.
+  const { entryMode, plateLoader } = prefs(profile);
 
   return (
     <Page>
@@ -328,6 +336,29 @@ export default function SettingsPage() {
             ]}
           />
         </Field>
+
+        {/* How Train takes a number. Both styles open the same keypad when the
+            number is tapped, which is why neither needs the phone keyboard. */}
+        <div className="flex flex-col gap-1.5">
+          <Field label={tr.t('set.entryTitle')}>
+            <Segmented
+              value={entryMode}
+              onChange={(v) => fireAndForget(setEntryMode(v))}
+              options={[
+                { value: 'buttons' as const, label: tr.t('set.entryButtons') },
+                { value: 'ruler' as const, label: tr.t('set.entryRuler') },
+              ]}
+            />
+          </Field>
+          <p className="text-xs text-[var(--color-muted)]">{tr.t('set.entryHint')}</p>
+        </div>
+
+        <Switch
+          label={tr.t('set.plateLoader')}
+          hint={tr.t('set.plateLoaderHint')}
+          on={plateLoader}
+          onChange={(on) => fireAndForget(setPlateLoader(on))}
+        />
       </Card>
 
       <CoachLink />
@@ -456,5 +487,66 @@ export default function SettingsPage() {
 
       {info && <SplitSheet split={info} onClose={() => setInfo(null)} />}
     </Page>
+  );
+}
+
+/**
+ * An on/off setting, as a real `role="switch"`.
+ *
+ * The whole row is the target, not just the track: this is tapped with a thumb,
+ * and a 46px pill at the edge of the screen is easy to miss. The name is the
+ * title alone and the hint is its description, so a screen reader says
+ * "Load the bar on barbell lifts, switch, on" rather than reading the hint as
+ * part of the name.
+ */
+function Switch({
+  label,
+  hint,
+  on,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  on: boolean;
+  onChange: (on: boolean) => void;
+}) {
+  const id = useId();
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-labelledby={`${id}-label`}
+      aria-describedby={`${id}-hint`}
+      onClick={() => onChange(!on)}
+      className="flex min-h-[var(--spacing-tap)] w-full cursor-pointer items-center gap-3 text-left"
+    >
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span id={`${id}-label`} className="text-sm font-semibold">
+          {label}
+        </span>
+        <span id={`${id}-hint`} className="text-xs text-[var(--color-muted)]">
+          {hint}
+        </span>
+      </span>
+      <span
+        aria-hidden
+        className={cn(
+          'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full p-[3px]',
+          'transition-colors duration-200 ease-[var(--ease-out-soft)]',
+          on ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-surface-3)]',
+        )}
+      >
+        <span
+          className={cn(
+            'size-[22px] rounded-full shadow-sm',
+            'transition-[translate,background-color] duration-200 ease-[var(--ease-out-soft)]',
+            on
+              ? 'translate-x-5 bg-[var(--color-accent-ink)]'
+              : 'translate-x-0 bg-[var(--color-muted)]',
+          )}
+        />
+      </span>
+    </button>
   );
 }

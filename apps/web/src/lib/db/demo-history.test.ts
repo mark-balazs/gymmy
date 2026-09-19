@@ -323,6 +323,28 @@ describe('the demo history', () => {
     expect(goblet).toBeLessThan(2 * DEMO_LOADS['Goblet Squat']!.start);
     expect(toEntered('Goblet Squat', goblet)).toBe(goblet);
   });
+
+  it('logs a bodyweight lift as the weight added to the body, none until there is some', () => {
+    /* The app's convention: a bodyweight lift is logged with nothing, or with
+       what hangs off a belt. The generator used to log a share of bodyweight
+       as the weight, so the demo's Pull-Up opened on about 80 kg under a
+       caption telling you to leave it at None. Found, not named, like the
+       pairs above — and there has to be at least one, or this checks nothing. */
+    const bodyweight = plan.filter((e) => DEMO_LOADS[e.name]?.bw);
+    expect(bodyweight.length, 'the demo week has no bodyweight lift to check').toBeGreaterThan(0);
+    for (const e of bodyweight) expect(loadClassOf(e.name), e.name).toBe('bodyweight');
+
+    const ids = new Set(bodyweight.map((e) => e.exerciseId));
+    const logged = demoHistory(plan, today).sets.filter((s) => ids.has(s.exerciseId));
+    expect(logged.length).toBeGreaterThan(0);
+    // Early on nothing is added: stored as no weight at all, not as zero.
+    expect(
+      logged.some((s) => s.weight === null),
+      'never logged as nothing added',
+    ).toBe(true);
+    // And what is added is a belt's worth, never a person's.
+    expect(logged.every((s) => s.weight === null || s.weight < 30)).toBe(true);
+  });
 });
 
 /**

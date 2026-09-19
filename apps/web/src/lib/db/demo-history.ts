@@ -224,7 +224,8 @@ export interface DemoSet {
   session: string;
   exerciseId: string;
   setNo: number;
-  weight: number;
+  /** Null for a bodyweight lift done with nothing added — as the app logs it. */
+  weight: number | null;
   reps: number;
   rir: number;
 }
@@ -252,7 +253,7 @@ function setFor(
   session: number,
   setNo: number,
   sets: number,
-): { weight: number; reps: number; rir: number } {
+): { weight: number | null; reps: number; rir: number } {
   const t = progressAt(arc, w);
   const deload = isDeload(w);
   // Roughly one session in ten goes badly — you slept poorly, the gym was
@@ -261,15 +262,18 @@ function setFor(
   // dipping together is the honest version of it.
   const bad = !deload && jitter(w, session, 7) < -0.8;
 
-  let weight: number;
+  let weight: number | null;
   let reps: number;
 
   if (load.bw) {
-    /* The load is you, so it tracks bodyweight and the progress shows up in
-     * reps — which is how these actually go. A little extra hangs off a belt
-     * later on. */
+    /* The load is you, so the progress shows up in reps — which is how these
+     * actually go — and a little extra hangs off a belt later on. Logged the
+     * way the app logs it: the weight *added*, and none at all until there is
+     * some. This used to log a share of bodyweight as the weight, so a demo
+     * Pull-Up opened on about 80 kg under a caption saying to leave it at None
+     * unless you added weight. */
     const added = load.inc * Math.floor(t * 2.5);
-    weight = roundTo(load.bw * bodyWeightFor(w) + added, 0.5);
+    weight = added > 0 ? added : null;
     reps = load.reps + Math.round((load.repGain ?? 0) * t);
   } else {
     const earned = roundTo(load.start * (1 + load.gain * t), load.inc);
@@ -281,8 +285,8 @@ function setFor(
     reps = load.reps + (isGrinding(arc, w) ? 0 : Math.round(jitter(w, session, 3 + seed)));
   }
 
-  // Straight sets with the last one hardest, which is what the app's own
-  // suggestion engine expects to read back.
+  // Straight sets with the last one hardest — what a real straight-set session
+  // looks like in the logs.
   reps = Math.max(1, reps - (setNo - 1) - (bad ? 1 : 0));
 
   const rir = deload ? 4 : setNo === sets ? (jitter(w, session, setNo + seed) > 0 ? 0 : 1) : 2;
@@ -344,7 +348,7 @@ export function demoHistory(
                fourteen dumbbell entries by hand would leave the file meaning two
                different things depending on the row, and the next person to add
                one would have no way of telling which. */
-            weight: weight * loadRuleOf(entry.name).factor,
+            weight: weight === null ? null : weight * loadRuleOf(entry.name).factor,
             reps,
             rir,
           });
