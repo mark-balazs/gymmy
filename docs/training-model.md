@@ -538,8 +538,12 @@ to the same write.
 ### How a goal ends
 
 `outcomeOf()` has three results and none of them is "failed". Reaching it is
-`achieved`; ending with real distance covered is `partly`, reported as what was
-added; ending flat is `flat`, reported as information. An ended goal lingers on
+`achieved`. Ending short but with the lift really moved — `moved`, more than
+the 4.2% a retest wanders on its own — is `partly`, reported as what was added.
+Anything less is `flat`, reported as information: 100 → 110 ending at 102 is
+flat, because two kilos is a good day and "still added 2 kg" would credit the
+app's own noise. The same line decides both ways, so a lift that moved is never
+told it did not, however far off the target was. An ended goal lingers on
 the card for three weeks rather than vanishing on its date — the app asked for
 two months of somebody's attention, and disappearing in silence the morning it
 expires is the one ending that says nothing at all.

@@ -302,12 +302,18 @@ export function recentGainOf(ix: Indexed, rawId: string, today: string): number 
  * Never "failed". The date arriving is not a verdict on the person, and a goal
  * that ran out with two thirds of the distance covered describes two months of
  * real training. The app reports what happened and offers another go.
+ *
+ * "Part of the way" only when the lift really moved — by more than a retest of
+ * the same lift moves on its own (`moved`). 100 → 110 ending at 102 is flat:
+ * two kilos is a good day, and "still added 2 kg" would be the app crediting
+ * its own noise. The same threshold decides both ways, so a lift that did move
+ * is never told it did not, however far off the target was.
  */
 export type GoalOutcome = 'achieved' | 'partly' | 'flat';
 
 export function outcomeOf(p: GoalProgress): GoalOutcome {
   if (p.achieved) return 'achieved';
-  return p.share > 0.05 ? 'partly' : 'flat';
+  return p.moved ? 'partly' : 'flat';
 }
 
 /**

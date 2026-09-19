@@ -369,11 +369,29 @@ describe('how a goal ends', () => {
     expect(outcomeOf(p)).toBe('partly');
   });
 
+  it('calls it part of the way only once the lift moved past retest noise', () => {
+    /* The owner's example: 100 → 110, ended at 102. A fifth of the distance,
+       and still inside the 4.2% a retest wanders on its own, so the card must
+       not say "still added 2 kg". Both sides of the line are pinned: 104 is
+       under it, 104.5 is over. */
+    const end = (e1rm: number) =>
+      outcomeOf(goalProgress(goal(), ixWith({ logs: [log('2026-08-01', e1rm)] }), '2026-10-02'));
+    expect(end(102)).toBe('flat');
+    expect(end(104)).toBe('flat');
+    expect(end(104.5)).toBe('partly');
+
+    /* And the same line decides the other way. A far target that the lift
+       really moved toward — 4.5% up, under a twentieth of the way to 200 — is
+       part of the way, not "did not move". */
+    const far = goal({ target: 200 });
+    const p = goalProgress(far, ixWith({ logs: [log('2026-08-01', 104.5)] }), '2026-10-02');
+    expect(p.share).toBeLessThan(0.05);
+    expect(outcomeOf(p)).toBe('partly');
+  });
+
   it('says flat when nothing moved, and has no word for failed', () => {
     const p = goalProgress(goal(), ixWith({}), '2026-10-02');
     expect(outcomeOf(p)).toBe('flat');
-    // A twentieth of the way is still flat. Whether "partly" should need more
-    // than the retest CV is not settled, and both answers agree here.
     const barely = goalProgress(goal(), ixWith({ logs: [log('2026-08-01', 100.5)] }), '2026-10-02');
     expect(outcomeOf(barely)).toBe('flat');
     // The word itself, held at compile time: checked by `npm run typecheck`,
