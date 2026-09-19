@@ -143,12 +143,14 @@ describe('the hand-declared links', () => {
        on which day — and has nothing to do with the planned Programmes
        feature, where a trainer runs somebody's training. The table name cannot
        change without a migration, but the words on the lines can, and a line
-       reading "programmes" tells a reader the feature already exists. */
+       reading "programmes" tells a reader the feature already exists. So does
+       the American spelling: /program/ catches "program", "programs" and
+       "programmed" as well as "programme". */
     const labels = allDiagrams().flatMap(({ mermaid }) =>
       [...mermaid.matchAll(/ : "([^"]*)"$/gm)].map((m) => m[1] ?? ''),
     );
     expect(labels.length, 'no relationship labels found; the pattern is stale').toBeGreaterThan(0);
-    expect(labels.filter((l) => /programme/i.test(l))).toEqual([]);
+    expect(labels.filter((l) => /program/i.test(l))).toEqual([]);
   });
 
   it('draws the applied plan as a snapshot, not a link', () => {
