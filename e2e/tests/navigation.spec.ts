@@ -167,6 +167,197 @@ test.describe('Every move slides its way', () => {
   });
 });
 
+/**
+ * One finger, driven a step at a time through Chrome's touch pipeline, so a
+ * test can look at the page between moves. `touches` > 1 puts a second finger
+ * down beside the first.
+ *
+ * Every event carries its own time, a frame (16 ms) after the one before
+ * unless `hold` says otherwise. The app reads the finger's speed from those
+ * times, and the real gaps between CDP calls grow under a loaded machine — a
+ * flick sent in 30 ms on a quiet one arrived over 150 ms on a busy one and read
+ * as a slow drag.
+ */
+async function finger(page: Page, touches = 1) {
+  const cdp = await page.context().newCDPSession(page);
+  let at: [number, number] = [0, 0];
+  let clock = Date.now() / 1000;
+  const tick = (ms: number) => (clock += ms / 1000);
+  const points = ([x, y]: [number, number]) =>
+    Array.from({ length: touches }, (_, i) => ({ x, y: y + i * 60, id: i }));
+  return {
+    async down(x: number, y: number) {
+      at = [x, y];
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: points(at),
+        timestamp: clock,
+      });
+    },
+    async move(x: number, y: number, steps = 4) {
+      const [x0, y0] = at;
+      for (let i = 1; i <= steps; i++) {
+        const p: [number, number] = [x0 + ((x - x0) * i) / steps, y0 + ((y - y0) * i) / steps];
+        await cdp.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: points(p),
+          timestamp: tick(16),
+        });
+      }
+      at = [x, y];
+    },
+    /** Keeps the finger still for `ms` before whatever comes next. */
+    hold(ms: number) {
+      tick(ms);
+    },
+    async up() {
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchEnd',
+        touchPoints: [],
+        timestamp: tick(8),
+      });
+      await cdp.detach();
+    },
+  };
+}
+
+/** How far the page sits from where it belongs, and whether it is being told
+ *  a transform is coming. */
+function pageState(page: Page) {
+  return page.evaluate(() => {
+    const el = document.querySelector<HTMLElement>('[data-page]')!;
+    const t = getComputedStyle(el).transform;
+    return {
+      x: t === 'none' ? 0 : Math.round(new DOMMatrixReadOnly(t).m41),
+      willChange: el.style.willChange,
+    };
+  });
+}
+
+test.describe('The page follows the finger', () => {
+  /* The owner's decision: the page moves with the finger from the moment the
+     drag is plainly sideways, resists past the last tab, and on letting go
+     either finishes the move from where it is or springs back. */
+
+  test('moves with the drag, and springs back from a short one', async ({ onboardedApp: app }) => {
+    const f = await finger(app);
+    await f.down(300, 300);
+    await f.move(284, 301, 1); // 16 px: sideways now, and the page starts here
+    await f.move(204, 302);
+    expect(await pageState(app)).toEqual({ x: -80, willChange: 'transform' });
+
+    // Back most of the way, held still, and let go: not far enough, not a flick.
+    await f.move(264, 302);
+    expect((await pageState(app)).x).toBe(-20);
+    f.hold(200);
+    await f.up();
+
+    await expect.poll(() => pageState(app)).toEqual({ x: 0, willChange: '' });
+    await expect(app).toHaveURL(/\/train$/);
+  });
+
+  test('resists past the first tab rather than going nowhere', async ({ onboardedApp: app }) => {
+    await tab(app, 'Home').click();
+    await app.waitForURL('**/home');
+    await app.waitForFunction(() => !document.documentElement.matches(':active-view-transition'));
+
+    const f = await finger(app);
+    await f.down(100, 300);
+    await f.move(116, 300, 1);
+    await f.move(316, 300); // 200 px towards a tab that is not there
+    const { x } = await pageState(app);
+    expect(x).toBeGreaterThan(0);
+    expect(x).toBeLessThan(100);
+    await f.up();
+
+    await expect.poll(() => pageState(app)).toEqual({ x: 0, willChange: '' });
+    await expect(app).toHaveURL(/\/home$/);
+  });
+
+  test('a drag past a third of the screen finishes the move from where the page is', async ({
+    onboardedApp: app,
+  }) => {
+    const swiping = app.waitForFunction(
+      () => document.documentElement.matches(':active-view-transition-type(swipe)'),
+      null,
+      { polling: 'raf', timeout: 3000 },
+    );
+    const f = await finger(app);
+    await f.down(330, 300);
+    await f.move(314, 300, 1);
+    await f.move(164, 302); // 150 px of 412, held, then let go slowly
+    const left = await app.evaluate(
+      () => document.querySelector('[data-page]')!.getBoundingClientRect().left,
+    );
+    expect(left).toBeLessThan(-100);
+    f.hold(200);
+
+    /* Where the leaving page is when the transition takes its picture — which
+       is where its exit starts. Back at zero would be the page snapping home
+       before it slid away. */
+    await app.evaluate(() => {
+      const start = document.startViewTransition.bind(document);
+      const w = window as unknown as { pictured: number | null };
+      w.pictured = null;
+      document.startViewTransition = ((arg: never) => {
+        w.pictured ??= document.querySelector('[data-page]')!.getBoundingClientRect().left;
+        return start(arg);
+      }) as typeof document.startViewTransition;
+    });
+    await f.up();
+
+    await swiping;
+    const pictured = await app.evaluate(() => (window as unknown as { pictured: number }).pictured);
+    expect(pictured).toBeCloseTo(left, 0);
+    await app.waitForURL('**/week');
+  });
+
+  test('a quick flick moves however short it was', async ({ onboardedApp: app }) => {
+    const f = await finger(app);
+    await f.down(300, 300);
+    await f.move(284, 300, 1);
+    // 80 px of page — short of a third of the screen — and lifted at speed.
+    await f.move(204, 300, 2);
+    expect((await pageState(app)).x).toBe(-80);
+    await f.up();
+    await app.waitForURL('**/week');
+  });
+
+  test('a touch from the edge of the screen belongs to the phone', async ({
+    onboardedApp: app,
+  }) => {
+    const f = await finger(app);
+    await f.down(10, 300);
+    await f.move(250, 300);
+    expect(await pageState(app)).toEqual({ x: 0, willChange: '' });
+    await f.up();
+    await expect(app.waitForURL('**/home', { timeout: 1500 })).rejects.toThrow();
+  });
+
+  test('two fingers are not a swipe', async ({ onboardedApp: app }) => {
+    const f = await finger(app, 2);
+    await f.down(300, 300);
+    await f.move(60, 300);
+    expect((await pageState(app)).x).toBe(0);
+    await f.up();
+    await expect(app.waitForURL('**/week', { timeout: 1500 })).rejects.toThrow();
+  });
+
+  test('with motion turned off the page stays still, and the swipe still counts', async ({
+    onboardedApp: app,
+  }) => {
+    await app.emulateMedia({ reducedMotion: 'reduce' });
+    const f = await finger(app);
+    await f.down(330, 300);
+    await f.move(314, 300, 1);
+    await f.move(164, 300);
+    expect(await pageState(app)).toEqual({ x: 0, willChange: '' });
+    f.hold(200);
+    await f.up();
+    await app.waitForURL('**/week');
+  });
+});
+
 test.describe('Swiping between tabs', () => {
   test('left goes forward, right goes back', async ({ onboardedApp: app }) => {
     await app.goto('/train');

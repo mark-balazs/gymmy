@@ -81,6 +81,7 @@ second implementation to disagree with the first.
 | `apps/web/src/components/entry/` | Train's number controls — buttons, the ruler, the plate loader, gymmy's keypad — and the card's open/close. `rolling-number.tsx` rolls a changed digit in from the way the number moved |
 | `apps/web/src/components/motion.ts` | The motion tokens for JavaScript — easings, durations, reduced motion. See [Motion](#motion) |
 | `apps/web/src/components/tabs.ts` `navigate.tsx` `history-first.ts` | The tabs and where every screen sits among them; every move between screens (`NavLink`, `useMove`), its direction and what it does to the history; Back and Forward as moves. See [Moving between tabs](#moving-between-tabs) |
+| `apps/web/src/components/swipe-tabs.ts` `swipe.ts` | The swipe between tabs that follows the finger, and its arithmetic (axis lock, resistance, when letting go commits, how long the rest takes) |
 | `apps/web/src/components/info-tip.tsx` `place-tip.ts` | The ⓘ that holds an explanation instead of a paragraph on the screen, and where its popover goes. See [Explanations behind an info button](#explanations-behind-an-info-button) |
 | `apps/web/src/components/switch.tsx` | An on/off setting, as the platform's own `<input type="checkbox" switch>` |
 
@@ -289,6 +290,23 @@ same journey.
   [Things that will surprise you](#things-that-will-surprise-you). A Back the
   phone animates itself (`hasUAVisualTransition`, iOS's edge swipe) is left
   alone.
+- **A swipe drags the page** (`components/swipe-tabs.ts`, the arithmetic in
+  `swipe.ts`). After 10 px the drag is sideways or a scroll, decided once;
+  sideways, the transform is written straight onto `[data-page]` (no CSS
+  variable, which would restyle every card each frame) with `will-change`
+  only while a finger is down, and `touchmove` is not passive so it can stop
+  the page scrolling. Past the first or last tab it resists. Letting go moves
+  on after a flick faster than 0.2 px/ms or a drag past 30% of the width,
+  unless the finger was flicking back; otherwise the page springs back on a
+  CSS transition, which a finger can catch mid-way.
+- **A committed swipe carries on from where the page is.** The page is left
+  where the finger let go, so the transition's picture of it is taken there;
+  the move adds a `swipe` type, and `globals.css` carries the old page on to
+  the edge (`--swipe-rest`) in the time the finger's speed gives it
+  (`--swipe-ms`, never longer than `--dur-page`). Left alone: touches within
+  24 px of either edge (the phone's own Back), `[data-no-swipe]`, dialogs, a
+  second finger, and any screen that is not a tab itself. Under reduced motion
+  nothing moves under the finger; the swipe still changes tab, as a crossfade.
 - The header and the tab bar carry their own `viewTransitionName` and are
   pinned. Without a fixed reference the whole viewport appears to move rather
   than the page inside it.

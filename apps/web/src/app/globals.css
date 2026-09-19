@@ -504,6 +504,38 @@ input[type='checkbox'][switch]:disabled {
     var(--dur-page) var(--ease-out) both slide;
 }
 
+/*
+ * A swipe that commits (`components/swipe-tabs.ts`). The page is already part
+ * of the way out under the finger when the move starts, and the old page's
+ * picture is taken from there — so instead of the usual 56 px it carries on to
+ * the edge (`--swipe-rest`), at the finger's own speed (`--swipe-ms`, never
+ * longer than `--dur-page`), on the drawer curve. The new page comes in the
+ * usual way, in the same time and without waiting.
+ *
+ * Only with motion: under reduced motion the swipe never adds its type, and a
+ * swipe is the same crossfade as any other move.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  html:active-view-transition-type(swipe)::view-transition-old(.nav-forward) {
+    --slide: calc(-1 * var(--swipe-rest, var(--slide-by)));
+    animation:
+      var(--swipe-ms, var(--dur-page)) var(--ease-in) both fade reverse,
+      var(--swipe-ms, var(--dur-page)) var(--ease-drawer) both slide reverse;
+  }
+  html:active-view-transition-type(swipe)::view-transition-old(.nav-back) {
+    --slide: var(--swipe-rest, var(--slide-by));
+    animation:
+      var(--swipe-ms, var(--dur-page)) var(--ease-in) both fade reverse,
+      var(--swipe-ms, var(--dur-page)) var(--ease-drawer) both slide reverse;
+  }
+  html:active-view-transition-type(swipe)::view-transition-new(.nav-forward),
+  html:active-view-transition-type(swipe)::view-transition-new(.nav-back) {
+    animation:
+      var(--swipe-ms, var(--dur-page)) var(--ease-out) both fade,
+      var(--swipe-ms, var(--dur-page)) var(--ease-drawer) both slide;
+  }
+}
+
 /* The header and the tab bar are the fixed points the movement is read
    against. If they travel too, nothing appears to have moved except the whole
    viewport. `display: none` on the old copy stops both being briefly visible. */

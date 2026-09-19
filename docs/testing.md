@@ -122,3 +122,13 @@ Two ways the suite lies to you if you skip that:
 - **Never hard-code which exercise the generator picked.** It depends on the
   split in force, so use `exerciseNameAt(page)` — a hard-coded name turns a
   split change into a mystery failure three specs away from the cause.
+- **A swipe's speed comes from the event times, so give them.** The app reads
+  how fast the finger let go from the touch events' timestamps. Sent through
+  CDP without one, each event is stamped when it arrives, and on a busy machine
+  a 30 ms flick arrived over 150 ms and read as a slow drag. `finger()` in
+  `navigation.spec.ts` stamps each event a frame after the last, and `hold()`
+  keeps the finger still without waiting in real time.
+- **Wait out the last slide before looking for the next.**
+  `:active-view-transition-type()` still matches the move before — a check
+  armed straight after a click read the previous move's direction. `slideOf()`
+  waits for no transition first.
