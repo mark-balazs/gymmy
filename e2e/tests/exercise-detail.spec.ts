@@ -36,6 +36,27 @@ test.describe('Exercise detail', () => {
     await expect(sheet.getByText('No description for this one yet.')).toHaveCount(0);
   });
 
+  test('without photographs it is the description alone', async ({ onboardedApp: app }) => {
+    /* It used to add "No photograph of this movement yet." — telling somebody
+       what they can already see, with nothing they can do about it. Any lift
+       the library has words for and no pictures of, reached the way anybody
+       can reach any lift: Log something else. */
+    const [name, detail] = Object.entries(EXERCISE_DETAILS).find(
+      ([, d]) => d.images.length === 0 && d.description,
+    )!;
+    await app.getByRole('button', { name: '+ Log something else' }).click();
+    const picker = app.getByRole('dialog');
+    await picker.getByLabel('Search exercises').fill(name);
+    await picker.getByRole('button', { name, exact: true }).click();
+    await expect(picker).toHaveCount(0);
+
+    await app.getByRole('button', { name: `About ${name}`, exact: true }).click();
+    const sheet = app.getByRole('dialog');
+    await expect(sheet.getByText(detail.description)).toBeVisible();
+    await expect(sheet.getByRole('img')).toHaveCount(0);
+    await expect(sheet.getByText(/photograph/i)).toHaveCount(0);
+  });
+
   test('opened from a finished exercise, it is not faded with the card', async ({
     onboardedApp: app,
   }) => {

@@ -33,9 +33,13 @@ the list of things a class explicitly does *not* license.
 
 ## What the person does
 
-1. Opens Train. Whatever is on the card, a line under the weight box says what
-   to type — the bar and the plates, one dumbbell, the setting on the stack,
-   or nothing at all.
+1. Opens Train. Whatever is on the card, the weight says what to type. Where
+   the words stop a wrong entry they are a line under it: one dumbbell of a
+   pair, and "Added weight only" on a bodyweight lift. The rest — the whole bar,
+   the one dumbbell, the number on the machine, the plates loaded — is behind
+   the ⓘ beside the weight ("What weight to enter"), and is what a screen
+   reader hears on the weight. With Load the bar on, a barbell needs nothing:
+   gymmy adds the bar and the plates up itself.
 2. On a dumbbell-pair movement, types the weight of one dumbbell. The line
    immediately names the figure that will be recorded: type 20, it says 40.
 3. Logs the set. The logged row reads **40 kg**, which is what every other
@@ -57,10 +61,14 @@ doubles twice or not at all.
 
 The measuring-note test is the one that answers the original complaint rather
 than the dumbbell half of it: each kind of load carries its own note on the
-card — the bar and plates on a barbell, "None" on a bodyweight lift, the stack
-on a machine, alongside the pair and the single dumbbell. Whether every lift is
-in the table at all is held by the domain suite (`load.test.ts`); this spec
-holds that each class's own note reaches the card.
+card — the whole bar (with Load the bar off), "Added weight only" on a
+bodyweight lift, the machine's number, alongside the pair and the single
+dumbbell. A note behind the ⓘ is opened, not just found: a closed tip's text is
+still in the page, so finding it would prove nothing. And it is checked as the
+weight's description, which is how a screen reader meets it. Whether every
+lift is in the table at all is held by the domain suite (`load.test.ts`); this
+spec holds that each class's own note reaches the card. One more test holds
+that the ⓘ, right above "−", never takes a tap meant for it.
 
 The cutover note is checked on fixed dates either side of
 `LOAD_CONVENTION_FROM`, with Progress switched to *All time* — on the default

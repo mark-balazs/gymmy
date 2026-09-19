@@ -345,7 +345,11 @@ action, consequences before a destructive or replacing action.
 - **Accessible:** `aria-expanded`/`aria-controls`, the popover is
   `role="note"` named after the ⓘ, and the ⓘ is described by the text even
   while it is closed. A control whose hint moved behind an ⓘ keeps it as its
-  description through `textId` (the Settings switch does).
+  description through `textId`: the Settings switch does, and so does Train's
+  weight control, whose "what to enter" note is behind the ⓘ beside the
+  weight's caption (`Ruler` takes it as `info`). Train keeps on the card only
+  the notes that stop a wrong entry — the dumbbell pair's recorded figure and
+  "Added weight only" — and none at all with Load the bar on.
 - **Placement rules:** never inside a `<button>`, `<a>`, `<label>` or heading;
   the popover is a `span` sibling straight after the ⓘ. The label names the
   subject (`info.more`: "More on {subject}") and never starts with "About ",

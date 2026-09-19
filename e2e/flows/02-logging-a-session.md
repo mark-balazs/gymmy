@@ -16,7 +16,7 @@ all — the card sets its numbers with its own controls, described in
 1. Open `/train`. The app has already picked the day — the first session not
    yet trained this week — so no choice is required to begin.
 2. The first card is open, its numbers filled in from last time or from a
-   sensible start, with *"Nothing logged for this yet"* under the name.
+   sensible start, with *"First time"* under the name.
 3. Set **60** and **8** with the controls, or tap a number for the keypad.
 4. Choose effort: **2 more**.
 5. Tap **Log set 1**.

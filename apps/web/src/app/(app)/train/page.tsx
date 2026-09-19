@@ -22,6 +22,7 @@ import { ExercisePicker } from '@/components/exercise-picker';
 import { Collapse } from '@/components/entry/collapse';
 import { reducedMotion } from '@/components/motion';
 import { haptic } from '@/components/haptic';
+import { InfoTip } from '@/components/info-tip';
 import { Tick } from '@/components/tick';
 import { PlateLoader } from '@/components/entry/plate-loader';
 import { RollingNumber } from '@/components/entry/rolling-number';
@@ -336,11 +337,15 @@ export default function TrainPage() {
           would be the first h2 on the page after a finished day, and the page's
           own tooling reads that as the open exercise. */}
       {offPlan.length > 0 && (
-        <div className="flex flex-col gap-1 px-1">
+        <div className="flex items-center gap-1 px-1">
           <p className="text-[10.5px] font-bold tracking-wider text-[var(--color-muted)] uppercase">
             {tr.t('train.offPlan')}
           </p>
-          <p className="text-xs text-[var(--color-muted)]">{tr.t('train.offPlanNote')}</p>
+          {/* That it still counts is reassurance, read once; the label already
+              says it is not a day of the plan. */}
+          <InfoTip label={tr.t('info.more', { subject: tr.t('train.offPlan') })}>
+            {tr.t('train.offPlanNote')}
+          </InfoTip>
         </div>
       )}
       {offPlan.map((row) => (
@@ -723,6 +728,39 @@ function ExerciseCard({
   const weightStops = scaleValues(scale, weight, lastWeight);
   const weightPlaces = scalePlaces(weightStops);
 
+  /**
+   * What the number actually means.
+   *
+   * The app asked for a "weight" for months without ever saying what it was
+   * counting — which for two dumbbells is a factor of two, and once stored
+   * there is nothing to say which side of it a row is on. So every weight
+   * control says what it counts, at the moment of setting it.
+   *
+   * On screen only where the words stop a wrong entry: the pair's figure (type
+   * one dumbbell, see both recorded), and "added weight only" on a bodyweight
+   * lift, or somebody types their own bodyweight. The rest — the bar and its
+   * plates, the one dumbbell, a machine's setting, a partial load — is what
+   * people type anyway, so it waits behind an ⓘ beside the weight. A screen
+   * reader still hears it on the weight control: the ⓘ's text is the
+   * control's description (`howId`). With the bar loaded plate by plate there
+   * is nothing to say — gymmy adds the bar and the plates up itself, and the
+   * line under the total shows how.
+   */
+  const note = plates
+    ? null
+    : load === 'dumbbellPair'
+      ? 'pair'
+      : load === 'bodyweight'
+        ? 'bodyweight'
+        : 'tip';
+  const describedBy = note ? howId : undefined;
+  const weightTip =
+    note === 'tip' ? (
+      <InfoTip label={tr.t('load.tip')} textId={howId}>
+        {tr.t(`load.${load}` as Key)}
+      </InfoTip>
+    ) : null;
+
   const weightControl = plates ? (
     <PlateLoader
       value={weight}
@@ -732,7 +770,7 @@ function ExerciseCard({
       barChoices={BAR_CHOICES[unit]}
       onChange={setWeight}
       onBarChange={chooseBar}
-      describedBy={howId}
+      describedBy={describedBy}
       places={weightPlaces}
     />
   ) : entryMode === 'ruler' ? (
@@ -742,7 +780,8 @@ function ExerciseCard({
       onChange={setWeight}
       label="weight"
       unit={unit}
-      describedBy={howId}
+      describedBy={describedBy}
+      info={weightTip}
       typeLabel={tr.t('entry.typeWeight')}
       decimals
       min={scale.min}
@@ -758,7 +797,7 @@ function ExerciseCard({
       max={scale.max}
       label="weight"
       unit={unit}
-      describedBy={howId}
+      describedBy={describedBy}
       typeLabel={tr.t('entry.typeWeight')}
       decimals
       places={weightPlaces}
@@ -795,34 +834,38 @@ function ExerciseCard({
 
   /* A caption over a pair of buttons. A `div`, not the `label` it used to be:
      a label forwards a tap on its text to the first control inside it, which
-     is now the "−" button. The ruler and the bar carry their own. */
-  const captioned = (caption: string, control: ReactNode) => (
+     is now the "−" button. The ruler and the bar carry their own.
+
+     With an ⓘ beside the weight's caption, both captions of the pair are as
+     tall as the ⓘ and held clear of the buttons by its reach — its tap area
+     runs 10 px past the mark, and a tap on the top edge of "−" must not open
+     a tip. The same on both, so the two sets of buttons still line up. */
+  const captioned = (caption: string, control: ReactNode, info?: ReactNode) => (
     <div className="min-w-0 flex-1">
-      <span className="mb-1 block text-[10.5px] font-bold tracking-wider text-[var(--color-muted)] uppercase">
-        {caption}
-      </span>
+      <div className={cn('flex items-center gap-1', weightTip ? 'mb-2.5 h-6' : 'mb-1')}>
+        <span className="text-[10.5px] font-bold tracking-wider text-[var(--color-muted)] uppercase">
+          {caption}
+        </span>
+        {info}
+      </div>
       {control}
     </div>
   );
 
-  /* What the number actually means.
-
-     The app asked for a "weight" for months without ever saying what it was
-     counting — which for two dumbbells is a factor of two, and once stored
-     there is nothing to say which side of it a row is on. This is the line
-     that fixes it, and it is attached to the weight control rather than hidden
-     in the exercise sheet because it is only useful at the moment of setting.
-
-     For a pair it names the figure that will be recorded, so the doubling
-     happens in view: set 30 and it says 60. That is what every other screen
-     will show, so nothing is a surprise later. */
-  const how = (
-    <p id={howId} className="-mt-1 text-xs text-[var(--color-muted)]">
-      {load === 'dumbbellPair'
-        ? tr.t('load.dumbbellPair', { w: `${toStored(exercise.name, weight)} ${unit}` })
-        : tr.t(`load.${load}` as Key)}
-    </p>
-  );
+  /* The pair's line: the figure that will be recorded, so the doubling
+     happens in view — set 30 and it says 60. The bodyweight line: three
+     words, heard in full by a screen reader. */
+  const how =
+    note === 'pair' ? (
+      <p id={howId} className="-mt-1 text-xs text-[var(--color-muted)]">
+        {tr.t('load.dumbbellPair', { w: `${toStored(exercise.name, weight)} ${unit}` })}
+      </p>
+    ) : note === 'bodyweight' ? (
+      <p id={howId} className="-mt-1 text-xs text-[var(--color-muted)]">
+        <span aria-hidden>{tr.t('load.bodyweightShort')}</span>
+        <span className="sr-only">{tr.t('load.bodyweight')}</span>
+      </p>
+    ) : null;
 
   return (
     <Card
@@ -858,7 +901,9 @@ function ExerciseCard({
             </button>
             {/* History, stated as history. The numbers below start as these
                 numbers, so repeating a session is one tap — but nothing here
-                says to beat them. */}
+                says to beat them. With no history, "First time": without it
+                the starting numbers (the empty bar, a light dumbbell) could
+                read as a suggestion, and the app never suggests a weight. */}
             <p className="mt-0.5 text-xs text-[var(--color-muted)]">
               {s
                 ? tr.t('train.lastTime', {
@@ -936,7 +981,7 @@ function ExerciseCard({
           ) : (
             <>
               <div className="flex items-end gap-2">
-                {captioned(unit, weightControl)}
+                {captioned(unit, weightControl, weightTip)}
                 {captioned(tr.t('common.reps'), repsControl)}
               </div>
               {how}

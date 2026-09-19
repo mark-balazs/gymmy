@@ -31,9 +31,9 @@ test.describe('Train shows one exercise at a time', () => {
     await expect(numberButton(app, 'weight')).toHaveCount(1);
     await expect(app.getByRole('button', { name: /^Log set/ })).toHaveCount(1);
 
-    // The others are rows you can tap, and nothing more.
-    const collapsed = app.getByRole('button', { expanded: false });
-    expect(await collapsed.count()).toBeGreaterThan(0);
+    /* The others are rows you can tap, and nothing more. Counted as rows, not
+       as every collapsed button: the ⓘ beside the weight is one of those too. */
+    expect((await collapsedExercises(app)).length).toBeGreaterThan(0);
   });
 
   test('tapping a collapsed exercise opens it and closes the other', async ({

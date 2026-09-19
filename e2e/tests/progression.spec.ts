@@ -91,7 +91,9 @@ test.describe('The card shows what you did last time', () => {
   });
 
   test('says so plainly when there is no history', async ({ onboardedApp: app }) => {
-    await expect(app.getByText('Nothing logged for this yet').first()).toBeVisible();
+    // Two words where "Last time" would be, so the starting numbers do not
+    // read as a suggestion.
+    await expect(app.getByText('First time', { exact: true }).first()).toBeVisible();
   });
 });
 

@@ -30,7 +30,7 @@
  */
 
 import { memo, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { KeyboardEvent, PointerEvent } from 'react';
+import type { KeyboardEvent, PointerEvent, ReactNode } from 'react';
 import { formatOnScale, scalePlaces } from '@athletic/domain';
 import { cn } from '@/components/ui';
 import { useT } from '@/lib/client/hooks';
@@ -368,6 +368,9 @@ export interface RulerProps {
   max: number;
   /** What nothing reads as — "None" for the added weight on a bodyweight lift. */
   noneLabel?: string;
+  /** An ⓘ beside the caption: what the number counts, when that is not on
+   *  the screen. Outside the caption, which names the ruler. */
+  info?: ReactNode;
 }
 
 export function Ruler({
@@ -382,6 +385,7 @@ export function Ruler({
   min,
   max,
   noneLabel,
+  info,
 }: RulerProps) {
   const tr = useT();
   const captionId = useId();
@@ -589,11 +593,14 @@ export function Ruler({
   return (
     <div className="flex flex-col gap-0.5">
       <div className="flex items-center justify-between gap-2">
-        <span
-          id={captionId}
-          className="text-[10.5px] font-bold tracking-wider text-[var(--color-muted)] uppercase"
-        >
-          {word}
+        <span className="flex items-center gap-1">
+          <span
+            id={captionId}
+            className="text-[10.5px] font-bold tracking-wider text-[var(--color-muted)] uppercase"
+          >
+            {word}
+          </span>
+          {info}
         </span>
         <button
           type="button"

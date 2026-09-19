@@ -44,6 +44,20 @@ import type { DatedSet } from '../fixtures/auth';
  */
 const loggedSets = (page: Page) => page.locator('main .num').filter({ hasText: /kg ×/ });
 
+/** The open card's weight, as a screen reader hears it: the number, then what it counts. */
+const weightButton = (page: Page) => numberButton(page, 'weight');
+
+/**
+ * Opens the ⓘ beside the open card's weight — where what the number counts
+ * lives when it is not a line on the card — and returns its text.
+ */
+async function weightTip(page: Page) {
+  await page.getByRole('button', { name: 'What weight to enter', exact: true }).tap();
+  const note = page.getByRole('note', { name: 'What weight to enter', exact: true });
+  await expect(note).toBeVisible();
+  return note;
+}
+
 /** Day B opens on Reverse Lunge, which is loaded with a dumbbell in each hand. */
 async function openPairDay(page: Page): Promise<string> {
   await page.getByRole('button', { name: 'Day B', exact: true }).click();
@@ -66,9 +80,10 @@ test.describe('The app says what it is counting', () => {
        rather than asking plainly and naming it once something is typed. */
     const start = Number(await cardNumber(app, 'weight'));
     expect(start).toBeGreaterThan(0);
-    await expect(
-      app.getByText(`One dumbbell — recorded as ${start * 2} kg, both together.`),
-    ).toBeVisible();
+    /* On the card, not behind an ⓘ: this is the one note that stops a wrong
+       entry — type both dumbbells and 120 is stored for 60. */
+    await expect(app.getByText(`One dumbbell — saved as ${start * 2} kg for both.`)).toBeVisible();
+    await expect(app.getByRole('button', { name: 'What weight to enter' })).toHaveCount(0);
 
     await typeNumber(app, 'weight', 20);
 
@@ -76,12 +91,12 @@ test.describe('The app says what it is counting', () => {
     // This is the whole mitigation for storing something other than what was
     // typed: nobody has to be told twice, or find out from a chart three weeks
     // later.
-    await expect(app.getByText('One dumbbell — recorded as 40 kg, both together.')).toBeVisible();
+    await expect(app.getByText('One dumbbell — saved as 40 kg for both.')).toBeVisible();
 
     // The buttons move the one dumbbell too — a pair goes up 2 kg at a time,
     // which is 4 kg recorded.
     await app.getByRole('button', { name: 'weight +', exact: true }).click();
-    await expect(app.getByText('One dumbbell — recorded as 44 kg, both together.')).toBeVisible();
+    await expect(app.getByText('One dumbbell — saved as 44 kg for both.')).toBeVisible();
   });
 
   test('records both dumbbells while the box keeps showing one', async ({ onboardedApp: app }) => {
@@ -110,7 +125,7 @@ test.describe('The app says what it is counting', () => {
     await app.reload();
     await openPairDay(app);
     await expect(numberButton(app, 'weight')).toHaveAttribute('data-value', '20');
-    await expect(app.getByText('One dumbbell — recorded as 40 kg, both together.')).toBeVisible();
+    await expect(app.getByText('One dumbbell — saved as 40 kg for both.')).toBeVisible();
     await logSuggested(app);
     await expect(loggedSets(app)).toHaveText([/^40 kg × 10/, /^40 kg × 10/]);
   });
@@ -119,10 +134,32 @@ test.describe('The app says what it is counting', () => {
     /* The other half of the rule, and the reason the class is per exercise
        rather than per equipment type. Day A opens on Goblet Squat — one weight
        held at the chest — which is entered and stored exactly as typed, and
-       says so. The barbell's own note is held by the test below. */
-    await expect(app.getByText('The one weight you are holding.')).toBeVisible();
+       says so: behind the ⓘ, since it is what anybody types anyway, and as
+       the weight's description for a screen reader. The barbell's own note is
+       held by the test below. */
+    const says = 'The weight of the one dumbbell or kettlebell you are holding.';
+    await expect(weightButton(app)).toHaveAccessibleDescription(new RegExp(says));
+    await expect(await weightTip(app)).toHaveText(says);
     await logSet(app, 40, 8);
     await expect(loggedSets(app)).toHaveText([/^40 kg × 8/]);
+  });
+
+  test('the ⓘ beside the weight never takes a tap meant for the buttons', async ({
+    onboardedApp: app,
+  }) => {
+    /* The ⓘ's tap area runs 10 px past its mark, and it sits right above
+       "−", the most pressed button on the card. A tap on the top edge of "−"
+       mid-set must still take a step off, not open a tip. */
+    const info = app.getByRole('button', { name: 'What weight to enter', exact: true });
+    const minus = app.getByRole('button', { name: 'weight −', exact: true });
+    const i = (await info.boundingBox())!;
+    const m = (await minus.boundingBox())!;
+    expect(i.y + i.height + 10).toBeLessThanOrEqual(m.y + 0.5);
+
+    const before = Number(await cardNumber(app, 'weight'));
+    await app.touchscreen.tap(m.x + m.width / 2, m.y + 2);
+    await expect(weightButton(app)).toHaveAttribute('data-value', String(before - 2));
+    await expect(app.getByRole('note', { name: 'What weight to enter' })).toBeHidden();
   });
 
   test('says how to measure each kind of load it plans', async ({ onboardedApp: app }) => {
@@ -137,17 +174,45 @@ test.describe('The app says what it is counting', () => {
        and swapping two classes' notes passed the whole suite. Whether every
        lift is in the table at all is the domain suite's job (`load.test.ts`);
        this is that each class's note reaches the card. With the pair and the
-       single dumbbell above, that is five of the six. */
-    await openCard(app, 'Barbell Bench Press');
-    await expect(app.getByText('Count the bar and the plates together.')).toBeVisible();
+       single dumbbell above, that is five of the six.
 
+       Only what stops a wrong entry is written on the card; the rest waits
+       behind the ⓘ and is the weight's description for a screen reader. So
+       each is opened, not just found — a closed tip's text is in the page. */
+
+    // A bodyweight lift says it in three words, or somebody types their own
+    // bodyweight; a screen reader hears the whole sentence.
     await app.getByRole('button', { name: 'Day B', exact: true }).click();
     await openCard(app, 'Chin-Up');
-    await expect(app.getByText('Leave it at None unless you added weight.')).toBeVisible();
+    await expect(app.getByText('Added weight only', { exact: true })).toBeVisible();
+    await expect(weightButton(app)).toHaveAccessibleDescription(
+      /Leave it at None unless you added weight\./,
+    );
 
     await app.getByRole('button', { name: 'Day C', exact: true }).click();
     await openCard(app, 'Leg Curl');
-    await expect(app.getByText(/^The setting on the stack/)).toBeVisible();
+    await expect(await weightTip(app)).toContainText('Enter the number on the machine.');
+    await expect(weightButton(app)).toHaveAccessibleDescription(/number on the machine/);
+
+    /* The bar, loaded plate by plate, needs nothing: gymmy adds the bar and
+       the plates up itself, and the line under the total shows how. With
+       Load the bar off it is a number like any other, and the ⓘ says the bar
+       counts. */
+    await app.getByRole('button', { name: 'Day A', exact: true }).click();
+    await openCard(app, 'Barbell Bench Press');
+    await expect(app.getByRole('button', { name: 'What weight to enter' })).toHaveCount(0);
+    await expect(app.getByText(/whole bar/)).toHaveCount(0);
+
+    await app.goto('/settings');
+    const plates = app.getByRole('switch', { name: 'Load the bar on barbell lifts' });
+    await plates.click();
+    await expect(plates).not.toBeChecked();
+    await app.goto('/train');
+    await app.getByRole('button', { name: 'Day A', exact: true }).click();
+    await openCard(app, 'Barbell Bench Press');
+    await expect(await weightTip(app)).toHaveText(
+      'The whole bar: the bar itself plus every plate on it.',
+    );
   });
 });
 

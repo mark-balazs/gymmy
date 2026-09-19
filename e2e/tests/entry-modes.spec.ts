@@ -350,9 +350,12 @@ test.describe('Loading the bar', () => {
     await expectNoKeyboardFields(app);
     const total = numberButton(app, 'weight');
 
-    // No history, so the empty bar.
+    /* No history, so the empty bar. Not written under the total — the
+       picture and the bar chip already show it — but still heard with it. */
     await expect(total).toHaveAttribute('data-value', '20');
-    await expect(app.getByText('The empty bar')).toBeVisible();
+    await expect(total).toHaveAccessibleDescription(/The empty bar/);
+    const emptyBar = await app.getByText('The empty bar').boundingBox();
+    expect(emptyBar!.width).toBeLessThanOrEqual(1);
 
     // A plate goes on each side, so the total moves by two of it.
     await app.getByRole('button', { name: 'Add 20 kg to each side' }).click();

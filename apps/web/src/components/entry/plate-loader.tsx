@@ -168,11 +168,16 @@ export function PlateLoader({
   const bars = [...new Set([...barChoices, bar])].sort((a, b) => a - b);
   const keys = keyed(perSide);
   const side = round2(perSide.reduce((a, b) => a + b, 0));
-  const split = below
-    ? tr.t('entry.belowBar')
-    : perSide.length === 0
-      ? tr.t('entry.emptyBar')
-      : tr.t('entry.barSplit', { bar: formatAmount(bar), side: formatAmount(side) });
+  /* Nothing to see on an empty bar: the picture and the bar chip already show
+     it, next to a total that equals the bar. A screen reader, which has
+     neither, still hears "the empty bar" with the total. */
+  const split = below ? (
+    tr.t('entry.belowBar')
+  ) : perSide.length === 0 ? (
+    <span className="sr-only">{tr.t('entry.emptyBar')}</span>
+  ) : (
+    tr.t('entry.barSplit', { bar: formatAmount(bar), side: formatAmount(side) })
+  );
 
   const totalId = `${id}-total`;
   const splitId = `${id}-split`;
@@ -209,7 +214,9 @@ export function PlateLoader({
             <span className="sr-only">{formatAmount(value)}</span>{' '}
             <span className="text-sm font-semibold text-[var(--color-muted)]">{unit}</span>
           </span>
-          <span id={splitId} className="num text-xs text-[var(--color-muted)]">
+          {/* Its line kept when empty, so the first plate going on moves
+              nothing below it. */}
+          <span id={splitId} className="num min-h-4 text-xs text-[var(--color-muted)]">
             {split}
           </span>
           {extra > 0 && (

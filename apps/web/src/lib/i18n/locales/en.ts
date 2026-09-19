@@ -139,12 +139,11 @@ export const en = {
   'ex.finish': 'Finishing position',
   'ex.about': 'About {name}',
   'ex.noDetail': 'No description for this one yet.',
-  'ex.noPhotos': 'No photograph of this movement yet.',
   'ex.enlarge': 'Enlarge: {what}',
   'train.today': 'Today',
   'train.pickLoad': 'Pick a load',
   'train.lastTime': 'Last time {w} × {r} · {d}',
-  'train.noHistory': 'Nothing logged for this yet',
+  'train.noHistory': 'First time',
   'train.logSet': 'Log set {n}',
   'train.addAnother': 'Add another set',
   'train.saveSet': 'Save set {n}',
@@ -155,19 +154,23 @@ export const en = {
   /* How to measure this exercise. The app asked for a 'weight' for months
      without ever saying what it was counting, which for two dumbbells is a
      factor of two and unrecoverable once stored. See `load.ts`. */
-  'load.barbell': 'Count the bar and the plates together.',
-  'load.dumbbellPair': 'One dumbbell — recorded as {w}, both together.',
-  'load.dumbbellOne': 'The one weight you are holding.',
-  'load.machine': 'The setting on the stack. Machines differ, so this only compares with itself.',
+  'load.barbell': 'The whole bar: the bar itself plus every plate on it.',
+  'load.dumbbellPair': 'One dumbbell — saved as {w} for both.',
+  'load.dumbbellOne': 'The weight of the one dumbbell or kettlebell you are holding.',
+  'load.machine':
+    'Enter the number on the machine. Every machine is different, so this is only compared with your own earlier sets on it.',
   'load.bodyweight': 'Leave it at None unless you added weight.',
-  'load.partial': 'What you loaded — not what reaches your hands.',
+  'load.partial':
+    'Enter the plates you loaded. Only part of that reaches your hands, so this is only compared with your own earlier sets.',
+  'load.bodyweightShort': 'Added weight only',
+  'load.tip': 'What weight to enter',
   'train.nothingPlanned': 'Nothing planned for this day yet.',
   /* Training outside the plan. Plain and unapologetic on purpose — a class
      that counts toward nothing in particular still has to read as training,
      not as a failure to follow the plan. */
   'train.logOther': 'Log something else',
   'train.offPlan': 'Outside the plan',
-  'train.offPlanNote': 'Not a day of your plan — it still counts as training this week.',
+  'train.offPlanNote': 'This still counts as training this week.',
   'picker.search': 'Search exercises',
   'picker.none': 'Nothing matches “{q}”.',
   'train.deleteSet': 'Delete set?',
