@@ -9,4 +9,4 @@ appears:
   confluence: ["934608897", "934608916", "934608935", "934543399"]
 ---
 
-A goal must be at least 5% above where the lift is now (retests vary about 4%), rest on at least three sessions in the last eight weeks, and run 8 to 52 weeks, with at most three running at once. A goal needing more than 1.5 times the lift's own pace over the last six months (or a published rate, without that history) gets a warning, never a refusal. The target the form fills in never gets the warning, whichever horizon is picked; a higher one the person types still does.
+A goal must be at least 5% above where the lift is now (retests vary about 4%), rest on at least three sessions in the last eight weeks, and run 8 to 52 weeks, with at most three running at once. A goal needing more than 1.5 times the lift's own pace over the last six months (or a published rate, without that history) gets a warning, never a refusal, and never for a target no higher than the one the form fills in.

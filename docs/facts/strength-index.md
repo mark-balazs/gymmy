@@ -11,6 +11,6 @@ appears:
 
 The strength index adds the best estimated one-rep max in squat, hinge, lunge, push and pull over the last eight weeks and divides by bodyweight to the power 2/3; a pattern never trained counts as zero, and it is only ever compared with the same person's past. Only barbell, dumbbell and kettlebell lifts count, plus pull-ups, chin-ups and dips at that week's bodyweight plus what was added; machines, partial loads and other bodyweight moves never do.
 
-Counting untrained patterns as zero is the coverage thesis in number form. The consequence: a movement trained only on machines counts as zero, so a generated week gives each scored movement's first slot a lift that counts.
+Counting untrained patterns as zero is the coverage thesis in number form. A movement trained only on machines counts as zero too, which is why a generated week gives each scored movement a lift that counts.
 
-Every row counts that way, whatever its date. Pull-ups, chin-ups and dips logged before 2026-09-17, when the box did not yet say "added", count as added weight too, so anyone who typed their bodyweight there counts double until those sets leave the eight-week window (from the week of 9 November 2026).
+Every row counts this way, whatever its date. Before 2026-09-17 the pull-up, chin-up and dip box did not say 'added', so a bodyweight typed there counts twice until those sets leave the window, from the week of 9 November 2026.

@@ -9,4 +9,4 @@ appears:
   confluence: ["934608916", "934608935", "934543399", "934445118"]
 ---
 
-Every exercise declares a load class: barbell, dumbbell pair, single dumbbell, machine (Smith machine included), bodyweight or partial load (landmine, sled). Machine, added-bodyweight and partial loads are not real masses: they are charted against themselves and reach neither strength number. The one exception is pull-ups, chin-ups and dips, where near enough the whole body moves: the strength index counts them at bodyweight plus what was added.
+Every exercise declares a load class: barbell, dumbbell pair, single dumbbell or kettlebell, machine (Smith machine included), bodyweight or partial load (landmine, sled). Machine, added-bodyweight and partial loads are not real masses: they are charted against themselves and reach neither strength number, except pull-ups, chin-ups and dips in the strength index, because they move near enough the whole body.

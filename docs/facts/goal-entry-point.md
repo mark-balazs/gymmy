@@ -9,4 +9,4 @@ appears:
   confluence: ["934608916", "934543399"]
 ---
 
-A goal can be set only from one lift's detail sheet ('Push this lift'), and nothing in the app advertises goals. The form offers 8, 12, 16, 24 or 52 weeks and fills in a target that passes every check; until the person types their own number, that target follows the horizon they pick. A trainer can never set a goal on somebody else's lift.
+A goal can be set only from one lift's detail sheet ('Push this lift'), and nothing in the app advertises goals. The form offers 8, 12, 16, 24 or 52 weeks and, for whichever is picked, fills in a target that passes every check, until the person types their own. A trainer can never set a goal on somebody else's lift.

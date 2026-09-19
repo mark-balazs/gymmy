@@ -10,5 +10,3 @@ appears:
 ---
 
 Dropping a table takes two deploys: stop using it, then drop it after counting its rows in production.
-
-ref_sets was dropped this way (c0723f9); production had 0 rows.

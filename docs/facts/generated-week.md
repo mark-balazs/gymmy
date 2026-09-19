@@ -10,5 +10,3 @@ appears:
 ---
 
 A generated day has five slots of 3 sets each, and the range follows the movement in any slot: 6–12 reps, 8–12 for rotation, 10–15 for isolation and 30–40 m for a carry. Each scored movement's first slot in the week prefers a lift the strength index counts; machines go to the other slots. Push/Pull/Legs and Upper/Lower add a rotation-or-carry finisher every day as a bonus, and a repair pass fills any gap so a generated week always covers its split's patterns.
-
-Only a new or rebuilt week follows a changed rule; a stored week keeps its lifts until 'Rebuild my week'.

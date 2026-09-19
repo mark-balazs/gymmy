@@ -9,4 +9,4 @@ appears:
   confluence: ["934838294"]
 ---
 
-AI access over MCP is worth doing only if it exposes verdicts and coverage, not the raw log, and a plan brought in from an AI must pass the domain's coverage check. Not built.
+AI access over MCP is worth doing only if it exposes verdicts and coverage, not the raw log, and a plan brought in from an AI must pass the domain's coverage check.

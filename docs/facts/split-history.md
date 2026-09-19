@@ -1,7 +1,7 @@
 ---
 id: split-history
 status: current
-decided: "D-004"
+decided: "D-004; GYM-33"
 appears:
   repo: ["README.md#coverage-is-historised", "docs/README.md#invariants", "docs/training-model.md#historisation", "e2e/flows/07-choosing-a-split.md#historisation--the-part-that-is-easy-to-get-wrong", "e2e/flows/07-choosing-a-split.md#expected-2", "e2e/flows/07-choosing-a-split.md#boundaries", "e2e/flows/03-weekly-coverage.md#weeks-keep-their-own-meaning", "docs/data.md#what-is-stored", "docs/openapi.yaml#/components/schemas/SplitPeriod"]
   copy: ["week.scoredAs", "week.scoredAsWhy", "onboard.q0.sub", "split.editIntro", "prog.patternsBody", "prog.cellNotAsked.one", "prog.cellNotAsked.other"]
@@ -10,5 +10,3 @@ appears:
 ---
 
 Changing split starts a period from this Monday (a second change that week replaces it) and never edits an older one; each period freezes what counted as a complete week. Every week is scored against the split in force that week, marked 'Scored as' and that split's name when it differs.
-
-The past is never rewritten: changing split in March leaves January as it was trained.
