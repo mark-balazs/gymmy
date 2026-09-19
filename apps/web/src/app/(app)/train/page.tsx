@@ -20,6 +20,7 @@ import { Page } from '@/components/page';
 import { ExerciseSheet } from '@/components/exercise-sheet';
 import { ExercisePicker } from '@/components/exercise-picker';
 import { Collapse } from '@/components/entry/collapse';
+import { reducedMotion } from '@/components/motion';
 import { PlateLoader } from '@/components/entry/plate-loader';
 import { Ruler } from '@/components/entry/ruler';
 import { ValueStepper } from '@/components/entry/value-stepper';
@@ -472,9 +473,9 @@ function ExerciseCard({
         <span
           key={i}
           className={cn(
-            'h-2.5 w-2.5 rounded-full transition-all duration-300 ease-[var(--ease-spring)]',
+            'h-2.5 w-2.5 rounded-full transition-[scale,background-color,box-shadow] duration-(--dur-base) ease-(--ease-spring)',
             i < row.done
-              ? 'scale-110 bg-[var(--color-accent)] shadow-[0_0_10px_-1px_var(--color-accent)]'
+              ? 'scale-110 bg-[var(--color-accent)] shadow-[0_0_10px_-1px_var(--color-accent)] motion-reduce:scale-100'
               : 'bg-[var(--color-line)]',
           )}
         />
@@ -531,7 +532,7 @@ function ExerciseCard({
   const bringIntoView = () => {
     const el = card.current;
     if (!el) return;
-    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+    const still = reducedMotion();
     const style = getComputedStyle(el);
     const room =
       window.innerHeight - parseFloat(style.scrollMarginTop) - parseFloat(style.scrollMarginBottom);
@@ -711,7 +712,7 @@ function ExerciseCard({
         // 4.5rem each the margins alone made a 518 px card "taller than the
         // screen" on a 640 px phone, and the scroll then hid its log button.
         'scroll-mt-[calc(env(safe-area-inset-top)+3.25rem)] scroll-mb-[calc(env(safe-area-inset-bottom)+4.25rem)]',
-        'transition-opacity duration-300',
+        'transition-opacity duration-(--dur-base) ease-(--ease-out)',
         complete && (open ? 'opacity-70' : 'opacity-60'),
       )}
     >

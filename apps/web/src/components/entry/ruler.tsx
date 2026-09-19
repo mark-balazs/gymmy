@@ -35,7 +35,7 @@ import { formatOnScale, scalePlaces } from '@athletic/domain';
 import { cn } from '@/components/ui';
 import { useT } from '@/lib/client/hooks';
 import { Keypad, formatAmount } from './keypad';
-import { curve, reducedMotion as reduced } from './motion';
+import { curve, duration, reducedMotion as reduced } from '@/components/motion';
 import { RollingNumber } from './rolling-number';
 
 /** Pixels between two neighbouring stops — wide enough to aim at with a slow
@@ -51,12 +51,11 @@ const FLICK = 0.15;
  *  about thirty stops and a lazy one two or three. */
 const FRICTION = 0.994;
 const REST = 0.03;
-/** Long enough to be seen settling, short enough that the next tap is not
- *  waiting on it. The settle runs on `--ease-spring`, so it lands with a small
- *  give rather than a hard stop; every motion here stays under a quarter of a
- *  second, so none of it is still running when the next touch comes. */
-const SNAP_MS = 200;
-const TWEEN_MS = 200;
+/* How long a settle and a catch-up take comes from the motion tokens: a settle
+   is `--dur-base` on `--ease-spring`, long enough to be seen landing with a
+   small give rather than a hard stop; catching up with a typed number is
+   `--dur-fast` on `--ease-out`. Both stay under a quarter of a second, so
+   neither is still running when the next touch comes. */
 
 type Mode = 'idle' | 'drag' | 'glide' | 'snap' | 'tween';
 
@@ -100,7 +99,6 @@ interface Physics {
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-const easeOut = (k: number) => 1 - (1 - k) ** 3;
 const lastPos = (ph: Physics) => Math.max(0, (ph.list.length - 1) * GAP);
 const indexAt = (ph: Physics, pos: number) =>
   clamp(Math.round(pos / GAP), 0, Math.max(0, ph.list.length - 1));
@@ -220,8 +218,9 @@ function snap(ph: Physics) {
   ph.mode = 'snap';
   const t0 = performance.now();
   const spring = curve('--ease-spring');
+  const ms = duration('--dur-base');
   const frame = (t: number) => {
-    const k = clamp((t - t0) / SNAP_MS, 0, 1);
+    const k = clamp((t - t0) / ms, 0, 1);
     // A snap is never more than half a stop, so the spring's overshoot cannot
     // carry the needle onto the next one.
     ph.pos = from + (to - from) * spring(k);
@@ -258,9 +257,11 @@ function tween(ph: Physics, to: number) {
   ph.target = to;
   const from = ph.pos;
   const t0 = performance.now();
+  const ease = curve('--ease-out');
+  const ms = duration('--dur-fast');
   const frame = (t: number) => {
-    const k = clamp((t - t0) / TWEEN_MS, 0, 1);
-    ph.pos = from + (to - from) * easeOut(k);
+    const k = clamp((t - t0) / ms, 0, 1);
+    ph.pos = from + (to - from) * ease(k);
     place(ph);
     if (k < 1) ph.raf = requestAnimationFrame(frame);
     else {
@@ -287,9 +288,8 @@ const sameList = (a: readonly number[], b: readonly number[]) =>
  * turning under a fixed pointer. Size and colour only: nothing that moves
  * layout, so it costs no reflow in the middle of a flick.
  *
- * With reduced motion it darkens and does not grow. Zeroing the transition —
- * what the stylesheet does for everything — is not enough here: the label
- * would still jump to 1.25× and back at every stop, which is exactly the
+ * With reduced motion it darkens and does not grow (`motion-safe:`): a label
+ * jumping to 1.25× and back at every stop, even without easing, is exactly the
  * scaling the setting asks to be spared.
  */
 const Ticks = memo(
@@ -322,7 +322,7 @@ const Ticks = memo(
                    enough — "100.0", "60.00" — to reach the needle one stop
                    away. Grown to 1.25× it still clears the top at 56 px. */
                 'num absolute bottom-[33px] left-1/2 origin-bottom -translate-x-1/2 text-xs font-semibold whitespace-nowrap text-[var(--color-muted)]',
-                'transition-[scale,color] duration-200 ease-[var(--ease-spring)]',
+                'transition-[scale,color] duration-(--dur-base) ease-(--ease-spring)',
                 'group-data-[on]:font-bold group-data-[on]:text-[var(--color-ink)] motion-safe:group-data-[on]:scale-125',
               )}
             >
@@ -602,7 +602,7 @@ export function Ruler({
           // For tests: the number without the unit or the "None".
           data-value={value ?? ''}
           onClick={(e) => setOpener(e.currentTarget)}
-          className="-mr-1 inline-flex min-h-[var(--spacing-tap)] min-w-[var(--spacing-tap)] cursor-pointer items-baseline justify-end gap-1 rounded-[11px] px-2 transition-[transform,background-color] duration-150 hover:bg-[var(--color-surface-2)] active:scale-[0.97]"
+          className="press -mr-1 inline-flex min-h-[var(--spacing-tap)] min-w-[var(--spacing-tap)] cursor-pointer items-baseline justify-end gap-1 rounded-[11px] px-2 hover:bg-[var(--color-surface-2)]"
         >
           {/* Tabular figures and a box as wide as the widest value on the
               scale, right-aligned: the number changes, the space it takes does

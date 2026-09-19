@@ -22,7 +22,8 @@
  */
 
 import { useMemo, useState } from 'react';
-import { Button, Card, Chip, InfoButton, Sheet, Summary, cn } from '@/components/ui';
+import { Button, Card, Chip, Sheet, Summary, cn } from '@/components/ui';
+import { InfoTip } from '@/components/info-tip';
 import { useSnapshot, useT, useToday } from '@/lib/client/hooks';
 import { fireAndForget, retireGoal, setGoal } from '@/lib/client/mutations';
 import {
@@ -174,7 +175,7 @@ export function GoalForm({
     >
       <div className="flex items-center gap-1">
         <span className="flex-1 text-sm font-semibold">{tr.t('goal.set')}</span>
-        <InfoButton label={tr.t('goal.why')} onClick={() => setWhy(true)} />
+        <InfoTip label={tr.t('goal.why')} onOpen={() => setWhy(true)} />
       </div>
 
       {full ? (

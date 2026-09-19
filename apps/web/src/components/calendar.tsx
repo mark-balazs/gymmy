@@ -177,7 +177,7 @@ export function Calendar() {
                 }
                 className={cn(
                   'aspect-square rounded-[7px] text-[10px] font-semibold',
-                  'transition-transform duration-150 active:scale-[0.9]',
+                  'press-deep',
                   sets > 0
                     ? 'cursor-pointer bg-[var(--color-accent)] text-[var(--color-accent-ink)]'
                     : 'text-[var(--color-muted)]',
@@ -261,9 +261,9 @@ const Arrow = ({
     onClick={onClick}
     className={cn(
       'grid h-9 w-9 shrink-0 place-items-center rounded-[10px]',
-      'text-[var(--color-muted)] transition-transform duration-150',
+      'press-deep text-[var(--color-muted)]',
       'not-disabled:cursor-pointer not-disabled:hover:bg-[var(--color-surface-2)]',
-      'not-disabled:active:scale-90 disabled:opacity-25',
+      'disabled:opacity-25',
     )}
   >
     <svg

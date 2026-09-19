@@ -5,7 +5,7 @@
 | Layer | Runs | Covers | Cost |
 | --- | --- | --- | --- |
 | `packages/domain/test` | Vitest, no IO | Every training rule | Instant |
-| `apps/web/src/**/*.test.ts` | Vitest, **real Postgres** | Anything that is SQL | ~1s |
+| `apps/web/src/**/*.test.ts` | Vitest, **real Postgres** | Anything that is SQL, and rules the source and stylesheet must keep (motion tokens, CSS variables) | ~1s |
 | `e2e/tests` | Playwright, production build, Pixel 7 | What a person does | ~25s for all of it |
 
 Put logic in the domain layer and test it there. The domain has no dependencies,
@@ -98,10 +98,27 @@ Two ways the suite lies to you if you skip that:
   `backdrop-blur` overlay wrapping a panel that animates on `transform`, and
   either makes itself the containing block. The lightbox portals to the body;
   a test that only checks it rendered would not notice. Measure it.
+- **Sheets, the keypad and the lightbox all portal to the body**, so none of
+  them is inside `main` or the card that opened it, and a faded card cannot
+  fade them (`exercise-detail.spec.ts` multiplies the opacities to prove it).
+  Scope a sheet with `getByRole('dialog')`, never through the card.
 - **Anything named "Next" needs `exact: true` and a scope.** Next.js's own
   dev-tools button is called "Next", so an unscoped `getByRole('button', { name:
   'Next' })` passes against a production build and fails the moment a dev server
   is what answered on :3000 — which looks like a flake and is not one.
+- **A closed ⓘ still holds its text.** The popover is in the DOM, hidden, so
+  `getByText` finds it and a strict `toBeVisible` can match both it and a
+  visible copy. Open it first — tap the ⓘ by name ("More on …"), then
+  `getByRole('note', { name })`. A count of text that moved behind an ⓘ keeps
+  counting it, so a test that only checks `count() > 0` stops proving anything.
+  And copy in a tip on Train or Home must avoid the phrases
+  `progression.spec.ts` checks never appear ("add weight", "reps to spare",
+  "nothing left", "too easy", "earned more weight").
+- **A tip owns Escape.** It listens on `window` in the capture phase and stops
+  the event, so a tip inside a sheet closes alone. A test for a tip in a sheet
+  should press Escape and assert the sheet survived.
+- **An ⓘ label never starts with "About ".** That prefix is the exercise names'
+  button, and `exerciseNameAt` and `first-run.spec.ts` count them by it.
 - **Never hard-code which exercise the generator picked.** It depends on the
   split in force, so use `exerciseNameAt(page)` — a hard-coded name turns a
   split change into a mystery failure three specs away from the cause.

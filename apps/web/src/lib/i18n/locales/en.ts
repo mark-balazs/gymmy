@@ -79,6 +79,8 @@ export const en = {
   'common.weight': 'Weight ({unit})',
   'common.reps': 'Reps',
   'common.close': 'Close',
+  // The ⓘ's name: the subject it explains. Never 'About …', which is the exercise names' button.
+  'info.more': 'More on {subject}',
   'common.previous': 'Previous',
   'common.next': 'Next',
   'common.loading': 'Loading…',

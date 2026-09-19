@@ -10,7 +10,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Card, InfoButton, cn } from '@/components/ui';
+import { Button, Card, cn } from '@/components/ui';
+import { InfoTip } from '@/components/info-tip';
 import { SplitSheet } from '@/components/split-sheet';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import {
@@ -239,10 +240,10 @@ export default function Onboarding() {
                   }}
                 />
               </div>
-              <InfoButton
+              <InfoTip
                 label={tr.t('split.info', { split: tr.split(s.key) })}
-                onClick={() => setInfo(s.key)}
-                className="rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)]"
+                onOpen={() => setInfo(s.key)}
+                className="mx-2.5 self-center"
               />
             </div>
           ))}

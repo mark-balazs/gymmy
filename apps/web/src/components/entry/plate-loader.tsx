@@ -194,7 +194,7 @@ export function PlateLoader({
           // For tests: the exact total, whatever the plates say.
           data-value={value}
           onClick={(e) => setOpener(e.currentTarget)}
-          className="-ml-2 flex min-h-[var(--spacing-tap)] min-w-0 cursor-pointer flex-col items-start rounded-[11px] px-2 py-1 text-left transition-[transform,background-color] duration-150 hover:bg-[var(--color-surface-2)] active:scale-[0.98]"
+          className="press -ml-2 flex min-h-[var(--spacing-tap)] min-w-0 cursor-pointer flex-col items-start rounded-[11px] px-2 py-1 text-left hover:bg-[var(--color-surface-2)]"
         >
           <span id={totalId} className="num text-[28px] leading-tight font-bold">
             {/* Seen with the scale's decimals, heard as anybody says it. */}
@@ -221,13 +221,16 @@ export function PlateLoader({
           className={cn(
             'inline-flex min-h-[var(--spacing-tap)] shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3.5',
             'border border-[var(--color-line)] bg-[var(--color-surface-2)] text-sm font-semibold whitespace-nowrap',
-            'transition-[transform,background-color] duration-150 hover:bg-[var(--color-surface-3)] active:scale-[0.96]',
+            'press hover:bg-[var(--color-surface-3)]',
           )}
         >
           {tr.t('entry.bar', { w: formatAmount(bar), unit })}
           <span
             aria-hidden
-            className={cn('text-[10px] transition-transform duration-200', picking && 'rotate-180')}
+            className={cn(
+              'text-[10px] transition-transform duration-(--dur-fast) ease-(--ease-out) motion-reduce:transition-none',
+              picking && 'rotate-180',
+            )}
           >
             ▾
           </span>
@@ -249,7 +252,7 @@ export function PlateLoader({
               onClick={() => pickBar(b)}
               className={cn(
                 'num min-h-[var(--spacing-tap)] min-w-0 flex-1 cursor-pointer rounded-[10px] text-sm font-semibold',
-                'transition-[background-color,color,box-shadow,transform] duration-200 ease-[var(--ease-out-soft)] active:scale-[0.97]',
+                'press',
                 b === bar
                   ? 'bg-[var(--color-surface)] text-[var(--color-accent)] shadow-[var(--shadow-card)]'
                   : 'text-[var(--color-muted)] hover:text-[var(--color-ink)]',
@@ -339,8 +342,8 @@ export function PlateLoader({
             onClick={() => add(p)}
             className={cn(
               'flex min-h-[var(--spacing-tap)] min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px]',
-              'border border-[var(--color-line)] bg-[var(--color-surface-2)] transition-[transform,opacity] duration-150',
-              'active:scale-[0.94] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100',
+              'press border border-[var(--color-line)] bg-[var(--color-surface-2)]',
+              'disabled:cursor-not-allowed disabled:opacity-40',
             )}
           >
             <span

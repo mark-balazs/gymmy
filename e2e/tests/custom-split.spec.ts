@@ -62,7 +62,11 @@ test.describe('Understanding a split before choosing it', () => {
 });
 
 test.describe('Building your own split', () => {
-  test('the editor opens on the week you already train', async ({ page, context, baseURL }) => {
+  test('the editor opens on the week you already train, a card a day', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
     /* Not a blank page: arranging a week from nothing is a much harder question
        than adjusting one, and the week somebody already trains is a perfectly
        good first draft.
@@ -82,6 +86,24 @@ test.describe('Building your own split', () => {
     await expect(page.getByRole('button', { name: /^Edit / })).toHaveCount(20);
     await expect(page.getByLabel('Day type').first()).toHaveValue('upper');
     await expect(page.getByLabel('Day type').nth(1)).toHaveValue('lower');
+
+    /* The days are separate cards with air between them, like every other
+       screen's. The editor used to sit outside the element that spaces the
+       cards, and they touched (GYM-22). Measured between the two cards that
+       hold Day A and Day B, whatever wraps them. */
+    const gap = await page.evaluate(() => {
+      const heading = (text: string) =>
+        Array.from(document.querySelectorAll('main h3')).find(
+          (h) => h.textContent?.trim() === text,
+        )!;
+      const b = heading('Day B');
+      let first: Element = heading('Day A');
+      while (!first.parentElement!.contains(b)) first = first.parentElement!;
+      let second: Element = b;
+      while (second.parentElement !== first.parentElement) second = second.parentElement!;
+      return second.getBoundingClientRect().top - first.getBoundingClientRect().bottom;
+    });
+    expect(gap).toBeGreaterThanOrEqual(8);
   });
 
   test('an edited slot is applied and the split becomes custom', async ({ app }) => {

@@ -22,8 +22,8 @@ import { Keypad, formatAmount } from './keypad';
 
 const side =
   'grid h-[var(--spacing-tap)] cursor-pointer place-items-center rounded-[11px] border border-[var(--color-line)] ' +
-  'bg-[var(--color-surface-2)] text-xl font-semibold transition-[transform,opacity] duration-150 ' +
-  'active:scale-[0.94] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100';
+  'bg-[var(--color-surface-2)] text-xl font-semibold press ' +
+  'disabled:cursor-not-allowed disabled:opacity-40';
 
 export interface ValueStepperProps {
   value: number | null;
@@ -133,7 +133,7 @@ export function ValueStepper({
         /* A size container, so the number can shrink with the space it has.
            Two of these share a card's width on Train, and at 360 px the
            middle is barely three digits wide. */
-        className="@container flex min-h-[var(--spacing-tap)] w-full min-w-0 cursor-pointer items-center justify-center rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-1 transition-transform duration-150 active:scale-[0.97]"
+        className="press @container flex min-h-[var(--spacing-tap)] w-full min-w-0 cursor-pointer items-center justify-center rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-1"
       >
         <span aria-hidden className="flex min-w-0 items-baseline justify-center gap-1">
           <span className="num text-[length:min(17px,36cqi)] font-semibold whitespace-nowrap">
