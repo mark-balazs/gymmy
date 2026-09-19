@@ -98,6 +98,10 @@ Two ways the suite lies to you if you skip that:
   `backdrop-blur` overlay wrapping a panel that animates on `transform`, and
   either makes itself the containing block. The lightbox portals to the body;
   a test that only checks it rendered would not notice. Measure it.
+- **Sheets, the keypad and the lightbox all portal to the body**, so none of
+  them is inside `main` or the card that opened it, and a faded card cannot
+  fade them (`exercise-detail.spec.ts` multiplies the opacities to prove it).
+  Scope a sheet with `getByRole('dialog')`, never through the card.
 - **Anything named "Next" needs `exact: true` and a scope.** Next.js's own
   dev-tools button is called "Next", so an unscoped `getByRole('button', { name:
   'Next' })` passes against a production build and fails the moment a dev server

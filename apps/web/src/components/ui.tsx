@@ -3,6 +3,7 @@
 import { clsx } from 'clsx';
 import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react';
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useT } from '@/lib/client/hooks';
 
 export const cn = clsx;
@@ -156,7 +157,16 @@ export function Segmented<T extends string | number>({
   );
 }
 
-/** Bottom sheet — reachable with a thumb, unlike a centred modal. */
+/**
+ * Bottom sheet — reachable with a thumb, unlike a centred modal.
+ *
+ * **Portalled to the body.** Sheets open from inside cards, and a card that is
+ * faded (a finished exercise on Train) or transformed passes that on: the
+ * sheet showed at the card's 70% opacity (GYM-24), and a transformed parent
+ * turns "cover the screen" into "cover the card". The keypad and the lightbox
+ * are portalled for the same reason. It also takes the sheet out of any
+ * `<form>` it is declared in, so its buttons can never submit that form.
+ */
 export function Sheet({
   title,
   open,
@@ -177,8 +187,9 @@ export function Sheet({
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  if (!open) return null;
-  return (
+  // Only ever opened from a tap, so there is no server render to guard.
+  if (!open || typeof document === 'undefined') return null;
+  return createPortal(
     <div
       /* `100dvh`, not `inset-0`. A fixed overlay sized to the *layout* viewport
          runs underneath a phone's address bar, which is exactly how the last
@@ -200,6 +211,7 @@ export function Sheet({
           <div className="flex items-center justify-between gap-2">
             <h2 className="min-w-0 flex-1 text-[17px] font-semibold">{title}</h2>
             <Button
+              type="button"
               variant="ghost"
               className="-mr-1 min-h-9 shrink-0 px-2"
               aria-label={tr.t('common.close')}
@@ -215,7 +227,8 @@ export function Sheet({
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
