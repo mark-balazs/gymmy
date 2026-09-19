@@ -150,11 +150,8 @@ test.describe('The calendar on Home', () => {
     /* The index is always written to one decimal, including a trailing zero,
        so the week it happens to be round is not the week it looks like a DOTS
        — Progress holds that, and the calendar's day sheet shows the same
-       number. At 89.4 kg a best of 60 is an index of 3.0.
-
-       Expected to fail until the calendar formats it: it renders
-       String(index), which writes 3.0 as "3". Remove the marker with the fix. */
-    test.fail(true, 'calendar.tsx renders the index with String(), dropping the trailing zero');
+       number. At 89.4 kg a best of 60 is an index of 3.0 — the calendar once
+       wrote it with String(), which reads "3". */
     await signInAs(page, context, baseURL!, {
       onboarded: true,
       history: { split: 'sevenPattern', weeksBack: 3, exercises: ['Goblet Squat'], sessions: 3 },

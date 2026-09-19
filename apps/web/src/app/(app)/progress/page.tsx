@@ -39,6 +39,7 @@ import { LineChart, Sparkline, type ChartPoint } from '@/components/chart';
 import { Delta } from '@/components/delta';
 import { GoalCard, GoalForm, useGoalCards } from '@/components/goal';
 import { useProfile, useSnapshot, useT, useToday } from '@/lib/client/hooks';
+import { fmtIndex } from '@/lib/client/format';
 import { fireAndForget, logBodyWeight } from '@/lib/client/mutations';
 import {
   DEFAULT_PREFS,
@@ -256,15 +257,10 @@ export default function ProgressPage() {
           <div className="flex items-baseline gap-3">
             {/* The one hero number on the page. Proportional figures: tabular
                 digits make a three-digit number look loose at this size. */}
-            {/* One decimal, always — including a trailing zero.
-
-                The index lands in the tens where a DOTS lands in the hundreds,
-                and the decimal is the other half of telling them apart at a
-                glance. Left to JavaScript, an index that rounds to 34.0 renders
-                as "34", so the one week it happens to be round is the week it
-                looks like the other number. */}
+            {/* One decimal, always — including a trailing zero; `fmtIndex`
+                says why, and the calendar's day sheet uses the same one. */}
             <span className="text-[44px] leading-none font-bold text-[var(--color-accent-2)]">
-              {current.index!.toFixed(1)}
+              {fmtIndex(current.index!)}
             </span>
             {delta !== null && (
               <Delta

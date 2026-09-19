@@ -23,6 +23,7 @@
 import { useMemo, useState } from 'react';
 import { Sheet, cn } from '@/components/ui';
 import { useProfile, useSnapshot, useT, useToday } from '@/lib/client/hooks';
+import { fmtIndex } from '@/lib/client/format';
 import {
   bodyWeightOn,
   dayDetail,
@@ -199,7 +200,7 @@ export function Calendar() {
           <div className="flex gap-3">
             <Stat
               label={tr.t('prog.strength')}
-              value={score?.index != null ? String(score.index) : '—'}
+              value={score?.index != null ? fmtIndex(score.index) : '—'}
             />
             <Stat
               label={tr.t('prog.bodyWeight')}
