@@ -10,3 +10,5 @@ appears:
 ---
 
 There are 20 tables: 9 synced ones for a person's own training (patterns, legacy exercises, slots, split periods, program entries, set logs, body logs, goals, profile), 6 for trainer plans and 5 for sign-in. Every synced row carries a last-changed time, a soft-delete marker and a change number that only the server sets.
+
+er-diagram.test.ts reads the four numbers from the first sentence and holds them to schema.ts, so keep that sentence's shape: reworded, the test fails and says so.

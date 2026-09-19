@@ -28,7 +28,9 @@ import {
  * the same change, rather than at a reader six months later.
  */
 
-const FILE = join(import.meta.dirname, '..', '..', '..', '..', '..', 'docs', 'data-model.mmd');
+const DOCS = join(import.meta.dirname, '..', '..', '..', '..', '..', 'docs');
+const FILE = join(DOCS, 'data-model.mmd');
+const FACT = join(DOCS, 'facts', 'twenty-tables.md');
 const committed = readFileSync(FILE, 'utf8');
 
 describe('the committed diagram', () => {
@@ -64,25 +66,32 @@ describe('every table has a home', () => {
   });
 
   it('holds the count the fact register gives', () => {
-    /* docs/facts/twenty-tables.md: 20 tables — 9 synced ones for a person's
-       own training, 6 for trainer plans and 5 for sign-in (the user among
-       them). Nothing else checks that sentence, and a count written in prose
-       drifts: the header of er-diagram.ts said twenty-one when there were
-       twenty. A new table fails here until the fact says so. */
+    /* docs/facts/twenty-tables.md says how many tables there are: all of
+       them, the synced ones for a person's own training, the ones for
+       trainer plans and the ones for sign-in (the user among them). Nothing
+       else checks that sentence, and a count written in prose drifts: the
+       header of er-diagram.ts said twenty-one when there were twenty. The
+       numbers are read from the fact itself, so a new table fails here until
+       the fact says so — and a fact edited to a wrong number fails too. */
+    const fact = readFileSync(FACT, 'utf8');
+    const said =
+      /There are (\d+) tables: (\d+) synced ones for a person's own training \([^)]*\), (\d+) for trainer plans and (\d+) for sign-in\./.exec(
+        fact,
+      );
+    expect(said, `${FACT} no longer states the counts in the shape this test reads`).not.toBeNull();
+    const [all, training, plans, auth] = said!.slice(1).map(Number);
+
     const without = (g: string) =>
       GROUPS.find((x) => x.key === g)!.tables.filter((t) => t !== 'user').length;
-    const counts = {
-      all: allTables().size,
-      training: without('training'),
-      plans: without('plans'),
-      auth: without('auth') + 1,
-    };
-    expect(counts, 'update docs/facts/twenty-tables.md, then this count').toEqual({
-      all: 20,
-      training: 9,
-      plans: 6,
-      auth: 5,
-    });
+    expect(
+      {
+        all: allTables().size,
+        training: without('training'),
+        plans: without('plans'),
+        auth: without('auth') + 1,
+      },
+      'the schema and docs/facts/twenty-tables.md disagree; fix whichever is wrong',
+    ).toEqual({ all, training, plans, auth });
   });
 
   it('puts each table in exactly one diagram, apart from the user', () => {
