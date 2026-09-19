@@ -1,6 +1,8 @@
 'use client';
 
 import { useId } from 'react';
+import { InfoTip } from '@/components/info-tip';
+import { useT } from '@/lib/client/hooks';
 
 /**
  * An on/off setting, as the platform's own switch: `<input type="checkbox"
@@ -13,10 +15,14 @@ import { useId } from 'react';
  * `globals.css` draws it the same in every browser.
  *
  * The whole row is the target, not just the track: this is tapped with a
- * thumb, and a 48 px pill at the edge of the screen is easy to miss. The name
- * is the title alone and the hint is its description, so a screen reader says
- * "Load the bar on barbell lifts, switch, on" rather than reading the hint as
- * part of the name.
+ * thumb, and a 48 px pill at the edge of the screen is easy to miss. The title
+ * is one `<label>` and the empty space after the ⓘ a second, so a tap anywhere
+ * but the ⓘ flips it — the ⓘ cannot sit inside a label, or tapping it would
+ * flip the switch too.
+ *
+ * The name is the title alone and the hint is its description — kept in the
+ * tip behind the ⓘ, which a screen reader still reads while it is closed — so
+ * it says "Load the bar on barbell lifts, switch, on" and then the hint.
  */
 export function Switch({
   label,
@@ -30,19 +36,20 @@ export function Switch({
   onChange: (on: boolean) => void;
 }) {
   const id = useId();
+  const { t } = useT();
   return (
-    <div className="flex min-h-[var(--spacing-tap)] items-center gap-3">
+    <div className="flex min-h-[var(--spacing-tap)] items-center gap-1.5">
+      <label htmlFor={id} id={`${id}-label`} className="cursor-pointer text-sm font-semibold">
+        {label}
+      </label>
+      <InfoTip label={t('info.more', { subject: label })} textId={`${id}-hint`}>
+        {hint}
+      </InfoTip>
       <label
         htmlFor={id}
-        className="flex min-w-0 flex-1 cursor-pointer flex-col justify-center gap-0.5 self-stretch"
-      >
-        <span id={`${id}-label`} className="text-sm font-semibold">
-          {label}
-        </span>
-        <span id={`${id}-hint`} className="text-xs text-[var(--color-muted)]">
-          {hint}
-        </span>
-      </label>
+        aria-hidden
+        className="min-h-[var(--spacing-tap)] min-w-3 flex-1 cursor-pointer self-stretch"
+      />
       <input
         id={id}
         type="checkbox"

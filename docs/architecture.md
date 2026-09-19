@@ -79,6 +79,8 @@ second implementation to disagree with the first.
 | `apps/web/src/components/` | The UI kit, the charts, the calendar, the sheets, the lightbox, the profile card, the recovery screens |
 | `apps/web/src/components/entry/` | Train's number controls — buttons, the ruler, the plate loader, gymmy's keypad — and the card's open/close. `rolling-number.tsx` rolls a changed digit in from the way the number moved |
 | `apps/web/src/components/motion.ts` | The motion tokens for JavaScript — easings, durations, reduced motion. See [Motion](#motion) |
+| `apps/web/src/components/info-tip.tsx` `place-tip.ts` | The ⓘ that holds an explanation instead of a paragraph on the screen, and where its popover goes. See [Explanations behind an info button](#explanations-behind-an-info-button) |
+| `apps/web/src/components/switch.tsx` | An on/off setting, as the platform's own `<input type="checkbox" switch>` |
 
 ## How a set gets saved
 
@@ -285,6 +287,36 @@ fallbacks equal the CSS, reduced motion removes every distance, the press
 transitions `scale`, and no hard-coded duration, easing, `active:scale-*` or
 reduced-motion media query appears outside the system. `motion.spec.ts` checks
 what the browser does with it.
+
+## Explanations behind an info button
+
+Explanations live behind an ⓘ (`components/info-tip.tsx`), not in paragraphs on
+the screen. Text stays visible only where hiding it would cause a wrong entry,
+lost data or a blank screen: states, warnings, empty states and their one
+action, consequences before a destructive or replacing action.
+
+- **Two modes, one look.** With children it opens a small popover (about three
+  sentences at most); with `onOpen` it opens an existing sheet, for anything
+  longer — lists, the person's own numbers, pictures. It is the only info
+  button; the old `InfoButton` is gone.
+- **The popover is native** (`popover="auto"` + `popovertarget`): the top layer
+  ignores a faded card or a transformed sheet around it, nothing moves when it
+  opens, and opening one closes any other. `placeTip` (pure, unit-tested)
+  places it before its first frame, below the ⓘ when there is room, never
+  within 16 px of a side.
+- **While open it listens** — attached in `beforetoggle`, taken off as it
+  closes: Escape on `window` in the capture phase, stopped there so a sheet
+  underneath survives; a tap outside, closed by hand because Safari before
+  18.3 does not; scroll and resize, to follow the ⓘ.
+- **Accessible:** `aria-expanded`/`aria-controls`, the popover is
+  `role="note"` named after the ⓘ, and the ⓘ is described by the text even
+  while it is closed. A control whose hint moved behind an ⓘ keeps it as its
+  description through `textId` (the Settings switch does).
+- **Placement rules:** never inside a `<button>`, `<a>`, `<label>` or heading;
+  the popover is a `span` sibling straight after the ⓘ. The label names the
+  subject (`info.more`: "More on {subject}") and never starts with "About ",
+  which belongs to the exercise names' button. The exercise names keep their
+  outlined "i"; this one is a filled disc.
 
 ## Things that will surprise you
 

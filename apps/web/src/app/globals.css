@@ -186,6 +186,13 @@ body {
   letter-spacing: -0.01em;
 }
 
+/* The notch and the home bar as values JavaScript can read — the info tip
+   keeps clear of them. */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 .safe-top {
   padding-top: env(safe-area-inset-top);
 }
