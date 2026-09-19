@@ -1,5 +1,13 @@
 import type { Page } from '@playwright/test';
-import { confirmSheet, exerciseNameAt, expect, logSet, signInAs, test } from '../fixtures/test';
+import {
+  confirmSheet,
+  expect,
+  historyStart,
+  logSet,
+  openExercise,
+  signInAs,
+  test,
+} from '../fixtures/test';
 
 /** How the calendar names the month a date falls in, in the app's default
  *  language. Matching the component rather than re-deriving it. */
@@ -42,34 +50,38 @@ test.describe('The calendar on Home', () => {
   test('a day you trained opens what you did on it', async ({ page, context, baseURL }) => {
     await signInAs(page, context, baseURL!, { onboarded: true });
 
-    const lift = await exerciseNameAt(page);
+    const lift = await openExercise(page);
     await logSet(page, 62.5, 8);
     await expect(page.getByText('62.5 kg × 8').first()).toBeVisible();
 
     await page.getByRole('link', { name: 'Home', exact: true }).click();
     await page.waitForURL('**/home');
 
-    // Today is the only day with anything on it, so it is the only enabled
-    // square — which is itself the assertion that untrained days are not
-    // pretending to be tappable.
-    const squares = page.getByRole('listitem').filter({ hasText: /./ });
-    const trained = page.locator('button[aria-label*="1 sets"], button[aria-label*="1 set"]');
+    /* One square per day of this month, and no more: the padding that lines the
+       first of the month up under its weekday is not a day and is not listed.
+       Counted exactly — a range of 28 to 31 passed with a padding square or
+       two counted in, on any month short enough to leave room. */
+    const now = new Date();
+    const inMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    await expect(page.getByRole('listitem')).toHaveCount(inMonth);
+    // Today is the only day with anything on it, so it is the only square that
+    // can be pressed — untrained days are not pretending to be tappable.
+    const trained = page.getByRole('listitem').and(page.locator('button:not([disabled])'));
     await expect(trained).toHaveCount(1);
-    // One square per day of the month, and no more: the padding that lines the
-    // first of the month up under its weekday is not a day and is not listed.
-    const count = await squares.count();
-    expect(count).toBeGreaterThanOrEqual(28);
-    expect(count).toBeLessThanOrEqual(31);
 
     await trained.click();
 
     const sheet = page.getByRole('dialog');
     await expect(sheet.getByText(lift)).toBeVisible();
     await expect(sheet.getByText('62.5 kg × 8')).toBeVisible();
-    // The three numbers the day is summarised by.
-    await expect(sheet.getByText('Strength index')).toBeVisible();
-    await expect(sheet.getByText('Bodyweight')).toBeVisible();
-    await expect(sheet.getByText('Sets', { exact: true })).toBeVisible();
+    /* The three numbers the day is summarised by — read, not just labelled:
+       the labels are there whatever the numbers are. One set, and no
+       bodyweight on record, so no index either. */
+    const stat = (label: string) =>
+      sheet.getByText(label, { exact: true }).locator('xpath=following-sibling::span[1]');
+    await expect(stat('Sets')).toHaveText('1');
+    await expect(stat('Bodyweight')).toHaveText('—');
+    await expect(stat('Strength index')).toHaveText('—');
   });
 
   test('a day with nothing on it cannot be opened', async ({ page, context, baseURL }) => {
@@ -103,20 +115,75 @@ test.describe('The calendar on Home', () => {
     await confirmSheet(page);
 
     await page.goto('/home');
-    // Three weeks ago is last month about three weeks in four, so the day has
-    // to be navigated to rather than assumed to be on the opening screen.
+    /* The day the fixture logged, navigated to by that date rather than
+       assumed to be on the opening screen. It used to page to "21 days ago",
+       which is the Monday or so before the Tuesday actually logged — a
+       different month on a few days a year, when the arrow either refused to
+       go back or stopped a month short. */
     await expect(page.getByRole('button', { name: 'Previous month' })).toBeVisible({
       timeout: 15_000,
     });
-    const d = new Date();
-    d.setDate(d.getDate() - 21);
-    await showMonth(page, d);
+    const seeded = new Date(`${historyStart(3)}T12:00:00`);
+    await showMonth(page, seeded);
+    const label = seeded.toLocaleDateString('en', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    });
+    await page.getByRole('listitem', { name: `${label} — 1 sets` }).click();
 
-    const trained = page.getByRole('listitem').and(page.locator('button:not([disabled])'));
-    await expect(trained.first()).toBeVisible({ timeout: 15_000 });
-    await trained.first().click();
+    // What was logged, and only that: the plan that day's letter now points
+    // at is Upper / Lower's, and none of the old Day A that was not lifted.
+    const sheet = page.getByRole('dialog');
+    await expect(sheet.getByText('Goblet Squat')).toBeVisible();
+    await expect(sheet.getByText('Barbell Bench Press')).toHaveCount(0);
+    await expect(
+      sheet.getByText('Sets', { exact: true }).locator('xpath=following-sibling::span[1]'),
+    ).toHaveText('1');
+  });
 
-    await expect(page.getByRole('dialog').getByText('Goblet Squat')).toBeVisible();
+  test('shows the index to one decimal, trailing zero included', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* The index is always written to one decimal, including a trailing zero,
+       so the week it happens to be round is not the week it looks like a DOTS
+       — Progress holds that, and the calendar's day sheet shows the same
+       number. At 89.4 kg a best of 60 is an index of 3.0.
+
+       Expected to fail until the calendar formats it: it renders
+       String(index), which writes 3.0 as "3". Remove the marker with the fix. */
+    test.fail(true, 'calendar.tsx renders the index with String(), dropping the trailing zero');
+    await signInAs(page, context, baseURL!, {
+      onboarded: true,
+      history: { split: 'sevenPattern', weeksBack: 3, exercises: ['Goblet Squat'], sessions: 3 },
+    });
+    await logSet(page, 20, 8); // a set today, lighter than the seeded best of 60
+    await expect(page.getByText('20 kg × 8').first()).toBeVisible();
+
+    await page.goto('/progress');
+    await page.getByLabel('Today (kg)').fill('89.4');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(
+      page
+        .getByRole('heading', { name: 'Strength index' })
+        .locator('xpath=../following-sibling::div[1]/span[1]'),
+    ).toHaveText('3.0');
+
+    await page.goto('/home');
+    const label = new Date().toLocaleDateString('en', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    });
+    await page.getByRole('listitem', { name: new RegExp(`^${label} — `) }).click();
+    await expect(
+      page
+        .getByRole('dialog')
+        .getByText('Strength index', { exact: true })
+        .locator('xpath=following-sibling::span[1]'),
+    ).toHaveText('3.0');
   });
 
   test('pages between months, and refuses to page into the future', async ({

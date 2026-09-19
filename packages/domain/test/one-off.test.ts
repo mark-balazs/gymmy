@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildProgram, lastSession } from '../src/coach';
 import {
   OFF_PLAN_SESSION,
+  est1RM,
   index,
   nextSession,
   oneOffs,
@@ -11,6 +12,7 @@ import {
   weekCoverage,
 } from '../src/model';
 import { dayDetail } from '../src/insights';
+import { dotsAt, strengthAt } from '../src/strength';
 import type { SetLog } from '../src/types';
 import { logsFor, seedSnapshot, withEntries } from './fixture';
 
@@ -58,11 +60,13 @@ describe('the off-plan label', () => {
     expect(planDayOf('')).toBeNull();
   });
 
-  it('fits the wire', () => {
-    // The server accepts a session of one to four characters and answers
-    // anything else with a 400 — which blocks a device's outbox for good.
-    expect(OFF_PLAN_SESSION.length).toBeGreaterThanOrEqual(1);
-    expect(OFF_PLAN_SESSION.length).toBeLessThanOrEqual(4);
+  it('is X, forever — and fits the wire', () => {
+    // Never change it: every set already logged off-plan carries X, and a new
+    // label would make all of them read as something else. One character,
+    // inside the one-to-four the server accepts — anything outside that is a
+    // 400, which blocks a device's outbox for good. Asserting only the length
+    // let 'OFF' through the whole suite.
+    expect(OFF_PLAN_SESSION).toBe('X');
   });
 });
 
@@ -128,14 +132,45 @@ describe('what an off-plan set counts for', () => {
        is open: that would mark the day trained. Here the exact lift Day A plans
        is done outside the plan, and Day A must stay unticked. */
     const dayA = programRows(ixPlanned, 3).filter((r) => r.session === 0);
+    // Every planned set, however many the plan asks for: a hard-coded three
+    // only meant anything while the generator happened to write three.
     const logs = dayA.flatMap((r) =>
-      logged(r.exercise!.name, OFF_PLAN_SESSION, MONDAY, [
-        { weight: 60, reps: 5, rir: 2 },
-        { weight: 60, reps: 5, rir: 2 },
-        { weight: 60, reps: 5, rir: 2 },
-      ]),
+      logged(
+        r.exercise!.name,
+        OFF_PLAN_SESSION,
+        MONDAY,
+        Array.from({ length: r.entry!.sets }, () => ({ weight: 60, reps: 5, rir: 2 })),
+      ),
+    );
+    // The same sets under the day's label do tick it, so the false below can
+    // only come from the label.
+    expect(sessionsDone(withLogs(logs.map((l) => ({ ...l, session: 'A' }))), 3, MONDAY)[0]).toBe(
+      true,
     );
     expect(sessionsDone(withLogs(logs), 3, MONDAY)[0]).toBe(false);
+  });
+
+  it('counts toward both strength numbers — a 1RM test on a rest day is a 1RM', () => {
+    /* Training outside the plan counts for coverage, both strength numbers,
+       goals, the charts and last time. Every strength test logs under 'A', so
+       the index and DOTS dropping off-plan sets passed the whole suite. */
+    const ix = index({
+      ...base,
+      entries: planned.entries,
+      bodyLogs: [
+        { id: 'b1', updatedAt: MONDAY, deletedAt: null, date: MONDAY, weight: 80, note: '' },
+      ],
+      logs: logged('Conventional Deadlift', OFF_PLAN_SESSION, MONDAY, [
+        { weight: 180, reps: 3, rir: 1 },
+      ]),
+    } as Parameters<typeof index>[0]);
+    const who = { unit: 'kg' as const, sex: 'male' as const };
+    expect(
+      dotsAt(ix, MONDAY, who).lifts.find((l) => l.name === 'Conventional Deadlift'),
+    ).toMatchObject({ best: est1RM(180, 3, 1), trained: true });
+    expect(strengthAt(ix, MONDAY, who).parts.find((p) => p.key === 'hinge')!.best).toBe(
+      est1RM(180, 3, 1),
+    );
   });
 
   it('does not make a day of training outside the plan into a day of the plan', () => {

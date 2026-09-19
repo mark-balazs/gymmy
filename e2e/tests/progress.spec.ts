@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, logSet, signInAs, test } from '../fixtures/test';
+import { expect, logSet, openCard, recordedSet, signInAs, test } from '../fixtures/test';
 
 /**
  * The Progress tab shows what you have logged — not what falls inside the
@@ -25,6 +25,13 @@ test.describe('Progress covers the training, not the block', () => {
     // Training three weeks old, with the block starting *this* week — exactly
     // the state an account lands in when its block rolls over.
     blockStartsNow: true,
+    /* And an account from before the catalogue: the history is logged against
+       its old copied rows, today's set against the catalogue's id. They are
+       one lift only because `index()` reads the old rows as aliases by name —
+       so the two-point chart and the two-row table below are also the one
+       end-to-end witness of that path. Every other fixture account has no
+       exercise rows at all, like every account created today. */
+    legacyLibrary: true,
     history: {
       split: 'sevenPattern',
       weeksBack: 3,
@@ -46,14 +53,16 @@ test.describe('Progress covers the training, not the block', () => {
     await page.getByRole('link', { name: 'Progress', exact: true }).click();
     await page.waitForURL('**/progress');
 
-    /* The page leads with the charts and no verdict at all. It used to open on
-       "Needs a look", and with three clean weeks behind it, "nothing needs a
-       look — everything you train is moving": the app grading training against
-       a standard nobody agreed to. Verdicts now require a goal on the lift, so
-       an account that has not set one sees no such card. `goals.spec.ts` walks
-       the other half of that. */
-    await expect(page.getByRole('heading', { name: 'Worth knowing' })).toHaveCount(0);
+    /* No verdict card: progression verdicts need a goal, and the one ungated
+       verdict (dormant: in the plan, untouched 21+ days) has nothing to say
+       here, because Goblet Squat was trained today and Push-Up / Inverted Row
+       are not in the plan. `goals.spec.ts` walks the other half.
+
+       The lift list first, because the page's first paint is the empty state
+       — before the snapshot arrives there is no card of any kind, so an
+       absence checked then passes whatever the page goes on to draw. */
     await expect(page.getByRole('heading', { name: 'Every lift' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Worth knowing' })).toHaveCount(0);
 
     // The lift is a row in the list, and tapping it is what opens the chart.
     await page.getByRole('button', { name: 'Show Goblet Squat' }).click();
@@ -82,11 +91,17 @@ test.describe('Progress covers the training, not the block', () => {
 
     const table = sheet.getByRole('table');
     await expect(table.getByRole('columnheader', { name: 'Session' })).toBeVisible();
-    // One row per session, and a real number in each — the values are estimated
-    // 1RMs rather than the weight that was on the bar, which is what the column
-    // says and what the chart is drawn from.
+    /* One row per session, and in each the estimated 1RM rather than the weight
+       that was on the bar — which is what the column says and what the chart is
+       drawn from. So the numbers themselves: 40 × 8 and 60 × 8, both with two
+       in reserve, are 53.3 and 80. "Any number in kilos" also passed on the bar
+       weights, 40 and 60, which is the mix-up this exists to catch. */
     await expect(table.getByRole('row')).toHaveCount(3);
-    await expect(table.getByRole('cell', { name: /\d+(\.\d+)? kg/ })).toHaveCount(2);
+    await expect(table.getByRole('cell', { name: /^53\.3 kg/ })).toBeVisible();
+    await expect(table.getByRole('cell', { name: /^80 kg/ })).toBeVisible();
+    await expect(
+      sheet.getByRole('img', { name: 'Your estimated best single lift, session by session' }),
+    ).toBeVisible();
   });
 
   test('shows which movements the weeks actually contained', async ({ page, context, baseURL }) => {
@@ -99,6 +114,19 @@ test.describe('Progress covers the training, not the block', () => {
     await expect(grid).toBeVisible();
     await expect(grid.getByRole('rowheader', { name: 'Squat' })).toBeVisible();
     await expect(grid.getByRole('rowheader', { name: 'Carry' })).toBeVisible();
+
+    /* The cells, not just the rows. Every counted pattern gets a row whatever
+       was logged, so row headers alone would pass on a grid that counted
+       nothing. The squat logged three weeks ago is one set in one week; carry
+       was never trained, and this week's square is still going rather than
+       missed. Attribute locators, because the cells are plain divs. */
+    const row = (n: string) =>
+      grid.locator('tr').filter({ has: page.getByRole('rowheader', { name: n, exact: true }) });
+    await expect(row('Squat').locator('[aria-label="1 sets"]')).toHaveCount(1);
+    await expect(
+      row('Carry').locator('[aria-label$=" sets"]:not([aria-label="0 sets"])'),
+    ).toHaveCount(0);
+    await expect(row('Carry').locator('[aria-label="This week, still going"]')).toHaveCount(1);
   });
 });
 
@@ -117,13 +145,18 @@ test.describe('Progress covers the training, not the block', () => {
  * other, and separate explanations of what each one is not.
  */
 test.describe('The two strength numbers', () => {
-  /** Squats only — so the index has something to say and DOTS does not. */
-  const oneLift = {
+  /**
+   * A squat and a bench: the index has something to say, and DOTS is still
+   * missing two lifts. The bench is one of DOTS's own three, so the sentence
+   * has to leave it out — with none of the three trained, a list that ignored
+   * what was trained would read the same.
+   */
+  const twoLifts = {
     onboarded: true,
     history: {
       split: 'sevenPattern',
       weeksBack: 3,
-      exercises: ['Goblet Squat'],
+      exercises: ['Goblet Squat', 'Barbell Bench Press'],
       sessions: 3,
     },
   } as const;
@@ -165,23 +198,24 @@ test.describe('The two strength numbers', () => {
     /* A blank space teaches nobody what would fill it, and DOTS is null for
        almost everybody — it needs all three competition lifts. So the empty
        state is a sentence that says which ones. */
-    await signInAs(page, context, baseURL!, oneLift);
+    await signInAs(page, context, baseURL!, twoLifts);
     await page.goto('/progress');
     await weighIn(page, 83);
 
-    await expect(page.getByText(/Still missing:/)).toBeVisible();
-    await expect(page.getByText(/Barbell Back Squat/)).toBeVisible();
-    await expect(page.getByText(/Conventional Deadlift/)).toBeVisible();
+    await expect(page.getByText(/Still missing:/)).toHaveText(
+      'Needs a barbell squat, bench press and deadlift. Still missing: Barbell Back Squat, Conventional Deadlift.',
+    );
 
-    // The index, meanwhile, is perfectly happy with one lift — an untrained
-    // pattern counts as zero rather than blanking the number.
-    await expect(page.getByRole('heading', { name: 'Strength index' })).toBeVisible();
+    /* The index, meanwhile, is perfectly happy with two of five patterns — an
+       untrained pattern counts as zero rather than blanking the number. Read
+       from where the index sits: a page-wide "one decimal" span also matched
+       the lift row's change beside it, which was there with or without an
+       index. Two bests of 60 over 83 kg to the two-thirds is 6.3. */
     await expect(
       page
-        .locator('span')
-        .filter({ hasText: /^\d+\.\d$/ })
-        .first(),
-    ).toBeVisible();
+        .getByRole('heading', { name: 'Strength index' })
+        .locator('xpath=../following-sibling::div[1]/span[1]'),
+    ).toHaveText('6.3');
   });
 
   test('shows a DOTS score once all three lifts are there', async ({ page, context, baseURL }) => {
@@ -198,9 +232,15 @@ test.describe('The two strength numbers', () => {
 
     await weighIn(page, 83);
 
-    // "…across the three lifts" — the total it was computed from, stated, so
-    // the number is not just asserted at the reader.
-    await expect(page.getByText(/across the three lifts/)).toBeVisible();
+    /* The number, and the total it was computed from, stated so it is not just
+       asserted at the reader. Three bests of 60 is 180, which at 83 kg on the
+       men's curve is 122. The sentence alone renders whenever nothing is
+       missing, whatever the total — a wrong coefficient still makes an integer
+       and the same words. */
+    await expect(
+      page.getByText('DOTS', { exact: true }).locator('xpath=following-sibling::span[1]'),
+    ).toHaveText('122');
+    await expect(page.getByText('180 kg across the three lifts')).toBeVisible();
   });
 
   test('keeps the two numbers visibly different kinds of thing', async ({
@@ -213,10 +253,13 @@ test.describe('The two strength numbers', () => {
        even is not the week it disguises itself as the other number. A DOTS is a
        bare integer. Same card, two shapes.
 
-       This is the test that fails if somebody "tidies up" the formatting. */
+       This is the test that fails if somebody "tidies up" the formatting —
+       which is why the bodyweight is 89.4: there the index is 9.004, a round
+       number, and dropping the fixed decimal renders it as "9". At 83 kg it is
+       9.46, which reads "9.5" either way and could not tell. */
     await signInAs(page, context, baseURL!, theMeet);
     await page.goto('/progress');
-    await weighIn(page, 83);
+    await weighIn(page, 89.4);
 
     /* Located by where each number sits, not by what it looks like. The first
        version matched "a span of digits with one decimal" anywhere on the page,
@@ -230,8 +273,8 @@ test.describe('The two strength numbers', () => {
       .getByText('DOTS', { exact: true })
       .locator('xpath=following-sibling::span[1]');
 
-    await expect(index).toHaveText(/^\d+\.\d$/);
-    await expect(dots).toHaveText(/^\d+$/);
+    await expect(index).toHaveText('9.0');
+    await expect(dots).toHaveText('117');
   });
 
   test('asks which curve to use, rather than showing a DOTS no calculator makes', async ({
@@ -267,12 +310,55 @@ test.describe('The two strength numbers', () => {
 
     await page.getByRole('button', { name: 'What this number is' }).click();
     await expect(page.getByText(/not for comparing with anyone else/)).toBeVisible();
+    /* And the patterns it was built from, so the figure is checkable by hand:
+       squat, hinge and push at 60 each, lunge and pull never trained. Exact,
+       so the explanatory paragraphs above cannot match. */
+    await expect(page.getByRole('dialog').getByText('60 kg', { exact: true })).toHaveCount(3);
+    await expect(page.getByRole('dialog').getByText('—', { exact: true })).toHaveCount(2);
     await page.getByRole('button', { name: 'Close' }).click();
 
     await page.getByRole('button', { name: 'What DOTS is' }).click();
     await expect(page.getByText(/It is not a meet total/)).toBeVisible();
-    // And the three lifts it was built from, so the figure is checkable by hand.
+    /* And the three lifts it was built from, with their numbers. The names
+       alone are always there — the sheet lists all three whatever was lifted —
+       so it is the figures that make it checkable. */
     const sheet = page.getByRole('dialog');
     await expect(sheet.getByText('Barbell Bench Press')).toBeVisible();
+    await expect(sheet.getByText('60 kg', { exact: true })).toHaveCount(3);
+  });
+
+  test('names a lift trained too light to estimate, rather than calling it missing', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* A bench trained only above the rep ceiling has no estimate, and it used
+       to be reported as "still missing" to somebody who had benched that very
+       week. It is trained; it just has no number yet, and the sentence says
+       which, and why. */
+    await signInAs(page, context, baseURL!, {
+      onboarded: true,
+      sex: 'male',
+      history: {
+        split: 'sevenPattern',
+        weeksBack: 3,
+        exercises: ['Barbell Back Squat', 'Conventional Deadlift'],
+        sessions: 3,
+      },
+    });
+    await openCard(page, 'Barbell Bench Press');
+    await logSet(page, 60, 12, '2 more'); // 12 + 2 > 10: trained, but nothing to estimate from
+    await recordedSet(page, 12);
+
+    await page.goto('/progress');
+    await weighIn(page, 83);
+
+    await expect(
+      page.getByText('No number for Barbell Bench Press yet — it needs a set of 10 reps or fewer.'),
+    ).toBeVisible();
+    await expect(page.getByText(/Still missing:/)).toHaveCount(0);
+    await expect(
+      page.getByText('DOTS', { exact: true }).locator('xpath=following-sibling::span[1]'),
+    ).toHaveText('—');
   });
 });

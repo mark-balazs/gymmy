@@ -8,23 +8,6 @@ import { logsFor, seedIndex, seedSnapshot, withEntries } from './fixture';
 
 describe('program generation', () => {
   const snap = seedSnapshot();
-  const ix = index(snap);
-
-  /* The whole method rests on covering all seven patterns. If an unlucky
-   * combination of days, equipment and bias could drop one, the app would be
-   * quietly failing at the only thing it claims to do — so check every case. */
-  for (const days of [2, 3, 4]) {
-    for (const where of ['gym', 'home'] as const) {
-      for (const bias of BIASES) {
-        it(`covers every pattern: ${days} days, ${where}, ${bias}`, () => {
-          const draft = buildProgram(ix, { days, where, bias });
-          const built = withEntries(snap, draft);
-          const missing = programCoverage(built, days).filter((c) => c.sets === 0);
-          expect(missing.map((m) => m.pattern.key)).toEqual([]);
-        });
-      }
-    }
-  }
 
   describe('reach across the library', () => {
     /* Every preset, every legal day count, both locations, every bias — the same
@@ -104,9 +87,18 @@ describe('program generation', () => {
     });
 
     it('never costs a week its coverage, whatever the offset', () => {
-      /* The offset only moves which exercise fills a slot, never which pattern
+      /* The whole method rests on covering all seven patterns. If an unlucky
+         combination of days, equipment and bias could drop one, the app would
+         be quietly failing at the only thing it claims to do — so every case
+         is checked, on every preset.
+
+         The offset only moves which exercise fills a slot, never which pattern
          the slot gets — so coverage has to hold for every variety, not just
-         the one the other tests happen to exercise. */
+         the one the other tests happen to exercise. And the layout itself is
+         pinned, not just coverage: variety leaking into the pattern choice
+         keeps the week covered, because the missing-pattern rule and the
+         repair make up for it, and would pass a coverage check alone. */
+      const layoutAt0 = new Map<string, string[]>();
       for (const v of [0, 1, 2, 3, 7, 13, 96, 500, 996]) {
         for (const c of configs) {
           const cix = ixFor(c.split, c.days);
@@ -121,8 +113,62 @@ describe('program generation', () => {
           expect(
             missing.map((m) => `${v}:${c.split}:${c.days}:${c.where}:${m.pattern.key}`),
           ).toEqual([]);
+
+          const layout = programRows(week, c.days).map(
+            (r) => `${r.session}:${r.slot.key}:${r.pattern?.key}`,
+          );
+          const key = `${c.split}:${c.days}:${c.where}:${c.bias}`;
+          if (v === 0) layoutAt0.set(key, layout);
+          else expect(layout, `${v}:${key}`).toEqual(layoutAt0.get(key));
         }
       }
+    });
+
+    it('puts the bias on every isolation slot, in every configuration', () => {
+      // The bias reaches the generator only through the isolation slot's tag, so
+      // every isolation row is checked. "Some row carries the tag" passes for
+      // shoulders and arms with no bias applied at all: the unbiased week
+      // already has rows tagged with both.
+      const off: string[] = [];
+      for (const v of [0, 7, 500]) {
+        for (const c of configs.filter((c) => c.bias !== 'none')) {
+          const week = withEntries(
+            at(c.split, c.days).snap,
+            buildProgram(ixFor(c.split, c.days), {
+              days: c.days,
+              where: c.where,
+              bias: c.bias,
+              variety: v,
+            }),
+          );
+          for (const r of programRows(week, c.days))
+            if (r.slot.key === 'isolation' && !r.exercise?.tags.includes(c.bias))
+              off.push(`${v}:${c.split}:${c.days}:${c.where}:${c.bias}:${r.exercise?.name}`);
+        }
+      }
+      expect(off).toEqual([]);
+    });
+
+    it('never offers gym-only equipment to a home program', () => {
+      // Every preset, day count and bias, not one three-day week: the home rule
+      // has to hold wherever a pattern's home pool is thin.
+      const gym: string[] = [];
+      for (const v of [0, 7, 500])
+        for (const c of configs.filter((c) => c.where === 'home')) {
+          const week = withEntries(
+            at(c.split, c.days).snap,
+            buildProgram(ixFor(c.split, c.days), {
+              days: c.days,
+              where: 'home',
+              bias: c.bias,
+              variety: v,
+            }),
+          );
+          for (const r of programRows(week, c.days))
+            if (r.exercise?.where === 'gym')
+              gym.push(`${v}:${c.split}:${c.days}:${c.bias}:${r.exercise.name}`);
+        }
+      expect(gym).toEqual([]);
     });
 
     it('derives the offset deterministically from the profile', () => {
@@ -137,37 +183,6 @@ describe('program generation', () => {
     });
   });
 
-  it('fills every slot', () => {
-    const draft = buildProgram(ix, { days: 3, where: 'gym', bias: 'none' });
-    const built = withEntries(snap, draft);
-    expect(programRows(built, 3).every((r) => r.exercise)).toBe(true);
-  });
-
-  it('never offers gym-only equipment to a home program', () => {
-    const draft = buildProgram(ix, { days: 4, where: 'home', bias: 'none' });
-    const built = withEntries(snap, draft);
-    const gymOnly = programRows(built, 4)
-      .filter((r) => r.exercise?.where === 'gym')
-      .map((r) => r.exercise!.name);
-    expect(gymOnly).toEqual([]);
-  });
-
-  it('respects each slot’s required role', () => {
-    const draft = buildProgram(ix, { days: 3, where: 'gym', bias: 'none' });
-    const built = withEntries(snap, draft);
-    const bad = programRows(built, 3).filter((r) => r.check.ok === false);
-    expect(bad).toEqual([]);
-  });
-
-  for (const bias of ['shoulders', 'arms', 'glutes'] as const) {
-    it(`actually biases towards ${bias}`, () => {
-      const draft = buildProgram(ix, { days: 3, where: 'gym', bias });
-      const built = withEntries(snap, draft);
-      const hit = programRows(built, 3).filter((r) => r.exercise?.tags.includes(bias));
-      expect(hit.length).toBeGreaterThan(0);
-    });
-  }
-
   it('does not depend on pattern names, which are translated', () => {
     // Rename every pattern to its Hungarian equivalent. Generation must be
     // unaffected — matching on names would silently produce an empty week.
@@ -178,6 +193,45 @@ describe('program generation', () => {
     const draft = buildProgram(index(renamed), { days: 3, where: 'gym', bias: 'none' });
     const built = withEntries(renamed, draft);
     expect(programCoverage(built, 3).filter((c) => c.sets === 0)).toEqual([]);
+
+    // …including a split whose slots are pinned by pattern key, which is where a
+    // key/name mix-up would bite: the seven-pattern week has no pinned slot.
+    const ppl = seedSnapshot('pushPullLegs', 3);
+    const pplRenamed = {
+      ...ppl,
+      patterns: ppl.patterns.map((p) => ({ ...p, name: `HU-${p.key}` })),
+    };
+    const pplBuilt = withEntries(
+      pplRenamed,
+      buildProgram(index(pplRenamed), { days: 3, where: 'gym', bias: 'none' }),
+    );
+    expect(programCoverage(pplBuilt, 3).filter((c) => c.sets === 0)).toEqual([]);
+    expect(programRows(pplBuilt, 3).filter((r) => r.check.ok === false)).toEqual([]);
+  });
+});
+
+describe('the swap sheet', () => {
+  it('offers only legal swaps: like-for-like on a free slot, the role on a role slot, nothing gym-only at home', () => {
+    /* A swap must not be able to undo what the generator guaranteed. A free
+       slot offering any pattern would let one tap cost the week its coverage,
+       and a home swap offering a barbell would hand somebody equipment they
+       said they do not have. The only other swap test is a pinned gym slot. */
+    const snap = seedSnapshot('sevenPattern', 3);
+    for (const where of ['gym', 'home'] as const) {
+      const built = withEntries(snap, buildProgram(index(snap), { days: 3, where, bias: 'none' }));
+      for (const r of programRows(built, 3).filter((r) => r.session === 0)) {
+        const opts = swapOptions(built, 3, 0, r.slot.id, where);
+        expect(opts.length, `${where}/${r.slot.key}`).toBeGreaterThan(0);
+        if (r.slot.requiredRole === 'Any')
+          expect(opts.every((o) => o.patternId === r.exercise!.patternId)).toBe(true);
+        else
+          expect(
+            opts.every((o) => built.patternById.get(o.patternId)?.role === r.slot.requiredRole),
+          ).toBe(true);
+        if (where === 'home')
+          expect(opts.filter((o) => o.where === 'gym').map((o) => o.name)).toEqual([]);
+      }
+    }
   });
 });
 
@@ -216,30 +270,54 @@ describe('movements the app records but never prescribes', () => {
 
   it('picks something else once the movement it wanted is off-plan', () => {
     for (const days of [2, 3, 4]) {
+      // A snapshot with slots for this many days: the default one has three,
+      // so a fourth day built on it is empty and was never checked.
+      const b = seedSnapshot('sevenPattern', days);
       const opts = { days, where: 'gym' as const, bias: 'none' as const };
-      const before = chosenFor(plain, 'squat', opts);
+      const before = chosenFor(index(b), 'squat', opts);
       expect(before.length).toBeGreaterThan(0);
 
       const banned = [...new Set(before.map((e) => e.name))];
-      const after = chosenFor(tagging(banned), 'squat', opts);
+      const after = chosenFor(index(b, offPlanCatalogue(banned)), 'squat', opts);
 
       // Still a squat in the week, and not one of the ones we just refused.
       expect(after.length).toBe(before.length);
       expect(after.some((e) => banned.includes(e.name))).toBe(false);
+
+      // And the week is still covered without them: the guard must not be able
+      // to leave a pattern uncovered, nor to look covered by an exercise the
+      // generator would never choose.
+      const week = withEntries(
+        b,
+        buildProgram(index(b, offPlanCatalogue(banned)), opts),
+        offPlanCatalogue(banned),
+      );
+      expect(programCoverage(week, days).filter((c) => c.sets === 0)).toEqual([]);
     }
   });
 
   it('does not let a bias fallback smuggle one back in', () => {
-    /* The reason the filter sits in `pool`'s base rather than in its tag
-       argument: `pool` is called a second time with a null tag whenever a bias
-       leaves a pattern empty, and that second call is exactly where an off-plan
+    /* `choose` falls back to an untagged pool whenever a bias leaves the
+       isolation pool empty, and that second call is exactly where an off-plan
        movement would reappear — for the user who asked for a bias, which is
-       nobody's idea of a guard. */
-    for (const bias of BIASES) {
-      const opts = { days: 3, where: 'gym' as const, bias };
-      const banned = [...new Set(chosenFor(plain, 'squat', opts).map((e) => e.name))];
-      const after = chosenFor(tagging(banned), 'squat', opts);
-      expect(after.some((e) => banned.includes(e.name))).toBe(false);
+       nobody's idea of a guard. So the filter sits in `pool`'s base rather than
+       in its tag argument.
+
+       Banning every isolation movement that carries the bias makes that
+       fallback the path actually taken. Banning squats, as this test first
+       did, never reached it: only the isolation slot is ever given a tag. */
+    for (const bias of BIASES.filter((b) => b !== 'none')) {
+      const banned = CATALOGUE.filter(
+        (c) => c.pattern === 'isolation' && c.tags.includes(bias),
+      ).map((c) => c.name);
+      const ix = tagging(banned);
+      for (const where of ['gym', 'home'] as const)
+        for (let variety = 0; variety < 10; variety++) {
+          const smuggled = buildProgram(ix, { days: 3, where, bias, variety })
+            .map((d) => (d.exerciseId ? ix.exerciseById.get(d.exerciseId)?.name : undefined))
+            .filter((n): n is string => !!n && banned.includes(n));
+          expect(smuggled, `${bias}/${where}/${variety}`).toEqual([]);
+        }
     }
   });
 
@@ -264,22 +342,6 @@ describe('movements the app records but never prescribes', () => {
     expect(before.map((e) => e.name)).toContain(victim.name);
     expect(after.map((e) => e.name)).not.toContain(victim.name);
   });
-
-  it('never satisfies the coverage guarantee with something it refuses to pick', () => {
-    // The guard must not be able to leave a pattern uncovered, nor to look
-    // covered by an exercise the generator would never choose.
-    const banned = [
-      ...new Set(
-        chosenFor(plain, 'squat', { days: 3, where: 'gym', bias: 'none' }).map((e) => e.name),
-      ),
-    ];
-    const taggedIx = tagging(banned);
-    const built = withEntries(
-      { ...base, exercises: taggedIx.exercises },
-      buildProgram(taggedIx, { days: 3, where: 'gym', bias: 'none' }),
-    );
-    expect(programCoverage(built, 3).filter((c) => c.sets === 0)).toEqual([]);
-  });
 });
 
 describe('what you did last time', () => {
@@ -296,6 +358,16 @@ describe('what you did last time', () => {
   it('has nothing to say about a lift never trained', () => {
     // Not a zero and not a starting weight to aim at. Nothing.
     expect(lastSession(index(base), squat.id)).toBeNull();
+
+    // …even when other lifts have history. This prefills the Train card, so a
+    // leak here is a squat card handed the bench weight.
+    const bench = index(base).exercises.find((e) => e.name === 'Barbell Bench Press')!;
+    expect(
+      lastSession(
+        index({ ...base, logs: logsFor(bench.id, [{ weight: 80, reps: 5, rir: 1 }]) }),
+        squat.id,
+      ),
+    ).toBeNull();
   });
 
   it('reports the heaviest weight of the most recent session', () => {
@@ -313,12 +385,28 @@ describe('what you did last time', () => {
 
   it('takes the fewest reps at the top weight, not the easiest set', () => {
     /* A session of 60×10, 60×8, 50×12 is repeated as 60×8. The max reps would
-       flatter the session and the back-off set is not what you would repeat. */
+       flatter the session and the back-off set is not what you would repeat.
+       Nor is the warm-up: 40×3 has the fewest reps of all, and without it the
+       fewest reps overall and the fewest at the top weight were the same set. */
     const last = lastSession(
       withLogs([
+        { weight: 40, reps: 3, rir: 5 },
         { weight: 60, reps: 10, rir: 2 },
         { weight: 60, reps: 8, rir: 0 },
         { weight: 50, reps: 12, rir: 2 },
+      ]),
+      squat.id,
+    );
+    expect(last).toMatchObject({ weight: 60, reps: 8 });
+  });
+
+  it('takes the fewest reps at the top weight wherever it falls in the session', () => {
+    // The hard set first and an easier one after it: "the last set" and "the
+    // working set" disagree, and only the second is what you would repeat.
+    const last = lastSession(
+      withLogs([
+        { weight: 60, reps: 8, rir: 0 },
+        { weight: 60, reps: 10, rir: 2 },
       ]),
       squat.id,
     );

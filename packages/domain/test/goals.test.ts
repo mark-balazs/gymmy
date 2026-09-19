@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 import {
   EVIDENCE,
   MAX_LIVE_GOALS,
@@ -11,6 +11,7 @@ import {
   recentGainOf,
   suggestBaseline,
   type Goal,
+  type GoalOutcome,
   type GoalRequest,
   type SetLog,
 } from '../src';
@@ -136,6 +137,15 @@ describe('goalProgress', () => {
     const really = goalProgress(goal(), ixWith({ logs: [log('2026-08-01', 106)] }), '2026-09-14');
     expect(really.moved).toBe(true);
 
+    // 4.5% is past the retest CV and short of the 5% goal floor, and it is the
+    // CV that decides. 103 and 106 fall on the same side of both.
+    const between = goalProgress(
+      goal(),
+      ixWith({ logs: [log('2026-08-01', 104.5)] }),
+      '2026-09-14',
+    );
+    expect(between.moved).toBe(true);
+
     // Which is to say: the threshold is the published CV, not a round number.
     expect(EVIDENCE.retestCv).toBeCloseTo(0.042);
   });
@@ -174,6 +184,16 @@ describe('the guardrails', () => {
     const check = checkGoal(request({ targetDate: '2026-08-12' }));
     expect(check.allowed).toBe(false);
     expect(check.reason).toBe('tooShort');
+  });
+
+  it('draws the horizon at exactly eight and fifty-two weeks', () => {
+    // Both documented edges, from a start of 2026-07-01. The cases above sit at
+    // six weeks and sixty-one, which a threshold anywhere between passes. The
+    // eight-week target is ambitious, so only `allowed` is asserted there.
+    expect(checkGoal(request({ targetDate: '2026-08-25' })).reason).toBe('tooShort');
+    expect(checkGoal(request({ targetDate: '2026-08-26' })).allowed).toBe(true);
+    expect(checkGoal(request({ targetDate: '2027-06-30' })).allowed).toBe(true);
+    expect(checkGoal(request({ targetDate: '2027-07-07' })).reason).toBe('tooLong');
   });
 
   it('refuses a horizon longer than a year', () => {
@@ -275,11 +295,18 @@ describe('what the app offers before you type anything', () => {
     expect(suggestBaseline(ixWith({ logs }), bench.id, '2026-09-14')).toBe(0);
   });
 
-  it('will not call two sessions a rate', () => {
+  it('will not call fewer than six sessions a rate', () => {
     // Guessing one would put a number in front of somebody that the app made
     // up, and it is the number the ambition warning is measured against.
     const thin = ixWith({ logs: [log('2026-08-01', 100), log('2026-08-08', 105)] });
     expect(recentGainOf(thin, bench.id, '2026-09-14')).toBeNull();
+
+    // One short of the six the next test reads a rate from: two sessions
+    // refused and six accepted let any threshold from three to six through.
+    const five = [100, 100, 100, 110, 110].map((w, i) =>
+      log(`2026-0${6 + Math.floor(i / 3)}-${String(1 + (i % 3) * 7).padStart(2, '0')}`, w),
+    );
+    expect(recentGainOf(ixWith({ logs: five }), bench.id, '2026-09-14')).toBeNull();
   });
 
   it('reads a real trailing gain off the sessions', () => {
@@ -317,6 +344,12 @@ describe('how a goal ends', () => {
   it('says flat when nothing moved, and has no word for failed', () => {
     const p = goalProgress(goal(), ixWith({}), '2026-10-02');
     expect(outcomeOf(p)).toBe('flat');
-    expect(['achieved', 'partly', 'flat']).toContain(outcomeOf(p));
+    // A twentieth of the way is still flat. Whether "partly" should need more
+    // than the retest CV is not settled, and both answers agree here.
+    const barely = goalProgress(goal(), ixWith({ logs: [log('2026-08-01', 100.5)] }), '2026-10-02');
+    expect(outcomeOf(barely)).toBe('flat');
+    // The word itself, held at compile time: checked by `npm run typecheck`,
+    // not at runtime, so "failed" cannot come back without failing the build.
+    expectTypeOf<GoalOutcome>().toEqualTypeOf<'achieved' | 'partly' | 'flat'>();
   });
 });

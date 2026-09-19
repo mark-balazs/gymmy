@@ -12,9 +12,9 @@ import type { Page } from '@playwright/test';
  * like any other.
  *
  * What these tests hold is mostly what must *not* happen, because an extra set
- * is easy to log and hard to keep in its lane: it must not tick a planned day,
- * must not change which day Train opens on, and must not inflate the day's own
- * counter.
+ * is easy to log and hard to keep in its lane: it must not change which day
+ * Train opens on, and must not inflate the day's own counter. That it must not
+ * tick a planned day is the domain suite's to hold.
  */
 
 const logOther = (page: Page) => page.getByRole('button', { name: '+ Log something else' });
@@ -57,10 +57,10 @@ test.describe('Logging something outside the plan', () => {
     // The sets are there, on the card that logged them…
     await expect(app.locator('main .num').filter({ hasText: /^24 kg × 15/ })).toHaveCount(2);
     // …and the day's counter did not move. Two extra sets are not two sets of
-    // Day A, and "2 of 15" would be the app claiming they were.
+    // Day A, and "2 of 15" would be the app claiming they were. (That they can
+    // never tick the day either is `one-off.test.ts`'s: two swings could not
+    // finish a day that plans five other lifts, so a check here could not fail.)
     await expect(dayCounter(app)).toHaveText(before);
-    // Nor is Day A ticked off.
-    await expect(app.getByRole('button', { name: /Day A/ })).not.toContainText('✓');
   });
 
   test('survives a reload, and does not move Train to another day', async ({

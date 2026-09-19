@@ -20,6 +20,19 @@ describe('sign-in codes', () => {
     expect(seen.size).toBeGreaterThan(250);
   });
 
+  it('uses every digit in every position', () => {
+    /* The code is the whole secret behind an account, so how many codes there
+       are is the thing worth asserting. Drawing from ten thousand and padding
+       to six keeps the length right and repeats rarely enough to pass the test
+       above, while making a code a hundred times easier to guess — and it
+       leaves the first two digits always zero. False failure here is below
+       60 × 0.9^2000: never. */
+    const codes = Array.from({ length: 2000 }, () => generateCode());
+    for (let i = 0; i < CODE_LENGTH; i++) {
+      expect(new Set(codes.map((c) => c[i])).size, `position ${i}`).toBe(10);
+    }
+  });
+
   it('accepts a code however it was pasted', () => {
     expect(normaliseCode('123 456')).toBe('123456');
     expect(normaliseCode('123-456')).toBe('123456');

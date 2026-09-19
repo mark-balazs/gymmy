@@ -92,6 +92,23 @@ It links to the YAML for everything else.
 same voice as the rest. Do not append "as of March we also…"; rewrite the
 sentence that is now wrong.
 
+**Compact and plain — people have to be able to follow it.** The pages grew
+verbose; the owner's rule is that they are written for a busy reader, in
+everyday words:
+
+- Open with the answer: one or two sentences saying what this is and what to do.
+- Short sentences, short paragraphs. Bullets and tables over long prose.
+- Plain words. Avoid jargon; when a technical term is needed, say what it means
+  in a few words the first time. No code names on Product pages; on
+  Architecture and Runbook pages only where the reader must find the thing.
+- The "why" in one sentence, not the history of how we got there. Backstory
+  belongs in the Decision log, if anywhere.
+- Keep every rule, number, link and warning someone would act on; cut the rest.
+  If a page cannot lose half its words, ask whether it is two pages.
+
+The same goes for text in the app itself: explanations belong behind an ⓘ,
+not in paragraphs on the screen.
+
 ### Diagrams in Confluence
 
 **The entity relationship diagrams are generated — never hand-drawn.**

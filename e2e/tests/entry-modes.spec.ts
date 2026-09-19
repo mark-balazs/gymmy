@@ -319,6 +319,36 @@ test.describe('Loading the bar', () => {
     await expect(app.getByRole('button', { name: /^Remove a / })).toHaveCount(0);
   });
 
+  test('each lift keeps its own bar, and a trap bar starts on one', async ({
+    onboardedApp: app,
+  }) => {
+    /* The bar is remembered per exercise. The one check on it so far — the
+       bench keeping 15 kg across a reload — passes just as well if every lift
+       shares one remembered bar, and then the trap bar deadlift starts on the
+       bench's 15. It starts on its own, 25 kg, which is also the one bar that
+       is not the standard 20: a card falling back to the standard bar showed
+       20 and nothing noticed. Day A's third card, so no test had opened it. */
+    await openCard(app, BENCH);
+    await app.getByRole('button', { name: 'Bar 20 kg' }).click();
+    await app
+      .getByRole('group', { name: 'Bar weight' })
+      .getByRole('button', { name: '15 kg', exact: true })
+      .click();
+    await expect(app.getByRole('button', { name: 'Bar 15 kg' })).toBeVisible();
+
+    await openCard(app, 'Trap Bar Deadlift');
+    await expect(app.getByRole('button', { name: 'Bar 25 kg' })).toBeVisible();
+    await expect(numberButton(app, 'weight')).toHaveAttribute('data-value', '25');
+
+    // And both still, once they come back from the device rather than memory.
+    await app.reload();
+    await expect(app.getByRole('heading', { name: 'Train', exact: true })).toBeVisible();
+    await openCard(app, BENCH);
+    await expect(app.getByRole('button', { name: 'Bar 15 kg' })).toBeVisible();
+    await openCard(app, 'Trap Bar Deadlift');
+    await expect(app.getByRole('button', { name: 'Bar 25 kg' })).toBeVisible();
+  });
+
   test('switched off, a barbell gets the same buttons or ruler as everything else', async ({
     onboardedApp: app,
   }) => {
@@ -342,6 +372,77 @@ test.describe('Loading the bar', () => {
     await weight.focus();
     await app.keyboard.press('ArrowRight');
     await expect(weight).toHaveAttribute('aria-valuenow', '22.5');
+  });
+});
+
+test.describe('Where a number starts', () => {
+  test('a lift with no history starts on a light weight and the bottom of its range', async ({
+    onboardedApp: app,
+  }) => {
+    /* There is no blank box to fill any more, so a lift never done before has
+       to start somewhere plausible: a light pair of dumbbells, and the bottom
+       of the rep range the plan gives that slot — or eight, off the plan, where
+       there is no range. The start values are unit-tested; what nothing held
+       is the card handing them the right range, or any range at all: without
+       it every first set of every lift starts at eight reps and still looks
+       reasonable. Goblet Squat's range is 6–12; Russian Twist's starts at 30. */
+    await onGoblet(app);
+    await expect(numberButton(app, 'weight')).toHaveAttribute('data-value', '10');
+    await expect(numberButton(app, 'reps')).toHaveAttribute('data-value', '6');
+
+    await openCard(app, 'Russian Twist');
+    await expect(numberButton(app, 'reps')).toHaveAttribute('data-value', '30');
+
+    await app.getByRole('button', { name: '+ Log something else' }).click();
+    const sheet = app.getByRole('dialog');
+    await sheet.getByLabel('Search exercises').fill('Kettlebell Swing');
+    await sheet.getByRole('button', { name: 'Kettlebell Swing', exact: true }).click();
+    await expect(app.getByRole('heading', { name: 'Kettlebell Swing', exact: true })).toBeVisible();
+    await expect(numberButton(app, 'weight')).toHaveAttribute('data-value', '10');
+    await expect(numberButton(app, 'reps')).toHaveAttribute('data-value', '8');
+  });
+});
+
+test.describe('In pounds', () => {
+  test('the card uses the pound kit', async ({ onboardedApp: app }) => {
+    /* A pound gym has different dumbbells, a different bar and different
+       plates, and every one of those is looked up by unit on the card. The
+       tables are unit-tested; nothing ran the card in pounds, where a lookup
+       left on kilograms shows up as a 20 kg bar labelled 45 lb, or a bar
+       remembered in kilograms read back as pounds. So a bar is remembered in
+       kilograms first, and must not follow the switch.
+
+       Not covered: changing unit while Train stays open. Going to Settings and
+       back mounts every card afresh. */
+    await openCard(app, BENCH);
+    await app.getByRole('button', { name: 'Bar 20 kg' }).click();
+    await app
+      .getByRole('group', { name: 'Bar weight' })
+      .getByRole('button', { name: '15 kg', exact: true })
+      .click();
+    await expect(app.getByRole('button', { name: 'Bar 15 kg' })).toBeVisible();
+
+    await app.goto('/settings');
+    const lb = app.getByRole('button', { name: 'lb', exact: true });
+    await lb.click();
+    await expect(lb).toHaveAttribute('aria-pressed', 'true');
+    await app.goto('/train');
+    await expect(app.getByRole('heading', { name: 'Train', exact: true })).toBeVisible();
+
+    // A light dumbbell in pounds, and a pound dumbbell's step.
+    await onGoblet(app);
+    await expect(numberButton(app, 'weight')).toHaveAttribute('data-value', '20');
+    await app.getByRole('button', { name: 'weight +', exact: true }).click();
+    await expect(numberButton(app, 'weight')).toHaveAttribute('data-value', '25');
+
+    // The pound bar, and a pound plate on each side of it.
+    await openCard(app, BENCH);
+    await expect(app.getByRole('button', { name: 'Bar 45 lb' })).toBeVisible();
+    await expect(numberButton(app, 'weight')).toHaveAttribute('data-value', '45');
+    await app.getByRole('button', { name: 'Add 45 lb to each side' }).click();
+    await expect(numberButton(app, 'weight')).toHaveAttribute('data-value', '135');
+    await app.getByRole('button', { name: /^Log set 1$/ }).click();
+    await expect(app.locator('main .num').filter({ hasText: /lb ×/ })).toHaveText([/^135 lb × /]);
   });
 });
 

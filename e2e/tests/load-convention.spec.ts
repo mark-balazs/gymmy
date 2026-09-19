@@ -4,12 +4,16 @@ import {
   cardNumber,
   expect,
   logSet,
+  logSuggested,
   numberButton,
+  openCard,
   openExercise,
+  signInAs,
   test,
   typeNumber,
 } from '../fixtures/test';
 import type { Page } from '@playwright/test';
+import type { DatedSet } from '../fixtures/auth';
 
 /**
  * What the number in the weight box means.
@@ -95,45 +99,125 @@ test.describe('The app says what it is counting', () => {
     // one tap and not a doubling of the first.
     await expect(numberButton(app, 'weight')).toHaveAttribute('data-value', '20');
 
-    await logSet(app, 20, 10);
+    /* Back from history: a card that mounts on a pair with a set behind it has
+       to turn the stored 40 back into one dumbbell. Logging the second set in
+       the same mount never asked it to — the box was still holding the 20 that
+       was typed — so a card that prefilled the stored figure would put 40 in
+       the box, and the next one-tap set would record 80.
+
+       Day B is opened by hand after the reload rather than trusted to come
+       back on its own: which day Train opens on is not what this is about. */
+    await app.reload();
+    await openPairDay(app);
+    await expect(numberButton(app, 'weight')).toHaveAttribute('data-value', '20');
+    await expect(app.getByText('One dumbbell — recorded as 40 kg, both together.')).toBeVisible();
+    await logSuggested(app);
     await expect(loggedSets(app)).toHaveText([/^40 kg × 10/, /^40 kg × 10/]);
   });
 
-  test('leaves a barbell alone', async ({ onboardedApp: app }) => {
+  test('leaves a single dumbbell alone', async ({ onboardedApp: app }) => {
     /* The other half of the rule, and the reason the class is per exercise
        rather than per equipment type. Day A opens on Goblet Squat — one weight
-       held at the chest — and the bench press below it is a barbell. Neither is
-       doubled, and neither claims to be. */
+       held at the chest — which is entered and stored exactly as typed, and
+       says so. The barbell's own note is held by the test below. */
     await expect(app.getByText('The one weight you are holding.')).toBeVisible();
     await logSet(app, 40, 8);
     await expect(loggedSets(app)).toHaveText([/^40 kg × 8/]);
   });
 
-  test('says how to measure every exercise it plans', async ({ onboardedApp: app }) => {
+  test('says how to measure each kind of load it plans', async ({ onboardedApp: app }) => {
     /* The original complaint was not about dumbbells specifically — it was that
        the app never said how to measure anything, including whether the bar
-       counts. So every open card carries a note, whatever it is loaded with.
+       counts. So each kind of load carries its own note on the card.
 
-       Checked across all three days rather than on one card, because the note
-       comes from a per-exercise table and a missing entry would fall back
-       silently. */
-    const notes = [
-      'Count the bar and the plates together.',
-      'One dumbbell — recorded as',
-      'The one weight you are holding.',
-      'The setting on the stack',
-      'Leave it at None unless you added weight.',
-      'What you loaded — not what reaches your hands.',
-    ];
+       Named cards and their own notes, not "some note on the first card of
+       each day": those first cards are all dumbbells, and a lift missing from
+       the table falls back to the single-dumbbell note, which was on the list
+       that test accepted — so it could not catch the thing it was written for,
+       and swapping two classes' notes passed the whole suite. Whether every
+       lift is in the table at all is the domain suite's job (`load.test.ts`);
+       this is that each class's note reaches the card. With the pair and the
+       single dumbbell above, that is five of the six. */
+    await openCard(app, 'Barbell Bench Press');
+    await expect(app.getByText('Count the bar and the plates together.')).toBeVisible();
 
-    for (const day of ['Day A', 'Day B', 'Day C']) {
-      await app.getByRole('button', { name: day, exact: true }).click();
-      const name = await openExercise(app);
-      const found = await Promise.all(notes.map((n) => app.getByText(n, { exact: false }).count()));
-      expect(
-        found.some((c) => c > 0),
-        `no measuring note on ${day}'s ${name}`,
-      ).toBe(true);
-    }
+    await app.getByRole('button', { name: 'Day B', exact: true }).click();
+    await openCard(app, 'Chin-Up');
+    await expect(app.getByText('Leave it at None unless you added weight.')).toBeVisible();
+
+    await app.getByRole('button', { name: 'Day C', exact: true }).click();
+    await openCard(app, 'Leg Curl');
+    await expect(app.getByText(/^The setting on the stack/)).toBeVisible();
+  });
+});
+
+test.describe('The chart says when the convention moved it', () => {
+  /**
+   * A pair logged per hand before the cutover and both together after it —
+   * 30 kg to 60 kg overnight, with nothing changed in the training. On fixed
+   * dates either side of `LOAD_CONVENTION_FROM`, because the note is about that
+   * day and not about "three weeks ago".
+   */
+  const perHandThenBoth: DatedSet[] = [
+    { exercise: 'DB Bench Press', date: '2026-08-27', weight: 30, reps: 8, rir: 2 },
+    { exercise: 'DB Bench Press', date: '2026-09-03', weight: 30, reps: 8, rir: 2 },
+    { exercise: 'DB Bench Press', date: '2026-09-10', weight: 30, reps: 8, rir: 2 },
+    { exercise: 'DB Bench Press', date: '2026-09-17', weight: 60, reps: 8, rir: 2 },
+    { exercise: 'DB Bench Press', date: '2026-09-18', weight: 62, reps: 8, rir: 2 },
+  ];
+  const note = /record both dumbbells, not one/;
+
+  /**
+   * Progress, looking at all of it. The page opens on twelve weeks, and once
+   * the cutover leaves that window the note correctly goes — so a test on the
+   * default view would start failing in December for no fault of the app.
+   */
+  async function allTime(page: Page): Promise<void> {
+    await page.goto('/progress');
+    const window = page.getByRole('button', { name: 'Last 12 weeks' });
+    await window.click();
+    await expect(page.getByRole('button', { name: 'All time' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  }
+
+  test('says so on the index and on the lift, where the jump shows', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* The note is unit-tested in the domain; what nothing else saw is the page
+       choosing to show it — on the strength card, only for a lift that feeds
+       the index, and under the lift's own chart. Without it a doubling that is
+       pure bookkeeping reads as the best month of somebody's training. */
+    await signInAs(page, context, baseURL!, { onboarded: true, sets: perHandThenBoth });
+    await allTime(page);
+
+    // Once, on the strength card: the lift's sheet is not open yet.
+    await expect(page.getByText(note)).toHaveCount(1);
+
+    await page.getByRole('button', { name: 'Show DB Bench Press' }).click();
+    const sheet = page.getByRole('dialog');
+    await expect(sheet.getByRole('heading', { name: 'DB Bench Press' })).toBeVisible();
+    await expect(sheet.getByText(note)).toBeVisible();
+  });
+
+  test('says nothing where there was no jump', async ({ page, context, baseURL }) => {
+    // Somebody who was already entering both dumbbells crossed the date and
+    // saw no step, so there is nothing to explain to them.
+    await signInAs(page, context, baseURL!, {
+      onboarded: true,
+      sets: perHandThenBoth.map((s) => ({ ...s, weight: 60 })),
+    });
+    await allTime(page);
+    await expect(page.getByRole('heading', { name: 'Strength index' })).toBeVisible();
+    await expect(page.getByText(note)).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Show DB Bench Press' }).click();
+    const sheet = page.getByRole('dialog');
+    await expect(sheet.getByRole('heading', { name: 'DB Bench Press' })).toBeVisible();
+    await expect(sheet.getByText('Show the numbers')).toBeVisible();
+    await expect(sheet.getByText(note)).toHaveCount(0);
   });
 });

@@ -1,6 +1,6 @@
 /** Flow 04 — see ../flows/04-progression.md */
 
-import { cardNumber, expect, logSet, signInAs, test } from '../fixtures/test';
+import { cardNumber, expect, logSet, test } from '../fixtures/test';
 import type { Page } from '@playwright/test';
 
 /**
@@ -38,6 +38,19 @@ async function prefilled(page: Page): Promise<string> {
  * trained yet and Day A is offered again. So it passed four days in seven and
  * failed the other three, which is the worst kind of test to own.
  */
+/**
+ * The card's history line for a set logged today, exactly as it should read.
+ *
+ * Exact, because this line is where the advice used to be: "…nothing left —
+ * repeat it before adding" was rendered in this same paragraph. A match that
+ * stopped at the date let a wrong date through, and anything appended after it.
+ */
+function lastTimeToday(what: string): string {
+  const d = new Date();
+  const on = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+  return `Last time ${what} · ${on}`;
+}
+
 async function setDate(page: Page, daysAhead: number): Promise<void> {
   const d = new Date();
   d.setDate(d.getDate() + daysAhead);
@@ -60,13 +73,17 @@ test.describe('The card shows what you did last time', () => {
     await logSet(app, 60, 8, '2 more');
     await setDate(app, 3);
 
-    await expect(app.getByText(/Last time 60 kg × 8 · /).first()).toBeVisible();
+    // The date it happened — today, three days before the card's own date.
+    await expect(app.getByText(/^Last time /).first()).toHaveText(lastTimeToday('60 kg × 8'));
   });
 
   test('takes the working set, not the easiest one', async ({ onboardedApp: app }) => {
-    // 60×10 then 60×8: what you would repeat is the eight.
-    await logSet(app, 60, 10, '2 more');
+    /* 60×8 then 60×10: what you would repeat is the eight, even though it came
+       first. In the other order "the fewest reps at the top weight" and "the
+       last set at the top weight" are the same set, and a card reading the
+       wrong one of the two passed. */
     await logSet(app, 60, 8, 'Maxed');
+    await logSet(app, 60, 10, '2 more');
 
     await setDate(app, 3);
 
@@ -108,6 +125,11 @@ test.describe('The app no longer says what to lift', () => {
     // Still just the record. The app has no view on what a maxed set means.
     await expect.poll(() => prefilled(app)).toBe('60 × 12');
     await expect(app.getByText(/nothing left/i)).toHaveCount(0);
+    /* The copy check above is only as good as its wording: "repeat it before
+       adding" was the advice for exactly this set, and it came in the history
+       line itself. So the line is held to the record and nothing else, which
+       any rewording of advice in that place would break. */
+    await expect(app.getByText(/^Last time /).first()).toHaveText(lastTimeToday('60 kg × 12'));
   });
 
   test('does not decide your sets are too easy', async ({ onboardedApp: app }) => {
@@ -121,26 +143,26 @@ test.describe('The app no longer says what to lift', () => {
        moved on — a test passing for a reason it does not state. */
     for (let i = 0; i < 6; i++) await logSet(app, 40, 10, 'Easy');
 
+    /* Waited for: the banner needed all six rated sets, and the last log click
+       returns before its write lands — so an absence checked straight away
+       passed before a restored banner could ever have rendered. The day's
+       counter comes from the same snapshot the banner would. */
+    await expect(app.getByText('6 of 15 sets')).toBeVisible();
     await expect(app.getByText(/too easy/i)).toHaveCount(0);
   });
 
-  test('Home offers no lifts that have "earned more weight"', async ({
-    page,
-    context,
-    baseURL,
-  }) => {
-    await signInAs(page, context, baseURL!, {
-      onboarded: true,
-      history: {
-        split: 'sevenPattern',
-        weeksBack: 3,
-        exercises: ['Goblet Squat', 'Push-Up', 'Inverted Row'],
-        sessions: 3,
-      },
-    });
-    await page.goto('/home');
+  test('Home offers no lifts that have "earned more weight"', async ({ onboardedApp: app }) => {
+    /* Three sets at the top of the range with reps to spare: the exact state
+       that used to put a lift on Home's "Ready for more weight" card. The
+       first version of this seeded eight-rep sets, which the old rule never
+       flagged either — so it would have passed against the app it was meant
+       to fail on. */
+    for (let i = 0; i < 3; i++) await logSet(app, 60, 12, '2 more');
+    await app.getByRole('link', { name: 'Home', exact: true }).click();
+    // Home has read the sets: it offers to carry on with the day they started.
+    await expect(app.getByRole('heading', { name: 'Carry on where you left off' })).toBeVisible();
 
-    await expect(page.getByRole('heading', { name: 'Ready for more weight' })).toHaveCount(0);
-    await expect(page.getByText(/earned more weight/i)).toHaveCount(0);
+    await expect(app.getByRole('heading', { name: 'Ready for more weight' })).toHaveCount(0);
+    await expect(app.getByText(/earned more weight|more weight|add weight/i)).toHaveCount(0);
   });
 });

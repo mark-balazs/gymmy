@@ -1,14 +1,25 @@
 import { randomUUID } from 'node:crypto';
-import { resetSignInThrottle, seedSignInCode } from '../fixtures/auth';
+import { createUser, resetSignInThrottle, seedSignInCode } from '../fixtures/auth';
 import { expect, test } from '../fixtures/test';
 
 /**
  * The code-request endpoint takes an address from anyone and sends mail, so its
  * contract is as much about what it refuses to reveal as what it does.
  *
- * These run without RESEND_API_KEY set — the endpoint still answers identically
- * either way, which is the property being checked.
+ * The e2e server runs with a fake RESEND_API_KEY, so every request goes through
+ * the throttle and a send that fails; the answer must not change either way.
+ * Without the key the route returns before any of that, for every input, and
+ * comparing two of its answers would compare nothing.
  */
+
+/**
+ * Why the field is required rather than a reason to skip. The e2e server is
+ * always started with a key, so a missing field is either a broken switch or a
+ * stray server on :3000 started without one — and both used to report every
+ * code-entry test as skipped, with the suite green.
+ */
+const REQUIRED = 'email sign-in must be on: the e2e webServer sets RESEND_API_KEY';
+
 test.describe('Requesting a sign-in code', () => {
   const post = (page: import('@playwright/test').Page, email: unknown) =>
     page.request.post('/api/auth/email-code', { data: { email } });
@@ -18,13 +29,21 @@ test.describe('Requesting a sign-in code', () => {
     await resetSignInThrottle();
     await page.goto(`${baseURL}/sign-in`);
 
+    /* A known address and an unknown one — the pair the name promises. The
+       malformed address this used to compare with returns before the throttle
+       and the send, so it could never differ, and an early "you have an
+       account" for known addresses passed. It stays, as a third answer. */
+    const known = await createUser({ bare: true });
+    const knownRes = await post(page, known.email);
     const unknown = await post(page, `nobody-${Date.now()}@example.test`);
     const malformed = await post(page, 'not-an-email');
 
     // Identical, because any difference is a way to ask "does this person have
     // an account here?" and get an answer.
+    expect(knownRes.status()).toBe(200);
     expect(unknown.status()).toBe(200);
     expect(malformed.status()).toBe(200);
+    expect(await knownRes.text()).toBe(await unknown.text());
     expect(await unknown.text()).toBe(await malformed.text());
   });
 
@@ -32,19 +51,18 @@ test.describe('Requesting a sign-in code', () => {
     await resetSignInThrottle();
     await page.goto(`${baseURL}/sign-in`);
     const res = await post(page, 'someone@example.test');
-    const body = await res.text();
 
-    // No code, no address, no provider detail — this response is public.
-    expect(body).not.toMatch(/\d{6}/);
-    expect(body.toLowerCase()).not.toContain('resend');
-    expect(body.toLowerCase()).not.toContain('example.test');
+    /* No code, no address, no provider detail — this response is public. So
+       exactly what the contract says it is, and nothing beside it: a body that
+       merely avoided a few words let `{ ok: true, sent: false }` through, which
+       tells anybody asking that the mail did not go. */
+    expect(await res.json()).toEqual({ ok: true });
   });
 
   test('the form never shows the code entry before asking', async ({ page, baseURL }) => {
     await page.goto(`${baseURL}/sign-in`);
-    // Only meaningful when email sign-in is switched on for this deployment.
     const emailField = page.getByLabel('Email address');
-    if ((await emailField.count()) === 0) test.skip();
+    await expect(emailField, REQUIRED).toBeVisible();
 
     await expect(page.getByLabel('Sign-in code')).toHaveCount(0);
     await emailField.fill('someone@example.test');
@@ -69,8 +87,7 @@ test.describe('Entering a sign-in code', () => {
 
     await page.goto('/sign-in');
     const emailField = page.getByLabel('Email address');
-    // Only meaningful when email sign-in is switched on for this deployment.
-    if ((await emailField.count()) === 0) test.skip();
+    await expect(emailField, REQUIRED).toBeVisible();
 
     await emailField.fill(email);
     await page.getByRole('button', { name: /Email me a code/ }).click();
@@ -91,7 +108,7 @@ test.describe('Entering a sign-in code', () => {
 
     await page.goto('/sign-in');
     const emailField = page.getByLabel('Email address');
-    if ((await emailField.count()) === 0) test.skip();
+    await expect(emailField, REQUIRED).toBeVisible();
 
     await emailField.fill(email);
     await page.getByRole('button', { name: /Email me a code/ }).click();

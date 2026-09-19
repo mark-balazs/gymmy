@@ -1,12 +1,13 @@
 /** Flow 07 — see ../flows/07-choosing-a-split.md */
 
 import type { Page } from '@playwright/test';
+import { periodsStarting, thisMonday } from '../fixtures/auth';
 import {
   completeOnboarding,
   confirmSheet,
-  exerciseNameAt,
   expect,
   logSet,
+  openExercise,
   signInAs,
   test,
 } from '../fixtures/test';
@@ -147,7 +148,7 @@ test.describe('Choosing a split', () => {
     // Sets reference exercises, not slots, so rearranging the week cannot
     // destroy what was already lifted.
     await completeOnboarding(app, { days: '3 days' });
-    const lift = await exerciseNameAt(app);
+    const lift = await openExercise(app);
     await logSet(app, 60, 8);
 
     await app.getByRole('link', { name: 'Settings', exact: true }).click();
@@ -211,7 +212,72 @@ test.describe('Coverage is historised', () => {
     for (let i = 0; i < 3; i++)
       await page.getByRole('button', { name: 'Back', exact: true }).click();
 
-    // Three of seven trained that week — the data is untouched by the switch.
-    await expect(page.getByText(/3 gaps|4 gaps/)).toBeVisible();
+    /* Three of seven trained that week — squat, push and pull — so exactly
+       these four are missing. The data is untouched by the switch, and the
+       summary names the gaps in the old week's own terms. "3 or 4 gaps" took a
+       count that was wrong by one. */
+    await expect(page.getByText('4 gaps: hinge, lunge, rotate, carry.')).toBeVisible();
+  });
+});
+
+test.describe('Recording a switch', () => {
+  test('the first switch on an account without periods keeps its old weeks', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* Split periods arrived without a backfill, so an account that has not
+       switched since has none: its old weeks read against every counted
+       pattern by default. Its first switch has to write a period for those
+       weeks before it opens the new one — otherwise the new split is the only
+       period there is, and the lookup hands it every week on record: the
+       retroactive rescoring the whole period model exists to prevent.
+
+       Only reachable end to end, because the writer is client-side IndexedDB
+       code; and every other fixture account has a period from the start. */
+    await signInAs(page, context, baseURL!, {
+      onboarded: true,
+      split: 'sevenPattern',
+      noPeriods: true,
+      history: {
+        split: 'sevenPattern',
+        weeksBack: 3,
+        exercises: ['Goblet Squat', 'Push-Up', 'Inverted Row'],
+      },
+    });
+    await page.getByRole('link', { name: 'Settings', exact: true }).click();
+    await page.waitForURL('**/settings');
+    await page.getByRole('button').filter({ hasText: 'Push / Pull / Legs' }).first().click();
+    await page.getByRole('button', { name: 'Rebuild my week' }).click();
+    await confirmSheet(page);
+
+    await openWeek(page);
+    await expectTiles(page, FIVE);
+    for (let i = 0; i < 3; i++)
+      await page.getByRole('button', { name: 'Back', exact: true }).click();
+    await expectTiles(page, SEVEN);
+    await expect(page.getByText('Scored as Seven movement patterns')).toBeVisible();
+  });
+
+  test('switching twice in a week leaves one period for that week', async ({ app, user }) => {
+    /* A second switch in the same week replaces that week's period rather than
+       stacking another on the same Monday. Two with one start date are read
+       in no particular order — the store's, by random id — so which split the
+       week is scored against would be a coin toss, and the screen alone would
+       only catch it half the time. So this counts what the server holds. */
+    await completeOnboarding(app, { days: '3 days' });
+    for (const split of ['Upper / Lower', 'Push / Pull / Legs']) {
+      await app.getByRole('link', { name: 'Settings', exact: true }).click();
+      await app.waitForURL('**/settings');
+      await app.getByRole('button').filter({ hasText: split }).first().click();
+      await app.getByRole('button', { name: 'Rebuild my week' }).click();
+      await confirmSheet(app);
+    }
+    await expect(app.getByText('All saved')).toBeVisible({ timeout: 30_000 });
+
+    await expect.poll(() => periodsStarting(user.id, thisMonday()), { timeout: 15_000 }).toBe(1);
+    await openWeek(app);
+    await expect(app.getByRole('heading', { name: 'Day A Push' })).toBeVisible();
+    await expectTiles(app, FIVE);
   });
 });

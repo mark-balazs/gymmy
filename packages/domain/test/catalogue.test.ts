@@ -2,10 +2,89 @@ import { describe, expect, it } from 'vitest';
 import { buildProgram, lastSession } from '../src/coach';
 import { CATALOGUE, type CatalogueExercise } from '../src/catalogue';
 import { PUBLISHED_IDS } from '../src/catalogue-ids';
-import { index } from '../src/model';
+import { index, weekCoverage } from '../src/model';
 import { progressSummary } from '../src/insights';
+import { dotsAt, strengthAt } from '../src/strength';
 import type { Exercise, SetLog, Snapshot } from '../src/types';
 import { logsFor, seedSnapshot } from './fixture';
+
+/**
+ * Every exercise name an account was seeded with before the catalogue existed,
+ * read from `seed.ts` at 2cc3b1b, b9ff287 and ae5ba28^. Append-only and frozen:
+ * those accounts' rows still carry these names, and alias by them.
+ */
+const PRE_CATALOGUE_NAMES: readonly string[] = [
+  'Back Extension',
+  'Barbell Back Squat',
+  'Barbell Bench Press',
+  'Barbell Front Squat',
+  'Barbell Row',
+  'Bird Dog',
+  'Box Squat',
+  'Bulgarian Split Squat',
+  'Cable Abduction',
+  'Cable Curl',
+  'Cable Pull-Through',
+  'Cable Woodchop',
+  'Calf Raise',
+  'Chest Fly',
+  'Chest-Supported Row',
+  'Chin-Up',
+  'Conventional Deadlift',
+  'Curtsy Lunge',
+  'DB Bench Press',
+  'DB Curl',
+  'DB Row',
+  'DB Shoulder Press',
+  'Dead Bug',
+  'Dip',
+  'Face Pull',
+  "Farmer's Carry",
+  'Front Rack Carry',
+  'Glute Kickback',
+  'Goblet Squat',
+  'Good Morning',
+  'Hack Squat',
+  'Half-Kneeling Chop',
+  'Hammer Curl',
+  'Hip Thrust',
+  'Incline DB Press',
+  'Inverted Row',
+  'Kettlebell Swing',
+  'Landmine Press',
+  'Landmine Rotation',
+  'Lat Pulldown',
+  'Lateral Lunge',
+  'Lateral Raise',
+  'Leg Curl',
+  'Leg Extension',
+  'Leg Press',
+  'Machine Chest Press',
+  'Overhead Carry',
+  'Overhead Press',
+  'Overhead Tricep Extension',
+  'Pallof Press',
+  'Pull-Up',
+  'Push-Up',
+  'Rear Delt Fly',
+  'Reverse Lunge',
+  'Romanian Deadlift',
+  'Russian Twist',
+  'Seated Cable Row',
+  'Side Plank',
+  'Single-Leg RDL',
+  'Sled Drag',
+  'Sled Push',
+  'Smith Machine Squat',
+  'Split Squat',
+  'Step-Up',
+  'Suitcase Carry',
+  'Trap Bar Deadlift',
+  'Tricep Pushdown',
+  "Waiter's Walk",
+  'Walking Lunge',
+  'Zercher Squat',
+];
 
 /**
  * One library, authored in code, that every account gets — with no stored id
@@ -47,13 +126,10 @@ describe('the published ids', () => {
       // The server rejects an exercise id over 64 characters with a 400, which
       // would block a device's outbox for good.
       expect(id.length).toBeLessThanOrEqual(64);
-    }
-  });
-
-  it('cannot collide with an id an account already has', () => {
-    // Old ids were random UUIDs or 32 hex characters of a hash. A catalogue id
-    // that looked like either could be mistaken for an account's own row.
-    for (const id of CATALOGUE.map((c) => c.id)) {
+      // Old ids were random UUIDs or 32 hex characters of a hash, and a
+      // catalogue id that looked like either could be mistaken for an
+      // account's own row. The ex- prefix rules both out today; kept explicit
+      // so loosening the format above cannot let one through.
       expect(id).not.toMatch(/^[0-9a-f]{32}$/);
       expect(id).not.toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-/);
     }
@@ -170,6 +246,29 @@ describe('an account from before the catalogue', () => {
     expect(ix.exerciseById.get('mine-1')?.name).toBe('Zottman Curl');
     expect(ix.logs[0]!.exerciseId).toBe('mine-1');
   });
+
+  it('resolves every name an account was ever seeded with', () => {
+    /* Pre-catalogue rows alias by name, so those names are frozen. Renaming
+       "DB Row" to "Dumbbell Row" everywhere in code passed the whole suite,
+       because the fixture's legacy rows are built from today's names and get
+       renamed with them. A real account's row still says "DB Row", and it would
+       have stopped aliasing: its history split off into an exercise of its
+       own. So the names are written out here, append-only, exactly as the
+       seed wrote them before the catalogue. */
+    for (const [i, name] of PRE_CATALOGUE_NAMES.entries()) {
+      const entry = CATALOGUE.find((c) => c.name === name);
+      expect(entry, name).toBeDefined();
+      const snap = legacy();
+      const row = { ...snap.exercises[0]!, id: `legacy-${i}`, name };
+      const ix = index({
+        ...snap,
+        exercises: [row],
+        logs: logsFor(row.id, [{ weight: 20, reps: 5, rir: 2 }]),
+      });
+      expect(ix.logs[0]!.exerciseId, name).toBe(entry!.id);
+      expect(ix.exercises, name).toHaveLength(CATALOGUE.filter((c) => !c.retired).length);
+    }
+  });
 });
 
 describe('a new account', () => {
@@ -231,6 +330,43 @@ describe('retiring an exercise', () => {
     );
     const summary = progressSummary(ix, { from: '2026-01-01', to: '2026-12-31', sessions: 3 });
     expect(summary.map((p) => p.exercise.name)).toContain('Goblet Squat');
+  });
+
+  it('still counts toward both strength numbers and coverage', () => {
+    /* Anything reading history goes through `exerciseById`, not `exercises`.
+       Progress was the only reader this was tested on: decorating a set through
+       the offered list instead dropped a retired lift out of the index, DOTS
+       and the week's coverage, and passed everything. */
+    const ix = index(
+      {
+        ...legacy(),
+        logs: logsFor('ex-barbell-back-squat', [{ weight: 100, reps: 5, rir: 2 }], '2026-09-07'),
+        bodyLogs: [
+          {
+            id: 'b1',
+            updatedAt: '2026-09-01',
+            deletedAt: null,
+            date: '2026-09-01',
+            weight: 80,
+            note: '',
+          },
+        ],
+      },
+      withRetired('Barbell Back Squat'),
+    );
+    const who = { unit: 'kg' as const, sex: 'male' as const };
+    expect(strengthAt(ix, '2026-09-07', who).parts.find((p) => p.key === 'squat')!.best).toBe(
+      123.3,
+    );
+    expect(dotsAt(ix, '2026-09-07', who).lifts[0]).toEqual({
+      name: 'Barbell Back Squat',
+      best: 123.3,
+      trained: true,
+    });
+    expect(weekCoverage(ix, '2026-09-07').cells.find((c) => c.pattern.key === 'squat')!.sets).toBe(
+      1,
+    );
+    expect(lastSession(ix, 'ex-barbell-back-squat')?.weight).toBe(100);
   });
 });
 

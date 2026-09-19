@@ -7,9 +7,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
  * listing the tables you remembered.
  *
  * So this does not check a hand-written list. It asks Postgres which columns
- * could point at a person — everything with a foreign key to `user`, plus the
- * `email` and `identifier` of the two tables keyed on the address instead —
- * and then insists that none of them still holds a row matching the account
+ * could point at a person — everything with a foreign key to `user`, plus every
+ * text column named like an email address or `identifier`, for tables keyed
+ * on the address instead — and then insists that none of them still holds a row matching the account
  * after it is deleted. A table added later without a cascade fails this without
  * anybody having to remember to come back and extend it, which is the only
  * version of this test worth having: the failure mode being guarded against is
@@ -29,8 +29,9 @@ describe('deleting an account', () => {
   let schema: typeof import('@/lib/db/schema');
   let deleteAccount: typeof import('./delete-account').deleteAccount;
 
-  /** Every (table, column) pair in the database that could name a person. */
-  let holders: { table: string; column: string }[] = [];
+  /** Every (table, column) pair in the database that could name a person, and
+   *  whether it names them by their address or by their user row. */
+  let holders: { table: string; column: string; by: 'address' | 'user' }[] = [];
 
   beforeAll(async () => {
     // Seeded as the demo account so there is a full five months of history to
@@ -101,8 +102,10 @@ describe('deleting an account', () => {
        rest an erasure guarantee on: a table added with the "wrong" name would
        have been silently skipped, and the test would have gone on passing.
 
-       The name-based half stays for the two tables keyed on the address rather
-       than the user row, which have no foreign key to find. */
+       The name-based half stays for the tables keyed on the address rather
+       than the user row, which have no foreign key to find. It matches the
+       name loosely — anything like `email`, not just `email` — because a
+       later `invitee_email` is exactly the column an exact match skips. */
     const byForeignKey = await db.execute(sql`
       SELECT src.relname AS table_name, att.attname AS column_name
       FROM pg_constraint c
@@ -118,21 +121,23 @@ describe('deleting an account', () => {
       SELECT table_name, column_name
       FROM information_schema.columns
       WHERE table_schema = 'public'
-        AND column_name IN ('email', 'identifier')
+        AND (column_name ILIKE '%email%' OR column_name = 'identifier')
+        AND data_type IN ('text', 'character varying')
       ORDER BY table_name, column_name
     `);
 
-    const rows = [...byForeignKey.rows, ...byName.rows] as {
-      table_name: string;
-      column_name: string;
-    }[];
+    type Found = { table_name: string; column_name: string };
+    const rows = [
+      ...(byForeignKey.rows as Found[]).map((r) => ({ ...r, by: 'user' as const })),
+      ...(byName.rows as Found[]).map((r) => ({ ...r, by: 'address' as const })),
+    ];
     const seen = new Set<string>();
     holders = rows.flatMap((r) => {
       const key = `${r.table_name}.${r.column_name}`;
       // The `user` table itself is checked separately, by id *and* address.
       if (r.table_name === 'user' || seen.has(key)) return [];
       seen.add(key);
-      return [{ table: r.table_name, column: r.column_name }];
+      return [{ table: r.table_name, column: r.column_name, by: r.by }];
     });
   });
 
@@ -146,10 +151,12 @@ describe('deleting an account', () => {
 
   const countsFor = async (): Promise<Record<string, number>> => {
     const out: Record<string, number> = {};
-    for (const { table, column } of holders) {
-      // The address-keyed pair are the only ones compared against an email;
-      // everything else was found by its foreign key to the user row.
-      const value = column === 'email' || column === 'identifier' ? email : userId;
+    for (const { table, column, by } of holders) {
+      /* Compared with whatever the column was found by, not with what it is
+         called. Deciding by name — exactly `email` or `identifier` — meant a
+         column found by the looser scan above was compared with the user id,
+         matched nothing, and passed while still holding the address. */
+      const value = by === 'address' ? email : userId;
       const r = await db.execute(
         sql`SELECT count(*)::int AS n FROM ${sql.identifier(table)} WHERE ${sql.identifier(column)} = ${value}`,
       );

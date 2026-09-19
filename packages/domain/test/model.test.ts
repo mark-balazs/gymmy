@@ -9,6 +9,7 @@ import {
   MAX_EST_REPS_TO_FAILURE,
   est1RM,
   index,
+  isoDate,
   mondayOf,
   periodFor,
   weekCoverage,
@@ -27,6 +28,16 @@ describe('estimated 1RM', () => {
   it('returns null rather than zero for an incomplete set', () => {
     expect(est1RM(null, 8, 2)).toBeNull();
     expect(est1RM(60, null, 2)).toBeNull();
+    expect(est1RM(0, 8, 2)).toBeNull();
+  });
+
+  it('scores an unrated set as taken to failure, rather than refusing it', () => {
+    /* The whole rated/confident mechanism rests on this: an unrated set still
+       has a point on the chart, read as if nothing was left, which is why it
+       sits lower than the same set rated and why a comparison across the two
+       is marked unfair rather than judged. */
+    expect(est1RM(60, 8, null)).toBe(76);
+    expect(est1RM(60, 8, null)).toBeLessThan(est1RM(60, 8, 2)!);
   });
 
   it('refuses to estimate from a set nobody could estimate from', () => {
@@ -88,10 +99,15 @@ describe('weeks', () => {
   });
 
   /* Built from local date parts rather than toISOString(), which is UTC and
-   * would move a late-evening session to the following day for some users. */
-  it('does not shift the date late at night', () => {
+   * would move a late-evening session to the following day for some users —
+   * and "today" with it, since todayIso goes through isoDate. The two Date
+   * cases only bite away from UTC, which is why vitest.config.ts pins the
+   * suite to New York: CI runs in UTC, where this bug cannot show. */
+  it('keeps the local date near midnight and across DST', () => {
     expect(addDays('2026-03-29', 1)).toBe('2026-03-30');
     expect(mondayOf('2026-10-25')).toBe('2026-10-19');
+    expect(isoDate(new Date(2026, 8, 19, 23, 30))).toBe('2026-09-19');
+    expect(isoDate(new Date(2026, 8, 19, 0, 30))).toBe('2026-09-19');
   });
 });
 
@@ -254,18 +270,33 @@ describe('rows written before a field existed', () => {
    * throws, which took out the whole screen when the detail sheet opened.
    */
   it('defaults fields missing from older local rows', () => {
+    /* A row named from the catalogue is replaced by the catalogue entry, whose
+       description and images come from code, so stripping those rows alone
+       never reached the default. Only a row the catalogue does not know
+       exercises it, and one is added here for that reason. */
     const base = seedSnapshot();
     const legacy = base.exercises.map((e) => {
       const { description: _d, images: _i, ...rest } = e;
       return rest as (typeof base.exercises)[number];
     });
+    const own = {
+      id: 'own-1',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      deletedAt: null,
+      name: 'Sled Drag (own)',
+      patternId: base.patterns[0]!.id,
+      where: 'gym',
+      tags: [],
+    } as unknown as (typeof base.exercises)[number];
 
-    const ix = index({ ...base, exercises: legacy });
+    const ix = index({ ...base, exercises: [...legacy, own] });
 
     for (const e of ix.exercises) {
       expect(Array.isArray(e.images)).toBe(true);
       expect(typeof e.description).toBe('string');
     }
+    expect(ix.exerciseById.get('own-1')!.images).toEqual([]);
+    expect(ix.exerciseById.get('own-1')!.description).toBe('');
     // The property that actually crashed.
     expect(() => ix.exercises.map((e) => e.images.length)).not.toThrow();
   });
@@ -314,6 +345,14 @@ describe('which of the week’s sessions are finished', () => {
     // Two of three sets on every exercise. Nearly finished is not finished.
     const ix = index({ ...base, logs: fullSession(0, '2026-09-08', 2) });
     expect(sessionsDone(ix, 3, WEEK_A)).toEqual([false, false, false]);
+
+    // Every set of every exercise but one: one skipped exercise is not a
+    // finished day either. The case above cannot tell "every" from "some".
+    const full = fullSession(0, '2026-09-08', 3);
+    const skip = full[0]!.exerciseId;
+    expect(
+      sessionsDone(index({ ...base, logs: full.filter((l) => l.exerciseId !== skip) }), 3, WEEK_A),
+    ).toEqual([false, false, false]);
   });
 
   it('looks across the whole week, not one date', () => {

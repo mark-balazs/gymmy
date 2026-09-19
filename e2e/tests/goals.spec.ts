@@ -65,6 +65,9 @@ test.describe('The app pushes only where it was asked to', () => {
     await expect(target).not.toHaveValue('');
     const offered = Number(await target.inputValue());
     expect(offered).toBeGreaterThan(0);
+    // Where the lift is now, read off the form rather than assumed.
+    const now = Number((await sheet.getByText(/^Now at /).innerText()).match(/[\d.]+/)?.[0] ?? '0');
+    expect(now).toBeGreaterThan(0);
 
     await sheet.getByRole('button', { name: 'Set the goal' }).click();
 
@@ -73,9 +76,13 @@ test.describe('The app pushes only where it was asked to', () => {
        nothing having happened. */
     await expect(page.getByRole('dialog')).toHaveCount(0);
 
-    // Now the app is holding something, and the bar says how much of it.
+    /* Now the app is holding something, and the bar says how much of it: where
+       the lift stands, out of the target that was set. Nothing has been lifted
+       since the goal started, so it stands exactly at its baseline. "Any
+       number of any number" also passed on a goal saved with no baseline, or
+       with the baseline as its target. */
     await expect(page.getByRole('heading', { name: 'What you are pushing' })).toBeVisible();
-    await expect(page.getByRole('img', { name: /^\d+(\.\d+)? of \d+(\.\d+)? kg$/ })).toBeVisible();
+    await expect(page.getByRole('img', { name: `${now} of ${offered} kg` })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Stop pushing this' })).toBeVisible();
 
     // And the verdict card now exists, with nothing to report — which is the
@@ -157,5 +164,68 @@ test.describe('The app pushes only where it was asked to', () => {
     // Back to silence — both cards gone, not just the goal.
     await expect(page.getByRole('heading', { name: 'What you are pushing' })).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Worth knowing' })).toHaveCount(0);
+  });
+
+  test('grades a lift only once asked, and stops when told', async ({ page, context, baseURL }) => {
+    /* The permission itself, and not just its paperwork. Every other account in
+       this file has nothing to flag, so setting a goal only ever showed
+       "Nothing to flag." — which a page that had quietly stopped grading
+       anything would show too. This lift has gone backwards: 60, 60, then
+       three sessions at 50, so recent form sits 17% under its best. Unasked,
+       the page says nothing about it; asked, it says exactly that. */
+    await signInAs(page, context, baseURL!, {
+      onboarded: true,
+      history: {
+        split: 'sevenPattern',
+        weeksBack: 5,
+        exercises: ['Goblet Squat'],
+        sessions: 5,
+        weights: [60, 60, 50, 50, 50],
+      },
+    });
+    await page.goto('/progress');
+    await expect(page.getByRole('heading', { name: 'Every lift' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Worth knowing' })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Show Goblet Squat' }).click();
+    const sheet = page.getByRole('dialog');
+    await sheet.getByRole('button', { name: 'Push this lift' }).click();
+    await sheet.getByRole('button', { name: 'Set the goal' }).click();
+
+    const down = page.getByRole('listitem').filter({ hasText: 'Down' });
+    await expect(down).toContainText('Recent sessions sit 17% under it.');
+
+    await page.getByRole('button', { name: 'Stop pushing this' }).click();
+    await expect(page.getByRole('heading', { name: 'Worth knowing' })).toHaveCount(0);
+  });
+});
+
+test.describe('What the app says without being asked', () => {
+  test('says, unasked, that a lift in your week has not been trained', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* Dormancy is the one verdict with no goal behind it: not a judgement of
+       the training but an observation about the plan the person chose — a lift
+       in their own week that they have not done for three weeks. So it shows
+       on an account that has asked for nothing. One set each, 27 to 33 days
+       ago; Push-Up is not in this week's plan, so it is history and not a
+       lapse, and it is not listed. */
+    await signInAs(page, context, baseURL!, {
+      onboarded: true,
+      history: { split: 'sevenPattern', weeksBack: 4, exercises: ['Goblet Squat', 'Push-Up'] },
+    });
+    await page.goto('/progress');
+    await expect(page.getByRole('heading', { name: 'Every lift' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Worth knowing' })).toBeVisible();
+
+    const rows = page.getByRole('list').getByRole('listitem');
+    await expect(rows).toHaveCount(1);
+    await expect(rows.first()).toHaveAccessibleName('Show Goblet Squat');
+    await expect(rows.first()).toContainText('Not trained');
+    await expect(rows.first()).toContainText('It is still in your week.');
+    // And no goal card: nothing was asked for.
+    await expect(page.getByRole('heading', { name: 'What you are pushing' })).toHaveCount(0);
   });
 });

@@ -50,8 +50,9 @@ revealed that a test proved nothing:
 - the email sign-in fix — reverted to a POST, and the three original
   "requesting a code" tests stayed green, which is precisely how it shipped;
 - the seed repair — disabled, and the account hung on a loading screen;
-- the coverage repair pass — disabled, and **nothing failed**, which is recorded
-  as a known gap rather than pretended away.
+- the coverage repair pass — disabled, and at first **nothing failed**, because
+  the seeded library never needs it; a hand-built split in `splits.test.ts` now
+  forces the repair to matter, and fails without it.
 
 Say in the commit message when you have done this. It is the difference between
 a test and a decoration.

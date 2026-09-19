@@ -1,3 +1,4 @@
+import { EXERCISE_DETAILS } from '../../packages/domain/src/details';
 import { expect, test } from '../fixtures/test';
 
 test.describe('Exercise detail', () => {
@@ -27,6 +28,12 @@ test.describe('Exercise detail', () => {
     await expect(sheet.getByRole('heading', { name })).toBeVisible();
     await expect(sheet.getByRole('img', { name: 'Starting position' })).toBeVisible();
     await expect(sheet.getByRole('img', { name: 'Finishing position' })).toBeVisible();
+    /* And the description, which nothing else reads. It reaches the sheet only
+       through the library's join with the details table, and a sheet that lost
+       it falls back to a polite placeholder — so the words themselves, and not
+       the placeholder. */
+    await expect(sheet.getByText(EXERCISE_DETAILS[name]!.description)).toBeVisible();
+    await expect(sheet.getByText('No description for this one yet.')).toHaveCount(0);
   });
 
   test('a photograph opens large when you tap it', async ({ onboardedApp: app }) => {

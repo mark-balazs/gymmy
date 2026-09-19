@@ -40,9 +40,16 @@ describe('intIn', () => {
     expect(intIn(150, 1, 100)).toBe(100);
   });
 
-  it('clamps after rounding, so a value just past the end cannot round out of range', () => {
+  it('keeps a fraction just past either end inside the range', () => {
+    /* Named for what it can show. This used to claim it pinned clamping
+       *after* rounding, but with whole-number bounds the two orders agree on
+       every input, so no test can see which one runs — only that the answer
+       lands in range. The .6s are the ones that round outward; a .4 rounds
+       back in on its own and would pass with no clamp at all. */
     expect(intIn(1000.4, 0, 1000)).toBe(1000);
     expect(intIn(-0.4, 0, 1000)).toBe(0);
+    expect(intIn(1000.6, 0, 1000)).toBe(1000);
+    expect(intIn(-0.6, 0, 1000)).toBe(0);
   });
 
   it('answers null for nothing, and for anything that is not a finite number', () => {

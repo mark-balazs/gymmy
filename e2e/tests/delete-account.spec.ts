@@ -1,4 +1,4 @@
-import { expect, logSet, signInAs, test } from '../fixtures/test';
+import { expect, localLogCount, logSet, signInAs, test } from '../fixtures/test';
 import { rowCount } from '../fixtures/auth';
 
 /**
@@ -29,14 +29,19 @@ test.describe('Deleting your account', () => {
     await page.waitForURL('**/settings');
     await expect(page.getByText('All saved')).toBeVisible({ timeout: 30_000 });
 
-    expect(await rowCount('set_logs', user.id)).toBeGreaterThan(0);
+    // One set three weeks ago and one today: the account the sheet should count.
+    expect(await rowCount('set_logs', user.id)).toBe(2);
 
     await page.getByRole('button', { name: 'Delete my account' }).click();
 
     const sheet = page.getByRole('dialog', { name: 'Delete your account?' });
-    // Counted from their own data: "everything will be deleted" is a sentence
-    // people skim, and a number is one they read.
-    await expect(sheet.getByText(/\d+ logged sets across \d+ weeks/)).toBeVisible();
+    /* Counted from their own data: "everything will be deleted" is a sentence
+       people skim, and a number is one they read. The numbers themselves — two
+       sets, in two different weeks. "Any number of sets across any number of
+       weeks" passed on a sheet that counted nothing. */
+    await expect(
+      sheet.getByText('This deletes 2 logged sets across 2 weeks of training.'),
+    ).toBeVisible();
 
     await sheet.getByRole('button', { name: 'Delete everything' }).click();
     await page.waitForURL('**/sign-in', { timeout: 30_000 });
@@ -46,22 +51,7 @@ test.describe('Deleting your account', () => {
     expect(await rowCount('profiles', user.id)).toBe(0);
 
     // And gone from this device, which no server-side assertion can see.
-    const left = await page.evaluate(async () => {
-      const names = (await indexedDB.databases()).map((d) => d.name);
-      if (!names.includes('athletic-tracker')) return 0;
-      return new Promise<number>((resolve) => {
-        const req = indexedDB.open('athletic-tracker');
-        req.onsuccess = () => {
-          const db = req.result;
-          if (!db.objectStoreNames.contains('logs')) return resolve(0);
-          const count = db.transaction('logs').objectStore('logs').count();
-          count.onsuccess = () => resolve(count.result);
-          count.onerror = () => resolve(-1);
-        };
-        req.onerror = () => resolve(0);
-      });
-    });
-    expect(left).toBe(0);
+    expect(await localLogCount(page)).toBe(0);
   });
 
   test('can be backed out of', async ({ page, context, baseURL }) => {

@@ -1,4 +1,4 @@
-import { expect, numberButton, test, typeNumber } from '../fixtures/test';
+import { expect, logSet, numberButton, signInAs, test, typeNumber } from '../fixtures/test';
 
 /**
  * A typo must not stop a device syncing for good.
@@ -84,4 +84,71 @@ test('the largest number the keypad takes still syncs, as the nearest valid set'
   await typeNumber(page, 'reps', 8);
   await page.getByRole('button', { name: /^Log set/ }).click();
   await expect.poll(async () => (await serverSets(user.id)).length, { timeout: 30_000 }).toBe(2);
+});
+
+/*
+ * The same hazard through the two other number fields a person types into, and
+ * both are open today. Every change is its own row in the queue, so a field
+ * that writes on every keystroke queues each prefix of what is being typed —
+ * and the first prefix outside the server's bounds stops the device for good,
+ * with the sets behind it. Each test logs a set afterwards and asks the server
+ * whether it arrived.
+ *
+ * Expected to fail until those fields are held to the server's bounds before
+ * anything is queued — the height committed on blur and checked like the year
+ * of birth, a bodyweight outside 20–700 refused with a message — and the write
+ * layer refuses them too, as it does a set. Remove the markers with the fix;
+ * the bounds then want unit tests in `mutations.test.ts` beside `boundSet`'s.
+ */
+test('a height typed key by key does not stop the device syncing', async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  test.fail(true, 'the height field queues "1" and "18" on the way to 180, below the 80 cm floor');
+  const { profileHeight, serverSets } = await import('../fixtures/auth');
+  const user = await signInAs(page, context, baseURL!, { onboarded: true });
+
+  await page.goto('/settings');
+  await page.getByLabel('Height').pressSequentially('180');
+  await page.getByLabel('Height').blur();
+
+  await page.getByRole('link', { name: 'Train', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Train', exact: true })).toBeVisible();
+  await logSet(page, 60, 8);
+
+  await expect.poll(async () => (await serverSets(user.id)).length, { timeout: 30_000 }).toBe(1);
+  expect(await profileHeight(user.id)).toBe(180);
+});
+
+test('an impossible bodyweight does not stop the device syncing', async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  test.fail(true, 'a bodyweight of 7 is queued, and the server accepts 20 to 700');
+  const { rowCount, serverSets } = await import('../fixtures/auth');
+  // Some training, so Progress draws the bodyweight form rather than its
+  // empty state.
+  const user = await signInAs(page, context, baseURL!, {
+    onboarded: true,
+    history: { split: 'sevenPattern', weeksBack: 2, exercises: ['Goblet Squat'] },
+  });
+
+  // A dropped digit: 7 for 70-something.
+  await page.goto('/progress');
+  await page.getByLabel('Today (kg)').fill('7');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+
+  await page.getByRole('link', { name: 'Train', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Train', exact: true })).toBeVisible();
+  await logSet(page, 60, 8);
+
+  // Today's set, beside the one the fixture logged two weeks ago.
+  await expect
+    .poll(async () => (await serverSets(user.id)).some((s) => s.weight === 60 && s.reps === 8), {
+      timeout: 30_000,
+    })
+    .toBe(true);
+  expect(await rowCount('body_logs', user.id)).toBe(0);
 });

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CATALOGUE } from '../src/catalogue';
 import { index } from '../src/model';
 import {
   planFill,
@@ -17,12 +18,13 @@ import { seedSnapshot } from './fixture';
  * A plan has to survive crossing from one account into another, and almost
  * everything that can go wrong there goes wrong silently.
  *
- * The one that would have hurt most: exercise rows are keyed
- * `sha256(userId, 'exercise', name)`, so the trainer's id for a bench press is
- * a string that matches nothing in the athlete's library. A plan built around
- * ids would apply without an error and produce a week with no exercises in it.
- * These assert that a plan travels by *name*, and that a name this account does
- * not have costs the athlete that exercise rather than that session.
+ * Catalogue ids are shared by every account now, but an account from before the
+ * catalogue still has its own ids on every row it stored, read as aliases by
+ * index(). An id taken from one account can still mean nothing in another, and
+ * a plan built on ids would apply cleanly into an empty week. A name resolves
+ * against either. These assert that a plan travels by *name*, and that a name
+ * this account does not have costs the athlete that exercise rather than that
+ * session.
  */
 
 const ix = index(seedSnapshot());
@@ -93,15 +95,14 @@ describe('planFill', () => {
   });
 
   it('matches a name the way a person would', () => {
+    // The exact id: `not.toBeNull()` also passed for undefined and for a wrong one.
     const fill = planFill(plan([slot({ exerciseName: '  barbell BENCH press ' })]), ix);
-    expect(fill.get('0:0')?.exerciseId).not.toBeNull();
+    expect(fill.get('0:0')?.exerciseId).toBe('ex-barbell-bench-press');
   });
 
   it('keeps the sets and reps when the exercise cannot be found', () => {
     /* The claim in the doc comment, asserted: a plan written around a machine
-       you do not have should cost you that exercise, not that session. An
-       exercise id from the trainer's account is exactly this case — it matches
-       nothing, because ids are derived from a user id. */
+       you do not have should cost you that exercise, not that session. */
     const fill = planFill(
       plan([slot({ exerciseName: 'Reverse Hyper Machine', sets: 4, repRange: '8-12' })]),
       ix,
@@ -112,6 +113,27 @@ describe('planFill', () => {
   it('leaves a slot the trainer deliberately left open to the generator', () => {
     const fill = planFill(plan([slot({ exerciseName: null })]), ix);
     expect(fill.get('0:0')?.exerciseId).toBeNull();
+  });
+
+  it('honours an off-plan movement the trainer chose, and never installs a retired one', () => {
+    /* Off-plan bounds the generator and nothing else: a trainer may name a
+       thruster on purpose, and it lands. A retired entry is never offered or
+       programmed again, a plan included, and the warning before applying has
+       to say so. No plan test named either before. */
+    const retiredIx = index(
+      seedSnapshot(),
+      CATALOGUE.map((c) =>
+        c.name === 'Barbell Back Squat' ? { ...c, retired: true as const } : c,
+      ),
+    );
+    const p = plan([
+      slot({ position: 0, exerciseName: 'Thruster' }),
+      slot({ position: 1, exerciseName: 'Barbell Back Squat' }),
+    ]);
+    const fill = planFill(p, retiredIx);
+    expect(fill.get('0:0')?.exerciseId).toBe('ex-thruster');
+    expect(fill.get('0:1')?.exerciseId).toBeNull();
+    expect(unresolvedExercises(p, retiredIx)).toEqual(['Barbell Back Squat']);
   });
 });
 
@@ -128,9 +150,12 @@ describe('unresolvedExercises', () => {
   });
 
   it('says nothing when the whole plan lands', () => {
+    // The warning shown before applying must agree with what planFill installs,
+    // so a name written the way a person would is not flagged as missing.
     const p = plan([
       slot({ position: 0, exerciseName: 'Goblet Squat' }),
       slot({ position: 1, exerciseName: 'Barbell Row' }),
+      slot({ position: 2, exerciseName: '  barbell BENCH press ' }),
     ]);
     expect(unresolvedExercises(p, ix)).toEqual([]);
   });

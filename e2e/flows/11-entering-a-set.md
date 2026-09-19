@@ -46,6 +46,12 @@ header and the tab bar of a 640 px phone.
 - **The ruler's range follows the equipment**, and an arrow key moves one step.
 - **Loading the bar**: a plate adds twice its weight, comes off with a tap, the
   bar chip moves the total, and a total plates cannot make is logged exactly.
+  Each lift keeps its own bar, and a trap bar deadlift starts on its own 25 kg.
+- **Where a number starts**: a lift never done starts on a light weight and the
+  bottom of the plan's rep range — eight reps off the plan, where there is no
+  range.
+- **Pounds**: the card uses the pound dumbbells, bar and plates, and a bar
+  remembered in kilograms is not read back as pounds.
 - **The choice follows the account** to a second browser, like the unit does.
 - **Bodyweight "None" is logged as no added weight.**
 - **Nothing scrolls sideways** on a 360 px screen, in any style.

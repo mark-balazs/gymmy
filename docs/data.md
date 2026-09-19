@@ -301,10 +301,11 @@ The client wipes IndexedDB before calling the server and deliberately does
 work done to destroy it a moment later, and if the server call then fails the
 device has still been left clean.
 
-Its test does not check a hand-written list of tables. It asks Postgres which
-tables have a `user_id`, an `email` or an `identifier`, and insists none of them
-still holds a matching row — so a table added later without a cascade fails it
-without anybody having to remember.
+Its test does not check a hand-written list of tables. It asks Postgres for
+every column with a foreign key to `user`, plus every text column named like an
+email address or `identifier`, and insists none of them still holds a matching
+row — so a table added later without a cascade fails it without anybody having
+to remember.
 
 ### The demo account
 
@@ -348,7 +349,8 @@ empty on the one account anybody opens. The arcs in force:
 On top of the arc: progress is quick early and flattens, rounds to real plate
 jumps (which produces uneven plateaus by itself), and is interrupted by a deload
 every sixth week, a bad session about one in ten, two missed sessions and a week
-off. Bodyweight movements carry a fraction of bodyweight and progress in reps.
+off. Bodyweight movements log only the weight added to the body — none until
+there is some — and progress in reps.
 
 **One plateau is shared across every lift**, which per-exercise arcs cannot
 produce. The strength score is a sum over five patterns, so a single lift pausing

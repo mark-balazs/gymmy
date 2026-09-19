@@ -118,7 +118,9 @@ we later change what a preset means, or the user renames a pattern.
 A period starts on a **Monday**, because a week is the unit of coverage.
 Switching split on a Thursday applies to the whole of that week rather than
 leaving it scored half one way and half the other. Weeks already finished are
-never touched.
+never touched. Switching twice in one week replaces that week's period rather
+than stacking a second on the same Monday — two with one start would be read in
+no particular order — and the spec counts what the server holds to prove it.
 
 ## Notes
 

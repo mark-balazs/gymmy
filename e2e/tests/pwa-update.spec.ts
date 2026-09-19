@@ -36,17 +36,24 @@ test.describe('Picking up a new version', () => {
     const ours = before.filter((k) => k.startsWith('athletic-'));
     expect(ours).toHaveLength(1);
 
+    // Every navigation of the page from here on — there should be exactly one,
+    // and only once the app is hidden.
+    const navs: string[] = [];
+    app.on('framenavigated', (f) => {
+      if (f === app.mainFrame()) navs.push(f.url());
+    });
+
     // Ship a new build: the same worker with a different build id, which is
     // exactly what scripts/build-sw.mjs produces on the next deploy.
     const deployed = original.replace(/const BUILD = '[^']*'/, "const BUILD = 'e2e-next-build'");
     expect(deployed).not.toBe(original);
     await writeFile(SW, deployed);
 
-    // What the app does when it returns to the foreground.
-    await app.evaluate(async () => {
-      const reg = await navigator.serviceWorker.ready;
-      await reg.update();
-    });
+    /* What the app does when it returns to the foreground — the app's own
+       trigger, not the test asking for an update itself. Calling reg.update()
+       here, as this used to, left the app's foreground check free to vanish
+       with the suite green. */
+    await app.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
 
     // The new worker skips waiting and claims, so its cache appears...
     await expect
@@ -63,19 +70,42 @@ test.describe('Picking up a new version', () => {
         { timeout: 20_000 },
       )
       .toEqual(['athletic-e2e-next-build']);
+
+    /* Then the page moves onto it — but not under somebody's thumb. The new
+       worker controls the page while the script already running in it is the
+       old one, so it has to reload; weight and reps being entered live only in
+       that page, so it waits until the app is put away. Nothing while it is
+       visible, one reload the moment it is hidden: a page that reloaded at once
+       fails the first half, and one that never listened for the new worker
+       fails the second. */
+    await app.waitForTimeout(1500);
+    expect(navs, 'the page reloaded while it was being looked at').toEqual([]);
+    const loaded = app.waitForEvent('load');
+    await app.evaluate(() => {
+      Object.defineProperty(document, 'visibilityState', {
+        configurable: true,
+        get: () => 'hidden',
+      });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await loaded;
   });
 
   test('an unchanged worker is not treated as a new version', async ({ onboardedApp: app }) => {
-    // The other half of the contract: checking for updates must be cheap and
-    // silent when there is nothing new, or the app would reload on a loop.
-    await waitForServiceWorker(app);
-    const before = await app.evaluate(() => caches.keys());
+    /* The other half of the contract: checking for updates must be cheap and
+       silent when there is nothing new, or the app would reload on a loop.
 
-    await app.evaluate(async () => {
+       Asked of the registration, not the caches. An update that finds a new
+       worker resolves before that worker's install has opened its cache, so
+       the cache list read straight afterwards looked unchanged either way. A
+       worker installing or waiting is what a new version found looks like. */
+    await waitForServiceWorker(app);
+
+    const r = await app.evaluate(async () => {
       const reg = await navigator.serviceWorker.ready;
       await reg.update();
+      return { installing: !!reg.installing, waiting: !!reg.waiting };
     });
-
-    expect(await app.evaluate(() => caches.keys())).toEqual(before);
+    expect(r).toEqual({ installing: false, waiting: false });
   });
 });

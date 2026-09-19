@@ -1,18 +1,20 @@
 import { randomUUID } from 'node:crypto';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { db } from '@/lib/db';
-import { planEvents, plans, userGroups, users } from '@/lib/db/schema';
+import { planEvents, planShares, plans, profiles, userGroups, users } from '@/lib/db/schema';
 import {
   addMember,
   createGroup,
   createPlan,
+  deleteGroup,
   deletePlan,
   listGroups,
   planShapeFor,
   plansVisibleTo,
   publishPlan,
   removeMember,
+  renameGroup,
   revokeShare,
   listShares,
   sharePlan,
@@ -36,6 +38,12 @@ describe('plans and who can see them', () => {
   const trainer = randomUUID();
   const athlete = randomUUID();
   const stranger = randomUUID();
+  /** Does everything the audit trail records, and nothing else — see the audit test. */
+  const auditor = randomUUID();
+  const everyone = [trainer, athlete, stranger, auditor];
+
+  const athleteEmail = `athlete-${athlete.slice(0, 8)}@example.test`;
+  const strangerEmail = `other-${stranger.slice(0, 8)}@example.test`;
 
   const slot = (over: Partial<PlanSlot> = {}): PlanSlot => ({
     sessionIndex: 0,
@@ -62,15 +70,20 @@ describe('plans and who can see them', () => {
   beforeAll(async () => {
     await db.insert(users).values([
       { id: trainer, name: 'Coach', email: `coach-${trainer.slice(0, 8)}@example.test` },
-      { id: athlete, name: 'Athlete', email: `athlete-${athlete.slice(0, 8)}@example.test` },
-      { id: stranger, name: 'Stranger', email: `other-${stranger.slice(0, 8)}@example.test` },
+      { id: athlete, name: 'Athlete', email: athleteEmail },
+      { id: stranger, name: 'Stranger', email: strangerEmail },
+      { id: auditor, name: 'Auditor', email: `auditor-${auditor.slice(0, 8)}@example.test` },
     ]);
   });
 
   afterAll(async () => {
-    await db.delete(users).where(inArray(users.id, [trainer, athlete, stranger]));
-    // Audit events outlive their actor by design, so they are cleaned up here.
-    await db.delete(planEvents).where(eq(planEvents.actorId, trainer));
+    /* Audit events outlive their actor by design, so they are cleaned up here —
+       and first. `actor_id` is ON DELETE SET NULL, so once the users are gone
+       there is nothing left to find these rows by; deleting in the other order
+       matched nothing and leaked every event this file wrote. Every actor, not
+       just the trainer: the stranger and the auditor write events too. */
+    await db.delete(planEvents).where(inArray(planEvents.actorId, everyone));
+    await db.delete(users).where(inArray(users.id, everyone));
   });
 
   const idsVisibleTo = async (userId: string) => (await plansVisibleTo(userId)).map((p) => p.id);
@@ -80,7 +93,7 @@ describe('plans and who can see them', () => {
 
     expect(await idsVisibleTo(trainer)).toContain(id);
     // A draft is somebody thinking out loud. Sharing one should not leak it.
-    await sharePlan(trainer, id, { userEmail: `athlete-${athlete.slice(0, 8)}@example.test` });
+    await sharePlan(trainer, id, { userEmail: athleteEmail });
     expect(await idsVisibleTo(athlete)).not.toContain(id);
 
     await publishPlan(trainer, id);
@@ -97,7 +110,7 @@ describe('plans and who can see them', () => {
     const id = await createPlan(trainer, draft('Group block'));
     await publishPlan(trainer, id);
     const groupId = await createGroup(trainer, 'Tuesday squad');
-    await addMember(trainer, groupId, `athlete-${athlete.slice(0, 8)}@example.test`);
+    await addMember(trainer, groupId, athleteEmail);
     await sharePlan(trainer, id, { groupId });
 
     expect(await idsVisibleTo(athlete)).toContain(id);
@@ -110,10 +123,10 @@ describe('plans and who can see them', () => {
     expect(await idsVisibleTo(athlete)).not.toContain(id);
   });
 
-  it('stops at a revoked share without touching anybody’s training', async () => {
+  it('stops at a revoked share, and keeps the share on record', async () => {
     const id = await createPlan(trainer, draft('Revoked block'));
     await publishPlan(trainer, id);
-    await sharePlan(trainer, id, { userEmail: `athlete-${athlete.slice(0, 8)}@example.test` });
+    await sharePlan(trainer, id, { userEmail: athleteEmail });
     expect(await idsVisibleTo(athlete)).toContain(id);
 
     const [share] = await listShares(trainer, id);
@@ -122,8 +135,11 @@ describe('plans and who can see them', () => {
 
     expect(await idsVisibleTo(athlete)).not.toContain(id);
     // Revoked, not deleted: the share is gone from the live list, and the fact
-    // that it once existed is still on the record.
+    // that it once existed is still on the record. A hard delete passes both
+    // of the checks before this one, so the row itself is read back.
     expect(await listShares(trainer, id)).toHaveLength(0);
+    const [row] = await db.select().from(planShares).where(eq(planShares.id, share!.id));
+    expect(row?.revokedAt).toBeInstanceOf(Date);
   });
 
   it('answers the same way for a plan you cannot see and one that is not there', async () => {
@@ -137,23 +153,37 @@ describe('plans and who can see them', () => {
   it('carries the exercises across by name', async () => {
     /* The crossing this whole design turns on. A pre-catalogue exercise id is
        `sha256(userId, …)` and means nothing in another account, so the plan
-       stores what a person would say instead. */
-    const id = await createPlan(
-      trainer,
-      draft('Named block', [
-        slot({ position: 0, exerciseName: 'Barbell Bench Press', sets: 4, repRange: '3-5' }),
-        slot({ position: 1, exerciseName: null }),
-      ]),
-    );
+       stores what a person would say instead.
+
+       The whole shape is compared, not a field or two of it. The athlete's
+       week is built from the slot's key, day, patterns and role as much as from
+       its exercise, and a mapper that dropped any of them would still carry the
+       name across. Written out of order so the read has to put them back. */
+    const accessory = slot({
+      position: 1,
+      key: 'accessory',
+      dayKey: 'pull',
+      patternKeys: ['pull'],
+      requiredRole: 'Upper',
+    });
+    const bench = slot({
+      position: 0,
+      exerciseName: 'Barbell Bench Press',
+      sets: 4,
+      repRange: '3-5',
+    });
+    const id = await createPlan(trainer, draft('Named block', [accessory, bench]));
     await publishPlan(trainer, id);
-    await sharePlan(trainer, id, { userEmail: `athlete-${athlete.slice(0, 8)}@example.test` });
+    await sharePlan(trainer, id, { userEmail: athleteEmail });
 
     const got = await planShapeFor(athlete, id);
-    expect(got?.plan.slots).toHaveLength(2);
-    expect(got?.plan.slots[0]?.exerciseName).toBe('Barbell Bench Press');
-    expect(got?.plan.slots[0]?.sets).toBe(4);
-    expect(got?.plan.slots[0]?.repRange).toBe('3-5');
-    expect(got?.plan.slots[1]?.exerciseName).toBeNull();
+    expect(got?.plan).toEqual({
+      name: 'Named block',
+      description: 'Four hard weeks',
+      days: 3,
+      where: 'gym',
+      slots: [bench, accessory],
+    });
     expect(got?.ownerName).toBe('Coach');
   });
 
@@ -176,11 +206,23 @@ describe('plans and who can see them', () => {
   it('refuses to edit or share a plan that is not yours', async () => {
     const id = await createPlan(trainer, draft('Not yours'));
     await publishPlan(trainer, id);
+    await sharePlan(trainer, id, { userEmail: athleteEmail });
+    const [share] = await listShares(trainer, id);
 
     expect(await updatePlan(stranger, id, draft('Hijacked'))).toBe(false);
     expect(await publishPlan(stranger, id)).toBe(false);
     expect(await deletePlan(stranger, id)).toBe(false);
     expect(await sharePlan(stranger, id, { userEmail: 'anyone@example.test' })).toBe(false);
+
+    /* The share list and revoking carry their own ownership checks, separate
+       from the ones above. Without them anybody could read who a plan was given
+       to, and take it away from them. And a share is scoped to its plan, so
+       owning *a* plan is not enough to revoke a share on somebody else's. */
+    expect(await listShares(stranger, id)).toEqual([]);
+    expect(await revokeShare(stranger, id, share!.id)).toBe(false);
+    const own = await createPlan(stranger, draft('Strangers own'));
+    expect(await revokeShare(stranger, own, share!.id)).toBe(false);
+    expect(await idsVisibleTo(athlete)).toContain(id);
 
     const still = await plansVisibleTo(trainer);
     expect(still.find((p) => p.id === id)?.name).toBe('Not yours');
@@ -188,11 +230,20 @@ describe('plans and who can see them', () => {
 
   it('says nothing about whether an address has an account', async () => {
     /* Adding a stranger's address to a group must not become a way of asking
-       who is on gymmy. Both answers look identical from outside. */
+       who is on gymmy. Both answers look identical from outside — so both are
+       asked, an address nobody has and one somebody does, and sharing a plan
+       is held to the same silence as adding a member. */
     const groupId = await createGroup(trainer, 'Quiet group');
     expect(await addMember(trainer, groupId, 'nobody-at-all@example.test')).toBe(true);
     const group = (await listGroups(trainer)).find((g) => g.id === groupId);
     expect(group?.members).toHaveLength(0);
+    expect(await addMember(trainer, groupId, athleteEmail)).toBe(true);
+
+    const id = await createPlan(trainer, draft('Quiet block'));
+    await publishPlan(trainer, id);
+    expect(await sharePlan(trainer, id, { userEmail: 'nobody-at-all@example.test' })).toBe(true);
+    expect(await listShares(trainer, id)).toHaveLength(0);
+    expect(await sharePlan(trainer, id, { userEmail: athleteEmail })).toBe(true);
   });
 
   it('needs exactly one target for a share', async () => {
@@ -207,50 +258,113 @@ describe('plans and who can see them', () => {
   });
 
   it('writes an audit event for everything that happened', async () => {
-    // Not decoration: a trail added later only covers the period after it was
-    // added, and every question anybody asks of one is about the period before.
-    const events = await db.select().from(planEvents).where(eq(planEvents.actorId, trainer));
-    const actions = new Set(events.map((e) => e.action));
-    expect(actions).toContain('plan.created');
-    expect(actions).toContain('plan.published');
-    expect(actions).toContain('plan.updated');
-    expect(actions).toContain('plan.shared');
-    expect(actions).toContain('plan.revoked');
-    expect(actions).toContain('group.created');
-    expect(actions).toContain('group.member.added');
-    expect(actions).toContain('group.member.removed');
+    /* Not decoration: a trail added later only covers the period after it was
+       added, and every question anybody asks of one is about the period before.
+       Every action is driven here, by an account that does nothing else, rather
+       than read off whatever the tests above happened to leave behind — which
+       is what this used to do, and run on its own it failed. */
+    const plan = await createPlan(auditor, draft('Audited block'));
+    await updatePlan(auditor, plan, draft('Audited block'));
+    await publishPlan(auditor, plan);
+    await sharePlan(auditor, plan, { userEmail: athleteEmail });
+    const [share] = await listShares(auditor, plan);
+    await revokeShare(auditor, plan, share!.id);
+    const group = await createGroup(auditor, 'Audited group');
+    await renameGroup(auditor, group, 'Audited group, renamed');
+    await addMember(auditor, group, athleteEmail);
+    await removeMember(auditor, group, athlete);
+    expect(await deletePlan(auditor, plan)).toBe(true);
+    expect(await deleteGroup(auditor, group)).toBe(true);
+
+    const events = await db.select().from(planEvents).where(eq(planEvents.actorId, auditor));
+    expect([...new Set(events.map((e) => e.action))]).toEqual(
+      expect.arrayContaining([
+        'plan.created',
+        'plan.updated',
+        'plan.published',
+        'plan.shared',
+        'plan.revoked',
+        'group.created',
+        'group.renamed',
+        'group.member.added',
+        'group.member.removed',
+      ]),
+    );
+
     // The name is copied in, so the row still says something once the plan it
-    // refers to is gone.
+    // refers to is gone — which it now is, so that is what is read back.
     expect(events.every((e) => e.action.startsWith('group.') || e.planName)).toBe(true);
+    const created = events.find((e) => e.action === 'plan.created')!;
+    expect(created.planId).toBeNull();
+    expect(created.planName).toBe('Audited block');
+    const made = events.find((e) => e.action === 'group.created')!;
+    expect(made.groupId).toBeNull();
+    expect(made.groupName).toBe('Audited group');
   });
 
   it('deleting a plan takes nobody’s week with it', async () => {
     const id = await createPlan(trainer, draft('Doomed block'));
     await publishPlan(trainer, id);
-    await sharePlan(trainer, id, { userEmail: `athlete-${athlete.slice(0, 8)}@example.test` });
+    await sharePlan(trainer, id, { userEmail: athleteEmail });
     expect(await idsVisibleTo(athlete)).toContain(id);
+
+    /* An athlete training on it, as applying it leaves them: the plan's id and
+       version on their profile. That column deliberately has no foreign key —
+       a snapshot, never a link (D-011) — and nothing else in the suite would
+       notice one being added: a cascade would delete this person's profile with
+       the plan, and set-null would quietly take them off it. */
+    await db.insert(profiles).values({
+      id: athlete,
+      userId: athlete,
+      updatedAt: new Date(),
+      seq: sql`nextval('change_seq')`,
+      blockStart: '2026-09-14',
+      planId: id,
+      planVersion: 1,
+    });
 
     expect(await deletePlan(trainer, id)).toBe(true);
     expect(await idsVisibleTo(athlete)).not.toContain(id);
-    // The athlete's own slots and entries are untouched by any of this — a plan
-    // is copied at the moment it is applied, and this file never writes into a
-    // replicated table at all.
     const [gone] = await db.select().from(plans).where(eq(plans.id, id)).limit(1);
     expect(gone).toBeUndefined();
+
+    // The athlete's week is untouched — a plan is copied at the moment it is
+    // applied, and this file never writes into a replicated table at all.
+    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, athlete));
+    expect(profile?.planId).toBe(id);
+    expect(profile?.planVersion).toBe(1);
   });
 
   it('lists a group with everybody in it', async () => {
     const groupId = await createGroup(trainer, 'Listed group');
-    await addMember(trainer, groupId, `athlete-${athlete.slice(0, 8)}@example.test`);
-    await addMember(trainer, groupId, `other-${stranger.slice(0, 8)}@example.test`);
+    await addMember(trainer, groupId, athleteEmail);
+    await addMember(trainer, groupId, strangerEmail);
 
     const group = (await listGroups(trainer)).find((g) => g.id === groupId);
-    expect(group?.members.map((m) => m.id).sort()).toEqual([athlete, stranger].sort());
+    const members = [athlete, stranger].sort();
+    expect(group?.members.map((m) => m.id).sort()).toEqual(members);
 
-    // A group belongs to whoever made it; nobody else can list or change it.
+    // A group belongs to whoever made it; nobody else can list or change it —
+    // each write checks that for itself, so each is asked.
     expect(await listGroups(stranger)).toHaveLength(0);
     expect(await removeMember(stranger, groupId, athlete)).toBe(false);
+    expect(await addMember(stranger, groupId, strangerEmail)).toBe(false);
+    expect(await renameGroup(stranger, groupId, 'Hijacked')).toBe(false);
+    expect(await deleteGroup(stranger, groupId)).toBe(false);
     const [survives] = await db.select().from(userGroups).where(eq(userGroups.id, groupId));
     expect(survives?.name).toBe('Listed group');
+    const after = (await listGroups(trainer)).find((g) => g.id === groupId);
+    expect(after?.members.map((m) => m.id).sort()).toEqual(members);
+  });
+
+  it('finds a member however their address was typed', async () => {
+    /* The route checks that it is an address and passes it on as typed, so the
+       normalising happens here or nowhere. Without it a trainer who types a
+       client's address with a capital letter is told "taken" — the same answer
+       as for an unknown address, by design — and the client never appears. */
+    const groupId = await createGroup(trainer, 'Typed group');
+    await addMember(trainer, groupId, ` ${athleteEmail.toUpperCase()} `);
+    const group = (await listGroups(trainer)).find((g) => g.id === groupId);
+    expect(group?.members.map((m) => m.id)).toEqual([athlete]);
   });
 });

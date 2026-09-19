@@ -37,7 +37,9 @@ const BARBELLS = Object.entries(EXERCISE_LOADS)
 describe('entry scales', () => {
   it('reaches what each class is trained with, per unit', () => {
     /* The table from the brief, written out so a change to it is a change to
-       this test. Entered units throughout — per hand for a pair. */
+       this test. Entered units throughout — per hand for a pair. The barbell
+       rows start on the standard bar, because nothing loaded on it weighs less
+       than the bar. */
     const table: Record<LoadClass, Record<Unit, [number, number, number]>> = {
       barbell: { kg: [20, 300, 2.5], lb: [45, 660, 5] },
       dumbbellPair: { kg: [1, 60, 1], lb: [5, 150, 5] },
@@ -72,11 +74,6 @@ describe('entry scales', () => {
     }
     expect(REPS_SCALE.min).toBeGreaterThanOrEqual(0);
     expect(REPS_SCALE.max).toBeLessThanOrEqual(1000);
-  });
-
-  it('starts the barbell ruler on the standard bar', () => {
-    // Nothing loaded on a standard bar weighs less than the bar.
-    for (const unit of UNITS) expect(weightScale('barbell', unit).min).toBe(barWeightOf('', unit));
   });
 
   it('starts a barbell ruler on the bar actually in use', () => {
@@ -400,7 +397,9 @@ describe('where a card starts with no history', () => {
   });
 
   it('starts reps at eight when the range says nothing usable', () => {
-    for (const r of ['', '8', 'AMRAP', 'max', '0-5', null, undefined]) {
+    // A lone number is not a range, so it is refused like any other text: '12'
+    // and '5 reps' prove that, where '8' could not tell refusal from reading.
+    for (const r of ['', '12', '5 reps', 'AMRAP', 'max', '0-5', null, undefined]) {
       expect(startReps(r), String(r)).toBe(8);
     }
   });

@@ -22,26 +22,38 @@ walks the rest.
   with the test key — that is fine and deliberate: the code is written to the
   database before it is sent, and the test reads it from there rather than from
   an inbox belonging to somebody else's service.
-- No user, no profile, no library. The server creates all of it.
+- No user, no profile, no patterns. The server creates all of it.
 
 ## Steps — signing up and coming back
 
 1. Open `/sign-in`, enter an address, ask for a code.
 2. Enter the code. The account does not exist yet, so this request is what
    creates the user *and* seeds the patterns and the slot skeleton. It seeds no
-   exercises: the library is the shared catalogue. So this is also the one flow
-   that runs an account with **no library rows of its own** end to end — every
-   other spec's fixture writes the old per-account rows, which exercises the
-   alias path instead.
-3. Land in setup rather than on an empty Train tab. Answer the four questions.
+   exercises: the library is the shared catalogue. The fixture accounts every
+   other spec starts from have none either; one Progress spec opts into the old
+   per-account rows (`legacyLibrary`) so the alias path keeps a witness.
+3. Land in setup rather than on an empty Train tab. Answer the questions.
 4. Log a real set against a real generated exercise.
 5. Check the Week tab: it is scored against the split that was chosen, not a
    default — five tiles for push/pull/legs.
 6. Check Progress: the lift is there.
 7. Sign out. Everything local is destroyed, so wait for the sync to settle
    first — anything that had not reached the server would be gone for good.
+   The device's store is then checked empty.
 8. Sign in again. No setup this time, and the training comes back down onto a
    device that had been emptied.
+
+## Steps — signing out, with somebody else next
+
+Fixture accounts, because what is being tested is the leaving, not the arriving:
+
+1. Sign out, and sign a different account in on the same device: it inherits
+   none of the last one's sets.
+2. Log a set while the server is unreachable, let the network come back, and
+   sign out: the sign-out's own last push delivers it before the wipe.
+3. Log a set while a push is already travelling, and sign out: the set must
+   not be wiped. **This one fails today** and is marked as expected to — the
+   last push joins the one in flight, which left before the set was logged.
 
 ## Steps — a second device
 

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { buildSlots, findSplit, mondayOf } from '@athletic/domain';
 
 /**
  * Seeding has to survive being run again.
@@ -10,9 +11,10 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
  * event would never fire again, and the account was left signed in and forever
  * empty, which the app can only render as a loading screen that never resolves.
  *
- * The repair is for `/api/sync` to seed any account that turns up with nothing,
- * and that is only safe if running the seed twice — or over a library that was
- * half written when the first attempt died — converges on exactly one library.
+ * The repair is for `/api/sync` to seed an account that turns up with nothing,
+ * and that is only safe if seeds that overlap — `createUser` still running when
+ * the first sync finds the account empty, or two devices at once — converge on
+ * exactly one set of rows.
  *
  * Runs against the real database because that is what is being tested: the
  * convergence is a property of the ids and the conflict clauses, not of
@@ -25,14 +27,25 @@ describe('seeding is safe to run again', () => {
   let db: typeof import('@/lib/db').db;
   let schema: typeof import('@/lib/db/schema');
 
-  const count = async (table: 'patterns' | 'exercises' | 'slots' | 'splitPeriods' | 'profiles') => {
+  const rowsOf = async (
+    table:
+      | 'patterns'
+      | 'exercises'
+      | 'slots'
+      | 'splitPeriods'
+      | 'profiles'
+      | 'programEntries'
+      | 'setLogs'
+      | 'bodyLogs'
+      | 'goals',
+  ) => {
     const t = schema[table];
-    const rows = await db
+    return db
       .select()
       .from(t as never)
       .where(sql`${(t as { userId: unknown }).userId} = ${userId}`);
-    return rows.length;
   };
+  const count = async (table: Parameters<typeof rowsOf>[0]) => (await rowsOf(table)).length;
 
   let first: Record<string, number>;
 
@@ -70,8 +83,20 @@ describe('seeding is safe to run again', () => {
        account reads; copying it into each new account is what used to stop an
        added exercise from reaching anybody who already had one. */
     expect(first.exercises).toBe(0);
-    expect(first.slots).toBeGreaterThan(0);
+    // The default split at its default length: the whole skeleton, not some.
+    const split = findSplit('sevenPattern')!;
+    expect(first.slots).toBe(buildSlots(split, split.defaultDays).length);
     expect(first.profiles).toBe(1);
+    /* And one opening period, from this week. Coverage is scored against the
+       period in force, so an account without one is scored against a guess —
+       and nothing else here would notice: the re-seed check below compares a
+       table the first run never wrote with itself, zero against zero. */
+    expect(first.splitPeriods).toBe(1);
+  });
+
+  it('opens that period on the week the account starts', async () => {
+    const [period] = (await rowsOf('splitPeriods')) as { startWeek: string }[];
+    expect(period?.startWeek).toBe(mondayOf(new Date()));
   });
 
   it('writes no second copy of anything', async () => {
@@ -79,6 +104,28 @@ describe('seeding is safe to run again', () => {
     // the second run lands on the rows the first one wrote.
     for (const table of ['patterns', 'exercises', 'slots', 'splitPeriods', 'profiles'] as const) {
       expect(await count(table), table).toBe(first[table]);
+    }
+  });
+
+  it('gives an ordinary account a blank profile and no history', async () => {
+    /* The path every real account takes, asserted rather than assumed: not
+       onboarded, nothing about the person filled in for them, a block starting
+       this week, and none of the demo's history. The demo is this same function
+       behind one flag, so a slip either way lands here — a real account that
+       arrives onboarded with a sex it never chose has skipped the questions its
+       strength score needs, and one that arrives with five months of logs has
+       somebody else's training in it. Ahead of the next test, which edits the
+       profile. */
+    const [profile] = await rowsOf('profiles');
+    expect(profile).toMatchObject({
+      onboarded: false,
+      sex: 'unspecified',
+      heightCm: null,
+      blockWeeks: 8,
+      blockStart: mondayOf(new Date()),
+    });
+    for (const t of ['programEntries', 'setLogs', 'bodyLogs', 'goals'] as const) {
+      expect(await rowsOf(t), t).toHaveLength(0);
     }
   });
 

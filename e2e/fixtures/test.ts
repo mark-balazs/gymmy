@@ -15,6 +15,8 @@ import {
 } from '@playwright/test';
 import { closeDb, createUser, sessionCookie, type CreateUserOptions, type TestUser } from './auth';
 
+export { historyStart } from './auth';
+
 interface Fixtures {
   user: TestUser;
   app: Page;
@@ -243,9 +245,14 @@ export async function logSet(
  * pair — which is a test that fails at random, not a test.
  *
  * Waits for the row, so it also serves as "the set has reached the local store".
+ *
+ * Anchored against the effort chip, which follows the reps with no space
+ * between them — the row reads "33 kg × 52 more" — so the reps returned are
+ * the ones stored rather than an echo of the argument: unanchored, a row
+ * holding 50 reps matched a search for 5.
  */
 export async function recordedSet(page: Page, reps: number): Promise<string> {
-  const pattern = new RegExp(`^\\d+(\\.\\d+)? kg × ${reps}`);
+  const pattern = new RegExp(`^\\d+(\\.\\d+)? kg × ${reps}(?=(Nothing left|[12] more|Easy)$)`);
   const row = page.locator('main .num').filter({ hasText: pattern }).first();
   await expect(row).toBeVisible();
   return (await row.innerText()).match(pattern)![0];
@@ -341,18 +348,6 @@ export async function collapsedExercises(page: Page): Promise<string[]> {
 }
 
 /**
- * The name of the exercise in a given Train card.
- *
- * Read off the page rather than assumed: which exercise the generator picks
- * depends on the split in force, so a hard-coded name turns a split change into
- * a mystery failure three specs away from the cause.
- */
-export async function exerciseNameAt(page: Page, index = 0): Promise<string> {
-  const info = page.getByRole('button', { name: /^About / }).nth(index);
-  return (await info.getAttribute('aria-label'))!.replace(/^About /, '');
-}
-
-/**
  * Logs a set taking the numbers already in the card — the one-tap path, and the
  * one almost every real set goes through.
  *
@@ -361,4 +356,36 @@ export async function exerciseNameAt(page: Page, index = 0): Promise<string> {
  */
 export async function logSuggested(page: Page): Promise<void> {
   await page.getByRole('button', { name: /^Log set|Add another set/ }).click();
+}
+
+/**
+ * How many sets this device's IndexedDB still holds.
+ *
+ * The one witness to what a sign-out or a deletion left *on the phone*: a
+ * screen that shows nothing looks the same whether the rows are gone or merely
+ * not rendered, and the next person to sign in on the device inherits whatever
+ * is still there. Zero when the database is gone altogether.
+ */
+export async function localLogCount(page: Page): Promise<number> {
+  return page.evaluate(async () => {
+    const names = (await indexedDB.databases()).map((d) => d.name);
+    if (!names.includes('athletic-tracker')) return 0;
+    return new Promise<number>((resolve) => {
+      const req = indexedDB.open('athletic-tracker');
+      req.onsuccess = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains('logs')) {
+          db.close();
+          return resolve(0);
+        }
+        const count = db.transaction('logs').objectStore('logs').count();
+        count.onsuccess = () => {
+          db.close();
+          resolve(count.result);
+        };
+        count.onerror = () => resolve(-1);
+      };
+      req.onerror = () => resolve(0);
+    });
+  });
 }

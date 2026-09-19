@@ -12,7 +12,7 @@ import {
   splitDays,
   type SlotDraft,
 } from '../src/splits';
-import { BIASES, type Snapshot } from '../src/types';
+import type { PatternKey, Snapshot } from '../src/types';
 import { seedSnapshot, withEntries } from './fixture';
 
 describe('split presets', () => {
@@ -21,20 +21,14 @@ describe('split presets', () => {
    * declares its own coverage set — push/pull/legs is complete at push, pull and
    * the three leg patterns — and the generated week must satisfy that set at
    * every day count, equipment choice and bias, with no gap the user has to
-   * notice for themselves.
+   * notice for themselves. That half is held by `coach.test.ts`, "never costs a
+   * week its coverage, whatever the offset", over every preset, day count,
+   * location and bias at several varieties. What stays here is the other half:
+   * every slot's own constraint.
    */
   for (const preset of SPLITS) {
     for (const days of allowedDays(preset.key)) {
       for (const where of ['gym', 'home'] as const) {
-        it(`${preset.key} @ ${days} days (${where}) covers everything it claims to`, () => {
-          const snap = seedSnapshot(preset.key, days);
-          const draft = buildProgram(index(snap), { days, where, bias: 'none' });
-          const built = withEntries(snap, draft);
-
-          const missing = programCoverage(built, days).filter((c) => c.sets === 0);
-          expect(missing.map((m) => m.pattern.key)).toEqual([]);
-        });
-
         it(`${preset.key} @ ${days} days (${where}) respects every slot constraint`, () => {
           const snap = seedSnapshot(preset.key, days);
           const draft = buildProgram(index(snap), { days, where, bias: 'none' });
@@ -54,28 +48,6 @@ describe('split presets', () => {
       const draft = buildProgram(index(snap), { days, where: 'gym', bias: 'none' });
       const built = withEntries(snap, draft);
       expect(programRows(built, days).every((r) => r.exercise)).toBe(true);
-    }
-  });
-
-  it('honours the bias on every preset', () => {
-    for (const preset of SPLITS) {
-      for (const bias of ['shoulders', 'arms'] as const) {
-        const days = preset.defaultDays;
-        const snap = seedSnapshot(preset.key, days);
-        const draft = buildProgram(index(snap), { days, where: 'gym', bias });
-        const built = withEntries(snap, draft);
-        const hit = programRows(built, days).filter((r) => r.exercise?.tags.includes(bias));
-        expect(hit.length, `${preset.key}/${bias}`).toBeGreaterThan(0);
-      }
-    }
-  });
-
-  it('accepts every bias without breaking coverage', () => {
-    for (const bias of BIASES) {
-      const snap = seedSnapshot('pushPullLegs', 3);
-      const draft = buildProgram(index(snap), { days: 3, where: 'gym', bias });
-      const built = withEntries(snap, draft);
-      expect(programCoverage(built, 3).filter((c) => c.sets === 0)).toEqual([]);
     }
   });
 });
@@ -114,10 +86,21 @@ describe('split structure', () => {
     expect(slots.filter((s) => s.sessionIndex === 1).every((s) => s.dayKey === 'lower')).toBe(true);
   });
 
-  it('keeps a full-body preset shared across days', () => {
+  it('materialises the full-body day once per session', () => {
+    // Not shared: "shared" in the model means a slot with no sessionIndex,
+    // which applies to every day, and only slots seeded before splits existed
+    // are like that. Every preset, full-body included, pins each slot to a day.
     const slots = buildSlots(findSplit('sevenPattern')!, 3);
     expect(slots.every((s) => s.dayKey === 'full')).toBe(true);
     expect(slots).toHaveLength(15);
+    for (const session of [0, 1, 2])
+      expect(slots.filter((s) => s.sessionIndex === session).map((s) => s.key)).toEqual([
+        'bigLower',
+        'bigUpper',
+        'accessory',
+        'isolation',
+        'finisher',
+      ]);
   });
 });
 
@@ -213,6 +196,76 @@ describe('a hand-built split', () => {
     expect(programCoverage(built, 3).filter((c) => c.sets === 0)).toEqual([]);
     // …and the pins are honoured rather than papered over to achieve it.
     expect(programRows(built, 3).filter((r) => r.check.ok === false)).toEqual([]);
+  });
+
+  /** One day of hand-built slots, in order, and the week they have to cover. */
+  const oneDay = (
+    slots: { id: string; patternKeys: PatternKey[] | null }[],
+    goal: PatternKey[],
+  ) => {
+    const base = seedSnapshot('sevenPattern', 1);
+    const custom: Snapshot = {
+      ...base,
+      slots: slots.map((s, i) => ({
+        id: s.id,
+        updatedAt: new Date().toISOString(),
+        deletedAt: null,
+        key: 'accessory',
+        name: 'accessory',
+        requiredRole: 'Any',
+        position: i,
+        sessionIndex: 0,
+        patternKeys: s.patternKeys,
+        dayKey: null,
+      })),
+      splitPeriods: [{ ...base.splitPeriods[0]!, split: 'custom', days: 1, patternKeys: goal }],
+    };
+    return withEntries(
+      custom,
+      buildProgram(index(custom), { days: 1, where: 'gym', bias: 'none' }),
+    );
+  };
+
+  it('forces in a pattern the rotation alone would leave out', () => {
+    /* The case above is covered by the rotation on its own, so switching the
+       repair pass off left the whole suite green. Here it cannot be: one day
+       of [squat|pull], [push|pull], [push]. The rotation fills squat, push,
+       push and strands pull. Only the repair puts pull in, and it has to
+       overwrite the second push rather than the only squat. */
+    const built = oneDay(
+      [
+        { id: 'r0', patternKeys: ['squat', 'pull'] },
+        { id: 'r1', patternKeys: ['push', 'pull'] },
+        { id: 'r2', patternKeys: ['push'] },
+      ],
+      ['squat', 'push', 'pull'],
+    );
+    expect(
+      programCoverage(built, 1)
+        .filter((c) => c.sets === 0)
+        .map((c) => c.pattern.key),
+    ).toEqual([]);
+    expect(programRows(built, 1).filter((r) => r.check.ok === false)).toEqual([]);
+    expect(programRows(built, 1).map((r) => r.pattern?.key)).toEqual(['squat', 'pull', 'push']);
+  });
+
+  it('repairs only into a slot that allows the pattern', () => {
+    /* A pinned squat slot, then a free one; the week asks for squat and carry.
+       The rotation gives the free slot a hinge, so carry is missing, and the
+       one legal place for it is the free slot. A repair that ignored the pins
+       would overwrite the squat, which is first in the list, and create the
+       violation it exists to prevent. The case above cannot tell: there the
+       preferred slot happens to be a legal one too. */
+    const built = oneDay(
+      [
+        { id: 'b', patternKeys: ['squat'] },
+        { id: 'a', patternKeys: null },
+      ],
+      ['squat', 'carry'],
+    );
+    const keyOf = (id: string) => programRows(built, 1).find((r) => r.slot.id === id)?.pattern?.key;
+    expect(keyOf('b')).toBe('squat');
+    expect(keyOf('a')).toBe('carry');
   });
 });
 

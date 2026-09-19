@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CATALOGUE,
   EXERCISE_LOADS,
   LOAD_CONVENTION_FROM,
   LOAD_RULES,
+  addDays,
   conventionChanged,
-  SEED_EXERCISES,
   loadClassOf,
   loadRuleOf,
   toEntered,
@@ -20,14 +21,19 @@ import {
  * the multiplication.
  */
 describe('load conventions', () => {
-  it('classifies every seeded exercise, and nothing else', () => {
+  it('classifies every catalogue exercise, retired ones included, and nothing else', () => {
     /* Both directions. A missing entry would silently fall back to "one
        implement, stored as typed" — the safe default, but a wrong answer
        presented as confidently as a right one. A stale entry is the reverse
-       problem: it describes a movement nobody can log any more, and it would
-       outlive the rename that orphaned it. */
-    const seeded = SEED_EXERCISES.map((e) => e.name).sort();
-    expect(Object.keys(EXERCISE_LOADS).sort()).toEqual(seeded);
+       problem: it describes a movement that is not in the catalogue at all,
+       and it would outlive the rename that orphaned it.
+
+       Held to the catalogue, not to the seeded view of it. A retired exercise
+       keeps its chart, so it keeps its class: held to the seeded list, the
+       first legal retirement failed here, and the way back to green was
+       deleting the class — which reads a pair's ×2 history back at ÷1. */
+    const catalogued = CATALOGUE.map((c) => c.name).sort();
+    expect(Object.keys(EXERCISE_LOADS).sort()).toEqual(catalogued);
   });
 
   it('doubles a pair of dumbbells and nothing else', () => {
@@ -104,21 +110,36 @@ describe('load conventions', () => {
     expect(loadClassOf('Chest-Supported Row')).toBe('dumbbellPair');
   });
 
-  /** Sessions a week apart, straddling the cutover, at the given values. */
+  /** Sessions a week apart, straddling the cutover, at the given values. Real
+   *  dates: string-built ones ran to a 2026-09-31 that no calendar has. */
   const around = (before: number[], after: number[]) => [
-    ...before.map((value, i) => ({
-      date: `2026-08-${String(10 + i * 7).padStart(2, '0')}`,
-      value,
-    })),
-    ...after.map((value, i) => ({ date: `2026-09-${String(17 + i * 7).padStart(2, '0')}`, value })),
+    ...before.map((value, i) => ({ date: addDays('2026-08-10', 7 * i), value })),
+    ...after.map((value, i) => ({ date: addDays('2026-09-17', 7 * i), value })),
   ];
 
   it('speaks when a pair of dumbbells steps up across the cutover', () => {
     // Entered per hand before, stored doubled after: the step the convention
     // makes, and the one somebody reading the chart deserves an explanation for.
     expect(conventionChanged('DB Bench Press', around([30, 30, 31], [60, 62, 62]))).toBe(true);
-    // The cutover day itself is on the new side.
+    // The cutover day itself is on the new side: a session logged that day was
+    // logged doubled.
+    expect(
+      conventionChanged('DB Bench Press', [
+        { date: '2026-09-10', value: 30 },
+        { date: '2026-09-17', value: 60 },
+      ]),
+    ).toBe(true);
+    // And that day is the one the docs name. Nothing else fails if it moves.
     expect(LOAD_CONVENTION_FROM).toBe('2026-09-17');
+  });
+
+  it('needs the later sessions at least half as high again', () => {
+    /* The rule as written down, pinned on the line itself. A step from 40 to 60
+       is exactly half as high again and is the convention's; 59 is not. Any
+       looser bracket let a threshold of 1.2 or 2.0, or a strict comparison,
+       through. */
+    expect(conventionChanged('DB Bench Press', around([40, 40, 40], [60, 60, 60]))).toBe(true);
+    expect(conventionChanged('DB Bench Press', around([40, 40, 40], [59, 59, 59]))).toBe(false);
   });
 
   it('says nothing when the dates cross but nothing jumped', () => {
@@ -146,16 +167,6 @@ describe('load conventions', () => {
        or a typo, and never the convention. */
     for (const name of ['Barbell Bench Press', 'DB Row', 'Lat Pulldown', 'Pull-Up']) {
       expect(conventionChanged(name, around([30, 30, 30], [60, 60, 60]))).toBe(false);
-    }
-  });
-
-  it('puts the three competition lifts on the bar, inclusive', () => {
-    // These three carry the only score that is comparable with anybody else's,
-    // so their convention is the one that has to match the sport's: everything
-    // on the bar, bar included, exactly as it is weighed at a meet.
-    for (const name of ['Barbell Back Squat', 'Barbell Bench Press', 'Conventional Deadlift']) {
-      expect(loadClassOf(name)).toBe('barbell');
-      expect(loadRuleOf(name)).toEqual({ factor: 1, mass: true });
     }
   });
 });

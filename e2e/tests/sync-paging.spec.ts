@@ -4,17 +4,23 @@ test.describe('Syncing more history than one page holds', () => {
   /**
    * The pull queries every table with the same limit and used to advance the
    * cursor to the highest seq it saw anywhere. When one table filled its page
-   * while another held a higher seq — the profile row is written last, so it
-   * always does — every row in between was skipped and never asked for again.
+   * while another held a higher seq — the profile row, the moment any setting
+   * has changed — every row in between was skipped and never asked for again.
    *
    * Silent, permanent, and invisible on a small account. It only shows up as a
    * device that is quietly missing months of training.
+   *
+   * The fixture moves the profile above every logged set for exactly this. It
+   * used to write the profile first, below them all, so the highest seq on the
+   * first page was a log either way — and both tests here passed against the
+   * very cursor rule they exist to forbid.
    */
   const BULK = 1200; // comfortably past SYNC_LIMIT of 500
 
   test('every logged set reaches the device', async ({ page, context, baseURL }) => {
     await signInAs(page, context, baseURL!, { onboarded: true, bulkLogs: BULK });
 
+    // Exactly: the account has no other sets, so anything short is rows lost.
     await expect
       .poll(
         () =>
@@ -31,7 +37,7 @@ test.describe('Syncing more history than one page holds', () => {
           }),
         { timeout: 60_000 },
       )
-      .toBeGreaterThanOrEqual(BULK);
+      .toBe(BULK);
   });
 
   test('the server holds the cursor back rather than skipping rows', async ({
@@ -41,16 +47,26 @@ test.describe('Syncing more history than one page holds', () => {
   }) => {
     await signInAs(page, context, baseURL!, { onboarded: true, bulkLogs: BULK });
 
-    // Asked from scratch, the first page must not claim to have reached the end.
-    const first = await page.request.post('/api/sync', { data: { since: 0, mutations: [] } });
-    const body = (await first.json()) as { cursor: number; hasMore: boolean };
-    expect(body.hasMore).toBe(true);
-
-    // And the cursor must not have run past the rows it actually sent.
-    const second = await page.request.post('/api/sync', {
-      data: { since: body.cursor, mutations: [] },
-    });
-    const next = (await second.json()) as { changes: Record<string, unknown[]> };
-    expect((next.changes.logs ?? []).length).toBeGreaterThan(0);
+    /* Walked page by page from scratch, the way a new device asks, counting
+       every set that comes back. The first page must not claim to have reached
+       the end, and a cursor that ran past the rows it sent — to the profile
+       above them, or one past the last log — shows up as sets that never
+       arrive. Asked of the server alone, so nothing on the device can fill the
+       gap. */
+    let since = 0;
+    const ids = new Set<string>();
+    for (let i = 0; i < 10; i++) {
+      const res = await page.request.post('/api/sync', { data: { since, mutations: [] } });
+      const body = (await res.json()) as {
+        cursor: number;
+        hasMore: boolean;
+        changes: Record<string, { id: string }[]>;
+      };
+      if (i === 0) expect(body.hasMore, 'the first page claimed to be the last').toBe(true);
+      for (const r of body.changes.logs ?? []) ids.add(r.id);
+      since = body.cursor;
+      if (!body.hasMore) break;
+    }
+    expect(ids.size).toBe(BULK);
   });
 });

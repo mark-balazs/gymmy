@@ -158,18 +158,25 @@ describe('the Confluence macro', () => {
   });
 
   it('leaves no raw quote inside the attribute', () => {
-    // The specific failure: an unescaped " terminates data-parameters early and
-    // Confluence silently discards everything after it.
+    /* The specific failure: an unescaped " terminates data-parameters early and
+       Confluence silently discards everything after it. Stated over the whole
+       element — the first quote after the attribute opens has to be the one
+       that closes it, right before the element ends. Capturing the attribute
+       with [^"]* first and then looking inside it for a quote could never
+       fail: the capture stops at the first quote by construction. */
     for (const { mermaid } of allDiagrams()) {
-      const attr = macroFor(mermaid).match(/data-parameters="([^"]*)"/)![1]!;
-      expect(attr).not.toMatch(/(?<!&quot;)"/);
+      expect(macroFor(mermaid)).toMatch(/ data-parameters="[^"]*">Macro Pack<\/div>$/);
     }
   });
 
   it('carries the Macro Pack extension key, not a classic macro', () => {
     // Searching the macro browser for "mermaid" finds nothing; it is a Forge
     // extension, and authoring it any other way saves a collapsed code block.
+    // The whole key, as CLAUDE.md records it: one wrong digit in the app id
+    // saves a macro for an app that is not installed, and renders nothing.
     expect(macroFor('erDiagram')).toContain('data-extension-type="com.atlassian.ecosystem"');
-    expect(macroFor('erDiagram')).toContain('static/macro-pack');
+    expect(macroFor('erDiagram')).toContain(
+      'data-extension-key="1ef074bf-c90d-4af8-9ea9-32d2e6ae9a90/2256cafd-362d-4b27-a796-139875a465b5/static/macro-pack"',
+    );
   });
 });

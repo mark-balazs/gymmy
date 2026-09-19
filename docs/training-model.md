@@ -42,10 +42,9 @@ period asks for. The rotation heuristic does most of it and a **repair pass**
 forces in anything missed — writing only into a slot whose own constraint permits
 the pattern, so the repair cannot create the violation it exists to prevent.
 
-> **Known gap:** disabling the repair pass entirely does not currently fail any
-> test — the heuristic alone covers the seeded library. The guarantee is
-> asserted but not *proven*. A case that forces the repair to matter would be a
-> genuine addition.
+The heuristic alone covers the seeded library, so the repair is proven by a
+hand-built split instead: `splits.test.ts` "forces in a pattern the rotation
+alone would leave out" fails when the repair pass is disabled.
 
 ### How far into the library a week reaches
 

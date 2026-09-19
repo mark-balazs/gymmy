@@ -3,8 +3,9 @@
 **Who:** somebody mid-workout, phone in one hand, resting between sets.
 
 **Why it matters:** this is the app's core action. Everything else is reporting
-on data this flow produces. It has to be fast, forgiving and require no typing
-beyond two numbers.
+on data this flow produces. It has to be fast, forgiving and need no typing at
+all — the card sets its numbers with its own controls, described in
+[flow 11](./11-entering-a-set.md).
 
 ## Preconditions
 
@@ -14,22 +15,24 @@ beyond two numbers.
 
 1. Open `/train`. The app has already picked the day — the first session not
    yet trained this week — so no choice is required to begin.
-2. The first exercise card shows a **Today** target. With no history it reads
-   guidance rather than a number: *"First time — find a weight you can do 6 with
-   about 2 left in the tank"*.
-3. Tap **Log set 1**.
-4. In the sheet, set weight to **60** and reps to **8**.
-5. Choose effort: **2 more**.
-6. Tap **Save set 1**.
+2. The first card is open, its numbers filled in from last time or from a
+   sensible start, with *"Nothing logged for this yet"* under the name.
+3. Set **60** and **8** with the controls, or tap a number for the keypad.
+4. Choose effort: **2 more**.
+5. Tap **Log set 1**.
 
 ## Expected
 
-- The sheet closes and the set appears under the exercise as `60 kg × 8`.
-- The set counter moves from `0/3` to `1/3`, and one progress dot fills.
-- The button now reads **Log set 2**.
-- The effort chip reads *"2 more"* — never `RIR 2`. Reps in reserve is stored as
-  a number and never shown as one.
-- Deleting the set removes it and returns the counter to `0/3`.
+- The set appears under the card as `60 kg × 8`, with its effort chip in words —
+  never `RIR`. Reps in reserve is stored as a number and never shown as one;
+  logged as *Maxed*, the chip reads *"Nothing left"*.
+- The day counter reads `1 of N sets`, and one dot fills.
+- The button reads **Log set 2**, and the numbers hold still for it — they do
+  not follow history once a set is done.
+- A double tap on the button logs one set, not two.
+- Deleting the set returns the counter to `0 of N sets`, and the delete reaches
+  the server and every other device.
+- The third set folds the card and opens the next.
 
 ## Notes
 

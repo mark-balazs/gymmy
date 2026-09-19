@@ -2,13 +2,15 @@
 
 import { randomUUID } from 'node:crypto';
 import type { Page } from '@playwright/test';
-import { seedSignInCode } from '../fixtures/auth';
+import { createUser, seedSignInCode, serverSets, sessionCookie } from '../fixtures/auth';
 import {
   completeOnboarding,
-  exerciseNameAt,
   expect,
+  localLogCount,
   logSet,
+  openExercise,
   recordedSet,
+  signInAs,
   test,
 } from '../fixtures/test';
 
@@ -18,7 +20,7 @@ import {
  * Every other spec starts from a session row inserted straight into the
  * database. That is deliberate and it keeps sixty tests fast and independent —
  * but it means the front door itself was never opened, and neither was
- * everything that hangs off it: the account the server creates, the library it
+ * everything that hangs off it: the account the server creates, the rows it
  * seeds, the first sync onto a device that has nothing.
  *
  * That gap was not theoretical. Email sign-in was broken from the day it
@@ -38,8 +40,13 @@ async function signInWithCode(page: Page, email: string, code: string): Promise<
   await page.goto('/sign-in');
 
   const field = page.getByLabel('Email address');
-  // Only meaningful when email sign-in is switched on for this deployment.
-  if ((await field.count()) === 0) test.skip();
+  /* Required, not optional. This used to skip when the field was missing, so a
+     broken switch — or a stray server on :3000 started without the key —
+     reported the front door as skipped and the suite stayed green. */
+  await expect(
+    field,
+    'email sign-in must be on: the e2e webServer sets RESEND_API_KEY',
+  ).toBeVisible();
 
   await field.fill(email);
   await page.getByRole('button', { name: /Email me a code/ }).click();
@@ -62,8 +69,8 @@ test.describe('A full journey', () => {
     await signInWithCode(page, email, '111111');
 
     // 2. Setup. A brand-new account is sent here rather than to an empty Train
-    //    tab, and this is the first proof the seeding actually happened: none
-    //    of these questions can be answered without a library behind them.
+    //    tab, and this is the first proof the seeding actually happened: there
+    //    is no profile to be sent here by until the server has written one.
     await expect(
       page.getByRole('heading', { name: 'How should your week be shaped?' }),
     ).toBeVisible({ timeout: 30_000 });
@@ -79,7 +86,7 @@ test.describe('A full journey', () => {
     //    account used to get the same week. So the recorded line is read off
     //    the screen here and carried to step 7, which is the assertion that
     //    matters: the same set, back on an emptied device.
-    const lift = await exerciseNameAt(page);
+    const lift = await openExercise(page);
     await logSet(page, 60, 8);
     const recorded = await recordedSet(page, 8);
 
@@ -102,6 +109,10 @@ test.describe('A full journey', () => {
     await expect(page.getByText('All saved')).toBeVisible({ timeout: 30_000 });
     await page.getByRole('button', { name: 'Sign out' }).click();
     await page.waitForURL('**/sign-in');
+    /* And the device really is empty. Step 7 signs back into this same browser,
+       so without this the set coming back proves nothing about the wipe — it
+       would still be in IndexedDB either way. */
+    expect(await localLogCount(page), 'signing out must empty this device').toBe(0);
 
     // 7. Come back. No setup this time — the account is already onboarded —
     //    and the training is pulled back down onto an emptied device. This is
@@ -150,5 +161,106 @@ test.describe('A full journey', () => {
     } finally {
       await second.close();
     }
+  });
+});
+
+/**
+ * Leaving, with a device somebody else will pick up.
+ *
+ * Signing out does two things in order: it pushes what is still queued, then it
+ * empties the device. The journey above signs back into its own account, so
+ * whatever was left behind would come back to the right person and nothing
+ * would look wrong — these hand the phone to someone else, or leave something
+ * unsent at the moment of leaving.
+ */
+test.describe('Signing out', () => {
+  test('wipes the device before the next account signs in', async ({ page, context, baseURL }) => {
+    /* Without the wipe the next account inherits the last one's training on
+       screen, its cursor, and its queue — which the sync engine would then push
+       up under the new name. */
+    await signInAs(page, context, baseURL!, { onboarded: true });
+    await logSet(page, 60, 8);
+    const line = await recordedSet(page, 8);
+    await tab(page, 'Settings').click();
+    await page.waitForURL('**/settings');
+    await expect(page.getByText('All saved')).toBeVisible({ timeout: 30_000 });
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    await page.waitForURL('**/sign-in');
+
+    const next = await createUser({ onboarded: true });
+    await context.addCookies([sessionCookie(next, baseURL!)]);
+    await page.goto('/train');
+    await expect(page.getByRole('heading', { name: 'Train', exact: true })).toBeVisible();
+
+    expect(await localLogCount(page), 'the last account left its sets on this device').toBe(0);
+    await expect(page.getByText(line)).toHaveCount(0);
+    expect(await serverSets(next.id)).toEqual([]);
+  });
+
+  test('pushes what is still queued before wiping', async ({ page, context, baseURL }) => {
+    /* The last push is the only thing standing between an unsynced set and the
+       wipe. The journey waits for "All saved" before signing out, so that push
+       never had anything to carry there. Here it is the only push that can:
+       the set is logged while the server is unreachable, the network comes
+       back, and nothing else is sent before the tap. */
+    const user = await signInAs(page, context, baseURL!, { onboarded: true });
+    await context.route('**/api/sync', (route) => route.abort());
+    await logSet(page, 60, 8);
+    await expect(page.getByText('Could not sync')).toBeAttached({ timeout: 15_000 });
+    expect(await serverSets(user.id)).toEqual([]);
+    await context.unroute('**/api/sync');
+
+    // Client-side, so no page load starts a sync of its own on the way.
+    await tab(page, 'Settings').click();
+    await page.waitForURL('**/settings');
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    await page.waitForURL('**/sign-in');
+
+    await expect.poll(async () => (await serverSets(user.id)).length, { timeout: 30_000 }).toBe(1);
+  });
+
+  test('does not wipe a set logged while a push was travelling', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* Sign-out's last push joins one already in flight rather than starting
+       its own, and the one in flight left before this set was logged. So the
+       wipe that follows takes the set with it: nothing drains the queue first.
+
+       Expected to fail until sign-out drains the queue — waiting out the push
+       in flight and pushing again while anything is still queued — before it
+       wipes. Remove the marker with the fix. */
+    test.fail(true, 'sign-out wipes a set queued behind a push already in flight');
+    const user = await signInAs(page, context, baseURL!, { onboarded: true });
+    await expect(page.getByText('All saved')).toBeAttached({ timeout: 30_000 });
+
+    // Hold the first push that carries a set, until told to let it go.
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    let held = false;
+    const carrying = page.waitForRequest(
+      (r) => r.url().endsWith('/api/sync') && (r.postData() ?? '').includes('"table":"logs"'),
+    );
+    await context.route('**/api/sync', async (route) => {
+      if (!held && (route.request().postData() ?? '').includes('"table":"logs"')) {
+        held = true;
+        await gate;
+      }
+      await route.continue();
+    });
+
+    await logSet(page, 60, 8);
+    await carrying;
+    await logSet(page, 60, 9);
+    await recordedSet(page, 9);
+
+    await tab(page, 'Settings').click();
+    await page.waitForURL('**/settings');
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    release();
+    await page.waitForURL('**/sign-in');
+
+    await expect.poll(async () => (await serverSets(user.id)).length, { timeout: 20_000 }).toBe(2);
   });
 });

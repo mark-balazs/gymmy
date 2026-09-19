@@ -31,7 +31,6 @@ Mostly what must **not** happen, because an extra set is easy to log and hard to
 keep in its lane:
 
 - **The day's counter does not move.** Two extra sets are not two sets of Day A.
-- **The day is not ticked off.**
 - **Train does not open on a different day afterwards.** Read back as a letter,
   the reserved label is day 23, clamped to the last day — the bug the design had
   to avoid. The test reloads and checks Day A is still the one selected.
@@ -40,9 +39,10 @@ keep in its lane:
 
 ## Deliberately not covered here
 
-- **Coverage and the session count.** Held in the domain suite
-  (`one-off.test.ts`), where the week can be built exactly; a browser adds
-  nothing but time.
+- **Coverage, the session count, and the day's tick.** Held in the domain suite
+  (`one-off.test.ts`), where the week can be built exactly. In a browser the
+  tick cannot be tested: no handful of off-plan sets could finish a day that
+  plans five other lifts, so the check could never fail.
 - **Retiring `refSets`**, which this feature supersedes. That was its own change,
   and takes two deploys because dropping the table in the same deploy as the
   code would fail every sync for the length of the build. The part a browser can

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dayDetail, index, setsPerDay } from '../src';
+import { CATALOGUE, buildProgram, dayDetail, index, setsPerDay } from '../src';
 import { logsFor, seedSnapshot } from './fixture';
 
 /**
@@ -36,7 +36,10 @@ describe('dayDetail', () => {
     expect(dayDetail(on('2026-09-07'), '2026-09-08')).toBeNull();
   });
 
-  it('groups the sets by exercise, in the order they were done', () => {
+  it('groups the sets by exercise', () => {
+    // The order here comes from input order, since every set shares one stamp;
+    // the order itself is held by "lists the exercises in the order they were
+    // started", below.
     const day = dayDetail(on('2026-09-07'), '2026-09-07')!;
     expect(day.sets).toBe(3);
     expect(day.exercises.map((e) => e.exercise.name)).toEqual([
@@ -47,7 +50,8 @@ describe('dayDetail', () => {
     expect(day.exercises[0]!.pattern?.key).toBe('squat');
   });
 
-  it('names the day of the week it was', () => {
+  it('names which day of the plan it was', () => {
+    // The plan's label, not the weekday: 2026-09-07 is a Monday and it is 'A'.
     expect(dayDetail(on('2026-09-07'), '2026-09-07')!.session).toBe('A');
   });
 
@@ -98,13 +102,45 @@ describe('dayDetail', () => {
     ]);
   });
 
-  it('still shows an exercise that has since left the plan', () => {
-    // The plan is rebuilt on every split change; the history is not.
-    const ix = on('2026-09-07');
+  it('still shows an exercise that has since left the plan, even once retired', () => {
+    /* The plan is rebuilt on every split change; the history is not. The first
+       version of this had no plan at all, so "left the plan" was never set up.
+       Here the bench is out of the week and retired from the library, which is
+       the case that goes wrong if a day reads `exercises`, the list of what is
+       still offered, instead of `exerciseById`, everything that resolves. */
+    const retiring = CATALOGUE.map((c) =>
+      c.name === 'Barbell Bench Press' ? { ...c, retired: true as const } : c,
+    );
+    const plan = buildProgram(index(snap, retiring), { days: 3, where: 'gym', bias: 'none' });
+    const ix = index(
+      {
+        ...snap,
+        entries: plan.map((d, i) => ({
+          ...d,
+          id: `entry-${i}`,
+          updatedAt: '2026-09-01T00:00:00.000Z',
+          deletedAt: null,
+        })),
+        logs: [
+          ...logsFor(squat.id, [{ weight: 60, reps: 8, rir: 2 }], '2026-09-07'),
+          ...logsFor(
+            bench.id,
+            [
+              { weight: 80, reps: 5, rir: 1 },
+              { weight: 80, reps: 4, rir: 0 },
+            ],
+            '2026-09-07',
+          ),
+        ],
+      },
+      retiring,
+    );
+    expect(ix.entries.some((e) => e.exerciseId === ix.exerciseIdOf(bench.id))).toBe(false);
+    expect(ix.exercises.some((e) => e.name === 'Barbell Bench Press')).toBe(false);
     const day = dayDetail(ix, '2026-09-07')!;
-    // Compared by the id the library knows it by now: the fixture's rows are
-    // an account's pre-catalogue rows, which `index()` reads as aliases.
-    expect(day.exercises.map((e) => e.exercise.id)).toContain(ix.exerciseIdOf(bench.id));
+    expect(day.exercises.find((e) => e.exercise.name === 'Barbell Bench Press')?.logs).toHaveLength(
+      2,
+    );
   });
 });
 
@@ -144,5 +180,7 @@ describe('setsPerDay', () => {
     const counts = setsPerDay(ix, '2026-09-01', '2026-09-10');
     expect(counts.has('2026-09-20')).toBe(false);
     expect(setsPerDay(ix, '2026-09-01', '2026-09-30').get('2026-09-20')).toBe(1);
+    // The calendar passes the month's last day as `to`, so the end is inside.
+    expect(setsPerDay(ix, '2026-09-01', '2026-09-20').get('2026-09-20')).toBe(1);
   });
 });

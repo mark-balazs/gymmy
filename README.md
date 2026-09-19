@@ -188,7 +188,7 @@ mid-request. `SKIP_ENV_VALIDATION=1` bypasses it for builds that only typecheck.
 
 Signing in as `demo-gymmy@yopmail.com` (override with `DEMO_EMAIL`) creates an
 account that arrives already onboarded, on the seven-movement-pattern split,
-with six weeks of history behind it. An empty account demonstrates nothing: no
+with five months (22 weeks) of history behind it. An empty account demonstrates nothing: no
 coverage ticks, no progress line, no strength numbers, and no goal that can be
 judged without history to judge it against.
 

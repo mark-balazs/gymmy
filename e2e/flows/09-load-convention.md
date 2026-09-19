@@ -40,7 +40,13 @@ the list of things a class explicitly does *not* license.
    immediately names the figure that will be recorded: type 20, it says 40.
 3. Logs the set. The logged row reads **40 kg**, which is what every other
    screen shows and what the score is computed from. The box still reads 20, so
-   the next identical set is one tap.
+   the next identical set is one tap — and it reads 20 again when the card comes
+   back from history after a reload, turning the stored 40 back into one
+   dumbbell.
+4. On Progress, a pair that was logged per hand before the cutover and both
+   together after it says so — on the strength card and under the lift's own
+   chart — because the jump on that day is bookkeeping, not training. A lift
+   that shows no jump says nothing.
 
 ## What these tests are for
 
@@ -49,10 +55,16 @@ test of `toStored` cannot show that the box is on the right side of it. What has
 to be true end to end is that *both* numbers are visible, and that nothing
 doubles twice or not at all.
 
-The fourth test is the one that answers the original complaint rather than the
-dumbbell half of it: every exercise the generator plans, across all three days,
-carries a measuring note. A missing entry in the table falls back silently, so
-this is the assertion that would catch it.
+The measuring-note test is the one that answers the original complaint rather
+than the dumbbell half of it: each kind of load carries its own note on the
+card — the bar and plates on a barbell, "None" on a bodyweight lift, the stack
+on a machine, alongside the pair and the single dumbbell. Whether every lift is
+in the table at all is held by the domain suite (`load.test.ts`); this spec
+holds that each class's own note reaches the card.
+
+The cutover note is checked on fixed dates either side of
+`LOAD_CONVENTION_FROM`, with Progress switched to *All time* — on the default
+twelve-week view the note correctly disappears once the cutover leaves it.
 
 ## Deliberately not covered here
 

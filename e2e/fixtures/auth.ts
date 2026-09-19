@@ -12,6 +12,7 @@
 
 import { createHash, randomUUID } from 'node:crypto';
 import pg from 'pg';
+import { CATALOGUE } from '../../packages/domain/src/catalogue';
 import { SEED_EXERCISES, SEED_PATTERNS } from '../../packages/domain/src/seed';
 import { buildProgram } from '../../packages/domain/src/coach';
 import { index } from '../../packages/domain/src/model';
@@ -57,20 +58,75 @@ function weeksAgo(n: number): string {
 }
 
 /**
- * Creates a user with the same default content `seedNewUser` produces on first
- * sign-in, plus a live session. Each test gets its own, so parallel tests
- * cannot interfere and each one starts from a real first-run state.
+ * The day the `history` option logs its first set: the Tuesday of the week
+ * `weeksBack` weeks ago.
+ *
+ * Exported so a test can navigate to the day the fixture actually wrote rather
+ * than re-deriving it. The calendar spec used to go to "21 days ago", which is
+ * a different month from that Tuesday on about three weeks a year.
  */
+export function historyStart(weeksBack: number): string {
+  return addDays(weeksAgo(weeksBack), 1);
+}
+
+/** The catalogue's id for an exercise named in a fixture, or a loud failure. */
+function catalogueId(name: string): string {
+  const entry = CATALOGUE.find((c) => c.name === name);
+  if (!entry) throw new Error(`not in the catalogue: ${name}`);
+  return entry.id;
+}
+
+/** A set logged on a fixed date, at the load that is stored. */
+export interface DatedSet {
+  exercise: string;
+  /** ISO date. Absolute, not relative to today. */
+  date: string;
+  /** The stored figure — both dumbbells for a pair, as the Train card records. */
+  weight: number;
+  reps: number;
+  rir: number;
+}
+
 export interface CreateUserOptions {
   /**
-   * A user and a session and nothing else — no patterns, no library, no
-   * profile. This is what an account looks like when first-run seeding failed:
-   * Auth.js writes the user row before it fires the event that seeds, and that
-   * event never fires twice. Used to prove the app repairs it rather than
-   * sitting on a loading screen forever.
+   * A user and a session and nothing else — no patterns, slot skeleton, split
+   * period or profile. This is what an account looks like when first-run
+   * seeding failed: Auth.js writes the user row before it fires the event that
+   * seeds, and that event never fires twice. Used to prove the app repairs it
+   * rather than sitting on a loading screen forever.
    */
   bare?: boolean;
+  /**
+   * The account's id, for a test that needs to know it before the account
+   * exists — the generator's per-account offset is derived from it. Must be
+   * fresh on every run: the e2e database is never reset.
+   */
+  id?: string;
   onboarded?: boolean;
+  /**
+   * Also writes the copied exercise rows every account had before the library
+   * became the catalogue, each under a random id, and logs `history` and
+   * `bulkLogs` against those ids.
+   *
+   * Off by default, because no account created today has them. On, it is the
+   * shape of an account from before the catalogue that has rebuilt its week
+   * since: program entries at `ex-…` ids, history at the old ones. `index()`
+   * reads the old rows as aliases by name, and a spec opting in is what keeps
+   * that path walked end to end.
+   */
+  legacyLibrary?: boolean;
+  /**
+   * No split periods at all — an account from before periods existed. The
+   * table arrived without a backfill, so an account that has not switched
+   * split since has none, and its first switch has to write one for the weeks
+   * behind it.
+   */
+  noPeriods?: boolean;
+  /**
+   * Sets on fixed dates, for behaviour tied to a date rather than to "three
+   * weeks ago" — the dumbbell convention's cutover is one.
+   */
+  sets?: readonly DatedSet[];
   /**
    * The profile's answer about sex. Every real account starts at
    * 'unspecified' and onboarding never asks, which is why it is the default —
@@ -80,11 +136,6 @@ export interface CreateUserOptions {
   sex?: 'male' | 'female' | 'unspecified';
   split?: Exclude<SplitKey, 'custom'>;
   days?: number;
-  /**
-   * Seeds a stretch of training already completed under a different split,
-   * so the historised coverage can be exercised end to end. Without this a
-   * test can only ever see the split that is in force right now.
-   */
   /** Extra logged sets, to push a single table past one sync page. */
   bulkLogs?: number;
   /**
@@ -94,11 +145,21 @@ export interface CreateUserOptions {
    * an account nothing at all.
    */
   blockStartsNow?: boolean;
+  /**
+   * Seeds a stretch of training already completed under a different split,
+   * so the historised coverage can be exercised end to end. Without this a
+   * test can only ever see the split that is in force right now.
+   */
   history?: {
     split: Exclude<SplitKey, 'custom'>;
     weeksBack: number;
     /** Readonly so a caller can declare the list with `as const`. */
     exercises: readonly string[];
+    /**
+     * Per-session weights, oldest first, in place of the default 40 + 2.5 a
+     * week — for a lift that has to have gone *down*.
+     */
+    weights?: readonly number[];
     /**
      * Weekly sessions per exercise, oldest first. One by default, which is all
      * most specs need — they are checking that old weeks keep reading against
@@ -113,12 +174,26 @@ export interface CreateUserOptions {
   };
 }
 
+/**
+ * Creates an account with what `seedNewUser` writes on first sign-in — the
+ * seven patterns and isolation, the slot skeleton, an opening split period and
+ * a profile — plus a live session. Each test gets its own, so parallel tests
+ * cannot interfere and each one starts from a real first-run state.
+ *
+ * **No exercise rows**, because a new account has none: the library is the
+ * catalogue, in code, and every set and program entry names a catalogue id.
+ * This used to copy the whole library in under random ids, which left every
+ * fixture account in a shape no account created today has, and only the
+ * journey spec — which signs up for real — ever saw the real one. The old shape
+ * is still available as `legacyLibrary`, because accounts from before the
+ * catalogue still exist.
+ */
 export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser> {
   const client = await db().connect();
   try {
     await client.query('BEGIN');
 
-    const id = randomUUID();
+    const id = opts.id ?? randomUUID();
     const email = `e2e-${id.slice(0, 8)}@example.test`;
     await client.query('INSERT INTO "user" (id, name, email) VALUES ($1, $2, $3)', [
       id,
@@ -167,16 +242,27 @@ export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser
       id: randomUUID(),
     }));
 
-    const exercises: Exercise[] = SEED_EXERCISES.map((x) => ({
-      ...meta,
-      id: randomUUID(),
-      name: x.name,
-      patternId: patternIds.get(x.pattern)!,
-      where: x.where,
-      tags: x.tags,
-      description: x.description,
-      images: x.images,
-    }));
+    // Only for an account from before the catalogue — see `legacyLibrary`.
+    const exercises: Exercise[] = opts.legacyLibrary
+      ? SEED_EXERCISES.map((x) => ({
+          ...meta,
+          id: randomUUID(),
+          name: x.name,
+          patternId: patternIds.get(x.pattern)!,
+          where: x.where,
+          tags: x.tags,
+          description: x.description,
+          images: x.images,
+        }))
+      : [];
+    const legacyIds = new Map(exercises.map((e) => [e.name, e.id]));
+    /** The id a set is logged under: the old row's on a legacy account, the
+     *  catalogue's on every other. */
+    const exerciseIdOf = (name: string): string => {
+      const legacy = legacyIds.get(name);
+      if (opts.legacyLibrary && !legacy) throw new Error(`history exercise not seeded: ${name}`);
+      return legacy ?? catalogueId(name);
+    };
 
     for (const p of patterns) {
       await client.query(
@@ -238,6 +324,7 @@ export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser
       startWeek: string,
       periodDays: number,
     ) => {
+      if (opts.noPeriods) return;
       await client.query(
         `INSERT INTO split_periods (id, user_id, updated_at, deleted_at, seq, split, days, start_week, pattern_keys)
          VALUES ($1,$2,$3,NULL,nextval('change_seq'),$4,$5,$6,$7)`,
@@ -258,12 +345,10 @@ export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser
       // reading against that split's goal no matter what is chosen later.
       await insertPeriod(history.split, weeksAgo(history.weeksBack), days);
 
-      const byName = new Map(exercises.map((e) => [e.name, e]));
-      const start = addDays(weeksAgo(history.weeksBack), 1);
+      const start = historyStart(history.weeksBack);
       let setNo = 0;
       for (const name of history.exercises) {
-        const ex = byName.get(name);
-        if (!ex) throw new Error(`history exercise not seeded: ${name}`);
+        const exerciseId = exerciseIdOf(name);
         for (let week = 0; week < (history.sessions ?? 1); week++) {
           /* A week apart and 2.5 kg up each time — a lift that is being
              trained rather than the same set copied, so anything reading a
@@ -271,10 +356,26 @@ export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser
           await client.query(
             `INSERT INTO set_logs (id, user_id, updated_at, deleted_at, seq, date, session, exercise_id, set_no, weight, reps, rir, note)
              VALUES ($1,$2,$3,NULL,nextval('change_seq'),$4,'A',$5,$6,$7,8,2,'')`,
-            [randomUUID(), id, now, addDays(start, week * 7), ex.id, ++setNo, 40 + week * 2.5],
+            [
+              randomUUID(),
+              id,
+              now,
+              addDays(start, week * 7),
+              exerciseId,
+              ++setNo,
+              history.weights?.[week] ?? 40 + week * 2.5,
+            ],
           );
         }
       }
+    }
+
+    for (const [i, s] of (opts.sets ?? []).entries()) {
+      await client.query(
+        `INSERT INTO set_logs (id, user_id, updated_at, deleted_at, seq, date, session, exercise_id, set_no, weight, reps, rir, note)
+         VALUES ($1,$2,$3,NULL,nextval('change_seq'),$4,'A',$5,$6,$7,$8,$9,'')`,
+        [randomUUID(), id, now, s.date, exerciseIdOf(s.exercise), i + 1, s.weight, s.reps, s.rir],
+      );
     }
 
     await insertPeriod(split, mondayOf(), days);
@@ -284,6 +385,8 @@ export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser
       const snapshot: Snapshot = {
         patterns,
         slots,
+        // What was written: none, or the legacy rows, which `index()` reads as
+        // aliases — either way the week comes out in catalogue ids.
         exercises,
         // The current period, so the generator aims at this split's coverage
         // set rather than falling back to every counted pattern.
@@ -304,7 +407,8 @@ export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser
         goals: [],
         profile: null,
       };
-      const draft = buildProgram(index(snapshot), { days, where: 'gym', bias: 'none' });
+      // Variety 0, like the demo: the specs name the lifts this week holds.
+      const draft = buildProgram(index(snapshot), { days, where: 'gym', bias: 'none', variety: 0 });
       for (const e of draft) {
         await client.query(
           `INSERT INTO program_entries (id, user_id, updated_at, deleted_at, seq, session_index, slot_id, exercise_id, sets, rep_range, start_weight, note)
@@ -317,9 +421,8 @@ export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser
     if (opts.bulkLogs) {
       // One row per statement would take minutes; this is a fixture, not a
       // demonstration of how the app writes.
-      const first = exercises[0]!;
       const values: string[] = [];
-      const params: unknown[] = [id, now, first.id];
+      const params: unknown[] = [id, now, exerciseIdOf(SEED_EXERCISES[0]!.name)];
       for (let i = 0; i < opts.bulkLogs; i++) {
         const d = addDays(weeksAgo(8), i % 30);
         params.push(randomUUID(), d, (i % 20) + 1);
@@ -333,6 +436,14 @@ export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser
          VALUES ${values.join(',')}`,
         params,
       );
+      /* And the profile moved above every one of them, as it is in production
+         the moment any setting changes. Written before the logs, it sat below
+         them, where a cursor run to the highest seq on the page could not
+         overshoot anything — so the paging spec passed against the very bug it
+         exists for. */
+      await client.query(`UPDATE profiles SET seq = nextval('change_seq') WHERE user_id = $1`, [
+        id,
+      ]);
     }
 
     await client.query('COMMIT');
@@ -342,6 +453,29 @@ export async function createUser(opts: CreateUserOptions = {}): Promise<TestUser
     throw err;
   } finally {
     client.release();
+  }
+}
+
+/**
+ * Writes the first thing `seedNewUser` writes — the pattern rows, under the ids
+ * it derives — and nothing after it.
+ *
+ * What a seed that died halfway leaves behind: the server writes one statement
+ * at a time with no transaction around them, so a timeout between two inserts
+ * is a real state. The ids are `seedId`'s own, so a repair that runs the seed
+ * again lands on these rows rather than beside them; with random ids a working
+ * repair would write eight more patterns, and a test could pass over a doubled
+ * set.
+ */
+export async function seedPatternsOnly(userId: string): Promise<void> {
+  const seedId = (kind: string, key: string): string =>
+    createHash('sha256').update(`${userId}\u0000${kind}\u0000${key}`).digest('hex').slice(0, 32);
+  for (const [i, p] of SEED_PATTERNS.entries()) {
+    await db().query(
+      `INSERT INTO patterns (id, user_id, updated_at, deleted_at, seq, key, name, role, counts, position)
+       VALUES ($1,$2,now(),NULL,nextval('change_seq'),$3,$3,$4,$5,$6)`,
+      [seedId('pattern', p.key), userId, p.key, p.role, p.counts, i],
+    );
   }
 }
 
@@ -534,3 +668,49 @@ export async function planInEffect(
   const row = r.rows[0] as { plan_id: string | null; plan_version: number | null } | undefined;
   return { planId: row?.plan_id ?? null, planVersion: row?.plan_version ?? null };
 }
+
+/** The language the *server* holds on the profile — what another device gets. */
+export async function profileLang(userId: string): Promise<string | null> {
+  const r = await db().query('SELECT lang FROM profiles WHERE user_id = $1 LIMIT 1', [userId]);
+  return (r.rows[0] as { lang: string } | undefined)?.lang ?? null;
+}
+
+/** The height the server holds, in centimetres. */
+export async function profileHeight(userId: string): Promise<number | null> {
+  const r = await db().query('SELECT height_cm FROM profiles WHERE user_id = $1 LIMIT 1', [userId]);
+  const v = (r.rows[0] as { height_cm: number | string | null } | undefined)?.height_cm;
+  return v === null || v === undefined ? null : Number(v);
+}
+
+/** Live split periods the server holds that start on a given Monday. */
+export async function periodsStarting(userId: string, week: string): Promise<number> {
+  const r = await db().query(
+    `SELECT count(*)::int AS n FROM split_periods
+      WHERE user_id = $1 AND start_week = $2 AND deleted_at IS NULL`,
+    [userId, week],
+  );
+  return (r.rows[0] as { n: number } | undefined)?.n ?? 0;
+}
+
+/**
+ * The week the server holds, as "session:slot position" → exercise id.
+ *
+ * Keyed by position rather than by slot id: onboarding writes its own slots,
+ * so the ids are the device's, while the position is what the generator
+ * decides by.
+ */
+export async function installedWeek(userId: string): Promise<Record<string, string>> {
+  const r = await db().query(
+    `SELECT e.session_index, s.position, e.exercise_id
+       FROM program_entries e JOIN slots s ON s.id = e.slot_id AND s.user_id = e.user_id
+      WHERE e.user_id = $1 AND e.deleted_at IS NULL AND s.deleted_at IS NULL`,
+    [userId],
+  );
+  const out: Record<string, string> = {};
+  for (const row of r.rows as { session_index: number; position: number; exercise_id: string }[])
+    out[`${row.session_index}:${row.position}`] = row.exercise_id;
+  return out;
+}
+
+/** Today's Monday, as the fixture and the app both reckon it. */
+export const thisMonday = (): string => mondayOf();

@@ -41,6 +41,11 @@ test.describe('Your profile', () => {
     // Committed on blur rather than on every keystroke — otherwise the field
     // fights you, syncing and re-rendering under the cursor.
     await name.blur();
+    /* The stored value, once the write has committed: after blur the field
+       drops what was typed and shows the profile's name, which is empty until
+       the write lands. Reloading before then can unload the page ahead of the
+       write, and the name is simply gone — a flake that blames the feature. */
+    await expect(name).toHaveValue('Mark');
 
     await page.reload();
     await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Mark', {
@@ -49,18 +54,35 @@ test.describe('Your profile', () => {
   });
 
   test('refuses a year that cannot be a birth year', async ({ page, context, baseURL }) => {
-    // A typo here shifts the age allowance on every week of the score, and
-    // silently — so it is rejected rather than stored and quietly ignored.
+    /* A typo here shifts the age allowance on every week of the score, and
+       silently — so it is rejected rather than stored and quietly ignored.
+
+       Rejected, and nothing written: a bad year mapped to "no year" and saved
+       would erase the one already there, which an account with no year on
+       record could never show. So there is one on record first. And both ends
+       of the range, because the upper bound is this year and nothing else
+       holds it. */
     await signInAs(page, context, baseURL!, { onboarded: true });
     await page.goto('/settings');
 
     const year = page.getByLabel('Year of birth');
+    await year.fill('1990');
+    await year.blur();
+    await expect(year).toHaveValue('1990');
+
     await year.fill('19');
     await year.blur();
     await expect(page.getByText(/Enter a year between 1900 and \d{4}/)).toBeVisible();
+    await page.reload();
+    await expect(page.getByLabel('Year of birth')).toHaveValue('1990', { timeout: 15_000 });
 
-    await year.fill('1990');
-    await year.blur();
+    const thisYear = new Date().getFullYear();
+    await page.getByLabel('Year of birth').fill(String(thisYear + 1));
+    await page.getByLabel('Year of birth').blur();
+    await expect(page.getByText(`Enter a year between 1900 and ${thisYear}.`)).toBeVisible();
+
+    await page.getByLabel('Year of birth').fill('1990');
+    await page.getByLabel('Year of birth').blur();
     await expect(page.getByText(/Enter a year between/)).toBeHidden();
   });
 
@@ -95,18 +117,11 @@ test.describe('Your profile', () => {
        simply correct for a missing birth year — the worst kind of flake,
        because it accuses the feature.
 
-       Reloading inside the poll is what actually closes it: a single reload can
-       still outrun the write, and then the assertion is measuring the reload
-       rather than the field. */
-    await expect
-      .poll(
-        async () => {
-          await page.reload();
-          return page.getByLabel('Year of birth').inputValue();
-        },
-        { timeout: 30_000 },
-      )
-      .toBe('1955');
+       The field is the witness: after blur it shows the profile's year, which
+       is empty until the write commits. Reloading to check, as this used to,
+       could unload the page ahead of the write — and a year lost that way
+       never comes back however many reloads follow. */
+    await expect(year).toHaveValue('1955');
 
     await page.goto('/progress');
     /* Strictly higher, not merely different. The masters allowance scales a

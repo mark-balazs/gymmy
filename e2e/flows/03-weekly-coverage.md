@@ -40,7 +40,8 @@ Accessories sit on top of the patterns, never instead of them, under every
 split. If a week of curls could read as coverage, the whole check would be
 decorative.
 
-This is asserted explicitly, because it is the kind of rule that a well-meaning
+This is asserted explicitly — a curl is logged and the week read back, with all
+seven tiles still gaps — because it is the kind of rule that a well-meaning
 refactor silently breaks.
 
 ## Weeks keep their own meaning

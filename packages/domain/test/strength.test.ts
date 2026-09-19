@@ -4,12 +4,15 @@ import {
   COMPETITION_LIFTS,
   SCORED_PATTERNS,
   addDays,
+  ageFactor,
+  ageInWeek,
   competitionLiftsAreMasses,
   dotsAt,
   dotsCoefficient,
   index,
   mondayOf,
   strengthAt,
+  strengthSeries,
   type StrengthOf,
 } from '../src';
 import type { BodyLog, PatternKey, SetLog, Snapshot } from '../src/types';
@@ -84,11 +87,10 @@ describe('strength index', () => {
       sex: 'male',
     });
 
+    expect(honest.index).not.toBeNull();
     expect(withMetcon.index).toBe(honest.index);
-
-    // And the reason it matters: unchecked, that one set claims a 200 kg max
-    // against a genuine 163 kg estimate from the heavy day.
-    expect(100 * (1 + 30 / 30)).toBeGreaterThan(140 * (1 + 5 / 30));
+    // The 5-rep day's estimate, not the 30-rep set's 200.
+    expect(withMetcon.parts.find((p) => p.key === 'hinge')!.best).toBe(163.3);
   });
 
   it('counts a set of ten to failure, and no longer counts the app’s own twelve', () => {
@@ -125,22 +127,16 @@ describe('strength index', () => {
     expect(scoreOf(8, 4).parts.find((p) => p.key === 'hinge')!.best).toBe(0);
   });
 
-  it('is fair across bodyweights rather than a raw multiple', () => {
-    // A plain "total ÷ bodyweight" flatters a light lifter and punishes a heavy
-    // one, because strength does not scale linearly with mass. The published
-    // curve is the whole reason for not doing that.
-    const light = dotsCoefficient(60, 'male');
-    const heavy = dotsCoefficient(120, 'male');
-    expect(light).toBeGreaterThan(heavy);
-
-    // …but not *so* much that the heavier lifter is written off.
-    expect(heavy / light).toBeGreaterThan(0.5);
-  });
-
-  it('uses a different reference per sex', () => {
-    // "Prefer not to say" has no curve of its own: the type refuses it, and
-    // `dotsAt` answers `missing: 'sex'` — tested with the rest of `missing`.
-    expect(dotsCoefficient(80, 'female')).toBeGreaterThan(dotsCoefficient(80, 'male'));
+  it('is the same number whatever sex the profile says', () => {
+    // Sex is asked for DOTS and only DOTS. The index compares you with nobody,
+    // so it has no curve to pick, and "prefer not to say" must not cost
+    // somebody the one number that never needed the answer.
+    const ix = index(build(fullWeek(), [body(80, thisWeek)]));
+    const idx = (['male', 'female', 'unspecified'] as const).map(
+      (sex) => strengthAt(ix, thisWeek, { unit: 'kg', sex }).index,
+    );
+    expect(idx[0]).not.toBeNull();
+    expect(new Set(idx).size).toBe(1);
   });
 
   it('reads the same whichever unit you happen to use', () => {
@@ -187,25 +183,24 @@ describe('strength index', () => {
   });
 
   it('stops counting a lift you have not repeated in months', () => {
-    // It is meant to describe what you can do now. A squat from last spring is
-    // not strength you still have.
-    const old = addDays(thisWeek, -7 * 12);
-    const stale = strengthAt(index(build(fullWeek(100, old), [body(80, old)])), thisWeek, {
-      unit: 'kg',
-      sex: 'male',
-    });
-    expect(stale.index).toBeNull();
-
-    // The same lift inside the window does count.
-    const recent = addDays(thisWeek, -7 * 3);
-    const fresh = strengthAt(index(build(fullWeek(100, recent), [body(80, recent)])), thisWeek, {
-      unit: 'kg',
-      sex: 'male',
-    });
-    expect(fresh.index).toBeGreaterThan(0);
+    /* It is meant to describe what you can do now. A squat from last spring is
+       not strength you still have. Pinned near both edges rather than at
+       "three weeks in, twelve out", which any window from four weeks to eleven
+       passed: the Monday seven weeks back still counts, and nothing before the
+       Monday eight weeks back does. That one Monday is left open on purpose.
+       The code counts it, which makes the window nine Monday weeks, and every
+       document says eight. Pin it once that is settled. */
+    const idxAt = (d: number) =>
+      strengthAt(
+        index(build(fullWeek(100, addDays(thisWeek, d)), [body(80, addDays(thisWeek, d))])),
+        thisWeek,
+        { unit: 'kg', sex: 'male' },
+      ).index;
+    expect(idxAt(-49)).not.toBeNull();
+    expect(idxAt(-57)).toBeNull();
   });
 
-  it('goes up when the lifts go up and down when bodyweight does not explain it', () => {
+  it('goes up when the lifts go up at the same bodyweight', () => {
     const lighter = strengthAt(index(build(fullWeek(100), [body(80, thisWeek)])), thisWeek, {
       unit: 'kg',
       sex: 'male',
@@ -215,6 +210,77 @@ describe('strength index', () => {
       sex: 'male',
     });
     expect(heavier.index!).toBeGreaterThan(lighter.index!);
+  });
+
+  it('is not moved by a carry or a rotation', () => {
+    /* Only the five loaded patterns are scored. A carry's "reps" are metres and
+       rotation is trained light on purpose, so an estimate from either says
+       nothing about strength. Every other test here builds its data from
+       SCORED_PATTERNS, so adding a pattern to that list passed them all. */
+    const byName = (name: string, weight: number, reps: number): SetLog => ({
+      ...set('squat', weight, addDays(thisWeek, 1)),
+      exerciseId: snap.exercises.find((e) => e.name === name)!.id,
+      reps,
+    });
+    const who = { unit: 'kg', sex: 'male' } as const;
+    const base = strengthAt(index(build(fullWeek(), [body(80, thisWeek)])), thisWeek, who);
+    const extra = strengthAt(
+      index(
+        build(
+          [...fullWeek(), byName('Russian Twist', 20, 8), byName("Farmer's Carry", 100, 8)],
+          [body(80, thisWeek)],
+        ),
+      ),
+      thisWeek,
+      who,
+    );
+    expect(extra.index).toBe(base.index);
+    expect(base.parts.map((p) => p.key)).toEqual(['squat', 'hinge', 'lunge', 'push', 'pull']);
+  });
+
+  it('divides each week by what you weighed that week, not since', () => {
+    /* A later weigh-in must not rescore an earlier week, for the same reason a
+       split change does not. Every other test puts its bodyweight at or before
+       the week it scores, so reading the latest weigh-in whatever its date
+       passed them all. */
+    const W0 = addDays(thisWeek, -14);
+    const bodies = [body(80, W0), body(100, addDays(W0, 14))];
+    const s = strengthSeries(index(build(fullWeek(100, addDays(W0, 1)), bodies)), W0, 3, {
+      unit: 'kg',
+      sex: 'male',
+    });
+    expect(s.map((p) => p.bodyWeight)).toEqual([80, 80, 100]);
+    expect(s[0]!.index!).toBeGreaterThan(s[2]!.index!);
+  });
+
+  it('allows for age, at the age you were that week', () => {
+    /* The allowance starts at 40, follows the anchors in between and stops
+       rising at 90. A week is scored at the age you were in it: today's age
+       would restate every past week on each birthday, which is the retroactive
+       rewrite the temporal rule forbids. Before this, only "1950 scores above
+       2000" guarded any of it, and every rising curve passes that. */
+    expect(ageFactor(null)).toBe(1);
+    expect(ageFactor(39)).toBe(1);
+    expect(ageFactor(40)).toBe(1);
+    expect(ageFactor(45)).toBeCloseTo(1.065, 6);
+    expect(ageFactor(50)).toBeCloseTo(1.13, 6);
+    expect(ageFactor(90)).toBe(2.6);
+    expect(ageFactor(95)).toBe(2.6);
+
+    expect(ageInWeek(null, '2026-01-05')).toBeNull();
+    expect(ageInWeek(1976, '2025-12-29')).toBe(49);
+    expect(ageInWeek(1976, '2026-01-05')).toBe(50);
+
+    // Across a new year, only the week in the new year gets the older allowance.
+    const s = strengthSeries(
+      index(build(fullWeek(100, '2025-12-16'), [body(80, '2025-12-15')])),
+      '2025-12-22',
+      3,
+      { unit: 'kg', sex: 'male', birthYear: 1976 },
+    );
+    expect(s[0]!.index).not.toBeNull();
+    expect(s[1]!.index).toBe(s[0]!.index);
+    expect(s[2]!.index!).toBeGreaterThan(s[1]!.index!);
   });
 });
 
@@ -274,37 +340,72 @@ describe('DOTS', () => {
   it('agrees with the published arithmetic', () => {
     /* 150, 100 and 180 for five at nothing-left estimate to 175, 116.7 and 210,
        a total of 501.7. The male DOTS polynomial at 83 kg evaluates to
-       740.6449, so the coefficient is 0.6750874 and the score is 339. */
+       740.6449, so the coefficient is 0.6750874 and the score is 339.
+
+       Two more figures any DOTS calculator will confirm: a 450 kg total at
+       83 kg scores 304, and 500 DOTS at 83 kg is a 740.6 kg total. */
     expect(dotsCoefficient(83, 'male')).toBeCloseTo(0.6750874, 7);
     expect(scoreOf(meet()).total).toBeCloseTo(501.7, 1);
     expect(scoreOf(meet()).score).toBe(339);
   });
 
-  it('lands on the anchors a public calculator would give', () => {
-    // Two figures checkable against any DOTS calculator: a 450 kg total at
-    // 83 kg scores 304, and 500 DOTS is a 740.6 kg total at that bodyweight
-    // (which is the polynomial's own value, since score = total x 500/P(bw)).
-    expect(Math.round(450 * dotsCoefficient(83, 'male'))).toBe(304);
-    expect(500 / dotsCoefficient(83, 'male')).toBeCloseTo(740.6, 1);
+  it('uses the published curve for each sex', () => {
+    /* The female polynomial was pinned nowhere: a typo in one of its
+       coefficients passed the whole suite. 500 over the female curve at 57 kg
+       is 1.1456952. "Prefer not to say" has no curve of its own: the type
+       refuses it, and `dotsAt` answers `missing: 'sex'`, tested with the rest
+       of `missing`. */
+    expect(dotsCoefficient(80, 'female')).toBeGreaterThan(dotsCoefficient(80, 'male'));
+    expect(dotsCoefficient(57, 'female')).toBeCloseTo(1.1456952, 6);
   });
 
-  it('records what the old score was inflating by', () => {
-    /* Not a regression test — a record of why this file exists. The
-       five-pattern sum the app used to feed DOTS came to about 650 kg where a
-       real total was 450, so the headline number ran 44% above the lifter's
-       actual DOTS for no reason but counting more lifts.
+  it('coefficient falls with bodyweight, but less steeply than a raw multiple', () => {
+    // A plain "total ÷ bodyweight" flatters a light lifter and punishes a heavy
+    // one, because strength does not scale linearly with mass. The published
+    // curve is the whole reason for not doing that.
+    const light = dotsCoefficient(60, 'male');
+    const heavy = dotsCoefficient(120, 'male');
+    expect(light).toBeGreaterThan(heavy);
 
-       The inflation is exactly 4/9 and bodyweight-independent, because the
-       coefficient cancels. That is what makes it a property of the method
-       rather than of one lifter. */
-    const real = 450 * dotsCoefficient(83, 'male');
-    const inflated = 650 * dotsCoefficient(83, 'male');
-    expect(Math.round(real)).toBe(304);
-    expect(Math.round(inflated)).toBe(439);
-    expect(inflated / real - 1).toBeCloseTo(4 / 9, 10);
-    // Bodyweight-independent, on a different bodyweight and the other curve.
-    const other = (t: number) => t * dotsCoefficient(57, 'female');
-    expect(other(650) / other(450) - 1).toBeCloseTo(4 / 9, 10);
+    // …but not *so* much that the heavier lifter is written off.
+    expect(heavy / light).toBeGreaterThan(0.5);
+  });
+
+  it('holds bodyweight inside the range the curve was fitted to', () => {
+    /* Outside 40-210 kg (men) and 40-150 kg (women) the polynomial misbehaves:
+       unclamped, the female coefficient at 250 kg is 2.73 against 0.77, so an
+       implausible bodyweight would nearly quadruple the score. */
+    expect(dotsCoefficient(200, 'female')).toBe(dotsCoefficient(150, 'female'));
+    expect(dotsCoefficient(250, 'male')).toBe(dotsCoefficient(210, 'male'));
+    expect(dotsCoefficient(30, 'male')).toBe(dotsCoefficient(40, 'male'));
+    expect(scoreOf(meet(), { sex: 'female' }, 250).score).toBe(
+      scoreOf(meet(), { sex: 'female' }, 150).score,
+    );
+  });
+
+  it('looks back over the same window as the index', () => {
+    // Near both edges, and for the same reason as the index's own window test:
+    // which side the Monday eight weeks back falls on is not settled yet.
+    const at = (d: number) => {
+      const date = addDays(thisWeek, d);
+      const logs = COMPETITION_LIFTS.map((name, i) => lift(name, [150, 100, 180][i]!, date));
+      return dotsAt(index({ ...snap, logs, bodyLogs: [bw(83, date)] }), thisWeek, {
+        unit: 'kg',
+        sex: 'male',
+      }).missing;
+    };
+    expect(at(-49)).toBeNull();
+    expect(at(-57)).toBe('lifts');
+  });
+
+  it('reads the bodyweight of the week it scores, not a later one', () => {
+    // The DOTS half of the index's "what you weighed that week" test.
+    const W0 = addDays(thisWeek, -14);
+    const logs = COMPETITION_LIFTS.map((name, i) =>
+      lift(name, [150, 100, 180][i]!, addDays(W0, 1)),
+    );
+    const ix = index({ ...snap, logs, bodyLogs: [bw(80, W0), bw(100, addDays(W0, 14))] });
+    expect(dotsAt(ix, W0, { unit: 'kg', sex: 'male' }).bodyWeight).toBe(80);
   });
 
   it('is null until all three lifts are there', () => {
@@ -388,7 +489,9 @@ describe('DOTS', () => {
        measured resistance at a machine's handle swings from -48% to +70% across
        one stroke — so nothing of that kind may reach the one figure here that
        compares two people. Adding a fourth lift, or swapping one for a machine
-       or landmine variant, fails here. */
+       or landmine variant, fails here. And all three are `barbell`: recorded
+       bar included, exactly as a meet weighs them, because this is the one
+       score whose convention has to match the sport's. */
     expect(competitionLiftsAreMasses()).toBe(true);
     expect(COMPETITION_LIFTS).toHaveLength(3);
   });
@@ -430,12 +533,19 @@ describe('DOTS', () => {
       );
     });
 
-    it('asks for bodyweight only once the lifts are all there', () => {
-      const point = dotsAt(index({ ...snap, logs: meet(), bodyLogs: [] }), thisWeek, {
-        unit: 'kg',
-        sex: 'male',
-      });
-      expect(point.missing).toBe('bodyweight');
+    it('asks for the lifts first, then a heavier set, then bodyweight, then sex', () => {
+      /* The screen shows one sentence from `missing`, so its order is the order
+         somebody is asked. Every other case here has bodyweight on record, so
+         the order among the four was not pinned: each of them missing at once,
+         one step at a time. */
+      const noBody = (logs: SetLog[], sex: StrengthOf['sex'] = 'male') =>
+        dotsAt(index({ ...snap, logs, bodyLogs: [] }), thisWeek, { unit: 'kg', sex }).missing;
+      const lightBench = meet().map((l, i) => (i === 1 ? { ...l, reps: 12, rir: 2 } : l));
+
+      expect(noBody(meet().slice(0, 2))).toBe('lifts');
+      expect(noBody(lightBench)).toBe('estimate');
+      expect(noBody(meet(), 'unspecified')).toBe('bodyweight');
+      expect(noBody(meet())).toBe('bodyweight');
       expect(scoreOf(meet()).missing).toBeNull();
     });
   });
@@ -504,8 +614,18 @@ describe('gymmy own index', () => {
   it('is an obviously different size from a DOTS score', () => {
     /* Not cosmetic. The two sit on the same screen, and two three-digit numbers
        that mean different things get read as the same number twice. A DOTS is
-       in the hundreds; the index is in the tens, with a decimal. */
-    expect(idxOf(100, 83)).toBeLessThan(100);
-    expect(Math.round(450 * dotsCoefficient(83, 'male'))).toBeGreaterThan(100);
+       in the hundreds; the index is in the tens, with a decimal. Both numbers
+       come from the same training here, so this holds for what the screen
+       shows rather than for a figure worked out by hand. */
+    const logs = COMPETITION_LIFTS.map((name, k) => ({
+      ...forPattern('squat', [150, 100, 180][k]!),
+      exerciseId: snap.exercises.find((e) => e.name === name)!.id,
+    }));
+    const ix = index({ ...snap, logs, bodyLogs: [bw(83)] });
+    const who = { unit: 'kg', sex: 'male' } as const;
+    expect(strengthAt(ix, thisWeek, who).index!).toBeLessThan(100);
+    const dots = dotsAt(ix, thisWeek, who).score!;
+    expect(dots).toBeGreaterThanOrEqual(100);
+    expect(Number.isInteger(dots)).toBe(true);
   });
 });

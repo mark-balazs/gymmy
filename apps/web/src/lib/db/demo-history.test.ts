@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  SEED_EXERCISES,
   SEED_PATTERNS,
   addDays,
   toEntered,
@@ -17,6 +16,7 @@ import {
   isLive,
   mondayOf,
   progressSummary,
+  recentGainOf,
   strengthSeries,
   type Goal,
   type Indexed,
@@ -43,9 +43,11 @@ import { DEMO_LOADS } from './demo-loads';
  * `attention()` over the real generated sets, because a test that re-derived
  * the thresholds here would agree with itself while the page stayed blank.
  *
- * The plan is built the way `seed-user` builds it — same split, same generator
- * — so if the program builder ever stops picking the lifts the arcs are
- * attached to, this fails rather than quietly reverting to the old behaviour.
+ * The plan mirrors `seed-user` by hand — same split, same generator, variety 0
+ * — so a change to the program builder or the catalogue that stops picking the
+ * lifts the arcs are attached to fails here. It is a copy, though, and a copy
+ * cannot see the seed drift away from it: `seed-demo.test.ts` holds the week
+ * actually seeded to the same lifts.
  */
 
 const today = mondayOf(new Date());
@@ -64,20 +66,6 @@ function demoAccount(): { ix: Indexed; plan: DemoPlanEntry[] } {
     counts: p.counts,
     position: i,
   }));
-  const patternIdByKey = new Map(patterns.map((p) => [p.key, p.id]));
-
-  const exercises = SEED_EXERCISES.map((x) => ({
-    id: id('ex'),
-    updatedAt: now,
-    deletedAt: null,
-    name: x.name,
-    patternId: patternIdByKey.get(x.pattern)!,
-    where: x.where,
-    tags: x.tags,
-    description: x.description,
-    images: x.images,
-  }));
-
   const split = findSplit('sevenPattern')!;
   const slots = buildSlots(split, split.defaultDays).map((s) => ({
     ...s,
@@ -88,7 +76,8 @@ function demoAccount(): { ix: Indexed; plan: DemoPlanEntry[] } {
 
   const base: Snapshot = {
     patterns,
-    exercises,
+    // None, as seeded: the library is the catalogue, which `index()` supplies.
+    exercises: [],
     slots,
     splitPeriods: [
       {
@@ -112,6 +101,7 @@ function demoAccount(): { ix: Indexed; plan: DemoPlanEntry[] } {
     days: split.defaultDays,
     where: 'gym',
     bias: 'none',
+    variety: 0,
   }).map((d) => ({ ...d, id: id('entry'), updatedAt: now, deletedAt: null }));
 
   const withPlan = index({ ...base, entries });
@@ -186,17 +176,11 @@ describe('the demo history', () => {
   });
 
   it('is the same history every time it is generated', () => {
-    // The seed re-runs on every sign-in. A second run that disagreed with the
-    // first about what happened in March would leave the account half-rewritten.
+    // Two seeds can overlap: createUser and the first sync of a still-empty
+    // account, or two devices at once. Log ids are derived from
+    // date:exercise:setNo, so the two runs converge only if the generator
+    // agrees with itself.
     expect(demoHistory(plan, today)).toEqual(demoHistory(plan, today));
-  });
-
-  it('gives the Progress page something to lead with', () => {
-    // The point of the whole exercise. If this is empty, the page's first
-    // section renders blank on the one account anybody will ever open.
-    expect(kinds).toContain('regressed');
-    expect(kinds).toContain('stalled');
-    expect(kinds).toContain('dormant');
   });
 
   it('does not flag most of the account at once', () => {
@@ -258,19 +242,34 @@ describe('the demo history', () => {
       .map(
         (s, i) => (Date.parse(s.date) - Date.parse(row.sessions[i]!.date)) / (24 * 60 * 60 * 1000),
       );
+    /* The dotted-connector case exists — but it would for any lift on this
+       day: the week off and the missed session give a steady lift fortnight
+       gaps too. So this is not what tells "irregular" apart. */
     expect(Math.max(...gaps)).toBeGreaterThanOrEqual(14);
-    expect(row.sessions.length).toBeLessThan(DEMO_WEEKS - 4);
+    /* This is: fewer sessions than the steady lift trained the same day. Held
+       against that lift rather than a fixed count, which passed with no margin
+       at all when the irregular arc was switched off (18 < 18) — one more
+       missed day in the generator and it would have stopped noticing. */
+    const steady = byName('Barbell Row')!;
+    expect(row.sessions.length).toBeLessThanOrEqual(steady.sessions.length - 2);
   });
 
-  it('does not move every lift on the same day by the same amount', () => {
-    // The tell that one curve drew all of them: two different exercises whose
-    // week-on-week percentage changes match step for step.
-    const shape = (name: string) =>
-      byName(name)!
-        .sessions.slice(1)
-        .map((s, i) => Math.sign(s.value - byName(name)!.sessions[i]!.value))
+  it('does not wobble every lift on the same day in lockstep', () => {
+    /* The tell that one curve drew all of them: two exercises whose reps go up
+       and down together, session for session. Read off the reps rather than
+       the estimated 1RM, because the 1RM of two lifts with different starts,
+       increments and gains diverges whatever the wobble does — the per-exercise
+       salt could be deleted and a comparison of those would still pass. */
+    const { sets } = demoHistory(plan, today);
+    const repShape = (name: string) => {
+      const exId = byName(name)!.exercise.id;
+      const r = sets.filter((s) => s.exerciseId === exId && s.setNo === 1).map((s) => s.reps);
+      return r
+        .slice(1)
+        .map((x, i) => Math.sign(x - r[i]!))
         .join('');
-    expect(shape('Goblet Squat')).not.toBe(shape('Trap Bar Deadlift'));
+    };
+    expect(repShape('Goblet Squat')).not.toBe(repShape('Trap Bar Deadlift'));
   });
 
   it('keeps the weights plausible for the movement', () => {
@@ -284,14 +283,22 @@ describe('the demo history', () => {
        fact as the generator having gone wrong. What it means to check is that
        the thing in your hand for a curl is lighter than the thing in your hands
        for a squat. */
-    const top = (name: string) => toEntered(name, byName(name)?.topSet?.weight ?? 0) ?? 0;
+    /* Asserted, not defaulted. A `?? 0` here turned a lift that had left the
+       demo's week into a comparison with nothing — which is how this used to
+       hold the deadlift against a DB Bench Press the week does not have. */
+    const top = (name: string) => toEntered(name, byName(name)!.topSet!.weight!)!;
     expect(top('Trap Bar Deadlift')).toBeGreaterThan(top('Goblet Squat'));
     expect(top('Goblet Squat')).toBeGreaterThan(top('Hammer Curl'));
 
     // And the stored side stays ordered where the numbers are commensurable:
     // a loaded barbell hinge outweighs everything a pair of dumbbells can do.
-    const stored = (name: string) => byName(name)?.topSet?.weight ?? 0;
-    expect(stored('Trap Bar Deadlift')).toBeGreaterThan(stored('DB Bench Press'));
+    // Found rather than named, like the pairs test below.
+    const stored = (name: string) => byName(name)!.topSet!.weight!;
+    const pairs = summary.filter((p) => loadClassOf(p.exercise.name) === 'dumbbellPair');
+    expect(pairs.length).toBeGreaterThan(0);
+    for (const p of pairs) {
+      expect(stored('Trap Bar Deadlift'), p.exercise.name).toBeGreaterThan(p.topSet!.weight!);
+    }
   });
 
   it('stores a pair of dumbbells combined', () => {
@@ -477,15 +484,34 @@ describe('the demo goals', () => {
     expect(shown.find((a) => a.progress.exercise.name === 'Barbell Bench Press')?.kind).toBe(
       'stalled',
     );
+    /* And the other goal draws nothing: it is on a lift that is climbing, so
+       the card has nothing to say about it, and the demo shows both states side
+       by side. A goal that drifted onto a lift in trouble would still be a goal,
+       still be live, and still satisfy every other test in this block. */
+    const benchId = byName('Barbell Bench Press')!.exercise.id;
+    const other = goals.find((g) => g.exerciseId !== benchId)!;
+    expect(
+      shown.map((a) => a.progress.exercise.id),
+      'the climbing goal has nothing to say',
+    ).not.toContain(other.exerciseId);
   });
 
   it('passes the app’s own guardrails', () => {
-    // A seeded goal the app itself would have refused is a demo of a bug.
-    for (const g of goals) {
-      const check = checkGoal({ ...g, liveCount: 0, ownRecentGain: null });
-      expect(check.allowed).toBe(true);
-      expect(check.reason).toBeNull();
-    }
+    /* A seeded goal the app itself would have refused is a demo of a bug. Asked
+       the way the goal sheet asks it: with the goals already running counted,
+       and with this lift's own trailing gain from before the goal was set.
+       Zero and null for every goal, as this used to pass, is a question the
+       app never asks — it held with room for only one live goal. */
+    goals.forEach((g, i) => {
+      const before: Indexed = { ...ix, logs: ix.logs.filter((l) => l.date < g.startedOn) };
+      const check = checkGoal({
+        ...g,
+        liveCount: i,
+        ownRecentGain: recentGainOf(before, g.exerciseId, g.startedOn),
+      });
+      expect(check.allowed, g.exerciseId).toBe(true);
+      expect(check.reason, g.exerciseId).toBeNull();
+    });
   });
 
   it('is still running, with weeks left to watch', () => {

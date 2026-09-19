@@ -83,14 +83,25 @@ test.describe('Train shows one exercise at a time', () => {
   }) => {
     const first = await finishOpenExercise(app);
 
+    /* Marked on its collapsed row: a tick for the eye and the count for a
+       screen reader. Nothing read either — the mark this test is named for —
+       and "Add another set" below proves only that the card knows it is
+       complete. */
+    const row = app.getByRole('button', { name: new RegExp(`^${first}`) });
+    await expect(row).toContainText('✓');
+    await expect(row).toHaveAccessibleName(/3 of 3 done/);
+
     // Reopening a finished one offers a fourth set rather than a first —
     // people do add one, and auto-advancing must not take that away.
     await openCard(app, first);
     await expect(app.getByRole('button', { name: 'Add another set' })).toBeVisible();
 
-    // And it stays open: logging that fourth set does not change which exercise
-    // is first-unfinished, so nothing yanks the screen away mid-set.
+    /* And it stays open: logging that fourth set does not change which exercise
+       is first-unfinished, so nothing yanks the screen away mid-set. Waited
+       for, or this reads the render from before the set lands — when the
+       heading is still there whatever happens next. */
     await logSuggested(app);
+    await expect(app.getByRole('button', { name: 'Delete' })).toHaveCount(4);
     await expect(app.getByRole('heading', { name: first, exact: true })).toBeVisible();
   });
 });

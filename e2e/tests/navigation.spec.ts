@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { exerciseNameAt, expect, logSet, signInAs, test } from '../fixtures/test';
+import { expect, logSet, openExercise, signInAs, test } from '../fixtures/test';
 
 /**
  * Swiping between tabs.
@@ -51,18 +51,34 @@ test.describe('Swiping between tabs', () => {
     await app.goto('/train');
     await expect(app.getByRole('heading', { name: 'Train', exact: true })).toBeVisible();
 
-    /* `:active-view-transition` matches the document only while one is running,
-     * so this is the browser confirming a transition started rather than a
-     * check that we called something. Armed before the swipe, because a 320ms
-     * animation is easy to miss if you go looking for it afterwards. */
-    const running = app.waitForFunction(
-      () => document.documentElement.matches(':active-view-transition'),
-      null,
-      { timeout: 3000 },
-    );
+    /* `:active-view-transition-type()` matches the document only while a
+     * transition of that type is running, so this is the browser confirming
+     * which way the slide went rather than a check that we called something.
+     * Checked for both directions: a transition merely running passed with the
+     * two types swapped, and the pages slid the wrong way. Armed before each
+     * swipe, because a 320ms animation is easy to miss if you go looking for it
+     * afterwards. */
+    const running = (type: string) =>
+      app.waitForFunction(
+        (t) => document.documentElement.matches(`:active-view-transition-type(${t})`),
+        type,
+        { timeout: 3000 },
+      );
+
+    const forward = running('nav-forward');
     await swipe(app, [300, 300], [60, 310]);
-    await running;
+    await forward;
     await app.waitForURL('**/week');
+    await app.waitForFunction(
+      () => !document.documentElement.matches(':active-view-transition'),
+      null,
+      { timeout: 5000 },
+    );
+
+    const back = running('nav-back');
+    await swipe(app, [60, 300], [300, 310]);
+    await back;
+    await app.waitForURL('**/train');
   });
 
   test('nothing moves once the slide has landed', async ({ onboardedApp: app }) => {
@@ -73,6 +89,9 @@ test.describe('Swiping between tabs', () => {
      * from zero. It read as the page reloading after every swipe.
      */
     await app.goto('/train');
+    // The shell draws the header, and attaches the swipe listener, only once
+    // the profile has loaded — a swipe before that goes nowhere.
+    await expect(app.getByRole('heading', { name: 'Train', exact: true })).toBeVisible();
     await swipe(app, [300, 300], [60, 310]);
     await app.waitForURL('**/week');
     await app.waitForFunction(
@@ -103,6 +122,7 @@ test.describe('Swiping between tabs', () => {
     // sensitivity. Removing the animation must not remove the navigation.
     await app.emulateMedia({ reducedMotion: 'reduce' });
     await app.goto('/train');
+    await expect(app.getByRole('heading', { name: 'Train', exact: true })).toBeVisible();
     await swipe(app, [300, 300], [60, 310]);
     await app.waitForURL('**/week');
     await expect(app.getByRole('list', { name: 'Movement coverage' })).toBeVisible();
@@ -110,10 +130,16 @@ test.describe('Swiping between tabs', () => {
 
   test('a scroll that wandered sideways is not a swipe', async ({ onboardedApp: app }) => {
     await app.goto('/train');
-    // Mostly vertical: this is someone scrolling, and taking it as a swipe
-    // would make the app feel like it changes tab at random.
-    await swipe(app, [200, 500], [140, 180]);
-    await expect(app).toHaveURL(/\/train/);
+    await expect(app.getByRole('heading', { name: 'Train', exact: true })).toBeVisible();
+    /* Mostly vertical: this is someone scrolling, and taking it as a swipe
+       would make the app feel like it changes tab at random. Far enough
+       sideways to be a swipe on distance alone — 110 px — so it is the ratio
+       to the vertical that has to turn it down; the drift this used to test
+       was too short to count as a swipe at all. And watched for long enough
+       that a tab change would have landed: a URL read at once is still the
+       old one whatever the gesture did. */
+    await swipe(app, [300, 650], [190, 250]);
+    await expect(app.waitForURL('**/week', { timeout: 1500 })).rejects.toThrow();
   });
 
   test('does not leave a screen holding an unsaved draft', async ({ onboardedApp: app }) => {
@@ -122,8 +148,12 @@ test.describe('Swiping between tabs', () => {
     await app.goto('/settings/split');
     await expect(app.getByRole('heading', { name: 'Your own split' })).toBeVisible();
 
-    await swipe(app, [300, 300], [60, 310]);
-    await expect(app).toHaveURL(/\/settings\/split/);
+    /* Towards Progress. Settings is the last tab, so a swipe the other way has
+       nowhere to go even from Settings itself — it could not fail on the
+       regression this is for, which is the editor being taken for the tab. */
+    await swipe(app, [60, 300], [300, 310]);
+    await expect(app.waitForURL('**/progress', { timeout: 1500 })).rejects.toThrow();
+    await expect(app.getByRole('heading', { name: 'Your own split' })).toBeVisible();
   });
 
   test('dragging a chart reads the chart, it does not change tab', async ({
@@ -138,7 +168,7 @@ test.describe('Swiping between tabs', () => {
       onboarded: true,
       history: { split: 'sevenPattern', weeksBack: 3, exercises: ['Goblet Squat'] },
     });
-    const lift = await exerciseNameAt(page);
+    const lift = await openExercise(page);
     await logSet(page, 60, 8);
     await expect(page.getByText('60 kg × 8').first()).toBeVisible();
 
@@ -156,8 +186,13 @@ test.describe('Swiping between tabs', () => {
       [box.x + 8, box.y + box.height / 2],
     );
 
-    // Neither outcome the gesture could otherwise have had: the tab bar does
-    // not move, and the sheet the chart is in does not dismiss.
+    /* Neither outcome the gesture could otherwise have had: the tab bar does
+       not move, and the sheet the chart is in does not dismiss. Watched for
+       long enough that a tab change would have landed — read at once, the URL
+       is still Progress whether or not the swipe was taken. */
+    await expect(
+      page.waitForURL((u) => !u.pathname.startsWith('/progress'), { timeout: 2000 }),
+    ).rejects.toThrow();
     await expect(page).toHaveURL(/\/progress/);
     await expect(chart).toBeVisible();
   });

@@ -62,18 +62,26 @@ test.describe('Understanding a split before choosing it', () => {
 });
 
 test.describe('Building your own split', () => {
-  test('the editor opens on the week you already train', async ({ app }) => {
-    // Not a blank page: arranging a week from nothing is a much harder question
-    // than adjusting one, and a preset is a perfectly good first draft.
-    await completeOnboarding(app, { days: '3 days' });
-    await gotoSettings(app);
-    await openEditor(app);
+  test('the editor opens on the week you already train', async ({ page, context, baseURL }) => {
+    /* Not a blank page: arranging a week from nothing is a much harder question
+       than adjusting one, and the week somebody already trains is a perfectly
+       good first draft.
 
-    for (const day of ['A', 'B', 'C']) {
-      await expect(app.getByRole('heading', { name: `Day ${day}`, exact: true })).toBeVisible();
+       On a four-day upper/lower week rather than the default, because the
+       default is also what an editor that ignored the account would open on —
+       three days of the seven-pattern skeleton either way. Four days, the day
+       types in order, twenty slots: that is this account's week and no
+       preset's default. The test below reopens a saved custom week. */
+    await signInAs(page, context, baseURL!, { onboarded: true, split: 'upperLower', days: 4 });
+    await gotoSettings(page);
+    await openEditor(page);
+
+    for (const day of ['A', 'B', 'C', 'D']) {
+      await expect(page.getByRole('heading', { name: `Day ${day}`, exact: true })).toBeVisible();
     }
-    // Five slots a day, as the seven-pattern skeleton ships them.
-    await expect(app.getByRole('button', { name: /^Edit / })).toHaveCount(15);
+    await expect(page.getByRole('button', { name: /^Edit / })).toHaveCount(20);
+    await expect(page.getByLabel('Day type').first()).toHaveValue('upper');
+    await expect(page.getByLabel('Day type').nth(1)).toHaveValue('lower');
   });
 
   test('an edited slot is applied and the split becomes custom', async ({ app }) => {
@@ -102,6 +110,13 @@ test.describe('Building your own split', () => {
     await gotoSettings(app);
     await expect(app.getByRole('link', { name: /Build your own/ })).toContainText('In use');
 
+    /* And it is the edit that was saved, not just the label. "In use" follows
+       the profile's split and seven tiles are what the old skeleton scored too,
+       so both hold for a save that wrote the week unchanged. Reopened, the
+       editor reads the rows back from the stored slots. */
+    await openEditor(app);
+    await expect(app.getByRole('button', { name: /^Edit / }).first()).toContainText('Carry');
+
     // It has to reach the server too — a skeleton that never syncs would leave
     // every other device generating against the old one.
     await expect(app.getByText('All saved')).toBeVisible({ timeout: 30_000 });
@@ -113,6 +128,15 @@ test.describe('Building your own split', () => {
     await completeOnboarding(app, { days: '3 days' });
     await gotoSettings(app);
     await openEditor(app);
+    // An arrangement of their own, so keeping it can be told apart from
+    // regenerating the seven-pattern preset.
+    await app
+      .getByRole('button', { name: /^Edit / })
+      .first()
+      .click();
+    const sheet = app.getByRole('dialog');
+    await sheet.getByRole('button', { name: 'Carry', exact: true }).click();
+    await sheet.getByRole('button', { name: 'Done', exact: true }).click();
     await app.getByRole('button', { name: 'Save my split' }).click();
     await confirmSheet(app);
     await app.waitForURL('**/week');
@@ -124,6 +148,19 @@ test.describe('Building your own split', () => {
     await app.getByRole('button', { name: 'Rebuild my week' }).click();
     await confirmSheet(app);
     await expect(app.getByText('This is what you are training now.')).toBeVisible();
+
+    /* That line is shown after any rebuild, whatever it wrote — the draft is
+       simply cleared. So what was written: the equipment is home, the week is
+       still their own, and it still holds the slot they arranged. */
+    await app.reload();
+    await expect(app.getByRole('button', { name: 'Home', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+      { timeout: 15_000 },
+    );
+    await expect(app.getByRole('link', { name: /Build your own/ })).toContainText('In use');
+    await openEditor(app);
+    await expect(app.getByRole('button', { name: /^Edit / }).first()).toContainText('Carry');
   });
 
   test('building your own split does not rescore the weeks before it', async ({

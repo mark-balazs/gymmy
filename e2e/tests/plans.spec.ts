@@ -1,4 +1,4 @@
-import { planInEffect, publishNewVersion, shareAPlanWith } from '../fixtures/auth';
+import { planInEffect, publishNewVersion, serverSets, shareAPlanWith } from '../fixtures/auth';
 import { confirmSheet, expect, logSet, signInAs, test } from '../fixtures/test';
 
 /**
@@ -47,18 +47,33 @@ test.describe('A plan somebody shared with you', () => {
        failed first time round, against an app that was working. */
     await expect(page.getByRole('dialog')).toBeHidden({ timeout: 10_000 });
 
-    // The week is now the plan's, and the trainer's choice landed in it.
+    /* The week is now the plan's, and the trainer's choice landed in the slot
+       it was written for — Day A, first — not merely somewhere in the week.
+       The bench press is already in this account's own week, further down Day
+       A, so "on the page" held even for a plan that installed nothing. */
     await page.goto('/week');
-    await expect(page.getByText('Barbell Bench Press').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('button', { name: /^About / }).first()).toHaveAttribute(
+      'aria-label',
+      'About Barbell Bench Press',
+      { timeout: 15_000 },
+    );
 
     /* And the part that would be catastrophic to get wrong. Sets reference the
        exercise, never the plan, so installing a week cannot reach a logged set
        — but this is the first time a *stranger's* week has been installed, and
-       the assertion is worth having explicitly. */
+       the assertion is worth having explicitly. Two sets on the lift: the one
+       seeded two weeks ago and the one logged just now. Its name alone was
+       there on the strength of the seeded one. */
     await page.goto('/progress');
-    await expect(
-      page.getByText('72.5 kg × 6').or(page.getByText('Goblet Squat')).first(),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('button', { name: 'Show Goblet Squat' })).toContainText('2 sets', {
+      timeout: 15_000,
+    });
+    await expect
+      .poll(
+        async () => (await serverSets(user.id)).some((s) => s.weight === 72.5 && s.reps === 6),
+        { timeout: 15_000 },
+      )
+      .toBe(true);
 
     /* Polled, not read once: the write lands in IndexedDB immediately and
        reaches the server on the sync debounce, so a single read here races it.
@@ -144,11 +159,22 @@ test.describe('A plan somebody shared with you', () => {
   test('shows nothing at all to somebody nobody coaches', async ({ page, context, baseURL }) => {
     // An empty section explaining a feature you are not part of is clutter.
     await signInAs(page, context, baseURL!, { onboarded: true });
+    /* Waited for: the card draws nothing until the list of plans has come back
+       from the server, and the Split heading is drawn from the device long
+       before. Checked then, every version of the card shows nothing — the one
+       that draws an empty section too. So the answer, its body, and one render
+       after it; and a count, so an empty zero-height section also fails. */
+    const listed = page.waitForResponse(
+      (r) => new URL(r.url()).pathname === '/api/plans' && r.request().method() === 'GET',
+    );
     await page.goto('/settings');
     await expect(page.getByRole('heading', { name: 'Split', exact: true })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByRole('region', { name: 'Plans shared with you' })).toBeHidden();
+    const res = await listed;
+    await res.finished();
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0))));
+    await expect(page.getByRole('region', { name: 'Plans shared with you' })).toHaveCount(0);
   });
 
   test('the coach area is closed to an ordinary account', async ({ page, context, baseURL }) => {
