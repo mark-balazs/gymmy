@@ -35,7 +35,9 @@ function block(selector: string, after = ''): Record<string, string> {
 
 const tokens = block(':root', '-- motion */');
 const spring = block(':root', '@supports (transition-timing-function: linear(0, 1))');
-const reduced = block(':root', '@media (prefers-reduced-motion: reduce)');
+// The reduced-motion block that holds the tokens — other rules (the switch's
+// thumb) have reduced-motion blocks of their own, earlier in the file.
+const reduced = block(':root', '@media (prefers-reduced-motion: reduce) {\n  :root {');
 
 describe('the tokens', () => {
   it('JavaScript falls back to exactly what the stylesheet says', () => {
