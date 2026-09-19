@@ -86,9 +86,10 @@ test.describe('Train shows one exercise at a time', () => {
     /* Marked on its collapsed row: a tick for the eye and the count for a
        screen reader. Nothing read either — the mark this test is named for —
        and "Add another set" below proves only that the card knows it is
-       complete. */
+       complete. The tick is drawn, not the ✓ character, so it is found as the
+       one picture on the row. */
     const row = app.getByRole('button', { name: new RegExp(`^${first}`) });
-    await expect(row).toContainText('✓');
+    await expect(row.locator('svg')).toHaveCount(1);
     await expect(row).toHaveAccessibleName(/3 of 3 done/);
 
     // Reopening a finished one offers a fourth set rather than a first —
@@ -112,14 +113,16 @@ test.describe('The day tabs tick off what is done', () => {
     const dayB = app.getByRole('button', { name: /^Day B/ });
 
     // Nothing logged: nothing ticked. An empty day is not a finished one.
-    await expect(dayA).not.toContainText('✓');
-    await expect(dayB).not.toContainText('✓');
+    await expect(dayA.locator('svg')).toHaveCount(0);
+    await expect(dayB.locator('svg')).toHaveCount(0);
 
     // Finish every exercise of Day A.
     const finished = await finishDay(app);
     expect(finished.length).toBeGreaterThan(0);
 
-    await expect(dayA).toContainText('✓');
-    await expect(dayB).not.toContainText('✓');
+    // A drawn tick rather than the ✓ character, and the tab says so in words.
+    await expect(dayA.locator('svg')).toHaveCount(1);
+    await expect(dayA).toContainText('Done');
+    await expect(dayB.locator('svg')).toHaveCount(0);
   });
 });

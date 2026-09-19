@@ -81,6 +81,7 @@ second implementation to disagree with the first.
 | `apps/web/src/components/motion.ts` | The motion tokens for JavaScript — easings, durations, reduced motion. See [Motion](#motion) |
 | `apps/web/src/components/info-tip.tsx` `place-tip.ts` | The ⓘ that holds an explanation instead of a paragraph on the screen, and where its popover goes. See [Explanations behind an info button](#explanations-behind-an-info-button) |
 | `apps/web/src/components/switch.tsx` | An on/off setting, as the platform's own `<input type="checkbox" switch>` |
+| `apps/web/src/components/tick.tsx` `haptic.ts` | The tick for something finished, drawn as a stroke so it can draw itself; the Android buzz after a set is saved. See [Logging a set](#logging-a-set) |
 
 ## How a set gets saved
 
@@ -287,6 +288,39 @@ fallbacks equal the CSS, reduced motion removes every distance, the press
 transitions `scale`, and no hard-coded duration, easing, `active:scale-*` or
 reduced-motion media query appears outside the system. `motion.spec.ts` checks
 what the browser does with it.
+
+### Logging a set
+
+The hot path, about twenty times a session. Each moment moves only what
+changed, once, and none runs past `--dur-base`.
+
+- **The Log button never dims.** A ref guards the double tap. It used to be
+  `disabled` while saving, which faded it to 40% on every set.
+- **The new set's row grows in** the way `Collapse` opens a card (a grid row
+  from `0fr`, through `@starting-style`), its numbers starting in the accent
+  colour. **The dot it filled pops** (`animate-dot-pop`). **The day's count
+  ticks** through `RollingNumber`, as the −/+ numbers and the plate total do.
+- **Finishing an exercise draws its tick** (`components/tick.tsx`, a stroke
+  with `pathLength="1"`). **Finishing the day** draws the tick on its tab, adds
+  one line ("Day A done", in a `role="status"` region, so a screen reader hears
+  it) and asks for one longer buzz.
+- **New since the render before, not since mount.** Each of these compares
+  with the previous render (state adjusted while rendering, like `pickedFor`)
+  and clears when its movement ends. So a reopened card, a reload or another
+  day has nothing to replay. The day's moment is armed by the Log tap and fires
+  only in the render where that set lands: on the first render every day reads
+  unfinished, and without the arm every visit to a finished day would
+  celebrate it.
+- **Haptics** (`components/haptic.ts`): `navigator.vibrate`, checked for
+  (Android only), called only after the write has landed. The set's buzz and
+  the day's come from two places in either order, so a set buzz straight after
+  a day buzz is dropped rather than cutting it short.
+- **Under reduced motion** no digit rolls, no dot swells, a row appears at once
+  (1 ms, so its end still fires) and a tick fades in whole. The colour still
+  fades.
+
+`logging-moments.spec.ts` samples `document.getAnimations()` every frame while
+a step happens, and checks what moved, on what, which way and for how long.
 
 ## Explanations behind an info button
 

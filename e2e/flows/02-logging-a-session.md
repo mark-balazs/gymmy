@@ -34,6 +34,25 @@ all — the card sets its numbers with its own controls, described in
   the server and every other device.
 - The third set folds the card and opens the next.
 
+## What a set feels like
+
+Covered by `logging-moments.spec.ts`. Only what the set changed moves, once,
+and nothing runs longer than a quarter of a second:
+
+- The **Log set** button stays lit while it saves — it never dims.
+- The new row grows in, its numbers briefly in the accent colour; the dot it
+  filled pops; the day's count ticks up. The second set moves the second row
+  and dot, not the first again, and a card opened again replays nothing.
+- A number set with **−**/**+**, or a plate put on the bar, rolls the way it
+  moved.
+- Finishing an exercise draws the tick on its row. Finishing the day draws the
+  tick on its tab and says *"Day A done"* — once, and not again when the day is
+  opened later.
+- On Android, each saved set gives a short buzz and the day's last set one
+  longer one. A set the phone could not save gives none.
+- Under reduced motion nothing moves or swells; the colour still fades and a
+  tick fades in whole.
+
 ## Notes
 
 Effort is four buttons rather than a 0–10 field. The underlying value is still

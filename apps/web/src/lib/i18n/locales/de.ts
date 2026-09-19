@@ -159,6 +159,7 @@ export const de: Record<Key, string> = {
   'train.ofSets.one': '{done} von {n} Satz',
   'train.ofSets.other': '{done} von {n} Sätzen',
   'train.rowDone': '{done} von {total} erledigt',
+  'train.dayDone': '{day} erledigt',
   'load.barbell': 'Stange und Scheiben zusammen zählen.',
   'load.dumbbellPair': 'Eine Hantel — erfasst werden {w}, beide zusammen.',
   'load.dumbbellOne': 'Das eine Gewicht, das du hältst.',

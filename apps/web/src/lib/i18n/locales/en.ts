@@ -151,6 +151,7 @@ export const en = {
   'train.ofSets.one': '{done} of {n} set',
   'train.ofSets.other': '{done} of {n} sets',
   'train.rowDone': '{done} of {total} done',
+  'train.dayDone': '{day} done',
   /* How to measure this exercise. The app asked for a 'weight' for months
      without ever saying what it was counting, which for two dumbbells is a
      factor of two and unrecoverable once stored. See `load.ts`. */

@@ -149,6 +149,7 @@ export const hu: Record<Key, string> = {
   'train.ofSets.one': '{done} / {n} sorozat',
   'train.ofSets.other': '{done} / {n} sorozat',
   'train.rowDone': '{done} / {total} kész',
+  'train.dayDone': '{day} kész',
   'load.barbell': 'A rudat és a tárcsákat együtt számold.',
   'load.dumbbellPair': 'Egy kézisúlyzó — {w} kerül be, a kettő együtt.',
   'load.dumbbellOne': 'Az az egy súly, amit fogsz.',

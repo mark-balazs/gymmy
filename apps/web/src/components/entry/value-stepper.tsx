@@ -19,6 +19,7 @@ import { useId, useState } from 'react';
 import { formatOnScale } from '@athletic/domain';
 import { useT } from '@/lib/client/hooks';
 import { Keypad, formatAmount } from './keypad';
+import { RollingNumber } from './rolling-number';
 
 const side =
   'grid h-[var(--spacing-tap)] cursor-pointer place-items-center rounded-[11px] border border-[var(--color-line)] ' +
@@ -136,9 +137,13 @@ export function ValueStepper({
         className="press @container flex min-h-[var(--spacing-tap)] w-full min-w-0 cursor-pointer items-center justify-center rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-1"
       >
         <span aria-hidden className="flex min-w-0 items-baseline justify-center gap-1">
-          <span className="num text-[length:min(17px,36cqi)] font-semibold whitespace-nowrap">
-            {shown}
-          </span>
+          {/* Rolls the way it moved — up on `+`, down on `−` — so a run of
+              taps reads as counting rather than as a label being swapped. */}
+          <RollingNumber
+            text={shown}
+            value={empty ? null : current}
+            className="num text-[length:min(17px,36cqi)] font-semibold whitespace-nowrap"
+          />
           {unit && !empty && (
             /* Dropped when it would crowd the number: the unit is in the
                caption above and in what a screen reader hears. */

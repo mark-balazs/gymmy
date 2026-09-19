@@ -6,7 +6,7 @@ before the test that covers it. Every file maps to one spec in `../tests`.
 | Flow | Spec | What it proves |
 | --- | --- | --- |
 | [01 — First run](./01-first-run.md) | `first-run.spec.ts` | Five questions produce a complete, covered week |
-| [02 — Logging a session](./02-logging-a-session.md) | `logging.spec.ts` | A set can be logged and shows the right derived numbers |
+| [02 — Logging a session](./02-logging-a-session.md) | `logging.spec.ts`, `logging-moments.spec.ts` | A set can be logged and shows the right derived numbers, and only what it changed moves |
 | [03 — Weekly coverage](./03-weekly-coverage.md) | `coverage.spec.ts` | Gaps are visible, and isolation never fills one |
 | [04 — What the card offers you](./04-progression.md) | `progression.spec.ts` | The card shows last time as history, and gives no advice about what to lift |
 | [05 — Training offline](./05-offline.md) | `offline.spec.ts` | The core action works with no network, and recovers |

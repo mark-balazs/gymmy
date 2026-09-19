@@ -117,6 +117,12 @@ Two ways the suite lies to you if you skip that:
 - **A tip owns Escape.** It listens on `window` in the capture phase and stops
   the event, so a tip inside a sheet closes alone. A test for a tip in a sheet
   should press Escape and assert the sheet survived.
+- **Motion is asserted by recording it.** `logging-moments.spec.ts` samples
+  `document.getAnimations()` every frame. Two traps, both found the hard way:
+  give each recording its own number, or the loop of the one before keeps
+  running and every animation is counted twice; and let the page go still
+  between two steps (`still()`), as a person rests between sets — a second set
+  logged while the first one's pop is still running hides a pop that replays.
 - **An ⓘ label never starts with "About ".** That prefix is the exercise names'
   button, and `exerciseNameAt` and `first-run.spec.ts` count them by it.
 - **Never hard-code which exercise the generator picked.** It depends on the

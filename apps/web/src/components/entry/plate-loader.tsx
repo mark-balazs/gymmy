@@ -31,6 +31,7 @@ import type { Unit } from '@athletic/domain';
 import { cn } from '@/components/ui';
 import { useT } from '@/lib/client/hooks';
 import { Keypad, formatAmount } from './keypad';
+import { RollingNumber } from './rolling-number';
 
 /** More than any record lift needs, and about what fits on a drawn sleeve
  *  before the plates are slivers. */
@@ -197,9 +198,13 @@ export function PlateLoader({
           className="press -ml-2 flex min-h-[var(--spacing-tap)] min-w-0 cursor-pointer flex-col items-start rounded-[11px] px-2 py-1 text-left hover:bg-[var(--color-surface-2)]"
         >
           <span id={totalId} className="num text-[28px] leading-tight font-bold">
-            {/* Seen with the scale's decimals, heard as anybody says it. */}
+            {/* Seen with the scale's decimals, heard as anybody says it. Rolls
+                up as a plate goes on and down as one comes off. */}
             <span aria-hidden>
-              {places === undefined ? formatAmount(value) : formatOnScale(value, places)}
+              <RollingNumber
+                text={places === undefined ? formatAmount(value) : formatOnScale(value, places)}
+                value={value}
+              />
             </span>
             <span className="sr-only">{formatAmount(value)}</span>{' '}
             <span className="text-sm font-semibold text-[var(--color-muted)]">{unit}</span>
