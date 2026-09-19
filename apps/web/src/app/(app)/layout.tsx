@@ -11,9 +11,14 @@
  * It is also what makes every page's first render a real one. The local
  * database is read once for the whole app (`lib/client/live.ts`), this layout
  * holds that read open for as long as the app is on screen, and no page is
- * drawn until it has landed. So a tab mounted by a navigation already has its
- * data in the frame the slide carries, and nothing chosen on a first render —
- * the day Train opens on — is chosen from an empty database.
+ * drawn until it holds a profile. So a tab mounted by a navigation already has
+ * its data in the frame the slide carries.
+ *
+ * A profile is not the whole history, though. On a new phone it comes with the
+ * first page of the sync, and a long history follows 500 sets to a page, oldest
+ * first — so a page can be drawn before this week's sets are in. Anything a
+ * page decides from the data has to keep following it until the person acts:
+ * Train's day does (`train/page.tsx`).
  */
 
 import { useRouter } from 'next/navigation';

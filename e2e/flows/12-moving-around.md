@@ -17,7 +17,9 @@ finger until it was lifted; and Back walked through every tab looked at.
 ## What the person does
 
 1. Opens the app, or reloads it. Train opens on the day already started today,
-   or else the first day not trained this week.
+   or else the first day not trained this week. On a new phone with a long
+   history, the day can move once this week's sets arrive — until the person
+   taps a day or logs a set, after which it stays put.
 2. Taps another tab. It sinks a little under the thumb; the new page slides in
    already holding its content, from the side the tab is on; the mark over the
    tabs glides across and the title crossfades. A second tab tapped before the
@@ -36,6 +38,11 @@ finger until it was lifted; and Back walked through every tab looked at.
 - **Train opens on the right day** whether it is loaded or navigated to: with
   Day A trained earlier this week, on Day B; with a set logged on Day B today, on
   Day B again after a reload (the report in GYM-13).
+- **…and on a new phone, while the history is still arriving.** The sets come
+  500 to a page and the page draws after the first, so the specs hold the later
+  pages back. With 550 old sets and this week's Day A set in the second page,
+  Train moves from Day A to Day B when it lands. A day tapped before it lands
+  stays; so does the day of a set logged before it lands, planned or not.
 - **The page that slides in is the real one:** Progress's first rendered frame
   already lists the lifts, not "Log a few sessions…", and Settings slides in
   instead of appearing after the slide as a bare "Loading…".

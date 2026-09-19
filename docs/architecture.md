@@ -236,7 +236,7 @@ something got somebody stuck:
 The whole local database is read once for the app, not once per screen
 (`lib/client/live.ts`, used by `useSnapshot` and `useProfile` in `hooks.ts`).
 The `(app)` layout keeps that read open for as long as the app is on screen and
-draws no page until it has landed.
+draws no page until it holds a profile.
 
 - **Why:** a fresh read has nothing on its first render, and a page's first
   render is the one a navigation slides in. With a read per page, every tab
@@ -256,9 +256,15 @@ draws no page until it has landed.
   `useSnapshot` throws it into `error.tsx`, and that throw starts a fresh read
   for "Try again". `live.test.ts` pins all of this without IndexedDB.
 
-A page may still check `ready`, but inside `(app)` it is always true. Anything
-chosen once on a first render (Train's day) depends on that — do not move a
-page outside the layout's gate without it.
+A page may still check `ready`, but inside `(app)` it is always true.
+
+**A profile is not the whole history.** On a new phone the profile comes with
+the first page of the sync, and sets follow 500 to a page (`SYNC_LIMIT`), oldest
+change first — so a page can be drawn before this week's sets are in. Nothing
+may be decided once, on a first render. Train's day is `held ?? nextSession()`:
+the suggestion, worked out afresh on every render, until the person taps a day
+or logs a set (planned or not), after which that day stays for the date
+(`opening-a-tab.spec.ts` holds the later pages back to check both).
 
 ## Moving between tabs
 
@@ -388,7 +394,7 @@ changed, once, and none runs past `--dur-base`.
   one line ("Day A done", in a `role="status"` region, so a screen reader hears
   it) and asks for one longer buzz.
 - **New since the render before, not since mount.** Each of these compares
-  with the previous render (state adjusted while rendering, like `pickedFor`)
+  with the previous render (state adjusted while rendering, like `autoKey`)
   and clears when its movement ends. So a reopened card, a reload or another
   day has nothing to replay. The day's moment is armed by the Log tap and fires
   only in the render where that set lands: on the first render every day reads

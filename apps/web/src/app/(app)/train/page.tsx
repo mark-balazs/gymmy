@@ -80,9 +80,6 @@ export default function TrainPage() {
   const { days, unit, entryMode, plateLoader } = prefs(profile);
 
   const [date, setDate] = useState(today);
-  const [day, setDay] = useState(0);
-  /** Which date the default was chosen for, so it is chosen once and not re-run. */
-  const [pickedFor, setPickedFor] = useState<string | null>(null);
 
   /**
    * Which session to open on, given what has already been logged.
@@ -95,23 +92,22 @@ export default function TrainPage() {
   const suggestedDay = useMemo(() => nextSession(ix, date, days), [ix, date, days]);
 
   /**
-   * Applied once per date, during render rather than in an effect.
+   * The day the person has taken for this date — by tapping a day, or by
+   * logging a set on the one open. Null until they do, and again on a new date.
    *
-   * React supports adjusting state directly while rendering for exactly this
-   * case, and it avoids the cascading re-render an effect would cause. The
-   * guard is what matters: without it the suggestion would re-apply on every
-   * change to the logs and move you to the next day the moment you logged your
-   * first set — mid-session, without asking.
+   * Until then the open day **is** the suggestion, worked out afresh on every
+   * render, because the first render does not hold everything. The `(app)`
+   * layout draws the page once the profile is in, and on a new phone that is
+   * the first page of the sync: a long history comes 500 sets to a page,
+   * oldest first, so this week's sets can land a page later. Chosen once, from
+   * that first page, the day stayed wrong (GYM-13, a heavy account's first
+   * sign-in).
    *
-   * It relies on the first render already holding the logs: the `(app)`
-   * layout draws no page until the shared read has landed. When each page read
-   * for itself, this ran on an empty database and froze Day A — after every
-   * reload, even mid-way through Day B.
+   * Once they have acted, nothing moves it — not the next page, and not the
+   * set just logged. A day somebody picked or started on is theirs.
    */
-  if (pickedFor !== date) {
-    setDay(suggestedDay);
-    setPickedFor(date);
-  }
+  const [held, setHeld] = useState<number | null>(null);
+  const day = held ?? suggestedDay;
 
   const plan = useMemo(() => sessionPlan(ix, days, date, day), [ix, days, date, day]);
   const finished = useMemo(() => sessionsDone(ix, days, mondayOf(date)), [ix, days, date]);
@@ -167,7 +163,7 @@ export default function TrainPage() {
    * had loaded, when every day reads unfinished for a render — is ticked and
    * says nothing. So a card arms it as its Log button is tapped (`logging`),
    * and the render in which that set lands either finds the day newly
-   * finished or disarms it. Tracked while rendering, the way `pickedFor` is,
+   * finished or disarms it. Tracked while rendering, the way `autoKey` is,
    * because it is a comparison with the render before.
    *
    * It lasts while the day stays on screen: another day or date, or a set
@@ -259,12 +255,9 @@ export default function TrainPage() {
       <Card className="flex flex-col gap-3">
         <Segmented
           value={day}
-          onChange={(next) => {
-            // An explicit choice sticks for this date; the auto-pick does not
-            // get to override it later.
-            setDay(next);
-            setPickedFor(date);
-          }}
+          // A day picked by hand is kept for this date: nothing the data does
+          // afterwards moves it.
+          onChange={setHeld}
           doneLabel={tr.t('common.done')}
           options={Array.from({ length: days }, (_, i) => ({
             value: i,
@@ -282,8 +275,8 @@ export default function TrainPage() {
               value={date}
               onChange={(e) => {
                 setDate(e.target.value || today);
-                // A new date gets a fresh auto-pick.
-                setPickedFor(null);
+                // A new date opens on its own suggestion.
+                setHeld(null);
               }}
               className="min-h-[var(--spacing-tap)] max-w-[180px] rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
             />
@@ -340,7 +333,10 @@ export default function TrainPage() {
             open={openKey === row.key}
             reveal={advancedTo === row.key}
             onOpen={() => choose(row.key)}
-            onLogging={() => setLogging(dayKey)}
+            onLogging={() => {
+              setHeld(day);
+              setLogging(dayKey);
+            }}
           />
         ) : null,
       )}
@@ -378,8 +374,9 @@ export default function TrainPage() {
           open={openKey === `off:${row.exercise.id}`}
           reveal={false}
           onOpen={() => choose(`off:${row.exercise.id}`)}
-          // An off-plan set never finishes a day, so it has nothing to arm.
-          onLogging={() => undefined}
+          // An off-plan set never finishes a day, so it has nothing to arm —
+          // but it is still somebody at work on this screen, so the day stays.
+          onLogging={() => setHeld(day)}
         />
       ))}
 
@@ -461,8 +458,8 @@ function ExerciseCard({
   /** Scroll the card into view once it has opened: the app moved on to it. */
   reveal: boolean;
   onOpen: () => void;
-  /** A set is about to be logged here — so the page can tell a day finished
-   *  by it from a day that was finished already. */
+  /** A set is about to be logged here — so the page keeps the open day from
+   *  now on, and can tell a day finished by it from one finished already. */
   onLogging: () => void;
 }) {
   const offPlan = session === OFF_PLAN_SESSION;

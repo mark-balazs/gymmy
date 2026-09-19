@@ -1,5 +1,14 @@
-import type { Page } from '@playwright/test';
-import { expect, logSet, recordedSet, signInAs, test } from '../fixtures/test';
+import type { BrowserContext, Page } from '@playwright/test';
+import type { DatedSet } from '../fixtures/auth';
+import {
+  expect,
+  localLogCount,
+  logSet,
+  logSuggested,
+  recordedSet,
+  signInAs,
+  test,
+} from '../fixtures/test';
 
 /**
  * A tab holds its data from its first render (GYM-13).
@@ -10,10 +19,18 @@ import { expect, logSet, recordedSet, signInAs, test } from '../fixtures/test';
  * after it — and it is the one Train chose its day from, and then kept. So
  * after a reload Train opened on Day A whatever had been trained.
  *
- * Now one read serves the whole app and the layout draws no page before it has
- * landed. These check what a person sees of that, from the two ways a tab is
- * reached: a load (a reload, opening the app) and a navigation.
+ * Now one read serves the whole app and the layout draws no page before it
+ * holds a profile. These check what a person sees of that, from the two ways a
+ * tab is reached: a load (a reload, opening the app) and a navigation.
+ *
+ * A profile is not the whole history, though: on a new phone it comes with the
+ * first page of the sync, and the sets follow 500 to a page. So Train keeps
+ * following the data until the person picks a day or logs a set — checked
+ * below with the later pages held back.
  */
+
+const p2 = (n: number) => String(n).padStart(2, '0');
+const iso = (d: Date) => `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
 
 /** Any date this week other than today — a day already trained, but not one
  *  Train would take for "started today" and reopen. Monday unless that is
@@ -24,12 +41,77 @@ function otherDayThisWeek(): string {
   const monday = new Date(d);
   monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
   if (monday.getDate() === d.getDate()) monday.setDate(monday.getDate() + 1);
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${monday.getFullYear()}-${p(monday.getMonth() + 1)}-${p(monday.getDate())}`;
+  return iso(monday);
 }
+
+/** Today, as the app reckons it: the local date. */
+const today = () => iso(new Date());
 
 const day = (page: Page, letter: string) =>
   page.getByRole('button', { name: `Day ${letter}`, exact: true });
+
+/** A set of Day A — the fixture logs every set under A. */
+const dayA = (date: string): DatedSet => ({
+  exercise: 'Goblet Squat',
+  date,
+  weight: 40,
+  reps: 8,
+  rir: 2,
+});
+
+/**
+ * `n` sets from before this week, one a day going back from a week ago.
+ *
+ * Written ahead of the sets that matter, so they take the lower change
+ * numbers and those come after them in the sync — a page is the 500 lowest.
+ */
+function oldSets(n: number): DatedSet[] {
+  const lifts = ['Goblet Squat', 'Barbell Bench Press', 'Kettlebell Swing'];
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date();
+    d.setHours(12, 0, 0, 0);
+    d.setDate(d.getDate() - 7 - i);
+    return { exercise: lifts[i % lifts.length]!, date: iso(d), weight: 40, reps: 8, rir: 2 };
+  });
+}
+
+/**
+ * Lets a new phone's first sync page through and holds every later one until
+ * the test says so.
+ *
+ * The first page is the one asked for from nothing (`since` 0); every later
+ * one asks from a cursor. Holding those makes "the page is drawn, the rest of
+ * the history is not in yet" a moment a test can act in, not a race. `asked`
+ * settles once a later page has been asked for — so an account that fits one
+ * page fails here instead of passing with nothing held.
+ */
+async function holdLaterPages(context: BrowserContext) {
+  let release!: () => void;
+  const gate = new Promise<void>((r) => (release = r));
+  let wasAsked!: () => void;
+  const asked = new Promise<void>((r) => (wasAsked = r));
+  await context.route('**/api/sync', async (route) => {
+    const body = JSON.parse(route.request().postData() ?? '{}') as { since?: number };
+    if ((body.since ?? 0) > 0) {
+      wasAsked();
+      await gate;
+    }
+    await route.continue();
+  });
+  return { asked, release };
+}
+
+/**
+ * Every set is on the phone, and the page has had a moment to draw from it.
+ *
+ * The count comes from IndexedDB directly; the page reads the same store a
+ * moment later, through its own live query. What would move a day moves
+ * within that moment, so it is waited out before a test says nothing moved.
+ */
+async function allArrived(page: Page, sets: number): Promise<void> {
+  await expect.poll(() => localLogCount(page), { timeout: 30_000 }).toBe(sets);
+  await page.waitForTimeout(750);
+}
 
 test.describe('Train opens on the right day', () => {
   test('with Day A done this week, it opens on Day B — loaded or navigated to', async ({
@@ -69,6 +151,95 @@ test.describe('Train opens on the right day', () => {
     await expect(app.getByRole('heading', { name: 'Train', exact: true })).toBeVisible();
     await expect(day(app, 'B')).toHaveAttribute('aria-pressed', 'true');
     await expect(day(app, 'A')).toHaveAttribute('aria-pressed', 'false');
+  });
+});
+
+test.describe('Train on a new phone, while the history is still arriving', () => {
+  /* More than one page of sets, with Day A of this week written last — so it
+     comes in the second page, after the first has opened the app. */
+  const OLD = 550;
+
+  test('moves to the right day once this week’s sets arrive', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    const later = await holdLaterPages(context);
+    await signInAs(page, context, baseURL!, {
+      onboarded: true,
+      sets: [...oldSets(OLD), dayA(otherDayThisWeek())],
+    });
+    await later.asked;
+
+    // Drawn from the first page: 500 old sets and nothing from this week.
+    await expect(day(page, 'A')).toHaveAttribute('aria-pressed', 'true');
+
+    // The reviewer's report: it stayed on Day A.
+    later.release();
+    await expect(day(page, 'B')).toHaveAttribute('aria-pressed', 'true');
+    await expect(day(page, 'A')).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  test('a day tapped before the rest arrives stays picked', async ({ page, context, baseURL }) => {
+    const later = await holdLaterPages(context);
+    await signInAs(page, context, baseURL!, {
+      onboarded: true,
+      sets: [...oldSets(OLD), dayA(otherDayThisWeek())],
+    });
+    await later.asked;
+
+    await day(page, 'C').click();
+    await expect(day(page, 'C')).toHaveAttribute('aria-pressed', 'true');
+
+    // The rest lands, and would make it Day B — but Day C was a choice.
+    later.release();
+    await allArrived(page, OLD + 1);
+    await expect(day(page, 'C')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('a set logged before the rest arrives keeps its day', async ({ page, context, baseURL }) => {
+    /* This time Day A of this week is in the first page, so Train opens on
+       Day B, and the second page brings a Day A set from earlier today — from
+       the old phone, say. "The day already started today" is then Day A. Once
+       somebody has logged a set on Day B, it must not jump there. */
+    const later = await holdLaterPages(context);
+    await signInAs(page, context, baseURL!, {
+      onboarded: true,
+      sets: [...oldSets(499), dayA(otherDayThisWeek()), dayA(today())],
+    });
+    await later.asked;
+    await expect(day(page, 'B')).toHaveAttribute('aria-pressed', 'true');
+
+    await logSuggested(page);
+    await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(1);
+
+    later.release();
+    await allArrived(page, 499 + 2 + 1);
+    await expect(day(page, 'B')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('so does a set logged outside the plan', async ({ page, context, baseURL }) => {
+    /* It ticks no day, but it is somebody at work on this screen: the planned
+       cards above must not change under them. */
+    const later = await holdLaterPages(context);
+    await signInAs(page, context, baseURL!, {
+      onboarded: true,
+      sets: [...oldSets(OLD), dayA(otherDayThisWeek())],
+    });
+    await later.asked;
+    await expect(day(page, 'A')).toHaveAttribute('aria-pressed', 'true');
+
+    await page.getByRole('button', { name: '+ Log something else' }).click();
+    const picker = page.getByRole('dialog');
+    await picker.getByLabel('Search exercises').fill('Kettlebell Swing');
+    await picker.getByRole('button', { name: 'Kettlebell Swing', exact: true }).click();
+    await expect(picker).toHaveCount(0);
+    await logSuggested(page);
+    await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(1);
+
+    later.release();
+    await allArrived(page, OLD + 1 + 1);
+    await expect(day(page, 'A')).toHaveAttribute('aria-pressed', 'true');
   });
 });
 
