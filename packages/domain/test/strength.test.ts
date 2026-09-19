@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ALLOMETRIC_EXPONENT,
+  CATALOGUE,
   COMPETITION_LIFTS,
   SCORED_PATTERNS,
   addDays,
@@ -9,7 +10,10 @@ import {
   competitionLiftsAreMasses,
   dotsAt,
   dotsCoefficient,
+  est1RM,
   index,
+  isWholeBody,
+  loadRuleOf,
   mondayOf,
   strengthAt,
   strengthSeries,
@@ -32,8 +36,11 @@ describe('strength index', () => {
   const thisWeek = mondayOf(new Date());
 
   const patternId = (key: PatternKey) => snap.patterns.find((p) => p.key === key)!.id;
+  /* The first real weight in each pattern. The first exercise outright was
+     Lat Pulldown for pull — a machine, which the index no longer counts, so
+     "a lift in every scored pattern" quietly had four. */
   const exerciseOf = (key: PatternKey) =>
-    snap.exercises.find((e) => e.patternId === patternId(key))!;
+    snap.exercises.find((e) => e.patternId === patternId(key) && loadRuleOf(e.name).mass)!;
 
   let n = 0;
   const set = (key: PatternKey, weight: number, date: string): SetLog => ({
@@ -571,8 +578,10 @@ describe('gymmy own index', () => {
     deletedAt: null,
     date: addDays(thisWeek, 1),
     session: 'A',
+    // A real weight, which is all the index counts besides pull-ups and dips.
     exerciseId: snap.exercises.find(
-      (e) => e.patternId === snap.patterns.find((p) => p.key === key)!.id,
+      (e) =>
+        e.patternId === snap.patterns.find((p) => p.key === key)!.id && loadRuleOf(e.name).mass,
     )!.id,
     setNo: 1,
     weight,
@@ -627,5 +636,145 @@ describe('gymmy own index', () => {
     const dots = dotsAt(ix, thisWeek, who).score!;
     expect(dots).toBeGreaterThanOrEqual(100);
     expect(Number.isInteger(dots)).toBe(true);
+  });
+});
+
+/**
+ * What the index is allowed to add up (Decision log D-022, GYM-12).
+ *
+ * Real weights, plus the bodyweight lifts where near enough the whole body
+ * moves. Before this, a best on Leg Press or Lat Pulldown went straight into the
+ * sum beside a barbell squat — a pin position added to a kilogram — while an
+ * unweighted pull-up had no number at all and a weighted one counted only the
+ * belt. There was a "not a real weight" flag the whole time; nothing read it.
+ */
+describe('what the index counts', () => {
+  const snap = seedSnapshot('sevenPattern', 3);
+  const thisWeek = mondayOf(new Date());
+  const who = { unit: 'kg', sex: 'male' } as const;
+  const BODY = 80;
+
+  let k = 0;
+  const lift = (
+    name: string,
+    weight: number | null,
+    { reps = 5, rir = 0, date = addDays(thisWeek, 1) } = {},
+  ): SetLog => ({
+    id: `c-${++k}`,
+    updatedAt: date,
+    deletedAt: null,
+    date,
+    session: 'A',
+    exerciseId: CATALOGUE.find((c) => c.name === name)!.id,
+    setNo: 1,
+    weight,
+    reps,
+    rir,
+    note: '',
+  });
+
+  const bw = (weight: number, date = thisWeek): BodyLog => ({
+    id: `cbw-${weight}-${date}`,
+    updatedAt: date,
+    deletedAt: null,
+    date,
+    weight,
+    note: '',
+  });
+
+  const at = (logs: SetLog[], bodyLogs: BodyLog[] = [bw(BODY)]) =>
+    strengthAt(index({ ...snap, logs, bodyLogs }), thisWeek, who);
+  const part = (logs: SetLog[], key: PatternKey) => at(logs).parts.find((p) => p.key === key)!.best;
+
+  it('never takes a machine best, however heavy', () => {
+    /* A 300 kg leg press beside a 40 kg goblet squat: the squat is the only
+       real weight, so it is the squat that counts. And a week of nothing but
+       machines scores nothing in those patterns, rather than a stack setting. */
+    expect(part([lift('Leg Press', 300), lift('Goblet Squat', 40)], 'squat')).toBe(
+      est1RM(40, 5, 0),
+    );
+    expect(part([lift('Lat Pulldown', 100)], 'pull')).toBe(0);
+    expect(part([lift('Machine Chest Press', 100)], 'push')).toBe(0);
+    expect(part([lift('Landmine Press', 60)], 'push')).toBe(0);
+
+    const base = [lift('Barbell Back Squat', 100), lift('Barbell Row', 60)];
+    expect(at([...base, lift('Hack Squat', 250), lift('Seated Cable Row', 120)]).index).toBe(
+      at(base).index,
+    );
+  });
+
+  it('counts a pull-up with nothing added at bodyweight', () => {
+    // Stored as no weight at all, as the Train card logs "None".
+    expect(part([lift('Pull-Up', null)], 'pull')).toBe(est1RM(BODY, 5, 0));
+    // What was added goes on top, rather than being all that counts.
+    expect(part([lift('Pull-Up', 20)], 'pull')).toBe(est1RM(BODY + 20, 5, 0));
+    expect(part([lift('Weighted Pull-Up', 20)], 'pull')).toBe(est1RM(BODY + 20, 5, 0));
+    expect(part([lift('Chin-Up', null)], 'pull')).toBe(est1RM(BODY, 5, 0));
+    // A dip is the push side of the same rule.
+    expect(part([lift('Dip', 10)], 'push')).toBe(est1RM(BODY + 10, 5, 0));
+    // And it can beat a real weight, as it should: a heavy pull-up is strong.
+    expect(part([lift('Barbell Row', 60), lift('Pull-Up', 10)], 'pull')).toBe(
+      est1RM(BODY + 10, 5, 0),
+    );
+  });
+
+  it('does not count a push-up, with or without weight', () => {
+    /* A push-up moves part of the body, and what share would be a guess — so
+       it stays out, like a machine. Same for the other part-body moves. */
+    expect(part([lift('Push-Up', null)], 'push')).toBe(0);
+    expect(part([lift('Push-Up', 20)], 'push')).toBe(0);
+    expect(part([lift('Inverted Row', null)], 'pull')).toBe(0);
+  });
+
+  it('holds a pull-up to the same rep ceiling as everything else', () => {
+    // Reps plus reps in reserve above ten gives no estimate, bodyweight or not.
+    expect(part([lift('Pull-Up', null, { reps: 11 })], 'pull')).toBe(0);
+    expect(part([lift('Pull-Up', null, { reps: 8, rir: 2 })], 'pull')).toBe(est1RM(BODY, 8, 2));
+  });
+
+  it('counts a pull-up at the bodyweight of the week it scores', () => {
+    /* The bodyweight the index already divides by: the latest up to the end of
+       the scored week. The same pull-up, logged when you weighed 90, counts at
+       80 the week after you weigh in at 80 — the numerator and the denominator
+       read one scale, and a later weigh-in never rescores an earlier week. */
+    const W0 = addDays(thisWeek, -7);
+    const s = strengthSeries(
+      index({
+        ...snap,
+        logs: [lift('Pull-Up', null, { date: addDays(W0, 1) })],
+        bodyLogs: [bw(90, W0), bw(80, thisWeek)],
+      }),
+      W0,
+      2,
+      who,
+    );
+    expect(s.map((p) => p.parts.find((x) => x.key === 'pull')!.best)).toEqual([
+      est1RM(90, 5, 0),
+      est1RM(80, 5, 0),
+    ]);
+  });
+
+  it('has no pull-up number and no index without a bodyweight', () => {
+    const point = at([lift('Pull-Up', 20)], []);
+    expect(point.parts.find((p) => p.key === 'pull')!.best).toBe(0);
+    expect(point.index).toBeNull();
+  });
+
+  it('moves only through the lifts it counts, across the whole library', () => {
+    /* Every catalogue exercise in a scored pattern, one set each, on its own:
+       a real weight counts its own estimate, a pull-up, chin-up or dip counts
+       bodyweight plus what was added, and everything else adds nothing. Walked
+       over the catalogue rather than a few names, so a new machine cannot
+       arrive in the index by being added to the library. */
+    const scored = CATALOGUE.filter((c) => SCORED_PATTERNS.includes(c.pattern));
+    expect(scored.length).toBeGreaterThan(40);
+    for (const c of scored) {
+      const expected = isWholeBody(c.name)
+        ? est1RM(BODY + 50, 5, 0)
+        : loadRuleOf(c.name).mass
+          ? est1RM(50, 5, 0)
+          : 0;
+      expect(part([lift(c.name, 50)], c.pattern), c.name).toBe(expected);
+    }
   });
 });

@@ -83,9 +83,12 @@ number cannot answer both honestly.
 **gymmy's strength index** — "am I getting stronger?" The sum of your best
 estimated one-rep max in each of the five **loaded** patterns (squat, hinge,
 lunge, push, pull), divided by bodyweight to the power of two thirds and
-adjusted for age from 40. Shown to one decimal, tracked week by week. It is
-only ever compared with itself, which is what lets it count every pattern you
-train rather than three competition lifts.
+adjusted for age from 40. Only real weights count — barbell, dumbbell and
+kettlebell lifts, plus pull-ups, chin-ups and dips at bodyweight plus what was
+added; a machine's stack setting is not a mass and never enters it. Shown to
+one decimal, tracked week by week. It is only ever compared with itself, which
+is what lets it count every pattern you train rather than three competition
+lifts.
 
 **DOTS** — "how do I compare?" The published powerlifting score, computed from
 back squat, bench press and deadlift only, exactly as any DOTS calculator would.

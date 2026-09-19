@@ -267,7 +267,7 @@ export const es: Record<Key, string> = {
   'prog.strengthBody':
     'Tus mejores levantamientos en sentadilla, bisagra, zancada, empuje y tirón, sumados y comparados con tu peso corporal. Solo cuenta los dos últimos meses, así que muestra lo fuerte que eres ahora.',
   'prog.strengthNot':
-    'Es solo para ti: muestra si te estás haciendo más fuerte y no sirve para compararte con nadie. Un movimiento cuenta en cuanto haces una serie de 10 repeticiones o menos, así que entrenar los cinco hace subir el número.',
+    'Es solo para ti: muestra si te estás haciendo más fuerte y no sirve para compararte con nadie. Solo cuentan los ejercicios con barra, mancuernas y kettlebell, más las dominadas (también supinas) y los fondos, con tu peso corporal más el peso añadido. Un movimiento cuenta en cuanto haces una serie de 10 repeticiones o menos, así que entrenar los cinco hace subir el número.',
   'prog.needWeight': 'Añade tu peso corporal y esto empieza a medirse.',
   'prog.needLifts': 'Registra unas sesiones y esto empieza a medirse.',
   'prog.deltaUp': '{by} más que {ago}',

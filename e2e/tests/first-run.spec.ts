@@ -4,12 +4,62 @@ import { randomUUID } from 'node:crypto';
 import type { Page } from '@playwright/test';
 import { CATALOGUE } from '../../packages/domain/src/catalogue';
 import { buildProgram, varietyFor } from '../../packages/domain/src/coach';
+import { isWholeBody, loadRuleOf } from '../../packages/domain/src/load';
 import { index } from '../../packages/domain/src/model';
 import { SEED_PATTERNS } from '../../packages/domain/src/seed';
 import { buildSlots, findSplit } from '../../packages/domain/src/splits';
 import type { Snapshot } from '../../packages/domain/src/types';
 import { createUser, installedWeek, sessionCookie, thisMonday } from '../fixtures/auth';
 import { completeOnboarding, expect, logSet, recordedSet, test } from '../fixtures/test';
+
+/**
+ * The week setup installs for an account with this id, as `day:slot` → exercise
+ * id — built by the generator exactly as setup builds it for the default
+ * answers (seven patterns, three days, a gym, no emphasis).
+ */
+function weekFor(accountId: string, variety: number): Record<string, string> {
+  const preset = findSplit('sevenPattern')!;
+  const stamp = new Date().toISOString();
+  const meta = { updatedAt: stamp, deletedAt: null };
+  const slots = buildSlots(preset, 3).map((s, i) => ({ ...meta, ...s, id: `slot-${i}` }));
+  const snap: Snapshot = {
+    patterns: SEED_PATTERNS.map((p, i) => ({
+      ...meta,
+      id: `${accountId}-${p.key}`,
+      key: p.key,
+      name: p.key,
+      role: p.role,
+      counts: p.counts,
+      position: i,
+    })),
+    slots,
+    exercises: [],
+    splitPeriods: [
+      {
+        ...meta,
+        id: 'period',
+        split: preset.key,
+        days: 3,
+        startWeek: thisMonday(),
+        patternKeys: [...preset.covers],
+      },
+    ],
+    entries: [],
+    logs: [],
+    bodyLogs: [],
+    goals: [],
+    profile: null,
+  };
+  const position = new Map(slots.map((s) => [s.id, s.position]));
+  const out: Record<string, string> = {};
+  for (const e of buildProgram(index(snap), { days: 3, where: 'gym', bias: 'none', variety }))
+    if (e.exerciseId) out[`${e.sessionIndex}:${position.get(e.slotId)}`] = e.exerciseId;
+  return out;
+}
+
+/** The lift Train opens on for a new account with this id: Day A's first slot. */
+const openingLift = (accountId: string): string =>
+  CATALOGUE.find((c) => c.id === weekFor(accountId, varietyFor(accountId))['0:0'])!.name;
 
 /** The exercises the setup preview lists under one day's card. */
 const previewOf = (page: Page, day: string) =>
@@ -126,46 +176,6 @@ test.describe('First run', () => {
        So the account's id is chosen here, one whose offset is known to change
        the week, and the week the server ends up holding is compared with the
        one the generator makes for that id. */
-    const preset = findSplit('sevenPattern')!;
-    const weekFor = (accountId: string, variety: number): Record<string, string> => {
-      const stamp = new Date().toISOString();
-      const meta = { updatedAt: stamp, deletedAt: null };
-      const slots = buildSlots(preset, 3).map((s, i) => ({ ...meta, ...s, id: `slot-${i}` }));
-      const snap: Snapshot = {
-        patterns: SEED_PATTERNS.map((p, i) => ({
-          ...meta,
-          id: `${accountId}-${p.key}`,
-          key: p.key,
-          name: p.key,
-          role: p.role,
-          counts: p.counts,
-          position: i,
-        })),
-        slots,
-        exercises: [],
-        splitPeriods: [
-          {
-            ...meta,
-            id: 'period',
-            split: preset.key,
-            days: 3,
-            startWeek: thisMonday(),
-            patternKeys: [...preset.covers],
-          },
-        ],
-        entries: [],
-        logs: [],
-        bodyLogs: [],
-        goals: [],
-        profile: null,
-      };
-      const position = new Map(slots.map((s) => [s.id, s.position]));
-      const out: Record<string, string> = {};
-      for (const e of buildProgram(index(snap), { days: 3, where: 'gym', bias: 'none', variety }))
-        if (e.exerciseId) out[`${e.sessionIndex}:${position.get(e.slotId)}`] = e.exerciseId;
-      return out;
-    };
-
     let id = '';
     for (let i = 0; i < 50 && !id; i++) {
       const candidate = randomUUID();
@@ -218,13 +228,35 @@ test.describe('First run', () => {
     }
   });
 
-  test('starts tracking a strength score as soon as it trains', async ({ app }) => {
+  test('starts tracking a strength score as soon as it trains', async ({
+    page: app,
+    context,
+    baseURL,
+  }) => {
     /* The point of asking for bodyweight during setup. Every account in
        production had trained and had no strength score at all, because the
        score is a ratio and nothing had ever asked for the denominator — so
        the app's headline number only worked for people who went looking for
-       a field in Settings. */
+       a field in Settings.
+
+       The account's id is chosen so that its week opens on a lift the index
+       counts. The index takes real weights and pull-ups, chin-ups and dips
+       only (Decision log D-022), and about two accounts in five open Day A on
+       a Leg Press, Hack Squat, Smith squat or bodyweight squat — one set of
+       which rightly starts no score. Left to a random account, this test
+       failed that often. */
+    let id = '';
+    for (let i = 0; i < 50 && !id; i++) {
+      const candidate = randomUUID();
+      const lift = openingLift(candidate);
+      if (loadRuleOf(lift).mass || isWholeBody(lift)) id = candidate;
+    }
+    expect(id, 'no account id in fifty opened on a lift the index counts').not.toBe('');
+    const user = await createUser({ id });
+    await context.addCookies([sessionCookie(user, baseURL!)]);
+
     await completeOnboarding(app, { weight: 78.5 });
+    await expect(app.getByRole('heading', { name: openingLift(id), exact: true })).toBeVisible();
     await logSet(app, 60, 8);
     // Waited for: the set has to be in the local store before Progress can
     // read it, and a bare goto races that. Read back rather than assumed — see

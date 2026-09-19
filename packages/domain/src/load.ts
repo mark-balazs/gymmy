@@ -48,7 +48,11 @@
  * friction. A landmine's load at the hands is a fraction of the sleeve that
  * depends on the bar's angle. These numbers are worth logging and worth
  * charting against themselves; they are not worth summing with a barbell load,
- * and anything that compares people has to leave them out.
+ * so neither strength number takes them (Decision log D-022).
+ *
+ * One exception, and it is not a mass either: a pull-up, chin-up or dip moves
+ * near enough the whole body, so the index counts it at bodyweight plus what
+ * was added. See `WHOLE_BODY`.
  *
  * Nothing here is stored per user. A convention is a fact about the movement,
  * not about somebody's account, so it is looked up from this table by name and
@@ -87,8 +91,10 @@ export interface LoadRule {
    *
    * False does not mean "do not log it". Charting a stack setting against
    * itself is perfectly sound — the machine does not change between Tuesdays.
-   * It means the number must not cross into anything absolute or anything that
-   * compares one person with another.
+   * It means the number must not cross into anything absolute: neither the
+   * strength index nor DOTS takes it. The only way a `mass: false` lift reaches
+   * the index is `WHOLE_BODY`, and then the number counted is bodyweight plus
+   * the stored one, not the stored one alone.
    */
   readonly mass: boolean;
 }
@@ -258,6 +264,35 @@ export const EXERCISE_LOADS: Record<string, LoadClass> = {
 export const loadClassOf = (name: string): LoadClass => EXERCISE_LOADS[name] ?? 'dumbbellOne';
 
 export const loadRuleOf = (name: string): LoadRule => LOAD_RULES[loadClassOf(name)];
+
+/**
+ * The bodyweight lifts where near enough the whole body moves: pull-ups,
+ * chin-ups and dips, weighted and gymnastic variants included.
+ *
+ * The strength index counts these at bodyweight plus what was added, because
+ * bodyweight strength is strength, and without this an unweighted pull-up
+ * would have no number and a weighted one would count only the belt (Decision
+ * log D-022). The Train card is unchanged: the box still takes only what was
+ * added, as for every `bodyweight` lift.
+ *
+ * **Deliberately short.** A push-up, an inverted row or a Nordic curl moves
+ * part of the body, and what share of bodyweight that is would be a guess — so
+ * they stay out, like machines. A handstand push-up was not named in the
+ * decision, so it is out too: adding one is a product call, not a code one.
+ *
+ * Keyed by name like everything else here. `load.test.ts` holds every entry to
+ * the catalogue and to the `bodyweight` class.
+ */
+export const WHOLE_BODY: ReadonlySet<string> = new Set([
+  'Pull-Up',
+  'Chin-Up',
+  'Weighted Pull-Up',
+  'Chest-to-Bar Pull-Up',
+  'Dip',
+  'Ring Dip',
+]);
+
+export const isWholeBody = (name: string): boolean => WHOLE_BODY.has(name);
 
 /**
  * What goes into storage, given what somebody typed.

@@ -253,7 +253,7 @@ export const hu: Record<Key, string> = {
   'prog.strengthBody':
     'A legjobb emeléseid guggolásban, csípőhajlításban, kitörésben, nyomásban és húzásban, összeadva és a testsúlyodhoz mérve. Csak az utolsó két hónapot nézi, így azt mutatja, most mennyire vagy erős.',
   'prog.strengthNot':
-    'Ez csak neked szól: azt mutatja, erősödsz-e, és nem arra való, hogy másokhoz mérd magad. Egy mozgás akkor számít, ha már csináltál benne legfeljebb 10 ismétléses sorozatot, így mind az öt edzése felfelé viszi a számot.',
+    'Ez csak neked szól: azt mutatja, erősödsz-e, és nem arra való, hogy másokhoz mérd magad. Csak a rúddal, kézisúlyzóval és kettlebell-lel végzett gyakorlatok számítanak, meg a húzódzkodás (bármilyen fogással) és a tolódzkodás a testsúlyoddal és a ráadott súllyal együtt. Egy mozgás akkor számít, ha már csináltál benne legfeljebb 10 ismétléses sorozatot, így mind az öt edzése felfelé viszi a számot.',
   'prog.needWeight': 'Add meg a testsúlyodat, és ez is követni kezdi.',
   'prog.needLifts': 'Rögzíts pár edzést, és ez is követni kezdi.',
   'prog.deltaUp': '{by} felfelé {ago}',

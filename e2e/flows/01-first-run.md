@@ -40,8 +40,11 @@ app has failed at the thing it exists to do.
   through the UI and the database, by mapping the installed week's exercises
   back to their patterns. That the Week tab shows the seven pattern tiles is
   held by `splits.spec.ts` ("the seven-pattern split is scored on all seven").
-- With a bodyweight given, a strength index appears as soon as anything is
-  trained; skipped, Progress says what is missing.
+- With a bodyweight given, a strength index appears as soon as a lift it counts
+  is trained — a real weight, or a pull-up, chin-up or dip; skipped, Progress
+  says what is missing. The spec picks an account whose week opens on a lift
+  that counts, because about two in five gym accounts open on a machine or a
+  bodyweight squat, and one set of those rightly starts no index.
 
 ## Notes
 

@@ -263,7 +263,7 @@ export const fr: Record<Key, string> = {
   'prog.strengthBody':
     'Tes meilleures charges en squat, charnière, fente, poussée et tirage, additionnées et comparées à ton poids de corps. Seuls les deux derniers mois comptent, donc il montre ta force actuelle.',
   'prog.strengthNot':
-    'C’est juste pour toi : il montre si tu progresses, pas de quoi te comparer aux autres. Un mouvement compte dès que tu as fait une série de 10 répétitions ou moins, donc travailler les cinq fait monter le chiffre.',
+    'C’est juste pour toi : il montre si tu progresses, pas de quoi te comparer aux autres. Seuls comptent les exercices à la barre, aux haltères et au kettlebell, plus les tractions (pronation ou supination) et les dips, à ton poids de corps plus la charge ajoutée. Un mouvement compte dès que tu as fait une série de 10 répétitions ou moins, donc travailler les cinq fait monter le chiffre.',
   'prog.needWeight': 'Renseigne ton poids de corps et le suivi démarre.',
   'prog.needLifts': 'Note quelques séances et le suivi démarre.',
   'prog.deltaUp': '{by} de plus qu’{ago}',

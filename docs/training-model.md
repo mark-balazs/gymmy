@@ -183,8 +183,18 @@ out of anything absolute:
   bar's angle.
 
 False does not mean "do not log it". Charting a stack setting against itself is
-sound — the machine does not change between Tuesdays. It means the number must
-not be summed with a barbell load or used to compare two people.
+sound — the machine does not change between Tuesdays. It means the number is
+never summed with a barbell load or used to compare two people: **neither
+strength number takes it** (Decision log D-022). `strength.test.ts` walks the
+whole catalogue to hold that.
+
+**The one exception: the whole body moves.** `WHOLE_BODY` in `load.ts` marks the
+pull-ups, chin-ups and dips — Pull-Up, Chin-Up, Weighted Pull-Up, Chest-to-Bar
+Pull-Up, Dip, Ring Dip. They stay `bodyweight` (the box takes only what was
+added), but the index counts them at **bodyweight plus what was added**, the
+bodyweight being the one the index divides by that week. A push-up, inverted row
+or Nordic curl moves part of the body, and what share would be a guess, so they
+stay out like machines.
 
 Two barbell caveats nothing can fix: **hex bar** mass is unstandardised and never
 reported (the two comparison studies disagree by ~8% and neither states it), and
@@ -277,6 +287,13 @@ decimal place.
 - **A pattern never trained counts as zero**, so coverage moves the number.
   That is the app's whole thesis and the reason this number exists next to a
   three-lift one.
+- **Real weights only.** Each pattern's best comes from barbell, dumbbell and
+  kettlebell lifts (`mass: true`), plus pull-ups, chin-ups and dips at
+  bodyweight plus what was added (`indexEstimate` in `strength.ts`, same
+  10-rep ceiling). A machine, landmine or push-up best adds nothing, however
+  heavy; it still charts against itself. So a pattern trained only on machines
+  counts as zero, and a new account whose first lift is a Leg Press has no index
+  until it logs a real weight — about two in five gym accounts open on one.
 - **Two-thirds, not one.** From geometric similarity: force goes with
   cross-sectional area (length squared) while mass is a length cubed. A plain
   bodyweight multiple is wrong at both ends.

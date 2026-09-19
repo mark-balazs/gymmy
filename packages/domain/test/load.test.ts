@@ -4,8 +4,10 @@ import {
   EXERCISE_LOADS,
   LOAD_CONVENTION_FROM,
   LOAD_RULES,
+  WHOLE_BODY,
   addDays,
   conventionChanged,
+  isWholeBody,
   loadClassOf,
   loadRuleOf,
   toEntered,
@@ -72,7 +74,7 @@ describe('load conventions', () => {
 
   it('refuses to call a stack setting a mass', () => {
     /* The honest half, and the one with teeth in it: these numbers must never
-       reach anything absolute or anything that compares two people. McMillin
+       reach either strength number (`strength.test.ts` holds that). McMillin
        2024 measured -48% to +70% at the handle of a single machine across one
        stroke, so the pin number is a position, not a kilogram. */
     expect(loadRuleOf('Lat Pulldown').mass).toBe(false);
@@ -88,6 +90,33 @@ describe('load conventions', () => {
     // Free weights are, which is the whole point of drawing the line here.
     expect(loadRuleOf('Barbell Bench Press').mass).toBe(true);
     expect(loadRuleOf('DB Bench Press').mass).toBe(true);
+  });
+
+  it('marks only pull-ups, chin-ups and dips as moving the whole body', () => {
+    /* The one way a lift that is not a mass reaches the strength index: at
+       bodyweight plus what was added (Decision log D-022). Held to the list the
+       owner decided, in full, so a push-up cannot drift in because it also has
+       "bodyweight" in its class — its share of bodyweight would be a guess. */
+    expect([...WHOLE_BODY].sort()).toEqual(
+      ['Chest-to-Bar Pull-Up', 'Chin-Up', 'Dip', 'Pull-Up', 'Ring Dip', 'Weighted Pull-Up'].sort(),
+    );
+    const byName = new Map(CATALOGUE.map((c) => [c.name, c]));
+    for (const name of WHOLE_BODY) {
+      // A catalogue lift, logged as the weight added to the body, in a pattern
+      // the index scores.
+      expect(byName.get(name), name).toBeDefined();
+      expect(loadClassOf(name), name).toBe('bodyweight');
+      expect(['push', 'pull'], name).toContain(byName.get(name)!.pattern);
+    }
+    for (const name of [
+      'Push-Up',
+      'Inverted Row',
+      'Ring Row',
+      'Handstand Push-Up',
+      'Nordic Curl',
+    ]) {
+      expect(isWholeBody(name), name).toBe(false);
+    }
   });
 
   it('treats an unknown exercise as one implement, stored as typed', () => {

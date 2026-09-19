@@ -263,7 +263,7 @@ export const de: Record<Key, string> = {
   'prog.strengthBody':
     'Deine besten Gewichte in Kniebeuge, Hüftbeuge, Ausfallschritt, Drücken und Ziehen, zusammengezählt und mit deinem Körpergewicht verglichen. Es zählen nur die letzten zwei Monate – so zeigt der Wert, wie stark du jetzt bist.',
   'prog.strengthNot':
-    'Der Wert ist nur für dich: Er zeigt, ob du stärker wirst, und ist nicht zum Vergleichen mit anderen gedacht. Eine Bewegung zählt, sobald du einen Satz mit höchstens 10 Wiederholungen gemacht hast – wer alle fünf trainiert, bringt den Wert nach oben.',
+    'Der Wert ist nur für dich: Er zeigt, ob du stärker wirst, und ist nicht zum Vergleichen mit anderen gedacht. Es zählen nur Übungen mit Langhantel, Kurzhantel und Kettlebell, dazu Klimmzüge (auch im Untergriff) und Dips – mit deinem Körpergewicht plus Zusatzgewicht. Eine Bewegung zählt, sobald du einen Satz mit höchstens 10 Wiederholungen gemacht hast – wer alle fünf trainiert, bringt den Wert nach oben.',
   'prog.needWeight': 'Trag dein Körpergewicht ein, dann läuft das hier mit.',
   'prog.needLifts': 'Trag ein paar Einheiten ein, dann läuft das hier mit.',
   'prog.deltaUp': '{by} mehr als {ago}',

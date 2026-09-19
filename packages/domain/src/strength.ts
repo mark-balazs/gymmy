@@ -21,7 +21,9 @@
  *  - **`strengthAt` — gymmy's own index.** All five loaded patterns, with a
  *    pattern you have never trained counting as zero, because covering the
  *    whole body is this app's entire thesis and a score that ignored it would
- *    be arguing against the rest of the product. On our own scale. Not
+ *    be arguing against the rest of the product. Real weights only — barbell,
+ *    dumbbell and kettlebell lifts, plus pull-ups, chin-ups and dips at
+ *    bodyweight plus what was added (`indexEstimate`). On our own scale. Not
  *    comparable to anybody else's, and it does not pretend to be.
  *
  * ## Where they deliberately differ
@@ -68,8 +70,8 @@
  * a comparable *scale*, not a ranking, and the index is not comparable at all.
  */
 
-import { addDays, allLogs, blockWeeks, type DecoratedLog, type Indexed } from './model';
-import { loadClassOf, loadRuleOf } from './load';
+import { addDays, allLogs, blockWeeks, est1RM, type DecoratedLog, type Indexed } from './model';
+import { isWholeBody, loadClassOf, loadRuleOf } from './load';
 import type { PatternKey, Sex, Unit } from './types';
 
 /**
@@ -288,8 +290,9 @@ const trainedIn = (logs: DecoratedLog[], weekOf: string): DecoratedLog[] => {
   return logs.filter((l) => l.date >= from && l.date <= until && l.exercise);
 };
 
-/** The logs both numbers are computed from: the same window, and only those
- *  with an estimate behind them. */
+/** The logs DOTS is computed from: the window, and only those with an
+ *  estimate behind them. The index uses the same window but makes its own
+ *  estimates, because a pull-up's estimate counts bodyweight (`indexEstimate`). */
 const inWindow = (logs: DecoratedLog[], weekOf: string): DecoratedLog[] =>
   trainedIn(logs, weekOf).filter((l) => l.e1rm !== null);
 
@@ -421,9 +424,35 @@ export interface StrengthPoint {
    */
   index: number | null;
   bodyWeight: number | null;
-  /** Best estimated one-rep max per scored pattern, in `SCORED_PATTERNS` order. */
+  /** Best estimated one-rep max per scored pattern, in `SCORED_PATTERNS` order,
+   *  from the lifts `indexEstimate` counts. */
   parts: { key: PatternKey; best: number }[];
 }
+
+/**
+ * What one set adds to the index: its estimated one-rep max, or null when it
+ * adds nothing.
+ *
+ * **Real weights only** (Decision log D-022). A barbell, dumbbell or kettlebell
+ * set — a load class with `mass: true` — counts its own estimate. A pull-up,
+ * chin-up or dip (`WHOLE_BODY` in `load.ts`) counts at bodyweight plus what was
+ * added, estimated by the same rule as everything else, so an unweighted
+ * pull-up has a number and a weighted one is no longer only the belt. Anything
+ * else — a machine, a landmine, a push-up — adds nothing: its number is not a
+ * mass, and summing a pin position with a kilogram answers nothing. It still
+ * charts against itself on its own lift.
+ *
+ * The bodyweight is the one the index divides by: the latest on record up to
+ * the end of the scored week. So the pull-up and the denominator always agree,
+ * and a week with no bodyweight has no index for any lift to be missing from.
+ */
+const indexEstimate = (log: DecoratedLog, bodyWeight: number | null): number | null => {
+  const name = log.exercise!.name;
+  if (isWholeBody(name)) {
+    return bodyWeight ? est1RM(bodyWeight + (log.weight ?? 0), log.reps, log.rir) : null;
+  }
+  return loadRuleOf(name).mass ? log.e1rm : null;
+};
 
 function indexFrom(
   logs: DecoratedLog[],
@@ -433,10 +462,11 @@ function indexFrom(
   who: StrengthOf,
 ): StrengthPoint {
   const best = new Map<PatternKey, number>();
-  for (const log of inWindow(logs, weekOf)) {
+  for (const log of trainedIn(logs, weekOf)) {
     const key = patternOf.get(log.exercise!.patternId);
     if (!key || !SCORED_PATTERNS.includes(key)) continue;
-    if (log.e1rm! > (best.get(key) ?? 0)) best.set(key, log.e1rm!);
+    const estimate = indexEstimate(log, bodyWeight);
+    if (estimate !== null && estimate > (best.get(key) ?? 0)) best.set(key, estimate);
   }
 
   const parts = SCORED_PATTERNS.map((key) => ({ key, best: best.get(key) ?? 0 }));

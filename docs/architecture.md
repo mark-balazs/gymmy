@@ -61,7 +61,7 @@ second implementation to disagree with the first.
 | `packages/domain/src/types.ts` | Every record shape, and the `TABLES` list the sync layer is generated from |
 | `packages/domain/src/model.ts` | Pure derived values — coverage, progress, `index()` |
 | `packages/domain/src/strength.ts` | The two strength numbers: gymmy's index and DOTS |
-| `packages/domain/src/load.ts` | What the number in the weight box means per exercise — per hand, the bar, a machine setting |
+| `packages/domain/src/load.ts` | What the number in the weight box means per exercise — per hand, the bar, a machine setting — and which bodyweight lifts move the whole body |
 | `packages/domain/src/entry.ts` | Setting a number on Train: each equipment's ruler range and step, the plates, the bars, where a first set starts, and how many decimals a scale's numbers are written with |
 | `packages/domain/src/coach.ts` | Program generation, and reading back the last session on a lift |
 | `packages/domain/src/insights.ts` | What Progress and the calendar *say* — session series, drawdowns, the triage, a day |
