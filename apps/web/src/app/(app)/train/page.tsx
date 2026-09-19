@@ -13,7 +13,7 @@
  * app no longer tells anybody what to lift. See Decision log D-014.
  */
 
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Button, Card, Chip, Segmented, cn } from '@/components/ui';
 import { Presence } from '@/components/presence';
@@ -22,7 +22,11 @@ import { ExerciseSheet } from '@/components/exercise-sheet';
 import { ExercisePicker } from '@/components/exercise-picker';
 import { Collapse } from '@/components/entry/collapse';
 import { reducedMotion } from '@/components/motion';
+import { haptic } from '@/components/haptic';
+import { InfoTip } from '@/components/info-tip';
+import { Tick } from '@/components/tick';
 import { PlateLoader } from '@/components/entry/plate-loader';
+import { RollingNumber } from '@/components/entry/rolling-number';
 import { Ruler } from '@/components/entry/ruler';
 import { ValueStepper } from '@/components/entry/value-stepper';
 import {
@@ -67,7 +71,7 @@ import type { Key } from '@/lib/i18n';
 import type { EntryMode, LastSession, PlanRow, Unit } from '@athletic/domain';
 
 export default function TrainPage() {
-  const { ix } = useSnapshot();
+  const { ix, ready } = useSnapshot();
   const profile = useProfile();
   const tr = useT();
   const today = useToday();
@@ -155,6 +159,47 @@ export default function TrainPage() {
   const total = plan.reduce((a, p) => a + p.target, 0);
 
   /**
+   * The moment a day is finished: its tab's tick draws, one line says so, and
+   * an Android phone gives one short buzz.
+   *
+   * Only for a day finished **here, by the set just logged**. A day that was
+   * finished already — yesterday, on another phone, or simply before the logs
+   * had loaded, when every day reads unfinished for a render — is ticked and
+   * says nothing. So a card arms it as its Log button is tapped (`logging`),
+   * and the render in which that set lands either finds the day newly
+   * finished or disarms it. Tracked while rendering, the way `pickedFor` is,
+   * because it is a comparison with the render before.
+   *
+   * It lasts while the day stays on screen: another day or date, or a set
+   * deleted from this one, ends it.
+   */
+  const dayKey = `${date}|${day}`;
+  const dayDone = finished[day] ?? false;
+  const [logging, setLogging] = useState<string | null>(null);
+  const [beat, setBeat] = useState<string | null>(null);
+  const [seen, setSeen] = useState({ key: dayKey, finished: dayDone, sets: done });
+  if (seen.key !== dayKey || seen.finished !== dayDone || seen.sets !== done) {
+    setSeen({ key: dayKey, finished: dayDone, sets: done });
+    if (seen.key !== dayKey || !dayDone) setBeat(null);
+    else if (!seen.finished && logging === dayKey) setBeat(dayKey);
+    // The set has landed, whatever it did to the day.
+    if (seen.sets !== done) setLogging(null);
+  }
+  const celebrating = beat === dayKey;
+  useEffect(() => {
+    if (celebrating) haptic('day');
+  }, [celebrating]);
+
+  /* The day's count, with its number apart so that it can tick. Rolls only
+     once the logs have loaded: the first render reads every day as empty, and
+     the real count arriving is not a set being logged. */
+  const MARK = '';
+  const counter = total
+    ? tr.count('train.ofSets', total, { done: MARK })
+    : tr.plural(done, 'set').replace(String(done), MARK);
+  const [before, after] = counter.split(MARK);
+
+  /**
    * Training that is not a day of the plan: a class, a test, anything else.
    *
    * What has been logged comes from the logs — so it survives a reload and
@@ -220,22 +265,44 @@ export default function TrainPage() {
             value: i,
             label: tr.t('common.day', { n: sessionLabel(i) }),
             done: finished[i] ?? false,
+            justDone: celebrating && i === day,
           }))}
         />
-        <div className="flex items-center justify-between gap-3">
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => {
-              setDate(e.target.value || today);
-              // A new date gets a fresh auto-pick.
-              setPickedFor(null);
-            }}
-            className="min-h-[var(--spacing-tap)] max-w-[180px] rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
-          />
-          <span className="num text-sm text-[var(--color-muted)]">
-            {total ? tr.count('train.ofSets', total, { done }) : tr.plural(done, 'set')}
-          </span>
+        {/* The date row and the day's line are one item of the card, so the
+            line takes no gap while it is not there. */}
+        <div>
+          <div className="flex items-center justify-between gap-3">
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => {
+                setDate(e.target.value || today);
+                // A new date gets a fresh auto-pick.
+                setPickedFor(null);
+              }}
+              className="min-h-[var(--spacing-tap)] max-w-[180px] rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
+            />
+            <span className="num text-sm text-[var(--color-muted)]">
+              {after === undefined ? (
+                counter
+              ) : (
+                <>
+                  {before}
+                  <RollingNumber text={String(done)} value={ready ? done : null} />
+                  {after}
+                </>
+              )}
+            </span>
+          </div>
+          {/* Always there, so a screen reader hears the line when it arrives —
+              the drawn tick on the tab is for the eye only. */}
+          <div role="status">
+            <Collapse open={celebrating}>
+              <p className="pt-3 text-sm font-semibold text-[var(--color-accent)]">
+                {tr.t('train.dayDone', { day: tr.t('common.day', { n: sessionLabel(day) }) })}
+              </p>
+            </Collapse>
+          </div>
         </div>
       </Card>
 
@@ -265,6 +332,7 @@ export default function TrainPage() {
             open={openKey === row.key}
             reveal={advancedTo === row.key}
             onOpen={() => choose(row.key)}
+            onLogging={() => setLogging(dayKey)}
           />
         ) : null,
       )}
@@ -275,11 +343,15 @@ export default function TrainPage() {
           would be the first h2 on the page after a finished day, and the page's
           own tooling reads that as the open exercise. */}
       {offPlan.length > 0 && (
-        <div className="flex flex-col gap-1 px-1">
+        <div className="flex items-center gap-1 px-1">
           <p className="text-[10.5px] font-bold tracking-wider text-[var(--color-muted)] uppercase">
             {tr.t('train.offPlan')}
           </p>
-          <p className="text-xs text-[var(--color-muted)]">{tr.t('train.offPlanNote')}</p>
+          {/* That it still counts is reassurance, read once; the label already
+              says it is not a day of the plan. */}
+          <InfoTip label={tr.t('info.more', { subject: tr.t('train.offPlan') })}>
+            {tr.t('train.offPlanNote')}
+          </InfoTip>
         </div>
       )}
       {offPlan.map((row) => (
@@ -298,6 +370,8 @@ export default function TrainPage() {
           open={openKey === `off:${row.exercise.id}`}
           reveal={false}
           onOpen={() => choose(`off:${row.exercise.id}`)}
+          // An off-plan set never finishes a day, so it has nothing to arm.
+          onLogging={() => undefined}
         />
       ))}
 
@@ -358,6 +432,7 @@ function ExerciseCard({
   open,
   reveal,
   onOpen,
+  onLogging,
 }: {
   row: CardRow;
   /** The plan's rep range for this slot, which a card with no history starts
@@ -378,6 +453,9 @@ function ExerciseCard({
   /** Scroll the card into view once it has opened: the app moved on to it. */
   reveal: boolean;
   onOpen: () => void;
+  /** A set is about to be logged here — so the page can tell a day finished
+   *  by it from a day that was finished already. */
+  onLogging: () => void;
 }) {
   const offPlan = session === OFF_PLAN_SESSION;
   const exercise = row.exercise!;
@@ -433,7 +511,6 @@ function ExerciseCard({
   const [weight, setWeight] = useState<number>(() => lastWeight ?? startW());
   const [reps, setReps] = useState<number>(startR);
   const [rir, setRir] = useState<number>(2);
-  const [saving, setSaving] = useState(false);
   const [detail, setDetail] = useState(false);
 
   /**
@@ -468,23 +545,61 @@ function ExerciseCard({
   const dots = offPlan ? Math.min(row.done, MAX_DOTS) : Math.max(row.target, row.done) || 3;
 
   /**
+   * What the set just logged changed, so that only that moves: the dot it
+   * filled pops (`popAt`), and the tick draws if it finished the exercise
+   * (`drawTick`).
+   *
+   * Compared with the render before rather than with the card's first one, and
+   * cleared when the movement ends. A card that mounts with sets already done
+   * — a reload, another day, a finished card reopened — has nothing new in it,
+   * and a dot or a tick that remounts (the header swapping to its closed row)
+   * must not play again.
+   */
+  const [seenDone, setSeenDone] = useState(row.done);
+  const [popAt, setPopAt] = useState<number | null>(null);
+  const [drawTick, setDrawTick] = useState(false);
+  if (row.done !== seenDone) {
+    setSeenDone(row.done);
+    // One more set is a set logged; a jump is a sync or a delete.
+    setPopAt(row.done === seenDone + 1 ? seenDone : null);
+    setDrawTick(row.target > 0 && row.done >= row.target && seenDone < row.target);
+  }
+
+  /** The row of the set just logged, while it grows into the list. One new
+   *  row only: several at once came from a sync, not from a tap. */
+  const logIds = row.logs.map((l) => l.id).join(' ');
+  const [seenLogs, setSeenLogs] = useState(logIds);
+  const [growing, setGrowing] = useState<string | null>(null);
+  if (logIds !== seenLogs) {
+    setSeenLogs(logIds);
+    const had = new Set(seenLogs.split(' '));
+    const added = row.logs.filter((l) => !had.has(l.id));
+    setGrowing(added.length === 1 ? added[0]!.id : null);
+  }
+
+  /**
    * Progress as dots: filled for a set done, hollow for one still to do.
    *
    * Shared by both states, which is the point — closed, it is the only thing on
    * the row besides the name, and open, it sits beside the log button. The same
    * mark means the same thing in both, so collapsing a card loses nothing you
    * were reading.
+   *
+   * The colour fades in; the size is the pop, on the new dot only, and is not
+   * also a transition — a transition on `scale` would override the pop.
    */
   const dotRow = (
     <div aria-hidden className="flex shrink-0 gap-1.5">
       {Array.from({ length: dots }, (_, i) => (
         <span
           key={i}
+          onAnimationEnd={i === popAt ? () => setPopAt(null) : undefined}
           className={cn(
-            'h-2.5 w-2.5 rounded-full transition-[scale,background-color,box-shadow] duration-(--dur-base) ease-(--ease-spring)',
+            'h-2.5 w-2.5 rounded-full transition-[background-color,box-shadow] duration-(--dur-base) ease-(--ease-out)',
             i < row.done
               ? 'scale-110 bg-[var(--color-accent)] shadow-[0_0_10px_-1px_var(--color-accent)] motion-reduce:scale-100'
               : 'bg-[var(--color-line)]',
+            i === popAt && 'animate-dot-pop',
           )}
         />
       ))}
@@ -497,11 +612,20 @@ function ExerciseCard({
     </div>
   );
 
+  /**
+   * Guarded because the button stays put after a tap — on a laggy phone a
+   * double tap would otherwise log the set twice.
+   *
+   * A ref, not a disabled button. Disabling it dimmed the button to 40% for
+   * the length of every write — a flicker on the one button pressed twenty
+   * times a session — and a second tap can land before the render that would
+   * disable it anyway.
+   */
+  const busy = useRef(false);
   const save = async () => {
-    if (saving) return;
-    // Guarded because the button stays put after a tap — on a laggy phone a
-    // double tap would otherwise log the set twice.
-    setSaving(true);
+    if (busy.current) return;
+    busy.current = true;
+    onLogging();
     try {
       // Reported by the write layer if it fails; the button simply frees up
       // again so the set can be tried once more.
@@ -517,10 +641,12 @@ function ExerciseCard({
         reps,
         rir,
       });
+      // Only now, with the set on the device.
+      haptic('set');
     } catch {
       /* Already surfaced in the sync badge. */
     } finally {
-      setSaving(false);
+      busy.current = false;
     }
   };
 
@@ -610,6 +736,39 @@ function ExerciseCard({
   const weightStops = scaleValues(scale, weight, lastWeight);
   const weightPlaces = scalePlaces(weightStops);
 
+  /**
+   * What the number actually means.
+   *
+   * The app asked for a "weight" for months without ever saying what it was
+   * counting — which for two dumbbells is a factor of two, and once stored
+   * there is nothing to say which side of it a row is on. So every weight
+   * control says what it counts, at the moment of setting it.
+   *
+   * On screen only where the words stop a wrong entry: the pair's figure (type
+   * one dumbbell, see both recorded), and "added weight only" on a bodyweight
+   * lift, or somebody types their own bodyweight. The rest — the bar and its
+   * plates, the one dumbbell, a machine's setting, a partial load — is what
+   * people type anyway, so it waits behind an ⓘ beside the weight. A screen
+   * reader still hears it on the weight control: the ⓘ's text is the
+   * control's description (`howId`). With the bar loaded plate by plate there
+   * is nothing to say — gymmy adds the bar and the plates up itself, and the
+   * line under the total shows how.
+   */
+  const note = plates
+    ? null
+    : load === 'dumbbellPair'
+      ? 'pair'
+      : load === 'bodyweight'
+        ? 'bodyweight'
+        : 'tip';
+  const describedBy = note ? howId : undefined;
+  const weightTip =
+    note === 'tip' ? (
+      <InfoTip label={tr.t('load.tip')} textId={howId}>
+        {tr.t(`load.${load}` as Key)}
+      </InfoTip>
+    ) : null;
+
   const weightControl = plates ? (
     <PlateLoader
       value={weight}
@@ -619,7 +778,7 @@ function ExerciseCard({
       barChoices={BAR_CHOICES[unit]}
       onChange={setWeight}
       onBarChange={chooseBar}
-      describedBy={howId}
+      describedBy={describedBy}
       places={weightPlaces}
     />
   ) : entryMode === 'ruler' ? (
@@ -629,7 +788,8 @@ function ExerciseCard({
       onChange={setWeight}
       label="weight"
       unit={unit}
-      describedBy={howId}
+      describedBy={describedBy}
+      info={weightTip}
       typeLabel={tr.t('entry.typeWeight')}
       decimals
       min={scale.min}
@@ -645,7 +805,7 @@ function ExerciseCard({
       max={scale.max}
       label="weight"
       unit={unit}
-      describedBy={howId}
+      describedBy={describedBy}
       typeLabel={tr.t('entry.typeWeight')}
       decimals
       places={weightPlaces}
@@ -682,34 +842,38 @@ function ExerciseCard({
 
   /* A caption over a pair of buttons. A `div`, not the `label` it used to be:
      a label forwards a tap on its text to the first control inside it, which
-     is now the "−" button. The ruler and the bar carry their own. */
-  const captioned = (caption: string, control: ReactNode) => (
+     is now the "−" button. The ruler and the bar carry their own.
+
+     With an ⓘ beside the weight's caption, both captions of the pair are as
+     tall as the ⓘ and held clear of the buttons by its reach — its tap area
+     runs 10 px past the mark, and a tap on the top edge of "−" must not open
+     a tip. The same on both, so the two sets of buttons still line up. */
+  const captioned = (caption: string, control: ReactNode, info?: ReactNode) => (
     <div className="min-w-0 flex-1">
-      <span className="mb-1 block text-[10.5px] font-bold tracking-wider text-[var(--color-muted)] uppercase">
-        {caption}
-      </span>
+      <div className={cn('flex items-center gap-1', weightTip ? 'mb-2.5 h-6' : 'mb-1')}>
+        <span className="text-[10.5px] font-bold tracking-wider text-[var(--color-muted)] uppercase">
+          {caption}
+        </span>
+        {info}
+      </div>
       {control}
     </div>
   );
 
-  /* What the number actually means.
-
-     The app asked for a "weight" for months without ever saying what it was
-     counting — which for two dumbbells is a factor of two, and once stored
-     there is nothing to say which side of it a row is on. This is the line
-     that fixes it, and it is attached to the weight control rather than hidden
-     in the exercise sheet because it is only useful at the moment of setting.
-
-     For a pair it names the figure that will be recorded, so the doubling
-     happens in view: set 30 and it says 60. That is what every other screen
-     will show, so nothing is a surprise later. */
-  const how = (
-    <p id={howId} className="-mt-1 text-xs text-[var(--color-muted)]">
-      {load === 'dumbbellPair'
-        ? tr.t('load.dumbbellPair', { w: `${toStored(exercise.name, weight)} ${unit}` })
-        : tr.t(`load.${load}` as Key)}
-    </p>
-  );
+  /* The pair's line: the figure that will be recorded, so the doubling
+     happens in view — set 30 and it says 60. The bodyweight line: three
+     words, heard in full by a screen reader. */
+  const how =
+    note === 'pair' ? (
+      <p id={howId} className="-mt-1 text-xs text-[var(--color-muted)]">
+        {tr.t('load.dumbbellPair', { w: `${toStored(exercise.name, weight)} ${unit}` })}
+      </p>
+    ) : note === 'bodyweight' ? (
+      <p id={howId} className="-mt-1 text-xs text-[var(--color-muted)]">
+        <span aria-hidden>{tr.t('load.bodyweightShort')}</span>
+        <span className="sr-only">{tr.t('load.bodyweight')}</span>
+      </p>
+    ) : null;
 
   return (
     <Card
@@ -745,7 +909,9 @@ function ExerciseCard({
             </button>
             {/* History, stated as history. The numbers below start as these
                 numbers, so repeating a session is one tap — but nothing here
-                says to beat them. */}
+                says to beat them. With no history, "First time": without it
+                the starting numbers (the empty bar, a light dumbbell) could
+                read as a suggestion, and the app never suggests a weight. */}
             <p className="mt-0.5 text-xs text-[var(--color-muted)]">
               {s
                 ? tr.t('train.lastTime', {
@@ -756,7 +922,12 @@ function ExerciseCard({
                 : tr.t('train.noHistory')}
             </p>
           </div>
-          {complete && <Chip tone="ok">✓</Chip>}
+          {complete && (
+            <Chip tone="ok">
+              <Tick draw={drawTick} onDrawn={() => setDrawTick(false)} className="h-3.5 w-3.5" />
+              <span className="sr-only">{tr.t('common.done')}</span>
+            </Chip>
+          )}
         </div>
       ) : (
         /* Closed: the name and the dots, and nothing else. A row, not a
@@ -779,9 +950,11 @@ function ExerciseCard({
           {/* The tick is the signal and the fade only reinforces it — a muted
               name and a normal one are the same name to a lot of people. */}
           {complete && (
-            <span aria-hidden className="shrink-0 text-sm text-[var(--color-accent)]">
-              ✓
-            </span>
+            <Tick
+              draw={drawTick}
+              onDrawn={() => setDrawTick(false)}
+              className="h-4 w-4 text-[var(--color-accent)]"
+            />
           )}
           {/* The dots are a picture of the count, so the count is also said.
               Without this the row announces as a bare exercise name and a
@@ -816,7 +989,7 @@ function ExerciseCard({
           ) : (
             <>
               <div className="flex items-end gap-2">
-                {captioned(unit, weightControl)}
+                {captioned(unit, weightControl, weightTip)}
                 {captioned(tr.t('common.reps'), repsControl)}
               </div>
               {how}
@@ -841,7 +1014,6 @@ function ExerciseCard({
             <Button
               variant={complete ? 'default' : 'primary'}
               className="flex-1"
-              disabled={saving}
               onClick={() => void save()}
             >
               {complete ? tr.t('train.addAnother') : tr.t('train.logSet', { n: row.done + 1 })}
@@ -849,27 +1021,52 @@ function ExerciseCard({
             {dotRow}
           </div>
 
+          {/* The set just logged grows into the list, the way `Collapse` opens
+              a card — a grid row from 0fr on its first frame — so the card
+              gets taller smoothly instead of by a row in one frame, and its
+              numbers start in the accent colour and settle to the rest. A row
+              that was already there when the card appeared does neither. */}
           {row.logs.length > 0 && (
             <div className="flex flex-col">
               {row.logs.map((l) => (
                 <div
                   key={l.id}
-                  className="animate-pop flex items-center justify-between border-t border-[var(--color-line)] py-1.5 text-[13px] first:border-t-0"
+                  onTransitionEnd={(e) => {
+                    if (e.target === e.currentTarget && l.id === growing) setGrowing(null);
+                  }}
+                  className={cn(
+                    'group/set grid grid-rows-[1fr] transition-[grid-template-rows] duration-(--dur-base) ease-(--ease-out)',
+                    // A change of size is movement: instant under reduced
+                    // motion, the tint still fades. 1 ms, so the end still fires.
+                    'motion-reduce:duration-[1ms]',
+                    l.id === growing && 'starting:grid-rows-[0fr]',
+                  )}
                 >
-                  <span className="num text-[var(--color-muted)]">
-                    {l.weight ?? 0} {unit} × {l.reps ?? 0}
-                    <span className="ml-2 rounded-full bg-[var(--color-surface-2)] px-2 py-0.5 text-[11px]">
-                      {tr.t(`effort.${(l.rir ?? 2) >= 4 ? 4 : (l.rir ?? 2)}` as Key)}
-                    </span>
-                  </span>
-                  <Button
-                    variant="danger"
-                    className="min-h-8 px-2 text-xs"
-                    aria-label={tr.t('common.delete')}
-                    onClick={() => fireAndForget(removeSet(l.id))}
-                  >
-                    ✕
-                  </Button>
+                  {/* Clipped only while it grows: once in, the clip would cut
+                      the delete button's focus ring. */}
+                  <div className={cn('min-h-0', l.id === growing && 'overflow-hidden')}>
+                    <div className="flex items-center justify-between border-t border-[var(--color-line)] py-1.5 text-[13px] group-first/set:border-t-0">
+                      <span
+                        className={cn(
+                          'num text-[var(--color-muted)] transition-colors duration-(--dur-base) ease-(--ease-in)',
+                          l.id === growing && 'starting:text-[var(--color-accent)]',
+                        )}
+                      >
+                        {l.weight ?? 0} {unit} × {l.reps ?? 0}
+                        <span className="ml-2 rounded-full bg-[var(--color-surface-2)] px-2 py-0.5 text-[11px]">
+                          {tr.t(`effort.${(l.rir ?? 2) >= 4 ? 4 : (l.rir ?? 2)}` as Key)}
+                        </span>
+                      </span>
+                      <Button
+                        variant="danger"
+                        className="min-h-8 px-2 text-xs"
+                        aria-label={tr.t('common.delete')}
+                        onClick={() => fireAndForget(removeSet(l.id))}
+                      >
+                        ✕
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>

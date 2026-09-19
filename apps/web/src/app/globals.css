@@ -418,6 +418,49 @@ input[type='checkbox'][switch]:disabled {
 }
 
 /*
+ * The moments of logging a set on Train — the hot path, about twenty times a
+ * session. Each moves only the one thing that changed, once, and none runs
+ * past `--dur-base`, so nothing is still moving when the next tap comes.
+ *
+ * `dot-pop`: the dot a set just filled swells and settles. Only that dot —
+ * the ones already filled were acknowledged when they were logged. Its colour
+ * is a transition on the dot itself; this is only the size, and the dot must
+ * not also transition `scale`, or the transition would win over the pop.
+ *
+ * `draw`: a tick that draws itself when an exercise or a day is finished.
+ * The path has `pathLength="1"` and a dash as long as that, so the offset
+ * runs from all gap to all line (components/tick.tsx).
+ */
+@keyframes dot-pop {
+  45% {
+    scale: 1.6;
+  }
+}
+.animate-dot-pop {
+  animation: dot-pop var(--dur-base) var(--ease-out);
+}
+
+@keyframes draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+.animate-draw {
+  animation: draw var(--dur-base) var(--ease-out) both;
+}
+
+/* A pop is growth, so under reduced motion the dot simply takes its colour. A
+   line travelling along a path is movement too: the tick fades in whole. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-dot-pop {
+    animation: none;
+  }
+  .animate-draw {
+    animation-name: fade;
+  }
+}
+
+/*
  * A control that sinks a little under the thumb.
  *
  * One utility rather than `active:scale-*` on each control, for two reasons.

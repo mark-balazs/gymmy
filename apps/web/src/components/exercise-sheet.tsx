@@ -59,14 +59,13 @@ export function ExerciseSheet({ exercise, onClose }: { exercise: Exercise; onClo
         </div>
       )}
 
+      {/* Without photos the description stands alone: saying there are none
+          tells somebody what they can already see. Without either, one line
+          says so, or the sheet would be a title over nothing. */}
       {description ? (
         <p className="text-sm leading-relaxed text-[var(--color-ink)]">{description}</p>
       ) : (
         <p className="text-sm text-[var(--color-muted)]">{tr.t('ex.noDetail')}</p>
-      )}
-
-      {images.length === 0 && description !== '' && (
-        <p className="text-xs text-[var(--color-muted)]">{tr.t('ex.noPhotos')}</p>
       )}
 
       {zoomed !== null && (

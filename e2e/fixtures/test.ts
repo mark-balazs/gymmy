@@ -332,11 +332,16 @@ export async function finishDay(page: Page): Promise<string[]> {
  * `getByRole('heading', { name })` then treats as "any heading".
  *
  * The bar chip on an open barbell card ("Bar 20 kg") is a collapsed disclosure
- * too, correctly — it opens the list of bars — so it is left out by name. It is
- * a control on the open card, not an exercise.
+ * too, correctly — it opens the list of bars — so it is left out by name. So
+ * is a closed ⓘ (it opens its tip), left out because it has no text: its name
+ * is a label, and its mark a picture. Both are controls on the open card, not
+ * exercises.
  */
 export async function collapsedExercises(page: Page): Promise<string[]> {
-  const rows = page.getByRole('button', { expanded: false }).filter({ hasNotText: /^Bar \d/ });
+  const rows = page
+    .getByRole('button', { expanded: false })
+    .filter({ hasNotText: /^Bar \d/ })
+    .filter({ hasText: /\S/ });
   await expect(rows.first()).toBeVisible();
   const out: string[] = [];
   for (let i = 0; i < (await rows.count()); i++) {

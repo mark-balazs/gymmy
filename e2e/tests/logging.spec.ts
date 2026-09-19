@@ -75,7 +75,7 @@ test.describe('Logging a session', () => {
     /* With no history the card says it has none. It used to suggest a starting
        weight and a rep target here; the app no longer proposes a load it has no
        basis for — see progression.spec.ts. */
-    await expect(app.getByText('Nothing logged for this yet').first()).toBeVisible();
+    await expect(app.getByText('First time', { exact: true }).first()).toBeVisible();
 
     await logSet(app, 60, 8, '2 more');
 

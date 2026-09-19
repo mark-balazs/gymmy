@@ -22,7 +22,7 @@ typed in.
    search box. It includes the conditioning movements the generator never puts
    in anybody's week — those are exactly what a class is made of.
 3. Picks one. A card for it opens under a small **Outside the plan** label, with
-   a line saying it still counts as training this week.
+   an ⓘ saying it still counts as training this week.
 4. Logs sets on it exactly as on any other card.
 
 ## What these tests hold

@@ -31,6 +31,7 @@ import type { Unit } from '@athletic/domain';
 import { cn } from '@/components/ui';
 import { useT } from '@/lib/client/hooks';
 import { Keypad, formatAmount } from './keypad';
+import { RollingNumber } from './rolling-number';
 
 /** More than any record lift needs, and about what fits on a drawn sleeve
  *  before the plates are slivers. */
@@ -167,11 +168,16 @@ export function PlateLoader({
   const bars = [...new Set([...barChoices, bar])].sort((a, b) => a - b);
   const keys = keyed(perSide);
   const side = round2(perSide.reduce((a, b) => a + b, 0));
-  const split = below
-    ? tr.t('entry.belowBar')
-    : perSide.length === 0
-      ? tr.t('entry.emptyBar')
-      : tr.t('entry.barSplit', { bar: formatAmount(bar), side: formatAmount(side) });
+  /* Nothing to see on an empty bar: the picture and the bar chip already show
+     it, next to a total that equals the bar. A screen reader, which has
+     neither, still hears "the empty bar" with the total. */
+  const split = below ? (
+    tr.t('entry.belowBar')
+  ) : perSide.length === 0 ? (
+    <span className="sr-only">{tr.t('entry.emptyBar')}</span>
+  ) : (
+    tr.t('entry.barSplit', { bar: formatAmount(bar), side: formatAmount(side) })
+  );
 
   const totalId = `${id}-total`;
   const splitId = `${id}-split`;
@@ -197,14 +203,20 @@ export function PlateLoader({
           className="press -ml-2 flex min-h-[var(--spacing-tap)] min-w-0 cursor-pointer flex-col items-start rounded-[11px] px-2 py-1 text-left hover:bg-[var(--color-surface-2)]"
         >
           <span id={totalId} className="num text-[28px] leading-tight font-bold">
-            {/* Seen with the scale's decimals, heard as anybody says it. */}
+            {/* Seen with the scale's decimals, heard as anybody says it. Rolls
+                up as a plate goes on and down as one comes off. */}
             <span aria-hidden>
-              {places === undefined ? formatAmount(value) : formatOnScale(value, places)}
+              <RollingNumber
+                text={places === undefined ? formatAmount(value) : formatOnScale(value, places)}
+                value={value}
+              />
             </span>
             <span className="sr-only">{formatAmount(value)}</span>{' '}
             <span className="text-sm font-semibold text-[var(--color-muted)]">{unit}</span>
           </span>
-          <span id={splitId} className="num text-xs text-[var(--color-muted)]">
+          {/* Its line kept when empty, so the first plate going on moves
+              nothing below it. */}
+          <span id={splitId} className="num min-h-4 text-xs text-[var(--color-muted)]">
             {split}
           </span>
           {extra > 0 && (

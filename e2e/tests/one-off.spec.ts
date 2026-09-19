@@ -40,9 +40,13 @@ test.describe('Logging something outside the plan', () => {
 
     await pickOther(app, 'Kettlebell Swing', 'kettlebell sw');
 
-    // Labelled as outside the plan, with the note saying it still counts.
+    // Labelled as outside the plan, with an ⓘ saying it still counts — a
+    // reassurance read once, so it is not a line on the screen.
     await expect(app.getByText('Outside the plan')).toBeVisible();
-    await expect(app.getByText(/still counts as training this week/)).toBeVisible();
+    await app.getByRole('button', { name: 'More on Outside the plan', exact: true }).tap();
+    await expect(app.getByRole('note', { name: 'More on Outside the plan' })).toHaveText(
+      'This still counts as training this week.',
+    );
     // And it is the open card now — only one card is ever open.
     expect(await openExercise(app)).toBe('Kettlebell Swing');
   });

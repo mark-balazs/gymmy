@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import { Presence, PresenceBoundary, usePresence } from '@/components/presence';
 import { dragToDismiss, leave } from '@/components/sheet-gesture';
 import { useT } from '@/lib/client/hooks';
+import { Tick } from '@/components/tick';
 
 export const cn = clsx;
 
@@ -115,6 +116,9 @@ export function Segmented<T extends string | number>({
     label: string;
     /** Finished. Ticked and recessed, so a glance says which are left. */
     done?: boolean;
+    /** Finished just now, by something done on this screen: the tick draws
+     *  itself instead of simply being there. */
+    justDone?: boolean;
   }[];
   onChange: (v: T) => void;
   /** The word a screen reader hears for a ticked option; the tick is decorative. */
@@ -147,9 +151,7 @@ export function Segmented<T extends string | number>({
               {/* Never colour alone: the tick is the signal and the fade is
                   only reinforcement, because a muted label and a normal one are
                   the same label to plenty of people. */}
-              <span aria-hidden className="text-[var(--color-accent)]">
-                ✓
-              </span>
+              <Tick draw={o.justDone} className="h-3.5 w-3.5 text-[var(--color-accent)]" />
               {doneLabel && <span className="sr-only">{doneLabel}</span>}
             </>
           )}

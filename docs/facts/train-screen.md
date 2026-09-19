@@ -4,8 +4,8 @@ status: current
 decided: "cbb4db0; GYM-13"
 appears:
   repo: ["e2e/flows/02-logging-a-session.md#steps", "e2e/flows/11-entering-a-set.md#what-the-person-does", "e2e/flows/12-moving-around.md#what-the-person-does", "e2e/flows/06-language.md#expected", "e2e/flows/01-first-run.md#steps"]
-  copy: ["title.train", "common.day", "train.ofSets.one", "train.ofSets.other", "train.rowDone", "train.logSet", "train.addAnother", "train.nothingPlanned"]
-  tests: ["e2e/tests/train-accordion.spec.ts", "e2e/tests/opening-a-tab.spec.ts", "packages/domain/test/model.test.ts", "packages/domain/test/one-off.test.ts", "e2e/tests/entry-modes.spec.ts", "e2e/tests/logging.spec.ts"]
+  copy: ["title.train", "common.day", "train.ofSets.one", "train.ofSets.other", "train.rowDone", "train.logSet", "train.addAnother", "train.nothingPlanned", "train.dayDone"]
+  tests: ["e2e/tests/train-accordion.spec.ts", "e2e/tests/opening-a-tab.spec.ts", "packages/domain/test/model.test.ts", "packages/domain/test/one-off.test.ts", "e2e/tests/entry-modes.spec.ts", "e2e/tests/logging.spec.ts", "e2e/tests/logging-moments.spec.ts"]
   confluence: ["934608916"]
 ---
 
