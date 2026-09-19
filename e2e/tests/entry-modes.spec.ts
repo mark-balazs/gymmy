@@ -60,8 +60,9 @@ async function chooseEntry(
   if (opts.plates !== undefined) {
     const toggle = plateSwitch(page);
     await expect(toggle).toBeVisible();
-    if ((await toggle.getAttribute('aria-checked')) !== String(opts.plates)) await toggle.click();
-    await expect(toggle).toHaveAttribute('aria-checked', String(opts.plates));
+    // A native switch: its state is `checked`, not an aria-checked attribute.
+    if ((await toggle.isChecked()) !== opts.plates) await toggle.click();
+    await expect(toggle).toBeChecked({ checked: opts.plates });
   }
   await page.goto('/train');
   await expect(page.getByRole('heading', { name: 'Train', exact: true })).toBeVisible();
@@ -593,6 +594,36 @@ test.describe('In pounds', () => {
 });
 
 test.describe('The choice', () => {
+  test('Load the bar is the phone’s own switch, and the whole row flips it', async ({
+    onboardedApp: app,
+  }) => {
+    /* A native `<input type="checkbox" switch>`, not a button drawn to look
+       like one: on an iPhone that is the only way a web page gets a haptic
+       tick. Found by role and name like any switch, so the page is the same
+       thing to a screen reader. */
+    await app.goto('/settings');
+    const toggle = plateSwitch(app);
+    await expect(toggle).toBeChecked();
+    expect(
+      await toggle.evaluate(
+        (el) =>
+          el instanceof HTMLInputElement && el.type === 'checkbox' && el.hasAttribute('switch'),
+      ),
+    ).toBe(true);
+    // The name is the title alone; the hint is its description.
+    await expect(toggle).toHaveAccessibleName('Load the bar on barbell lifts');
+    await expect(toggle).toHaveAccessibleDescription(/plates/);
+
+    // The title is the target too, not only the 48 px track.
+    await app.getByText('Load the bar on barbell lifts', { exact: true }).click();
+    await expect(toggle).not.toBeChecked();
+
+    // And the keyboard: Space flips a focused switch.
+    await toggle.focus();
+    await app.keyboard.press('Space');
+    await expect(toggle).toBeChecked();
+  });
+
   test('survives a reload, and follows the account to another device', async ({
     page,
     context,
@@ -613,7 +644,7 @@ test.describe('The choice', () => {
       'aria-pressed',
       'true',
     );
-    await expect(plateSwitch(page)).toHaveAttribute('aria-checked', 'false');
+    await expect(plateSwitch(page)).not.toBeChecked();
     // …and on the server, which is what a reload cannot show.
     await expect(page.getByText('All saved')).toBeVisible({ timeout: 30_000 });
 
@@ -747,6 +778,43 @@ test.describe('Fits the phone', () => {
     await chooseEntry(app, { mode: 'Ruler' });
     await expect(ruler(app, 'Weight')).toHaveCount(1);
     await expectNoSideScroll(app);
+  });
+
+  test('the keypad fits a phone turned on its side', async ({ onboardedApp: app }) => {
+    /* Stacked, the keypad is about 470 px tall; a phone on its side has 320
+       to 410. Its title, the number and Cancel went off the top of the screen
+       (GYM-25). Checked at a Pixel 7 on its side and at a small iPhone's
+       height in Safari with its bars showing. */
+    for (const size of [
+      { width: 915, height: 412 },
+      { width: 667, height: 320 },
+    ]) {
+      await app.setViewportSize(size);
+      await numberButton(app, 'weight').click();
+      const pad = app.getByRole('dialog', { name: 'Weight' });
+      await expect(pad).toBeVisible();
+      // Let it finish rising, then measure where it landed.
+      await expect
+        .poll(() =>
+          pad.evaluate((el) => el.getAnimations().every((a) => a.playState === 'finished')),
+        )
+        .toBe(true);
+
+      const box = (await pad.boundingBox())!;
+      expect(box.y, `the top is on screen at ${size.width}×${size.height}`).toBeGreaterThanOrEqual(
+        0,
+      );
+      expect(box.y + box.height).toBeLessThanOrEqual(size.height + 1);
+      for (const name of ['Cancel', 'Done', '1', '0']) {
+        const key = (await pad.getByRole('button', { name, exact: true }).boundingBox())!;
+        expect(key.y, `${name} on screen`).toBeGreaterThanOrEqual(0);
+        expect(key.y + key.height).toBeLessThanOrEqual(size.height + 1);
+        // Still a thumb's target.
+        expect(key.height).toBeGreaterThanOrEqual(44);
+      }
+      await pad.getByRole('button', { name: 'Cancel', exact: true }).click();
+      await expect(pad).toHaveCount(0);
+    }
   });
 });
 

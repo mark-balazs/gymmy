@@ -18,6 +18,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button, Card, Field, Sheet, Summary, cn } from '@/components/ui';
+import { Page } from '@/components/page';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import { applyCustomSplit } from '@/lib/client/mutations';
 import type { Key } from '@/lib/i18n';
@@ -95,9 +96,11 @@ export default function CustomSplitPage() {
   // that was still on its way down from the server.
   if (!profile || !ix.slots.length) {
     return (
-      <Card>
-        <p className="text-[var(--color-muted)]">{tr.t('common.loading')}</p>
-      </Card>
+      <Page>
+        <Card>
+          <p className="text-[var(--color-muted)]">{tr.t('common.loading')}</p>
+        </Card>
+      </Page>
     );
   }
 
@@ -171,8 +174,11 @@ export default function CustomSplitPage() {
     }
   };
 
+  /* In `Page`, like every tab: it carries the gap between the cards (`<main>`
+     has none, so a slide moves the cards as one), and it is what a typed
+     navigation here slides. Without it the cards sat against each other. */
   return (
-    <>
+    <Page>
       <Card className="flex flex-col gap-2">
         <Link href="/settings" className="text-xs font-semibold text-[var(--color-muted)]">
           ‹ {tr.t('split.backToSettings')}
@@ -403,6 +409,6 @@ export default function CustomSplitPage() {
           </Button>
         </div>
       </Sheet>
-    </>
+    </Page>
   );
 }

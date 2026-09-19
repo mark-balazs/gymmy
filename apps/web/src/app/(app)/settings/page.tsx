@@ -2,11 +2,13 @@
 
 import Link from 'next/link';
 import { useId, useState } from 'react';
-import { Button, Card, Field, InfoButton, Segmented, Sheet, cn } from '@/components/ui';
+import { Button, Card, Field, Segmented, Sheet, cn } from '@/components/ui';
 import { Page } from '@/components/page';
 import { SplitSheet } from '@/components/split-sheet';
 import { ProfileCard } from '@/components/profile-card';
 import { PlansCard } from '@/components/plans-card';
+import { Switch } from '@/components/switch';
+import { InfoTip } from '@/components/info-tip';
 import { CoachLink } from '@/components/coach-link';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import {
@@ -93,6 +95,7 @@ export default function SettingsPage() {
    *  joined — an account opened in January and used twice is two weeks. */
   const trainedWeeks = new Set(ix.logs.map((l) => mondayOf(l.date))).size;
   const [info, setInfo] = useState<SplitKey | null>(null);
+  const entryId = useId();
 
   const saved = draftOf(profile);
   const { split, days, where, bias } = draft ?? saved;
@@ -183,10 +186,11 @@ export default function SettingsPage() {
                 {/* A one-line hint is not enough to choose on: which days it
                     makes, and what it will then call a complete week, is the
                     whole of the decision being made here. */}
-                <InfoButton
+                <InfoTip
                   label={tr.t('split.info', { split: tr.split(key) })}
-                  onClick={() => setInfo(key)}
-                  className={selected ? 'text-[var(--color-accent-ink)]/75' : undefined}
+                  onOpen={() => setInfo(key)}
+                  tone={selected ? 'inverse' : 'default'}
+                  className="mx-2.5 self-center"
                 />
               </div>
             );
@@ -339,8 +343,17 @@ export default function SettingsPage() {
 
         {/* How Train takes a number. Both styles open the same keypad when the
             number is tapped, which is why neither needs the phone keyboard. */}
-        <div className="flex flex-col gap-1.5">
-          <Field label={tr.t('set.entryTitle')}>
+        <div className="flex flex-col gap-2">
+          {/* Not a Field: the ⓘ cannot sit inside the label that wraps it. */}
+          <div className="flex min-h-6 items-center gap-1">
+            <span id={entryId} className="text-xs font-semibold text-[var(--color-muted)]">
+              {tr.t('set.entryTitle')}
+            </span>
+            <InfoTip label={tr.t('info.more', { subject: tr.t('set.entryTitle') })}>
+              {tr.t('set.entryHint')}
+            </InfoTip>
+          </div>
+          <div role="group" aria-labelledby={entryId}>
             <Segmented
               value={entryMode}
               onChange={(v) => fireAndForget(setEntryMode(v))}
@@ -349,8 +362,7 @@ export default function SettingsPage() {
                 { value: 'ruler' as const, label: tr.t('set.entryRuler') },
               ]}
             />
-          </Field>
-          <p className="text-xs text-[var(--color-muted)]">{tr.t('set.entryHint')}</p>
+          </div>
         </div>
 
         <Switch
@@ -487,66 +499,5 @@ export default function SettingsPage() {
 
       {info && <SplitSheet split={info} onClose={() => setInfo(null)} />}
     </Page>
-  );
-}
-
-/**
- * An on/off setting, as a real `role="switch"`.
- *
- * The whole row is the target, not just the track: this is tapped with a thumb,
- * and a 46px pill at the edge of the screen is easy to miss. The name is the
- * title alone and the hint is its description, so a screen reader says
- * "Load the bar on barbell lifts, switch, on" rather than reading the hint as
- * part of the name.
- */
-function Switch({
-  label,
-  hint,
-  on,
-  onChange,
-}: {
-  label: string;
-  hint: string;
-  on: boolean;
-  onChange: (on: boolean) => void;
-}) {
-  const id = useId();
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-labelledby={`${id}-label`}
-      aria-describedby={`${id}-hint`}
-      onClick={() => onChange(!on)}
-      className="flex min-h-[var(--spacing-tap)] w-full cursor-pointer items-center gap-3 text-left"
-    >
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span id={`${id}-label`} className="text-sm font-semibold">
-          {label}
-        </span>
-        <span id={`${id}-hint`} className="text-xs text-[var(--color-muted)]">
-          {hint}
-        </span>
-      </span>
-      <span
-        aria-hidden
-        className={cn(
-          'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full p-[3px]',
-          'transition-colors duration-200 ease-[var(--ease-out-soft)]',
-          on ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-surface-3)]',
-        )}
-      >
-        <span
-          className={cn(
-            'size-[22px] rounded-full shadow-sm',
-            'transition-[translate,background-color] duration-200 ease-[var(--ease-out-soft)]',
-            on
-              ? 'translate-x-5 bg-[var(--color-accent-ink)]'
-              : 'translate-x-0 bg-[var(--color-muted)]',
-          )}
-        />
-      </span>
-    </button>
   );
 }

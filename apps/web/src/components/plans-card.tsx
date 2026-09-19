@@ -94,7 +94,7 @@ export function PlansCard() {
                 className={cn(
                   'flex cursor-pointer items-center gap-3 rounded-[11px] border px-3 py-2.5 text-left',
                   inEffect
-                    ? 'border-[var(--color-accent)] bg-[var(--color-accent-bg)]'
+                    ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]'
                     : 'border-[var(--color-line)] bg-[var(--color-surface-2)]',
                 )}
               >

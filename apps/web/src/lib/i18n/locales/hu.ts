@@ -76,6 +76,7 @@ export const hu: Record<Key, string> = {
   'common.weight': 'Súly ({unit})',
   'common.reps': 'Ismétlés',
   'common.close': 'Bezárás',
+  'info.more': 'Bővebben: {subject}',
   'common.previous': 'Előző',
   'common.next': 'Következő',
   'common.loading': 'Betöltés…',
