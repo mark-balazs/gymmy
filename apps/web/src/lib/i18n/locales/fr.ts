@@ -258,7 +258,7 @@ export const fr: Record<Key, string> = {
   'prog.window.other': '{n} dernières semaines',
   'prog.windowAll': 'Tout l’historique',
   'prog.noMetric':
-    'Cela se note en mètres et en secondes : il n’y a pas de charge à tracer. Les séries comptent quand même pour ta semaine.',
+    'Le portage se mesure en mètres et la rotation vise le contrôle, pas la charge : il n’y a pas de charge à tracer. Les séries comptent quand même pour ta semaine.',
   'prog.oneSession': 'Une seule séance pour l’instant. À deux, cela fera une courbe.',
   'prog.overTime': 'Ta meilleure charge estimée sur une répétition, séance par séance',
   'prog.overTimeWeight': 'Série la plus lourde, séance par séance',

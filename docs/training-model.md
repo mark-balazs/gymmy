@@ -48,7 +48,7 @@ alone would leave out" fails when the repair pass is disabled.
 
 ### What fills a slot
 
-The pattern is chosen first; one rule then acts inside it.
+The pattern is chosen first; two rules then act inside it.
 
 - **A scored movement's main slot prefers a lift the index counts** (owner,
   2026-09-19). The main slot is the movement's first slot in the week. If the
@@ -61,6 +61,9 @@ The pattern is chosen first; one rule then acts inside it.
   the index. Across every preset, day count, location, bias and all 997
   offsets, weeks that left a trained scored movement with nothing the index
   counts went from 41% (65% of seven-pattern gym weeks) to none.
+- **The range follows the movement, not the slot** (GYM-67): 6–12 reps, 8–12
+  for rotation, 10–15 for isolation, 30–40 m for a carry — in a finisher, a
+  full-body accessory slot or whatever the repair writes.
 
 Walking on from the pick, rather than re-picking from the lifts that count,
 leaves every slot whose pick already counted as it was, so the offset below

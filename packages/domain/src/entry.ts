@@ -327,7 +327,7 @@ const DEFAULT_START_REPS = 8;
  *
  * The bottom because it is the floor the set is meant to clear, and going up is
  * one tap. The range is read the way the coach reads it, so "6-12" starts at 6
- * and a finisher's "30-40m" at 30 — metres, which is what a carry's reps are.
+ * and a carry's "30-40m" at 30 — metres, which is what a carry's reps are.
  * Anything that does not read as a range, or reads as starting at zero, starts
  * at eight.
  */

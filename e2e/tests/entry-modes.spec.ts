@@ -496,12 +496,18 @@ test.describe('Where a number starts', () => {
        there is no range. The start values are unit-tested; what nothing held
        is the card handing them the right range, or any range at all: without
        it every first set of every lift starts at eight reps and still looks
-       reasonable. Goblet Squat's range is 6–12; Russian Twist's starts at 30. */
+       reasonable. Goblet Squat's range is 6–12, and a carry's is 30–40 m.
+       Russian Twist is the other half (GYM-67): rotation is counted in reps,
+       8–12, where its finisher slot used to hand it thirty metres. */
     await onGoblet(app);
     await expect(numberButton(app, 'weight')).toHaveAttribute('data-value', '10');
     await expect(numberButton(app, 'reps')).toHaveAttribute('data-value', '6');
 
     await openCard(app, 'Russian Twist');
+    await expect(numberButton(app, 'reps')).toHaveAttribute('data-value', '8');
+
+    await app.getByRole('button', { name: 'Day B', exact: true }).click();
+    await openCard(app, "Waiter's Walk");
     await expect(numberButton(app, 'reps')).toHaveAttribute('data-value', '30');
 
     await app.getByRole('button', { name: '+ Log something else' }).click();

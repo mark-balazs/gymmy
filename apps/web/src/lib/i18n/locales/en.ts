@@ -253,7 +253,7 @@ export const en = {
   'prog.window.other': 'Last {n} weeks',
   'prog.windowAll': 'All time',
   'prog.noMetric':
-    'This is logged in metres and seconds, so there is no weight to plot. The sets still count towards your week.',
+    'Carries are measured in metres, and rotation is about control rather than load, so there is no weight to plot. The sets still count towards your week.',
   'prog.oneSession': 'One session so far. Two makes a line.',
   'prog.overTime': 'Your estimated best single lift, session by session',
   'prog.overTimeWeight': 'Heaviest set, session by session',

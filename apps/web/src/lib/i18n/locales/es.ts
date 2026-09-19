@@ -262,7 +262,7 @@ export const es: Record<Key, string> = {
   'prog.window.other': 'Últimas {n} semanas',
   'prog.windowAll': 'Todo el historial',
   'prog.noMetric':
-    'Esto se registra en metros y segundos, así que no hay peso que dibujar. Las series siguen contando para tu semana.',
+    'Los acarreos se miden en metros y la rotación busca control, no carga, así que no hay peso que dibujar. Las series siguen contando para tu semana.',
   'prog.oneSession': 'Una sesión por ahora. Con dos ya hay línea.',
   'prog.overTime': 'Tu mejor levantamiento estimado, sesión a sesión',
   'prog.overTimeWeight': 'Serie más pesada, sesión a sesión',

@@ -127,7 +127,30 @@ function patternSets(ix: Indexed): PatternSets {
   };
 }
 
-const REP_RANGE = { big: '6-12', accessory: '6-12', isolation: '10-15', finisher: '30-40m' };
+/**
+ * The range a generated slot asks for, chosen by the movement it holds rather
+ * than by the slot (GYM-67).
+ *
+ * A carry is walked, so its reps are metres; rotation is counted in reps, like
+ * everything else. Keyed by the slot, a finisher said "30-40m" whatever it held
+ * — a rotation finisher asked for thirty metres of Pallof press — and a carry
+ * in a full-body accessory slot asked for six to twelve reps. Every path that
+ * writes a slot reads the range from here, the repair included.
+ */
+const REP_RANGE = { big: '6-12', rotate: '8-12', isolation: '10-15', carry: '30-40m' } as const;
+
+const repRangeFor = (pattern: Pattern | null): string => {
+  switch (pattern?.key) {
+    case 'carry':
+      return REP_RANGE.carry;
+    case 'rotate':
+      return REP_RANGE.rotate;
+    case 'isolation':
+      return REP_RANGE.isolation;
+    default:
+      return REP_RANGE.big;
+  }
+};
 
 /** A movement the strength index is built from (`SCORED_PATTERNS`). */
 const isScored = (pattern: Pattern | null): pattern is Pattern =>
@@ -187,13 +210,6 @@ export function buildProgram(ix: Indexed, input: BuildInput): DraftEntry[] {
     return role === 'Any' ? ix.patterns : ix.patterns.filter((p) => p.role === role);
   };
 
-  const repRangeFor = (slot: Slot): string =>
-    slot.key === 'finisher'
-      ? REP_RANGE.finisher
-      : slot.key === 'isolation'
-        ? REP_RANGE.isolation
-        : REP_RANGE.big;
-
   /** `main`: this is the movement's first slot in the week, so a scored
    *  movement prefers a lift the index counts here (`preferCounting`). */
   const choose = (
@@ -252,7 +268,7 @@ export function buildProgram(ix: Indexed, input: BuildInput): DraftEntry[] {
         slotId: slot.id,
         exerciseId: exercise?.id ?? null,
         sets: 3,
-        repRange: repRangeFor(slot),
+        repRange: repRangeFor(pattern),
         startWeight: null,
         note: '',
       });
@@ -331,7 +347,9 @@ function repair(
       sessionIndex: target.day,
       slotId: target.slot.id,
       sets: existing?.sets ?? 3,
-      repRange: existing?.repRange ?? REP_RANGE.accessory,
+      // By what the slot now holds, not what it held: a carry forced into a
+      // slot that had a push is still walked in metres.
+      repRange: repRangeFor(pattern),
       startWeight: existing?.startWeight ?? null,
       note: existing?.note ?? '',
       exerciseId: exercise.id,

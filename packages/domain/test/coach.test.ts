@@ -337,6 +337,53 @@ describe('a lift the strength index counts', () => {
   });
 });
 
+describe('rep ranges', () => {
+  /* Chosen by the movement a slot holds, never by the slot (GYM-67): a carry
+     is walked, so metres; rotation is counted in reps; isolation takes the
+     higher range; everything else six to twelve. The finisher used to say
+     "30-40m" whatever it held, and a carry in a full-body accessory slot said
+     "6-12". The repair pass is held in `splits.test.ts`, where a week needs it. */
+  const want: Partial<Record<PatternKey, string>> = {
+    carry: '30-40m',
+    rotate: '8-12',
+    isolation: '10-15',
+  };
+
+  it('follows the movement in every slot of every configuration', () => {
+    const bySlot = new Map<string, Set<string>>();
+    const wrong: string[] = [];
+    for (const v of [0, 7, 500])
+      for (const c of configs)
+        for (const r of programRows(weekOf(c, v), c.days)) {
+          const key = r.pattern!.key!;
+          const expected = want[key] ?? '6-12';
+          if (r.entry!.repRange !== expected)
+            wrong.push(`${c.split}:${c.days}:${r.slot.key}:${key}:${r.entry!.repRange}`);
+          const kinds = bySlot.get(r.slot.key!) ?? new Set();
+          kinds.add(key);
+          bySlot.set(r.slot.key!, kinds);
+        }
+    expect(wrong.slice(0, 5)).toEqual([]);
+    /* And the cases that went wrong are really in there: both finisher
+       movements, and a carry and a rotation in a full-body accessory slot. */
+    expect([...bySlot.get('finisher')!].sort()).toEqual(['carry', 'rotate']);
+    expect(bySlot.get('accessory')).toContain('carry');
+    expect(bySlot.get('accessory')).toContain('rotate');
+  });
+
+  it('asks for reps on a rotation finisher and metres on a carry one', () => {
+    // The ticket's own case, on the week the demo and the e2e fixture use.
+    const rows = programRows(weekOf(defaultWeek, 0), 3).map(
+      (r) => `${r.session}:${r.slot.key}:${r.exercise?.name}:${r.entry?.repRange}`,
+    );
+    expect(rows).toContain('0:finisher:Russian Twist:8-12');
+    expect(rows).toContain("1:finisher:Waiter's Walk:30-40m");
+    expect(rows).toContain('1:accessory:Overhead Carry:30-40m');
+    expect(rows).toContain('0:bigLower:Goblet Squat:6-12');
+    expect(rows).toContain('0:isolation:Hammer Curl:10-15');
+  });
+});
+
 describe('the swap sheet', () => {
   it('offers only legal swaps: like-for-like on a free slot, the role on a role slot, nothing gym-only at home', () => {
     /* A swap must not be able to undo what the generator guaranteed. A free

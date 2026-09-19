@@ -258,7 +258,7 @@ export const de: Record<Key, string> = {
   'prog.window.other': 'Letzte {n} Wochen',
   'prog.windowAll': 'Gesamter Zeitraum',
   'prog.noMetric':
-    'Das wird in Metern und Sekunden erfasst, es gibt also kein Gewicht zum Zeichnen. Die Sätze zählen trotzdem für deine Woche.',
+    'Tragen wird in Metern gemessen, und bei Rotation geht es um Kontrolle statt Gewicht – es gibt also kein Gewicht zum Zeichnen. Die Sätze zählen trotzdem für deine Woche.',
   'prog.oneSession': 'Bisher eine Einheit. Ab zwei wird daraus eine Linie.',
   'prog.overTime': 'Dein geschätztes bestes Einzelgewicht, Einheit für Einheit',
   'prog.overTimeWeight': 'Schwerster Satz, Einheit für Einheit',

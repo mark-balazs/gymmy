@@ -270,6 +270,22 @@ describe('a hand-built split', () => {
     expect(keyOf('a')).toBe('carry');
   });
 
+  it('gives what it forces in the range of that movement, not of the slot', () => {
+    /* The same week: the free slot had a hinge at six to twelve, and the
+       repair writes a carry over it. A carry is walked, so the slot now asks
+       for metres (GYM-67). Keeping the old slot's range asked for reps. */
+    const built = oneDay(
+      [
+        { id: 'b', patternKeys: ['squat'] },
+        { id: 'a', patternKeys: null },
+      ],
+      ['squat', 'carry'],
+    );
+    const row = programRows(built, 1).find((r) => r.slot.id === 'a')!;
+    expect(row.pattern?.key).toBe('carry');
+    expect(row.entry?.repRange).toBe('30-40m');
+  });
+
   it('does not cost a movement its lift the index counts', () => {
     /* [squat|pull], [push|pull], [push]: the rotation fills squat, push, push,
        and the repair overwrites the first push — push's main slot — with the

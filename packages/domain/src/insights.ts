@@ -61,7 +61,8 @@ export function metricFor(pattern: Pattern | null | undefined): ProgressMetric {
   // Isolation progresses, but at 10-15 reps Epley is extrapolating well past
   // where it fits — the heaviest set is the honest number.
   if (pattern.key === 'isolation') return 'weight';
-  // Carry and rotate: reps are metres or seconds. There is nothing to plot.
+  // Carry and rotate: a carry's reps are metres, and rotation is trained light
+  // and for control, so its load says nothing about strength. Nothing to plot.
   return null;
 }
 

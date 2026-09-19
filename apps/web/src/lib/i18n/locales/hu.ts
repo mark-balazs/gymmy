@@ -248,7 +248,7 @@ export const hu: Record<Key, string> = {
   'prog.window.other': 'Utolsó {n} hét',
   'prog.windowAll': 'Teljes időszak',
   'prog.noMetric':
-    'Ezt méterben és másodpercben rögzíted, így nincs mit ábrázolni. A sorozatok ettől még beleszámítanak a hetedbe.',
+    'A cipelést méterben méred, a forgatásnál pedig a kontroll számít, nem a súly, így nincs mit ábrázolni. A sorozatok ettől még beleszámítanak a hetedbe.',
   'prog.oneSession': 'Eddig egy edzés. Kettőből lesz vonal.',
   'prog.overTime': 'A becsült legjobb egyismétléses súlyod, edzésről edzésre',
   'prog.overTimeWeight': 'Legnehezebb sorozat, edzésről edzésre',
