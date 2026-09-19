@@ -16,6 +16,7 @@ before the test that covers it. Every file maps to one spec in `../tests`.
 | [09 — What the weight box is counting](./09-load-convention.md) | `load-convention.spec.ts` | The app says what it measures, and a dumbbell pair is stored combined |
 | [10 — Logging something outside the plan](./10-something-else.md) | `one-off.spec.ts` | A class or a test can be logged without ticking, or moving, a planned day |
 | [11 — Entering a set without the keyboard](./11-entering-a-set.md) | `entry-modes.spec.ts` | Buttons, ruler or plates set a weight and reps with no phone keyboard, and the card stays put |
+| [12 — Closing a sheet](./12-closing-a-sheet.md) | `sheets.spec.ts` | A sheet leaves the way it came, and can be pulled down to dismiss |
 
 Other specs cover narrower ground against the same fixtures: `settings`,
 `exercise-detail`, `email-signin`, `sync-paging`, `write-failure`, `recovery`,

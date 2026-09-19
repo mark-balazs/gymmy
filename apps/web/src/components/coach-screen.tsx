@@ -25,6 +25,7 @@
 
 import { useEffect, useState } from 'react';
 import { Button, Card, Field, Sheet, Summary, cn } from '@/components/ui';
+import { Presence } from '@/components/presence';
 import { Page } from '@/components/page';
 import { useT } from '@/lib/client/hooks';
 import {
@@ -187,27 +188,31 @@ export function CoachScreen() {
 
       <GroupsCard groups={groups} onChange={() => void reload()} />
 
-      {editing && (
-        <PlanEditor
-          state={editing}
-          onClose={() => setEditing(null)}
-          onSaved={() => {
-            setEditing(null);
-            void reload();
-          }}
-        />
-      )}
+      <Presence>
+        {editing && (
+          <PlanEditor
+            state={editing}
+            onClose={() => setEditing(null)}
+            onSaved={() => {
+              setEditing(null);
+              void reload();
+            }}
+          />
+        )}
+      </Presence>
 
-      {sharing && (
-        <ShareSheet
-          plan={sharing}
-          groups={groups}
-          onClose={() => {
-            setSharing(null);
-            void reload();
-          }}
-        />
-      )}
+      <Presence>
+        {sharing && (
+          <ShareSheet
+            plan={sharing}
+            groups={groups}
+            onClose={() => {
+              setSharing(null);
+              void reload();
+            }}
+          />
+        )}
+      </Presence>
     </Page>
   );
 }
@@ -593,74 +598,76 @@ function GroupsCard({ groups, onChange }: { groups: Group[]; onChange: () => voi
         </Button>
       </div>
 
-      {open && (
-        <Sheet title={open.name} open onClose={() => setOpen(null)}>
-          {open.members.length === 0 ? (
-            <Summary tone="idle">{tr.t('coach.nobody')}</Summary>
-          ) : (
-            <div className="flex flex-col gap-1.5">
-              {open.members.map((m) => (
-                <div
-                  key={m.id}
-                  className="flex items-center gap-2 rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3 py-2"
-                >
-                  <span className="min-w-0 flex-1 truncate text-sm">{m.name ?? m.email}</span>
-                  <Button
-                    className="min-h-8 shrink-0 px-2.5 text-xs"
-                    disabled={busy}
-                    onClick={() =>
-                      void act(async () => {
-                        await removeMember(open.id, m.id);
-                        setOpen(null);
-                      })
-                    }
+      <Presence>
+        {open && (
+          <Sheet title={open.name} open onClose={() => setOpen(null)}>
+            {open.members.length === 0 ? (
+              <Summary tone="idle">{tr.t('coach.nobody')}</Summary>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                {open.members.map((m) => (
+                  <div
+                    key={m.id}
+                    className="flex items-center gap-2 rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3 py-2"
                   >
-                    {tr.t('coach.remove')}
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
+                    <span className="min-w-0 flex-1 truncate text-sm">{m.name ?? m.email}</span>
+                    <Button
+                      className="min-h-8 shrink-0 px-2.5 text-xs"
+                      disabled={busy}
+                      onClick={() =>
+                        void act(async () => {
+                          await removeMember(open.id, m.id);
+                          setOpen(null);
+                        })
+                      }
+                    >
+                      {tr.t('coach.remove')}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
 
-          <Field label={tr.t('coach.addMember')}>
-            <div className="flex gap-2">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="min-h-[var(--spacing-tap)] min-w-0 flex-1 rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
-              />
-              <Button
-                className="shrink-0"
-                disabled={busy || !email.trim()}
-                onClick={() =>
-                  void act(async () => {
-                    await addMember(open.id, email.trim());
-                    setEmail('');
-                    setOpen(null);
-                  })
-                }
-              >
-                {tr.t('coach.addMember')}
-              </Button>
-            </div>
-          </Field>
-          <p className="text-xs text-[var(--color-muted)]">{tr.t('coach.emailHint')}</p>
+            <Field label={tr.t('coach.addMember')}>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="min-h-[var(--spacing-tap)] min-w-0 flex-1 rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
+                />
+                <Button
+                  className="shrink-0"
+                  disabled={busy || !email.trim()}
+                  onClick={() =>
+                    void act(async () => {
+                      await addMember(open.id, email.trim());
+                      setEmail('');
+                      setOpen(null);
+                    })
+                  }
+                >
+                  {tr.t('coach.addMember')}
+                </Button>
+              </div>
+            </Field>
+            <p className="text-xs text-[var(--color-muted)]">{tr.t('coach.emailHint')}</p>
 
-          <Button
-            variant="danger"
-            disabled={busy}
-            onClick={() =>
-              void act(async () => {
-                await deleteGroup(open.id);
-                setOpen(null);
-              })
-            }
-          >
-            {tr.t('coach.remove')}
-          </Button>
-        </Sheet>
-      )}
+            <Button
+              variant="danger"
+              disabled={busy}
+              onClick={() =>
+                void act(async () => {
+                  await deleteGroup(open.id);
+                  setOpen(null);
+                })
+              }
+            >
+              {tr.t('coach.remove')}
+            </Button>
+          </Sheet>
+        )}
+      </Presence>
     </Card>
   );
 }

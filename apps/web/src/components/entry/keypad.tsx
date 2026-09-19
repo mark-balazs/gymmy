@@ -26,12 +26,20 @@
  * went off the top (GYM-25). On a short, wide screen (`short:`) the number and
  * Done sit to the left of the keys, which shrink to 46 px, still a thumb's
  * target. The order in the page, and so the Tab order, does not change.
+ *
+ * **It leaves the way a sheet does** (GYM-17): kept on screen by a
+ * `<Presence>` until its exit has played, `inert` and hidden from assistive
+ * technology meanwhile, and focus back on the number that opened it as soon as
+ * it starts to go. It cannot be dragged away, unlike a sheet: it is tapped
+ * fast, and a thumb sliding off a key must not throw the number away.
  */
 
-import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { formatOnScale } from '@athletic/domain';
-import { buttonClass } from '@/components/ui';
+import { Presence, usePresence } from '@/components/presence';
+import { leave } from '@/components/sheet-gesture';
+import { buttonClass, cn } from '@/components/ui';
 import { useT } from '@/lib/client/hooks';
 
 /** Two decimal places at most and no trailing zeros — 61.25, 60, 7. The
@@ -96,8 +104,15 @@ export interface KeypadProps {
 export function Keypad(props: KeypadProps) {
   // Only ever opened from a tap, so there is no server render to guard; the
   // check keeps an eager caller from taking the page down.
-  if (!props.open || typeof document === 'undefined') return null;
-  // Mounted per opening, so what was typed last time never leaks into this one.
+  const shown = props.open && typeof document !== 'undefined';
+  /* Kept on screen through its exit, the way a sheet leaves. And mounted per
+     opening — `Presence` makes each opening a new one, even while the last is
+     still on its way out — so what was typed last time never leaks into this
+     one. */
+  return <Presence>{shown && <Portal {...props} />}</Presence>;
+}
+
+function Portal(props: KeypadProps) {
   return createPortal(<Sheet {...props} />, document.body);
 }
 
@@ -105,6 +120,8 @@ function Sheet({ title, unit, value, places, decimals, onDone, onClose, opener }
   const tr = useT();
   const titleId = useId();
   const [typed, setTyped] = useState('');
+  const { present, done: gone } = usePresence();
+  const shade = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const done = useRef<HTMLButtonElement>(null);
   const cancel = useRef<HTMLButtonElement>(null);
@@ -124,11 +141,27 @@ function Sheet({ title, unit, value, places, decimals, onDone, onClose, opener }
      no longer see. Done, not the first digit: it is the one key that means
      the same thing whatever was typed. */
   useEffect(() => {
+    if (!present) return;
     const back =
       opener ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     done.current?.focus();
     return () => back?.focus({ preventScroll: true });
-  }, [opener]);
+  }, [opener, present]);
+
+  /* Out the way a sheet goes — fading as it sinks, or only fading under
+     reduced motion — and gone once that has played. */
+  useLayoutEffect(() => {
+    const p = panel.current;
+    const s = shade.current;
+    if (present || !p || !s) return;
+    let current = true;
+    // Gone once it has played — or been cut short: never left on screen, inert.
+    const end = () => current && gone();
+    leave(p, s, null).finished.then(end, end);
+    return () => {
+      current = false;
+    };
+  }, [present, gone]);
 
   /**
    * Keys from a hardware keyboard, and the focus trap.
@@ -170,10 +203,12 @@ function Sheet({ title, unit, value, places, decimals, onDone, onClose, opener }
   });
 
   useEffect(() => {
+    // Not while it leaves: the keys pressed then are for the page.
+    if (!present) return;
     const listener = (e: KeyboardEvent) => onKey(e);
     window.addEventListener('keydown', listener, { capture: true });
     return () => window.removeEventListener('keydown', listener, { capture: true });
-  }, []);
+  }, [present]);
 
   const keyClass =
     'num min-h-[56px] short:min-h-[46px] cursor-pointer rounded-[12px] bg-[var(--color-surface-2)] text-[22px] font-semibold ' +
@@ -186,17 +221,30 @@ function Sheet({ title, unit, value, places, decimals, onDone, onClose, opener }
          viewport, a fixed overlay runs under a phone's address bar.
          `touch-none` because nothing here scrolls, and a drag on the backdrop
          should not move the page behind it. */
-      className="animate-fade fixed inset-0 z-[60] flex h-[100dvh] touch-none items-end justify-center bg-black/60 backdrop-blur-[2px]"
+      className={cn(
+        'fixed inset-0 z-[60] flex h-[100dvh] touch-none items-end justify-center',
+        // On its way out it takes no taps: the page behind has them at once.
+        !present && 'pointer-events-none',
+      )}
       // A sideways drag across the keys must not also change tab.
       data-no-swipe
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      data-keypad
+      data-state={present ? 'open' : 'closed'}
+      inert={!present}
+      aria-hidden={present ? undefined : true}
     >
+      <div
+        ref={shade}
+        aria-hidden
+        className="animate-fade absolute inset-0 bg-black/60 backdrop-blur-[2px]"
+        onClick={onClose}
+      />
       <div
         ref={panel}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="animate-sheet short:max-w-[760px] short:grid-cols-[1fr_1.3fr] short:grid-rows-[auto_1fr_auto] short:gap-x-5 short:[grid-template-areas:'head_keys'_'out_keys'_'done_keys'] grid w-full max-w-[480px] gap-3 rounded-t-[20px] border border-b-0 border-[var(--color-line)] bg-[var(--color-surface)] px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-[var(--shadow-card)] [grid-template-areas:'head'_'out'_'keys'_'done']"
+        className="animate-sheet short:max-w-[760px] short:grid-cols-[1fr_1.3fr] short:grid-rows-[auto_1fr_auto] short:gap-x-5 short:[grid-template-areas:'head_keys'_'out_keys'_'done_keys'] relative grid w-full max-w-[480px] gap-3 rounded-t-[20px] border border-b-0 border-[var(--color-line)] bg-[var(--color-surface)] px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-[var(--shadow-card)] [grid-template-areas:'head'_'out'_'keys'_'done']"
       >
         <div className="flex items-center justify-between gap-2 [grid-area:head]">
           {/* Not a heading: this sits over Train, whose tests and screen-reader

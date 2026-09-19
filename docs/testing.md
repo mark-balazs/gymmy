@@ -5,7 +5,7 @@
 | Layer | Runs | Covers | Cost |
 | --- | --- | --- | --- |
 | `packages/domain/test` | Vitest, no IO | Every training rule | Instant |
-| `apps/web/src/**/*.test.ts` | Vitest, **real Postgres** | Anything that is SQL, and rules the source and stylesheet must keep (motion tokens, CSS variables) | ~1s |
+| `apps/web/src/**/*.test.ts` | Vitest, **real Postgres** | Anything that is SQL, and rules the source and stylesheet must keep (motion tokens, CSS variables, a `<Presence>` round every conditional sheet) | ~1s |
 | `e2e/tests` | Playwright, production build, Pixel 7 | What a person does | ~25s for all of it |
 
 Put logic in the domain layer and test it there. The domain has no dependencies,
@@ -94,14 +94,24 @@ Two ways the suite lies to you if you skip that:
   both. The lightbox listens in the *capture* phase and stops the event once it
   has handled it. A test for a nested overlay should press Escape and assert the
   thing underneath survived.
-- **A `fixed` overlay inside a sheet is sized to the sheet.** The sheet is a
-  `backdrop-blur` overlay wrapping a panel that animates on `transform`, and
-  either makes itself the containing block. The lightbox portals to the body;
-  a test that only checks it rendered would not notice. Measure it.
+- **A `fixed` overlay inside a sheet is sized to the sheet.** The sheet's
+  panel animates on `translate` and a drag moves it by `transform`, and either
+  makes it the containing block. The lightbox portals to the body; a test that
+  only checks it rendered would not notice. Measure it.
 - **Sheets, the keypad and the lightbox all portal to the body**, so none of
   them is inside `main` or the card that opened it, and a faded card cannot
   fade them (`exercise-detail.spec.ts` multiplies the opacities to prove it).
   Scope a sheet with `getByRole('dialog')`, never through the card.
+- **A closed sheet is still in the page for 220 ms.** It plays its exit
+  `inert` and `aria-hidden`, so `getByRole('dialog')` stops finding it at once
+  and a tap on the page behind lands — but `locator('[data-sheet]')` and
+  `getByText` still see it until the exit ends. Wait for
+  `[data-sheet]` / `[data-keypad]` to reach a count of 0 before anything that
+  needs it truly gone. An exit is too short to catch from the test side:
+  `sheets.spec.ts` presses and looks inside one `page.evaluate`.
+- **Drag a sheet through CDP touches**, as `sheets.spec.ts` does, not with
+  events built in the page. Speed is set by pausing: after more than 100 ms
+  still, the finger has no speed and only distance decides.
 - **Anything named "Next" needs `exact: true` and a scope.** Next.js's own
   dev-tools button is called "Next", so an unscoped `getByRole('button', { name:
   'Next' })` passes against a production build and fails the moment a dev server

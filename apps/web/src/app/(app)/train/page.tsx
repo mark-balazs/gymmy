@@ -16,6 +16,7 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Button, Card, Chip, Segmented, cn } from '@/components/ui';
+import { Presence } from '@/components/presence';
 import { Page } from '@/components/page';
 import { ExerciseSheet } from '@/components/exercise-sheet';
 import { ExercisePicker } from '@/components/exercise-picker';
@@ -299,19 +300,21 @@ export default function TrainPage() {
         + {tr.t('train.logOther')}
       </Button>
 
-      {picking && (
-        <ExercisePicker
-          title={tr.t('train.logOther')}
-          /* The whole library, including the movements the generator never
-             programs — thrusters, wall balls, the things a class is made of.
-             Logging those is precisely what this is for, which is why the swap
-             sheet's filter is not reused here: it excludes exactly them. */
-          exercises={ix.exercises}
-          patterns={ix.patterns}
-          onPick={pick}
-          onClose={() => setPicking(false)}
-        />
-      )}
+      <Presence>
+        {picking && (
+          <ExercisePicker
+            title={tr.t('train.logOther')}
+            /* The whole library, including the movements the generator never
+               programs — thrusters, wall balls, the things a class is made of.
+               Logging those is precisely what this is for, which is why the swap
+               sheet's filter is not reused here: it excludes exactly them. */
+            exercises={ix.exercises}
+            patterns={ix.patterns}
+            onPick={pick}
+            onClose={() => setPicking(false)}
+          />
+        )}
+      </Presence>
     </Page>
   );
 }
@@ -869,7 +872,9 @@ function ExerciseCard({
         </div>
       </Collapse>
 
-      {open && detail && <ExerciseSheet exercise={exercise} onClose={() => setDetail(false)} />}
+      <Presence>
+        {open && detail && <ExerciseSheet exercise={exercise} onClose={() => setDetail(false)} />}
+      </Presence>
     </Card>
   );
 }

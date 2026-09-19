@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Card, Chip, Summary, cn } from '@/components/ui';
+import { Presence } from '@/components/presence';
 import { Page } from '@/components/page';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import { setEntryExercise } from '@/lib/client/mutations';
@@ -189,25 +190,29 @@ export default function WeekPage() {
         ))}
       </Card>
 
-      {detail && <ExerciseSheet exercise={detail} onClose={() => setDetail(null)} />}
+      <Presence>
+        {detail && <ExerciseSheet exercise={detail} onClose={() => setDetail(null)} />}
+      </Presence>
 
       {/* The shared picker, so the swap list gets search and grouping. It was an
           uncapped column of buttons in store order, which was bearable while
           the library was seventy per-account rows and is not once it grows —
           and `swapOptions` is still what decides what is legal here. */}
-      {swap && (
-        <ExercisePicker
-          title={tr.t('week.swapTitle', { name: swap.name })}
-          note={tr.t('week.swapBody')}
-          exercises={swapOptions(ix, days, swap.session, swap.slotId, where)}
-          patterns={ix.patterns}
-          onPick={async (e) => {
-            await setEntryExercise(ix, swap.session, swap.slotId, e.id);
-            setSwap(null);
-          }}
-          onClose={() => setSwap(null)}
-        />
-      )}
+      <Presence>
+        {swap && (
+          <ExercisePicker
+            title={tr.t('week.swapTitle', { name: swap.name })}
+            note={tr.t('week.swapBody')}
+            exercises={swapOptions(ix, days, swap.session, swap.slotId, where)}
+            patterns={ix.patterns}
+            onPick={async (e) => {
+              await setEntryExercise(ix, swap.session, swap.slotId, e.id);
+              setSwap(null);
+            }}
+            onClose={() => setSwap(null)}
+          />
+        )}
+      </Presence>
     </Page>
   );
 }

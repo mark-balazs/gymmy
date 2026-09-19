@@ -34,6 +34,7 @@
 
 import { useMemo, useState } from 'react';
 import { Button, Card, Chip, Sheet, Summary, cn } from '@/components/ui';
+import { Presence } from '@/components/presence';
 import { InfoTip } from '@/components/info-tip';
 import { Page } from '@/components/page';
 import { LineChart, Sparkline, type ChartPoint } from '@/components/chart';
@@ -424,7 +425,9 @@ export default function ProgressPage() {
         ))}
       </Card>
 
-      {open && <DetailSheet progress={open} unit={unit} onClose={() => setDetail(null)} />}
+      <Presence>
+        {open && <DetailSheet progress={open} unit={unit} onClose={() => setDetail(null)} />}
+      </Presence>
 
       <Sheet title={tr.t('prog.strengthWhat')} open={explain} onClose={() => setExplain(false)}>
         <p className="text-sm leading-relaxed">{tr.t('prog.strengthBody')}</p>

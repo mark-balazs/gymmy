@@ -18,6 +18,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button, Card, Field, Sheet, Summary, cn } from '@/components/ui';
+import { Presence } from '@/components/presence';
 import { Page } from '@/components/page';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import { applyCustomSplit } from '@/lib/client/mutations';
@@ -295,108 +296,110 @@ export default function CustomSplitPage() {
         </Button>
       </Card>
 
-      {editing && target && (
-        <Sheet title={slotLabel(target)} open onClose={() => setEditing(null)}>
-          <Field label={tr.t('split.slotName')}>
-            <select
-              value={target.key ?? 'accessory'}
-              onChange={(e) => {
-                const key = e.target.value as SlotKey;
-                patchSlot(editing.day, editing.slot, { key, name: key });
-              }}
-              className="min-h-[var(--spacing-tap)] rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
-            >
-              {SLOT_KEYS.map((k) => (
-                <option key={k} value={k}>
-                  {tr.t(`slot.${k}` as Key)}
-                </option>
-              ))}
-            </select>
-          </Field>
+      <Presence>
+        {editing && target && (
+          <Sheet title={slotLabel(target)} open onClose={() => setEditing(null)}>
+            <Field label={tr.t('split.slotName')}>
+              <select
+                value={target.key ?? 'accessory'}
+                onChange={(e) => {
+                  const key = e.target.value as SlotKey;
+                  patchSlot(editing.day, editing.slot, { key, name: key });
+                }}
+                className="min-h-[var(--spacing-tap)] rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
+              >
+                {SLOT_KEYS.map((k) => (
+                  <option key={k} value={k}>
+                    {tr.t(`slot.${k}` as Key)}
+                  </option>
+                ))}
+              </select>
+            </Field>
 
-          <Field label={tr.t('split.slotHolds')}>
-            <select
-              value={target.requiredRole ?? 'Any'}
-              onChange={(e) =>
-                patchSlot(editing.day, editing.slot, {
-                  requiredRole: e.target.value as SlotRole,
-                })
-              }
-              className="min-h-[var(--spacing-tap)] rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
-            >
-              {SLOT_ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {tr.t(`role.${r}` as Key)}
-                </option>
-              ))}
-            </select>
-          </Field>
+            <Field label={tr.t('split.slotHolds')}>
+              <select
+                value={target.requiredRole ?? 'Any'}
+                onChange={(e) =>
+                  patchSlot(editing.day, editing.slot, {
+                    requiredRole: e.target.value as SlotRole,
+                  })
+                }
+                className="min-h-[var(--spacing-tap)] rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
+              >
+                {SLOT_ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {tr.t(`role.${r}` as Key)}
+                  </option>
+                ))}
+              </select>
+            </Field>
 
-          <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold text-[var(--color-muted)]">
-              {tr.t('split.pinTitle')}
-            </span>
-            <div className="flex flex-wrap gap-1.5">
-              {ix.patterns.map((p) => {
-                const key = p.key;
-                if (!key) return null;
-                const on = !!target.patternKeys?.includes(key);
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    aria-pressed={on}
-                    onClick={() => {
-                      const current = target.patternKeys ?? [];
-                      const nextKeys = on ? current.filter((k) => k !== key) : [...current, key];
-                      // Back to null rather than an empty list: an empty
-                      // `patternKeys` and "no pins at all" must not be two
-                      // different states, or the role would stop applying.
-                      patchSlot(editing.day, editing.slot, {
-                        patternKeys: nextKeys.length ? nextKeys : null,
-                      });
-                    }}
-                    className={cn(
-                      'min-h-9 cursor-pointer rounded-full border px-3 text-xs font-semibold',
-                      on
-                        ? 'border-transparent bg-[var(--color-accent)] text-[var(--color-accent-ink)]'
-                        : 'border-[var(--color-line)] bg-[var(--color-surface-2)] text-[var(--color-muted)]',
-                    )}
-                  >
-                    {tr.pattern(p)}
-                  </button>
-                );
-              })}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[var(--color-muted)]">
+                {tr.t('split.pinTitle')}
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {ix.patterns.map((p) => {
+                  const key = p.key;
+                  if (!key) return null;
+                  const on = !!target.patternKeys?.includes(key);
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => {
+                        const current = target.patternKeys ?? [];
+                        const nextKeys = on ? current.filter((k) => k !== key) : [...current, key];
+                        // Back to null rather than an empty list: an empty
+                        // `patternKeys` and "no pins at all" must not be two
+                        // different states, or the role would stop applying.
+                        patchSlot(editing.day, editing.slot, {
+                          patternKeys: nextKeys.length ? nextKeys : null,
+                        });
+                      }}
+                      className={cn(
+                        'min-h-9 cursor-pointer rounded-full border px-3 text-xs font-semibold',
+                        on
+                          ? 'border-transparent bg-[var(--color-accent)] text-[var(--color-accent-ink)]'
+                          : 'border-[var(--color-line)] bg-[var(--color-surface-2)] text-[var(--color-muted)]',
+                      )}
+                    >
+                      {tr.pattern(p)}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-[var(--color-muted)]">{tr.t('split.pinNote')}</p>
             </div>
-            <p className="text-xs text-[var(--color-muted)]">{tr.t('split.pinNote')}</p>
-          </div>
 
-          <div className="flex gap-2">
-            <Button
-              variant="danger"
-              className="flex-1"
-              disabled={lastSlotOfDay}
-              onClick={() => {
-                patchDay(editing.day, {
-                  slots: week[editing.day]!.slots.filter((_, i) => i !== editing.slot),
-                });
-                setEditing(null);
-              }}
-            >
-              {tr.t('split.removeSlot')}
-            </Button>
-            {/* "Done", not "Save" — nothing is committed until the split
+            <div className="flex gap-2">
+              <Button
+                variant="danger"
+                className="flex-1"
+                disabled={lastSlotOfDay}
+                onClick={() => {
+                  patchDay(editing.day, {
+                    slots: week[editing.day]!.slots.filter((_, i) => i !== editing.slot),
+                  });
+                  setEditing(null);
+                }}
+              >
+                {tr.t('split.removeSlot')}
+              </Button>
+              {/* "Done", not "Save" — nothing is committed until the split
                 itself is saved, and two differently-scoped Saves on one screen
                 is how somebody leaves believing they had. */}
-            <Button variant="primary" className="flex-1" onClick={() => setEditing(null)}>
-              {tr.t('common.done')}
-            </Button>
-          </div>
-          {lastSlotOfDay && (
-            <p className="text-xs text-[var(--color-muted)]">{tr.t('split.lastSlot')}</p>
-          )}
-        </Sheet>
-      )}
+              <Button variant="primary" className="flex-1" onClick={() => setEditing(null)}>
+                {tr.t('common.done')}
+              </Button>
+            </div>
+            {lastSlotOfDay && (
+              <p className="text-xs text-[var(--color-muted)]">{tr.t('split.lastSlot')}</p>
+            )}
+          </Sheet>
+        )}
+      </Presence>
 
       <Sheet title={tr.t('split.saveQ')} open={confirm} onClose={() => setConfirm(false)}>
         <p className="text-sm text-[var(--color-muted)]">{tr.t('split.saveBody')}</p>

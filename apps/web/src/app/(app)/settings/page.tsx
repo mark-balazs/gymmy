@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useId, useState } from 'react';
 import { Button, Card, Field, Segmented, Sheet, cn } from '@/components/ui';
+import { Presence } from '@/components/presence';
 import { Page } from '@/components/page';
 import { SplitSheet } from '@/components/split-sheet';
 import { ProfileCard } from '@/components/profile-card';
@@ -497,7 +498,7 @@ export default function SettingsPage() {
         </div>
       </Sheet>
 
-      {info && <SplitSheet split={info} onClose={() => setInfo(null)} />}
+      <Presence>{info && <SplitSheet split={info} onClose={() => setInfo(null)} />}</Presence>
     </Page>
   );
 }

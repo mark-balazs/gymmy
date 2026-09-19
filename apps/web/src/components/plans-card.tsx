@@ -18,6 +18,7 @@
 
 import { useEffect, useState } from 'react';
 import { Button, Card, Sheet, Summary, cn } from '@/components/ui';
+import { Presence } from '@/components/presence';
 import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
 import { applySharedPlan } from '@/lib/client/mutations';
 import { fetchPlan, fetchPlans, type PlanDetail, type SharedPlan } from '@/lib/client/plans';
@@ -128,39 +129,41 @@ export function PlansCard() {
         <p className="text-xs text-[var(--color-muted)]">{tr.t('plan.orYourOwn')}</p>
       </section>
 
-      {open && (
-        <Sheet
-          title={open.plan.name}
-          open
-          onClose={() => {
-            setOpen(null);
-            setOpenId(null);
-          }}
-        >
-          {open.plan.description && (
-            <p className="text-sm leading-relaxed">{open.plan.description}</p>
-          )}
-          <p className="text-sm text-[var(--color-muted)]">
-            {open.ownerName
-              ? tr.count('plan.by', planSessions(open.plan), { name: open.ownerName })
-              : tr.count('plan.days', planSessions(open.plan))}
-          </p>
+      <Presence>
+        {open && (
+          <Sheet
+            title={open.plan.name}
+            open
+            onClose={() => {
+              setOpen(null);
+              setOpenId(null);
+            }}
+          >
+            {open.plan.description && (
+              <p className="text-sm leading-relaxed">{open.plan.description}</p>
+            )}
+            <p className="text-sm text-[var(--color-muted)]">
+              {open.ownerName
+                ? tr.count('plan.by', planSessions(open.plan), { name: open.ownerName })
+                : tr.count('plan.days', planSessions(open.plan))}
+            </p>
 
-          {/* Said before applying, not discovered months later by noticing you
+            {/* Said before applying, not discovered months later by noticing you
               have never once done the movement you were told to. */}
-          {missing.length > 0 && (
-            <Summary tone="idle">{tr.t('plan.missing', { list: missing.join(', ') })}</Summary>
-          )}
+            {missing.length > 0 && (
+              <Summary tone="idle">{tr.t('plan.missing', { list: missing.join(', ') })}</Summary>
+            )}
 
-          <Summary tone="idle">{tr.t('plan.applyBody')}</Summary>
+            <Summary tone="idle">{tr.t('plan.applyBody')}</Summary>
 
-          {failed && <Summary tone="gap">{tr.t('plan.applyFailed')}</Summary>}
+            {failed && <Summary tone="gap">{tr.t('plan.applyFailed')}</Summary>}
 
-          <Button variant="primary" disabled={busy} onClick={() => void apply()}>
-            {tr.t(applied?.id === openId ? 'plan.reapply' : 'plan.apply')}
-          </Button>
-        </Sheet>
-      )}
+            <Button variant="primary" disabled={busy} onClick={() => void apply()}>
+              {tr.t(applied?.id === openId ? 'plan.reapply' : 'plan.apply')}
+            </Button>
+          </Sheet>
+        )}
+      </Presence>
     </Card>
   );
 }
