@@ -50,6 +50,13 @@
   --color-bad: #f08a92;
   --color-bad-bg: #3a2426;
   --color-good-bg: #22332c;
+  /* A write that never landed: "not saved on this device". Its own hue, not a
+     stronger red, because red already means "saved here, not synced yet" and
+     the two must never be mistaken for each other. Magenta is the hue furthest
+     from every other status colour in both themes (red, amber, green, grey);
+     its nearest neighbour is the strength violet, which never sits beside the
+     status dot. */
+  --color-storage: #e040fb;
 
   --gradient-accent: linear-gradient(135deg, #4ade80 0%, #22c55e 45%, #0ea5a3 100%);
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 24px -18px rgb(0 0 0 / 0.85);
@@ -85,6 +92,7 @@
     --color-bad: #c8384c;
     --color-bad-bg: #fbe6e9;
     --color-good-bg: #e3f6ed;
+    --color-storage: #a21caf;
 
     --gradient-accent: linear-gradient(135deg, #17b866 0%, #0f9f62 50%, #0d9488 100%);
     --shadow-card: 0 1px 2px rgb(16 32 48 / 0.06), 0 10px 26px -20px rgb(16 32 48 / 0.5);
@@ -112,6 +120,7 @@
   --color-bad: #c8384c;
   --color-bad-bg: #fbe6e9;
   --color-good-bg: #e3f6ed;
+  --color-storage: #a21caf;
 
   --gradient-accent: linear-gradient(135deg, #17b866 0%, #0f9f62 50%, #0d9488 100%);
   --shadow-card: 0 1px 2px rgb(16 32 48 / 0.06), 0 10px 26px -20px rgb(16 32 48 / 0.5);
@@ -142,6 +151,7 @@
   --color-bad: #f08a92;
   --color-bad-bg: #3a2426;
   --color-good-bg: #22332c;
+  --color-storage: #e040fb;
 
   --gradient-accent: linear-gradient(135deg, #4ade80 0%, #22c55e 45%, #0ea5a3 100%);
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 24px -18px rgb(0 0 0 / 0.85);

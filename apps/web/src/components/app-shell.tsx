@@ -146,30 +146,55 @@ function SyncBadge() {
               : t('sync.idle');
 
   const dot =
-    status.state === 'storage'
+    status.state === 'error'
       ? 'bg-[var(--color-bad)]'
-      : status.state === 'error'
-        ? 'bg-[var(--color-bad)]'
-        : status.state === 'offline'
-          ? 'bg-[var(--color-warn)]'
-          : status.state === 'syncing'
-            ? 'bg-[var(--color-muted)] animate-pulse'
-            : 'bg-[var(--color-accent)]';
+      : status.state === 'offline'
+        ? 'bg-[var(--color-warn)]'
+        : status.state === 'syncing'
+          ? 'bg-[var(--color-muted)] animate-pulse'
+          : 'bg-[var(--color-accent)]';
 
   /* The dot alone. The words beside it were a running commentary on something
      that is almost always fine — "All saved", every screen, all day — and they
      cost the header the width the title needed. The colour is the whole
-     message: green is fine, amber is offline, red wants you, and the one state
-     that genuinely needs a sentence has a screen of its own.
+     message: green is fine, amber is offline, red wants you.
      The label is kept for screen readers and as a hover tooltip, because a
      bare coloured dot is meaningless without one. `sr-only` rather than a live
      region: this changes on every sync, and announcing each one would be a
-     stream of interruptions to say nothing happened. */
+     stream of interruptions to say nothing happened.
+
+     A storage failure is not a dot at all. Red means "saved here, not synced
+     yet", which sorts itself out; this means the change was saved nowhere, and
+     a person who reads it as the milder one loses a set believing it is
+     queued. So it gets its own colour and a shape — a warning triangle — that
+     no sync state ever uses, and still reads as different to somebody who
+     cannot tell the colours apart. `data-state` names what is showing. */
   return (
-    <span className="flex items-center" title={label}>
-      <span className={cn('h-2.5 w-2.5 rounded-full', dot)} aria-hidden />
+    <span className="flex items-center" title={label} data-state={status.state}>
+      {status.state === 'storage' ? (
+        <StorageIcon />
+      ) : (
+        <span className={cn('h-2.5 w-2.5 rounded-full', dot)} aria-hidden />
+      )}
       <span className="sr-only">{label}</span>
     </span>
+  );
+}
+
+/** A filled warning triangle in the storage colour, its "!" cut out of it. */
+function StorageIcon() {
+  return (
+    <svg viewBox="0 0 16 16" className="h-4 w-4 text-[var(--color-storage)]" aria-hidden>
+      <path
+        d="M8 1.75 14.75 13.75H1.25z"
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path d="M8 6v3.6" stroke="var(--color-bg)" strokeWidth="1.7" strokeLinecap="round" />
+      <circle cx="8" cy="11.7" r="0.95" fill="var(--color-bg)" />
+    </svg>
   );
 }
 

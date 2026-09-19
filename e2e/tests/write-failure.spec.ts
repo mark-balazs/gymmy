@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { serverSets } from '../fixtures/auth';
 import { expect, logSet, signInAs, test } from '../fixtures/test';
 
@@ -36,23 +37,30 @@ test.describe('When the device cannot store a set', () => {
     await expect(page.getByText('Could not sync')).toHaveCount(0);
 
     /* And what a sighted person sees. The words are for screen readers and the
-       tooltip; on screen the badge is a dot, and its colour is the whole
-       message — so a dot that stayed green would leave the label correct and
-       the person none the wiser. */
-    const bad = await page.evaluate(() => {
-      const probe = document.createElement('span');
-      probe.style.backgroundColor = 'var(--color-bad)';
-      document.body.append(probe);
-      const colour = getComputedStyle(probe).backgroundColor;
-      probe.remove();
-      return colour;
-    });
-    await expect(page.getByTitle('Not saved on this device').locator('[aria-hidden]')).toHaveCSS(
-      'background-color',
-      bad,
-    );
+       tooltip; on screen the badge is all there is — so a badge that stayed
+       green would leave the label correct and the person none the wiser. It
+       must not look like a sync problem either: that is red and a dot, and
+       this is its own colour and a warning triangle. */
+    const badge = page.getByTitle('Not saved on this device');
+    await expect(badge).toHaveAttribute('data-state', 'storage');
+    const storage = await themeColour(page, '--color-storage');
+    expect(storage).not.toBe(await themeColour(page, '--color-bad'));
+    await expect(badge.locator('svg')).toHaveCSS('color', storage);
+    await expect(badge.locator('.rounded-full')).toHaveCount(0);
   });
 });
+
+/** A theme colour as the browser resolves it, to compare with what is drawn. */
+function themeColour(page: Page, token: string): Promise<string> {
+  return page.evaluate((name) => {
+    const probe = document.createElement('span');
+    probe.style.color = `var(${name})`;
+    document.body.append(probe);
+    const colour = getComputedStyle(probe).color;
+    probe.remove();
+    return colour;
+  }, token);
+}
 
 test.describe('When the server cannot take a set', () => {
   test('a failed sync says so, keeps the set, and catches up', async ({
@@ -84,6 +92,15 @@ test.describe('When the server cannot take a set', () => {
     await expect(page.getByText('Could not sync')).toBeAttached({ timeout: 15_000 });
     expect(await page.getByText('All saved').count()).toBe(0);
     expect(await serverSets(user.id)).toHaveLength(0);
+
+    // A red dot: never the storage failure's colour or its triangle.
+    const badge = page.getByTitle('Could not sync');
+    await expect(badge).toHaveAttribute('data-state', 'error');
+    await expect(badge.locator('.rounded-full')).toHaveCSS(
+      'background-color',
+      await themeColour(page, '--color-bad'),
+    );
+    await expect(badge.locator('svg')).toHaveCount(0);
 
     // Kept on the device, so it goes as soon as the server answers again.
     await context.unroute('**/api/sync');

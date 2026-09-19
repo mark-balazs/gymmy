@@ -49,7 +49,9 @@ needs to say so out loud.
 
 **Every write reports its failure.** `mutations.put` surfaces a storage failure
 as a distinct state from a sync failure, because "saved here, not there yet" and
-"not saved anywhere" are different facts and only one of them loses a set.
+"not saved anywhere" are different facts and only one of them loses a set. The
+header never lets them look alike: a sync failure is a red dot, a storage
+failure a warning triangle in its own colour (`--color-storage`).
 
 **Nothing user-visible is English-only by accident.** Copy goes through the
 dictionary; pattern, slot, day and split names translate by key with the user's
