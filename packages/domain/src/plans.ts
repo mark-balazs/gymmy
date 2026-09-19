@@ -82,8 +82,13 @@ const normalise = (name: string): string => name.trim().toLowerCase();
  * from zero, so a gap installed as written leaves an empty day and loses the
  * last one. The skeleton, the fill and the count all read through this one map,
  * so they cannot disagree about which day is which.
+ *
+ * Exported because the Coaching screen has to agree with it too: it labels a
+ * plan's days A, B, C, and labelling by the stored number showed the trainer a
+ * letter the athlete never gets (GYM-83). Takes anything holding slots, so a
+ * draft being edited can be read the same way a stored plan is.
  */
-function denseSessions(plan: PlanShape): Map<number, number> {
+export function denseSessions(plan: Pick<PlanShape, 'slots'>): Map<number, number> {
   const days = [...new Set(plan.slots.map((s) => s.sessionIndex))].sort((a, b) => a - b);
   return new Map(days.map((raw, i) => [raw, i]));
 }

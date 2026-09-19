@@ -696,6 +696,44 @@ export async function shareAPlanWith(
   }
 }
 
+/**
+ * A published plan the given trainer owns, so it shows up under "Your plans".
+ *
+ * `slotDays` gives the day number stored on each slot, in order: `[0, 0, 2]` is
+ * a plan with two slots on its first day, one on its last, and nothing at 1.
+ * The API takes any day from 0 to 13 and the Coaching screen never builds a
+ * gap, so only a direct POST or PUT can make one — which is why this is written
+ * into the database rather than driven through the screen.
+ */
+export async function planOwnedBy(
+  trainerId: string,
+  opts: { name?: string; slotDays?: readonly number[] } = {},
+): Promise<{ planId: string }> {
+  const planId = randomUUID();
+  const slotDays = opts.slotDays ?? [0, 1, 2];
+  const days = new Set(slotDays).size;
+
+  await db().query(
+    `INSERT INTO plans (id, owner_id, name, description, days, "where", version, published_at)
+     VALUES ($1,$2,$3,'',$4,'gym',1,now())`,
+    [planId, trainerId, opts.name ?? 'My block', days],
+  );
+
+  const seen = new Map<number, number>();
+  for (const day of slotDays) {
+    const position = seen.get(day) ?? 0;
+    seen.set(day, position + 1);
+    await db().query(
+      `INSERT INTO plan_slots
+         (id, plan_id, session_index, position, key, name, required_role, pattern_keys, day_key, exercise_name, sets, rep_range)
+       VALUES ($1,$2,$3,$4,NULL,'Main','Any',NULL,NULL,NULL,3,'6-12')`,
+      [randomUUID(), planId, day, position],
+    );
+  }
+
+  return { planId };
+}
+
 /** Publishes a new edition, which is what an athlete is then offered. */
 export async function publishNewVersion(planId: string): Promise<void> {
   await db().query(`UPDATE plans SET version = version + 1, updated_at = now() WHERE id = $1`, [

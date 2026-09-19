@@ -6,7 +6,12 @@
  * The one screen in gymmy that genuinely needs a network: everything else reads
  * from the device, and a plan belongs to the person writing it rather than to
  * any one account's replica. So this is plain `fetch` with a soft failure — no
- * signal means an empty list and a line saying so, never a screen that hangs.
+ * signal means a line saying so, never a screen that hangs.
+ *
+ * **A list that could not be read is not an empty list.** `fetchPlans` answers
+ * `null` when the request failed, and that gets `coach.offline` rather than "No
+ * plans yet." — a trainer with ten plans being told they have none is the worse
+ * of the two lies (GYM-89).
  *
  * A plan is built the way a week is built everywhere else: pick a split and a
  * number of days, and the slot skeleton falls out of `buildSlots`. The trainer
@@ -53,6 +58,7 @@ import {
   SEED_EXERCISES,
   SPLIT_KEYS,
   buildSlots,
+  denseSessions,
   findSplit,
   sessionLabel,
   type PlanSlot,
@@ -85,7 +91,9 @@ function skeleton(split: Exclude<SplitKey, 'custom'>, days: number): PlanSlot[] 
 
 export function CoachScreen() {
   const tr = useT();
-  const [plans, setPlans] = useState<SharedPlan[] | null>(null);
+  /** `undefined` until the first read comes back, `null` when it could not be
+   *  read at all. Three states, because two of them are not "no plans". */
+  const [plans, setPlans] = useState<SharedPlan[] | null | undefined>(undefined);
   const [groups, setGroups] = useState<Group[]>([]);
   const [editing, setEditing] = useState<{ id: string | null; draft: PlanDraft } | null>(null);
   const [sharing, setSharing] = useState<SharedPlan | null>(null);
@@ -152,7 +160,9 @@ export function CoachScreen() {
           </Button>
         </div>
 
-        {plans === null ? null : mine.length === 0 ? (
+        {plans === undefined ? null : plans === null ? (
+          <Summary tone="idle">{tr.t('coach.offline')}</Summary>
+        ) : mine.length === 0 ? (
           <Summary tone="idle">{tr.t('coach.noPlans')}</Summary>
         ) : (
           <div role="list" className="flex flex-col gap-1.5">
@@ -262,7 +272,14 @@ function PlanEditor({
     }
   };
 
-  const sessions = [...new Set(draft.slots.map((s) => s.sessionIndex))].sort((a, b) => a - b);
+  /* Days are labelled by their place in the week, never by the number stored
+     on the slot. Applying a plan renumbers the days densely, so a plan whose
+     days are 0, 0 and 2 is Day A and Day B to the athlete — and the trainer was
+     shown Day A and Day C (GYM-83). Read through the domain's own map, the one
+     the installer uses, rather than a second copy of the rule. */
+  const dayOrder = denseSessions(draft);
+  const sessions = [...dayOrder.keys()];
+  const labelOf = (sessionIndex: number) => sessionLabel(dayOrder.get(sessionIndex) ?? 0);
 
   return (
     <Sheet
@@ -323,14 +340,14 @@ function PlanEditor({
       <div className="flex flex-col gap-3">
         {sessions.map((sessionIndex) => (
           <div key={sessionIndex} className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold">{sessionLabel(sessionIndex)}</span>
+            <span className="text-xs font-semibold">{labelOf(sessionIndex)}</span>
             {draft.slots
               .filter((s) => s.sessionIndex === sessionIndex)
               .sort((a, b) => a.position - b.position)
               .map((s) => (
                 <div key={s.position} className="flex items-center gap-2">
                   <select
-                    aria-label={`${sessionLabel(sessionIndex)} ${s.position + 1}`}
+                    aria-label={`${labelOf(sessionIndex)} ${s.position + 1}`}
                     value={s.exerciseName ?? ''}
                     onChange={(e) =>
                       setSlot(sessionIndex, s.position, { exerciseName: e.target.value || null })
@@ -347,7 +364,7 @@ function PlanEditor({
                   <input
                     type="number"
                     inputMode="numeric"
-                    aria-label={`${tr.t('cal.sets')} — ${sessionLabel(sessionIndex)} ${s.position + 1}`}
+                    aria-label={`${tr.t('cal.sets')} — ${labelOf(sessionIndex)} ${s.position + 1}`}
                     min={1}
                     max={10}
                     value={s.sets}

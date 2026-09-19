@@ -13,8 +13,13 @@
  * moment your week works in a basement like everything else. What needs signal
  * is choosing, which is a thing people do once, sitting down, not mid-set.
  *
- * So every call here fails softly. No connection means an empty list and a line
- * saying so, never a screen that will not load.
+ * So every call here fails softly: no connection means a soft failure and a
+ * line saying so, never a screen that will not load.
+ *
+ * **A failure is not an empty answer.** `fetchPlans` returns `null` when the
+ * list could not be read at all, because "you have no plans" and "we could not
+ * ask" are different facts and the screen must not show the first for the
+ * second — a trainer with ten plans was told "No plans yet." (GYM-89).
  */
 
 import type { PlanShape } from '@athletic/domain';
@@ -72,9 +77,10 @@ const send = (url: string, method: string, body?: unknown) =>
 
 /* ------------------------------------------------------------- reading */
 
-export async function fetchPlans(): Promise<SharedPlan[]> {
+/** `null` when the list could not be read — see the header. */
+export async function fetchPlans(): Promise<SharedPlan[] | null> {
   const got = await call<{ plans: SharedPlan[] }>('/api/plans');
-  return got?.plans ?? [];
+  return got ? (got.plans ?? []) : null;
 }
 
 export const fetchPlan = (id: string): Promise<PlanDetail | null> =>

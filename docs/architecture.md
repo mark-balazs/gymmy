@@ -197,7 +197,14 @@ Traps worth knowing before touching any of it:
   the installer builds days from zero. `planToDrafts`, `planFill` and
   `planSessions` all renumber through one map (`denseSessions`), so days 0 and 2
   install as Day A and Day B. Renumber in only one of them and a day installs
-  empty, or a trainer's choice lands on no slot.
+  empty, or a trainer's choice lands on no slot. The Coaching screen labels its
+  days through the same map: labelled by the stored number, it wrote "Day C"
+  for the day the athlete trains as B.
+- **A failed read is not an empty one.** `fetchPlans` answers `null` when the
+  request did not come back, and the Coaching screen shows the offline line for
+  it. Flattened to `[]`, a trainer with no signal was told "No plans yet." —
+  which is the one screen in the app where a wrong empty state is a wrong fact
+  rather than a delay.
 
 Visibility is computed per request rather than stored on the plan: you own it,
 or a live share points at you, directly or through a group you are in. Cached as

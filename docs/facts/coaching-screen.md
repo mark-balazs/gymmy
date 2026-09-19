@@ -5,7 +5,7 @@ decided: "c81cb8a; Confluence 934608916"
 appears:
   repo: ["docs/data.md#the-tables-that-are-not-synced", "docs/openapi.yaml#/paths/~1api~1plans", "docs/openapi.yaml#/paths/~1api~1plans~1{id}~1publish"]
   copy: ["coach.title", "coach.open", "coach.openBody", "coach.plans", "coach.newPlan", "coach.noPlans", "coach.draft", "coach.published", "coach.publish", "coach.publishBody", "coach.name", "coach.description", "coach.shape", "coach.exercises", "coach.anyExercise", "coach.saved", "coach.deletePlan"]
-  tests: ["apps/web/src/lib/db/plans.test.ts", "packages/domain/test/plans.test.ts"]
+  tests: ["apps/web/src/lib/db/plans.test.ts", "packages/domain/test/plans.test.ts", "e2e/tests/plans.spec.ts"]
   confluence: ["934543418", "934608916"]
 ---
 

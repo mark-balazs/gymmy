@@ -1,5 +1,18 @@
-import { planInEffect, publishNewVersion, serverSets, shareAPlanWith } from '../fixtures/auth';
-import { confirmSheet, expect, logSet, signInAs, test } from '../fixtures/test';
+import {
+  planInEffect,
+  planOwnedBy,
+  publishNewVersion,
+  serverSets,
+  shareAPlanWith,
+} from '../fixtures/auth';
+import {
+  confirmSheet,
+  expect,
+  logSet,
+  signInAs,
+  test,
+  waitForServiceWorker,
+} from '../fixtures/test';
 
 /**
  * Training on somebody else's plan.
@@ -227,5 +240,64 @@ test.describe('A plan somebody shared with you', () => {
     await expect(page.getByRole('note', { name: 'How later edits reach people' })).toContainText(
       'never changes the week they are in',
     );
+  });
+});
+
+test.describe('The plans a trainer writes', () => {
+  test('with no signal, says so rather than claiming there are none', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* Plans are the one thing in gymmy that needs a connection, and the screen
+       read a failed request as an empty answer: a trainer with plans was shown
+       "No plans yet." — which is not a delay, it is a wrong fact about their
+       own work (GYM-89). */
+    const trainer = await signInAs(page, context, baseURL!, { onboarded: true, role: 'trainer' });
+    await planOwnedBy(trainer.id, { name: 'Winter block' });
+
+    await page.goto('/coach');
+    await expect(page.getByText('Winter block')).toBeVisible({ timeout: 15_000 });
+
+    /* The shell has to be in the worker's cache before the network goes, or the
+       reload below never reaches the app at all and the assertion would pass
+       against a blank page. */
+    await waitForServiceWorker(page);
+    await context.setOffline(true);
+    await page.reload();
+
+    await expect(
+      page.getByText('Plans need a connection. Try again when you have signal.'),
+    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('No plans yet.')).toHaveCount(0);
+
+    await context.setOffline(false);
+  });
+
+  test('labels a plan by the days the athlete will get, not the numbers stored', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* Applying a plan renumbers its days densely, so days 0, 0 and 2 install as
+       Day A and Day B. The editor labelled them from the stored number, so the
+       trainer wrote "C" and their athlete trained "B" (GYM-83). Only a direct
+       POST or PUT can make such a plan, which is why the fixture writes it. */
+    const trainer = await signInAs(page, context, baseURL!, { onboarded: true, role: 'trainer' });
+    await planOwnedBy(trainer.id, { name: 'Gapped block', slotDays: [0, 0, 2] });
+
+    await page.goto('/coach');
+    await page.getByText('Gapped block').click();
+    const sheet = page.getByRole('dialog');
+
+    // Two days, and the second is B.
+    await expect(sheet.getByText('A', { exact: true })).toHaveCount(1);
+    await expect(sheet.getByText('B', { exact: true })).toHaveCount(1);
+    await expect(sheet.getByText('C', { exact: true })).toHaveCount(0);
+
+    // And the day's own slot sits under that letter: two on A, one on B.
+    await expect(sheet.getByRole('combobox', { name: 'A 1' })).toBeVisible();
+    await expect(sheet.getByRole('combobox', { name: 'A 2' })).toBeVisible();
+    await expect(sheet.getByRole('combobox', { name: 'B 1' })).toBeVisible();
   });
 });
