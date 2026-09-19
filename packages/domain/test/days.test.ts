@@ -161,6 +161,27 @@ describe('dayDetail', () => {
         ]);
       }
     });
+
+    it('takes the earlier day first when the date held no single day', () => {
+      /* The squat under day A and the bench under X, the label for training
+         outside the plan: two labels, so no one day leads. The plan puts the
+         squat second on day A and the bench first on day B. By slot position
+         alone the bench would lead; by day, the squat does — day A comes
+         before day B, which is what the tiebreak promises (GYM-65). */
+      const entries = [entry(1, firstB!.id, bench.id), entry(0, second!.id, squat.id)];
+      const logs = [
+        ...logsFor(bench.id, [{ weight: 80, reps: 5, rir: 1 }]).map((l) => ({
+          ...l,
+          session: 'X',
+        })),
+        ...logsFor(squat.id, [{ weight: 60, reps: 8, rir: 2 }]),
+      ];
+      for (const order of [entries, [...entries].reverse()]) {
+        const ix = index({ ...snap, entries: order, logs });
+        expect(dayDetail(ix, '2026-09-07')!.session).toBeNull();
+        expect(names(ix)).toEqual(['Goblet Squat', 'Barbell Bench Press']);
+      }
+    });
   });
 
   it('still shows an exercise that has since left the plan, even once retired', () => {
