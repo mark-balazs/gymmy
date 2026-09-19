@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CATALOGUE } from '../src/catalogue';
+import { buildProgram } from '../src/coach';
 import { index } from '../src/model';
 import {
   planFill,
@@ -205,5 +206,56 @@ describe('planSessions', () => {
       slot({ sessionIndex: 2, position: 0 }),
     ]);
     expect(planSessions(p)).toBe(2);
+  });
+});
+
+describe('a plan whose day numbers have a gap', () => {
+  /* The API takes any day number from 0 to 13, so a plan can arrive as days 0
+     and 2 with nothing at 1. The coach screen never builds one; a direct POST
+     or PUT can. Installed as written, the week was two days long — Day A and
+     an empty Day B — and the trainer's day at 2 was never generated. */
+  const gapped = plan([
+    slot({ sessionIndex: 0, position: 0, exerciseName: 'Barbell Bench Press' }),
+    slot({ sessionIndex: 0, position: 1, exerciseName: 'Barbell Row' }),
+    slot({ sessionIndex: 2, position: 0, exerciseName: 'Goblet Squat', sets: 5 }),
+  ]);
+
+  it('installs every day it describes, even when the trainer skipped a number', () => {
+    /* What `installSkeleton` does, in the order it does it: the drafts become
+       slots, the generator fills `planSessions` days, and the plan's choices
+       land on top by day and position. */
+    const base = seedSnapshot();
+    const slots = planToDrafts(gapped).map((d, i) => ({
+      ...d,
+      id: `plan-slot-${i}`,
+      updatedAt: '2026-09-01T00:00:00.000Z',
+      deletedAt: null,
+    }));
+    const days = planSessions(gapped);
+    const draft = buildProgram(index({ ...base, slots, entries: [] }), {
+      days,
+      where: 'gym',
+      bias: 'none',
+    });
+    const fill = planFill(gapped, index(base));
+    const byId = new Map(slots.map((s) => [s.id, s]));
+    const week = draft.map((d) => {
+      const want = fill.get(planSlotKey(d.sessionIndex, byId.get(d.slotId)!.position));
+      return { ...d, ...(want ? { exerciseId: want.exerciseId ?? d.exerciseId } : {}) };
+    });
+
+    expect(days).toBe(2);
+    const named = (session: number) =>
+      week
+        .filter((e) => e.sessionIndex === session)
+        .map((e) => ix.exerciseById.get(e.exerciseId ?? '')?.name);
+    expect(named(0)).toEqual(['Barbell Bench Press', 'Barbell Row']);
+    expect(named(1)).toEqual(['Goblet Squat']);
+  });
+
+  it('numbers the days in order, and keys each fill to the day it lands on', () => {
+    expect(planToDrafts(gapped).map((d) => d.sessionIndex)).toEqual([0, 0, 1]);
+    expect([...planFill(gapped, ix).keys()].sort()).toEqual(['0:0', '0:1', '1:0']);
+    expect(planFill(gapped, ix).get('1:0')?.sets).toBe(5);
   });
 });

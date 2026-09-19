@@ -159,7 +159,7 @@ It is a **copy, taken once**. `profile.planId` and `planVersion` record what was
 applied so a newer edition can be *offered*; the trainer never reaches into a
 week somebody is standing in.
 
-Two traps worth knowing before touching any of it:
+Traps worth knowing before touching any of it:
 
 - **Plans carry exercises by name.** Catalogue ids are shared, but an account
   created before the catalogue still has its own ids on every stored row, read
@@ -173,6 +173,11 @@ Two traps worth knowing before touching any of it:
   because a column was added, so a device that synced before `planId` existed
   has no such key and `profile.planId !== null` is `true` for an account that
   has never seen a plan.
+- **A plan's day numbers can skip.** The API takes any day from 0 to 13, and
+  the installer builds days from zero. `planToDrafts`, `planFill` and
+  `planSessions` all renumber through one map (`denseSessions`), so days 0 and 2
+  install as Day A and Day B. Renumber in only one of them and a day installs
+  empty, or a trainer's choice lands on no slot.
 
 Visibility is computed per request rather than stored on the plan: you own it,
 or a live share points at you, directly or through a group you are in. Cached as

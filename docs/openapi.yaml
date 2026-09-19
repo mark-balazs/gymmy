@@ -713,7 +713,14 @@ components:
         done in it.
       required: [sessionIndex, position, name, requiredRole, sets, repRange]
       properties:
-        sessionIndex: { type: integer, minimum: 0, maximum: 13 }
+        sessionIndex:
+          type: integer
+          minimum: 0
+          maximum: 13
+          description: |
+            Which day the slot is on. Stored as sent, gaps included. Applying
+            the plan numbers the days again from zero in order, so days 0 and
+            2 install as Day A and Day B, never with an empty day between.
         position: { type: integer, minimum: 0, maximum: 50 }
         key:
           type: [string, 'null']

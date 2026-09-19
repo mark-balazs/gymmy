@@ -74,6 +74,21 @@ export interface PlanFill {
 const normalise = (name: string): string => name.trim().toLowerCase();
 
 /**
+ * Each day's place in the week: the plan's own day numbers, renumbered from
+ * zero in order with no gaps.
+ *
+ * The API accepts any day number from 0 to 13, so a plan can arrive as days 0
+ * and 2 with nothing at 1. The installer builds `planSessions` days, counted
+ * from zero, so a gap installed as written leaves an empty day and loses the
+ * last one. The skeleton, the fill and the count all read through this one map,
+ * so they cannot disagree about which day is which.
+ */
+function denseSessions(plan: PlanShape): Map<number, number> {
+  const days = [...new Set(plan.slots.map((s) => s.sessionIndex))].sort((a, b) => a - b);
+  return new Map(days.map((raw, i) => [raw, i]));
+}
+
+/**
  * The skeleton, in the shape `installSkeleton` already takes.
  *
  * Deliberately drops the exercises: slots are the week's structure and the
@@ -82,6 +97,7 @@ const normalise = (name: string): string => name.trim().toLowerCase();
  * plan whose exercises do not all resolve still install a correct week.
  */
 export function planToDrafts(plan: PlanShape): SlotDraft[] {
+  const day = denseSessions(plan);
   return plan.slots
     .slice()
     .sort((a, b) => a.sessionIndex - b.sessionIndex || a.position - b.position)
@@ -90,7 +106,7 @@ export function planToDrafts(plan: PlanShape): SlotDraft[] {
       name: s.name,
       requiredRole: s.requiredRole,
       position: s.position,
-      sessionIndex: s.sessionIndex,
+      sessionIndex: day.get(s.sessionIndex)!,
       patternKeys: s.patternKeys,
       dayKey: s.dayKey,
     }));
@@ -107,10 +123,12 @@ export function planToDrafts(plan: PlanShape): SlotDraft[] {
 export function planFill(plan: PlanShape, ix: Indexed): Map<string, PlanFill> {
   // `index()` has already dropped deleted rows, so this is the live library.
   const byName = new Map(ix.exercises.map((x) => [normalise(x.name), x.id]));
+  // Keyed by the day the slot lands on, which `planToDrafts` renumbers too.
+  const day = denseSessions(plan);
 
   const out = new Map<string, PlanFill>();
   for (const s of plan.slots) {
-    out.set(planSlotKey(s.sessionIndex, s.position), {
+    out.set(planSlotKey(day.get(s.sessionIndex)!, s.position), {
       exerciseId: s.exerciseName ? (byName.get(normalise(s.exerciseName)) ?? null) : null,
       sets: s.sets,
       repRange: s.repRange,
@@ -137,8 +155,7 @@ export function unresolvedExercises(plan: PlanShape, ix: Indexed): string[] {
 }
 
 /** How many distinct sessions a plan actually describes. */
-export const planSessions = (plan: PlanShape): number =>
-  new Set(plan.slots.map((s) => s.sessionIndex)).size;
+export const planSessions = (plan: PlanShape): number => denseSessions(plan).size;
 
 /** Which plan a profile is on, if any. */
 export interface AppliedPlan {
