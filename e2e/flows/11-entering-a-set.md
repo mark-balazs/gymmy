@@ -63,7 +63,9 @@ header and the tab bar of a 640 px phone.
   Each lift keeps its own bar, and a trap bar deadlift starts on its own 25 kg.
 - **Where a number starts**: a lift never done starts on a light weight and the
   bottom of the plan's rep range — eight reps off the plan, where there is no
-  range.
+  range. A swap on the Week tab to another movement brings that movement's
+  range: Day A's rotation finisher swapped for a Farmer's Carry starts at 30
+  metres, not 8.
 - **Pounds**: the card uses the pound dumbbells, bar and plates, and a bar
   remembered in kilograms is not read back as pounds.
 - **The choice follows the account** to a second browser, like the unit does.

@@ -26,10 +26,11 @@ import type {
   SplitPeriod,
   PatternKey,
 } from '@athletic/domain';
-import type { DraftEntry, SlotDraft } from '@athletic/domain';
+import type { DraftEntry, Indexed, SlotDraft } from '@athletic/domain';
 import {
   DEFAULT_PREFS,
   buildProgram,
+  rangeAfterSwap,
   varietyFor,
   buildSlots,
   coversFor,
@@ -191,7 +192,16 @@ export const setHeight = (heightCm: number | null) => patchProfile({ heightCm })
 
 /* --------------------------------------------------------------- program */
 
+/**
+ * A swap on the Week tab.
+ *
+ * The range comes from `rangeAfterSwap`: another movement takes its own range,
+ * because a carry's reps are metres and a rotation's are not; the same movement
+ * keeps the slot's, which may be a trainer's. `ix` is only read, to know which
+ * movement each exercise is — the row itself is taken from the store.
+ */
 export async function setEntryExercise(
+  ix: Indexed,
   sessionIndex: number,
   slotId: string,
   exerciseId: string | null,
@@ -199,8 +209,9 @@ export async function setEntryExercise(
   const existing = (await local.entries.toArray()).find(
     (e) => e.sessionIndex === sessionIndex && e.slotId === slotId && e.deletedAt === null,
   );
+  const repRange = rangeAfterSwap(ix, existing ?? null, exerciseId);
   const row: ProgramEntry = existing
-    ? { ...existing, exerciseId, updatedAt: now() }
+    ? { ...existing, exerciseId, repRange, updatedAt: now() }
     : {
         id: id(),
         updatedAt: now(),
@@ -209,7 +220,7 @@ export async function setEntryExercise(
         slotId,
         exerciseId,
         sets: 3,
-        repRange: '6-12',
+        repRange,
         startWeight: null,
         note: '',
       };

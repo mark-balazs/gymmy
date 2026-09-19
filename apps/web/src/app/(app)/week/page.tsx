@@ -202,7 +202,7 @@ export default function WeekPage() {
           exercises={swapOptions(ix, days, swap.session, swap.slotId, where)}
           patterns={ix.patterns}
           onPick={async (e) => {
-            await setEntryExercise(swap.session, swap.slotId, e.id);
+            await setEntryExercise(ix, swap.session, swap.slotId, e.id);
             setSwap(null);
           }}
           onClose={() => setSwap(null)}

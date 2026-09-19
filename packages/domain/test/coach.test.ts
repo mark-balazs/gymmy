@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { buildProgram, lastSession, swapOptions, varietyFor } from '../src/coach';
+import {
+  buildProgram,
+  lastSession,
+  rangeAfterSwap,
+  repRangeFor,
+  swapOptions,
+  varietyFor,
+} from '../src/coach';
 import { SPLITS } from '../src/splits';
 import { CATALOGUE, OFF_PLAN } from '../src/catalogue';
 import { index, programCoverage, programRows, type Indexed } from '../src/model';
@@ -406,6 +413,67 @@ describe('the swap sheet', () => {
           expect(opts.filter((o) => o.where === 'gym').map((o) => o.name)).toEqual([]);
       }
     }
+  });
+});
+
+describe('the range after a swap', () => {
+  /* The owner: "the unit follows the exercise's movement pattern in EVERY
+     slot". A finisher offers rotation and carries, and a swap that kept the
+     stored range left a Farmer's Carry asking for 8-12 — its card started at
+     eight metres. Another movement takes that movement's range; the same
+     movement keeps the slot's, which may be a trainer's. */
+  const snap = seedSnapshot('sevenPattern', 3);
+  const ix = withEntries(
+    snap,
+    buildProgram(index(snap), { days: 3, where: 'gym', bias: 'none', variety: 0 }),
+  );
+  const idOf = (name: string) => ix.exercises.find((e) => e.name === name)!.id;
+  const held = (name: string, repRange: string) => ({ exerciseId: idOf(name), repRange });
+
+  it('takes the new movement’s range when the swap changes the movement', () => {
+    expect(rangeAfterSwap(ix, held('Russian Twist', '8-12'), idOf("Farmer's Carry"))).toBe(
+      '30-40m',
+    );
+    expect(rangeAfterSwap(ix, held("Waiter's Walk", '30-40m'), idOf('Pallof Press'))).toBe('8-12');
+    // Whatever the slot held before: a trainer's range goes with its movement.
+    expect(rangeAfterSwap(ix, held('Barbell Bench Press', '5-8'), idOf('Barbell Row'))).toBe(
+      '6-12',
+    );
+  });
+
+  it('keeps the slot’s range when the movement stays, a trainer’s included', () => {
+    expect(rangeAfterSwap(ix, held('Barbell Bench Press', '5-8'), idOf('DB Bench Press'))).toBe(
+      '5-8',
+    );
+    expect(rangeAfterSwap(ix, held('Russian Twist', '8-12'), idOf('Pallof Press'))).toBe('8-12');
+    /* An account from before the catalogue stores its own ids; they are the
+       same movement as the catalogue entry they alias, not an unknown one. */
+    const legacyBench = snap.exercises.find((e) => e.name === 'Barbell Bench Press')!.id;
+    expect(legacyBench).not.toBe(idOf('Barbell Bench Press'));
+    expect(
+      rangeAfterSwap(ix, { exerciseId: legacyBench, repRange: '5-8' }, idOf('DB Bench Press')),
+    ).toBe('5-8');
+  });
+
+  it('gives a slot with no row yet its movement’s range, not a blanket 6-12', () => {
+    expect(rangeAfterSwap(ix, null, idOf("Farmer's Carry"))).toBe('30-40m');
+    expect(rangeAfterSwap(ix, null, idOf('Russian Twist'))).toBe('8-12');
+    expect(rangeAfterSwap(ix, null, idOf('Hammer Curl'))).toBe('10-15');
+    expect(rangeAfterSwap(ix, null, idOf('Goblet Squat'))).toBe('6-12');
+  });
+
+  it('is the generator’s own rule, movement by movement', () => {
+    // One rule in two places would drift: a swap to any movement asks for
+    // exactly what the generator writes for it.
+    for (const p of ix.patterns) {
+      const any = ix.exercises.find((e) => e.patternId === p.id);
+      if (any) expect(rangeAfterSwap(ix, null, any.id), p.key ?? p.id).toBe(repRangeFor(p));
+    }
+  });
+
+  it('keeps the range when there is no movement to take one from', () => {
+    expect(rangeAfterSwap(ix, held('Russian Twist', '8-12'), null)).toBe('8-12');
+    expect(rangeAfterSwap(ix, held('Russian Twist', '8-12'), 'ex-nothing-by-this-id')).toBe('8-12');
   });
 });
 

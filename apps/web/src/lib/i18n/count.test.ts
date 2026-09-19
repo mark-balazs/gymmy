@@ -56,7 +56,11 @@ describe('count', () => {
       ],
       ['goal.daysLeft', {}, '1 day left'],
       ['goal.weeksN', {}, '1 week'],
-      ['goal.tooShort', {}, 'Give it at least 1 week.'],
+      [
+        'goal.tooShort',
+        {},
+        'Give it at least 1 week. Strength builds over many good sessions, and a shorter goal cannot fit enough of them.',
+      ],
       ['prog.cellSets', {}, '1 set'],
       ['prog.cellNotAsked', {}, '1 set — not part of your split that week'],
       ['prog.agoWeeks', {}, '1 week ago'],
@@ -72,8 +76,10 @@ describe('count', () => {
       ['set.deleteSets', {}, '1 logged set'],
       ['set.deleteWeeks', {}, '1 week'],
     ];
+    /* The whole sentence, not a part of it: "1 set" is inside "1 sets", so a
+       containment check passed eight of these rows in the plural too. */
     for (const [stem, params, want] of one) {
-      expect(count('en', stem, 1, params), stem).toContain(want);
+      expect(count('en', stem, 1, params), stem).toBe(want);
     }
     // And the plural is still the plural.
     expect(count('en', 'coach.members', 3)).toBe('3 people');

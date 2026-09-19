@@ -170,6 +170,58 @@ test.describe('The app pushes only where it was asked to', () => {
     await expect(sheet.getByRole('button', { name: 'Set the goal' })).toBeEnabled();
   });
 
+  test('fills in its offer for the horizon picked, until you type your own', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* The same rule, across horizons. The sheet filled in the twelve-week
+       offer once; tapping 8 weeks without typing then checked that number
+       against eight weeks, and warned about a target the app had filled in
+       itself. Six weekly sessions, 40 kg then 50 kg for 8 with two in reserve:
+       now at 66.7, with its own pace of 25% in six months — the offer is 74.5
+       over twelve weeks, and 72 over eight, where 74.5 is warned about. */
+    await signInAs(page, context, baseURL!, {
+      onboarded: true,
+      history: {
+        split: 'sevenPattern',
+        weeksBack: 6,
+        exercises: ['Goblet Squat'],
+        sessions: 6,
+        weights: [40, 40, 40, 50, 50, 50],
+      },
+    });
+    await page.goto('/progress');
+
+    await page.getByRole('button', { name: 'Show Goblet Squat' }).click();
+    const sheet = page.getByRole('dialog');
+    await sheet.getByRole('button', { name: 'Push this lift' }).click();
+
+    const target = sheet.getByLabel(/^Target, for a single rep/);
+    const warning = sheet.getByText(/^That is about [\d.]+% a week/);
+    const explain = sheet.getByText(/^The app only comments/);
+    await expect(sheet.getByText('Now at 66.7 kg')).toBeVisible();
+    await expect(sheet.getByRole('button', { name: '12 weeks' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(target).toHaveValue('74.5');
+
+    // Eight weeks, nothing typed: the eight-week offer, and no warning.
+    await sheet.getByRole('button', { name: '8 weeks' }).click();
+    await expect(target).toHaveValue('72');
+    await expect(explain).toBeVisible();
+    await expect(warning).toHaveCount(0);
+
+    // A higher number of their own gets the ordinary check, and stays theirs
+    // whatever horizon they pick next.
+    await target.fill('80');
+    await expect(warning).toBeVisible();
+    await sheet.getByRole('button', { name: '12 weeks' }).click();
+    await expect(target).toHaveValue('80');
+    await expect(sheet.getByRole('button', { name: 'Set the goal' })).toBeEnabled();
+  });
+
   test('will not build a goal on a single set', async ({ page, context, baseURL }) => {
     /* The other end of the same argument. One session is a data point, and a
        goal set 5% above it can have its target inside the error bar of its own

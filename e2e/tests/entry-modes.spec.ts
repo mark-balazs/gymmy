@@ -518,6 +518,35 @@ test.describe('Where a number starts', () => {
     await expect(numberButton(app, 'weight')).toHaveAttribute('data-value', '10');
     await expect(numberButton(app, 'reps')).toHaveAttribute('data-value', '8');
   });
+
+  test('a swap to another movement starts on that movement’s range', async ({
+    onboardedApp: app,
+  }) => {
+    /* The owner: "the unit follows the exercise's movement pattern in EVERY
+       slot". Day A's finisher holds Russian Twist, 8–12 reps, and a finisher
+       offers carries too. The swap used to keep the slot's 8–12, so the
+       carry's card started at eight metres; it now asks what a carry asks
+       for, 30–40 m. */
+    await app.getByRole('link', { name: 'Week', exact: true }).click();
+    await app.waitForURL('**/week');
+    const twist = app.getByRole('button', { name: 'About Russian Twist', exact: true }).first();
+    await twist.locator('..').getByRole('button', { name: 'Swap', exact: true }).click();
+
+    const sheet = app.getByRole('dialog');
+    await sheet.getByLabel('Search exercises').fill('Farmer');
+    await sheet.getByRole('button', { name: "Farmer's Carry", exact: true }).click();
+    await expect(app.getByRole('dialog')).toHaveCount(0);
+    await expect(app.getByRole('button', { name: "About Farmer's Carry" })).toHaveCount(1);
+
+    await app.getByRole('link', { name: 'Train', exact: true }).click();
+    await app.waitForURL('**/train');
+    await expect(app.getByRole('button', { name: 'Day A', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await openCard(app, "Farmer's Carry");
+    await expect(numberButton(app, 'reps')).toHaveAttribute('data-value', '30');
+  });
 });
 
 test.describe('In pounds', () => {

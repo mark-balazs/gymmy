@@ -135,11 +135,12 @@ function patternSets(ix: Indexed): PatternSets {
  * everything else. Keyed by the slot, a finisher said "30-40m" whatever it held
  * — a rotation finisher asked for thirty metres of Pallof press — and a carry
  * in a full-body accessory slot asked for six to twelve reps. Every path that
- * writes a slot reads the range from here, the repair included.
+ * writes a slot reads the range from here: the repair, and a swap on the Week
+ * tab (`rangeAfterSwap`).
  */
 const REP_RANGE = { big: '6-12', rotate: '8-12', isolation: '10-15', carry: '30-40m' } as const;
 
-const repRangeFor = (pattern: Pattern | null): string => {
+export const repRangeFor = (pattern: Pattern | null): string => {
   switch (pattern?.key) {
     case 'carry':
       return REP_RANGE.carry;
@@ -418,6 +419,36 @@ export function swapOptions(
     }
     return pattern.role === slot.requiredRole;
   });
+}
+
+/**
+ * The range a slot asks for once a swap puts `nextId` in it (owner,
+ * 2026-09-19: "the unit follows the exercise's movement pattern in EVERY
+ * slot").
+ *
+ * A swap to another movement takes that movement's range, by the generator's
+ * own rule (`repRangeFor`). A finisher offers rotation and carries, and a swap
+ * that kept the stored range turned a rotation finisher's "8-12" into eight
+ * metres of Farmer's Carry. A swap within the movement keeps the range the slot
+ * had, because that range may be a trainer's: a plan's "5-8" survives a switch
+ * from one press to another. A slot with no row yet takes its movement's range.
+ *
+ * An exercise that does not resolve has no movement to take a range from, so
+ * the slot keeps what it had.
+ */
+export function rangeAfterSwap(
+  ix: Indexed,
+  held: Pick<ProgramEntry, 'exerciseId' | 'repRange'> | null,
+  nextId: string | null,
+): string {
+  const movementOf = (id: string | null): Pattern | null => {
+    const ex = id ? ix.exerciseById.get(ix.exerciseIdOf(id)) : undefined;
+    return ex ? (ix.patternById.get(ex.patternId) ?? null) : null;
+  };
+  const next = movementOf(nextId);
+  if (!held) return repRangeFor(next);
+  if (!next || movementOf(held.exerciseId)?.id === next.id) return held.repRange;
+  return repRangeFor(next);
 }
 
 /* -------------------------------------------------------------- last time */

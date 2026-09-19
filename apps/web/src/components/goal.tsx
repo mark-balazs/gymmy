@@ -81,7 +81,8 @@ export function GoalForm({
   const [open, setOpen] = useState(false);
   const [why, setWhy] = useState(false);
   const [weeks, setWeeks] = useState<number>(12);
-  const [typed, setTyped] = useState('');
+  /** What the person typed, or null while the box still holds the app's offer. */
+  const [typed, setTyped] = useState<string | null>(null);
 
   const live = useMemo(() => liveGoals(ix, today), [ix, today]);
   const mine = live.find((g) => g.exerciseId === exercise.id) ?? null;
@@ -93,25 +94,29 @@ export function GoalForm({
   );
 
   const targetDate = addDays(today, weeks * 7);
-  const check = useMemo(
-    () =>
-      checkGoal({
-        baseline,
-        target: Number(typed.replace(',', '.')) || 0,
-        startedOn: today,
-        targetDate,
-        liveCount: live.length,
-        ownRecentGain,
-      }),
-    [baseline, typed, today, targetDate, live, ownRecentGain],
-  );
+  const request = {
+    baseline,
+    startedOn: today,
+    targetDate,
+    liveCount: live.length,
+    ownRecentGain,
+  };
+  /* The app's offer for the horizon on screen: a target that passes every
+     check and that `checkGoal` never warns about (owner, 2026-09-19). */
+  const offer = checkGoal({ ...request, target: 0 }).suggestedTarget;
 
-  /* Opening the form fills in a target that would pass every check, so the
-     first thing on screen is a workable goal rather than an empty box the app
-     then finds fault with. `checkGoal` never warns about that number either;
-     only a higher one the person types gets the ambition check. */
+  /* Until the person types, the box holds that offer, and it follows the
+     horizon they pick. Filled in once, the twelve-week offer stayed put when
+     they tapped eight weeks, and was then checked like their own number — so
+     the app warned about a target it had filled in itself. Once they type, the
+     number is theirs: it stays, whatever the horizon, and gets the normal
+     check. */
+  const value = typed ?? String(offer);
+  const target = typed === null ? offer : Number(typed.replace(',', '.')) || 0;
+  const check = checkGoal({ ...request, target });
+
   const start = () => {
-    setTyped(String(check.suggestedTarget));
+    setTyped(null);
     setOpen(true);
   };
 
@@ -157,7 +162,7 @@ export function GoalForm({
         fireAndForget(
           setGoal({
             exerciseId: exercise.id,
-            target: Number(typed.replace(',', '.')),
+            target,
             baseline,
             startedOn: today,
             targetDate,
@@ -185,7 +190,7 @@ export function GoalForm({
               type="number"
               inputMode="decimal"
               step="0.5"
-              value={typed}
+              value={value}
               onChange={(e) => setTyped(e.target.value)}
               aria-label={tr.t('goal.target', { unit })}
               aria-describedby="goal-note"

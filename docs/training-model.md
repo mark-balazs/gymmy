@@ -66,7 +66,11 @@ The pattern is chosen first; two rules then act inside it.
   checks every main slot in every configuration).
 - **The range follows the movement, not the slot** (GYM-67): 6–12 reps, 8–12
   for rotation, 10–15 for isolation, 30–40 m for a carry — in a finisher, a
-  full-body accessory slot or whatever the repair writes.
+  full-body accessory slot or whatever the repair writes. `repRangeFor` is the
+  one rule, and a Week-tab swap uses it too (`rangeAfterSwap`): a swap to
+  another movement takes that movement's range, so a rotation finisher swapped
+  for a carry asks for metres; a swap within the movement keeps the slot's
+  range, so a trainer's "5-8" survives a switch between presses.
 
 Walking on from the pick, rather than re-picking from the lifts that count,
 leaves every slot whose pick already counted as it was, so the offset below
@@ -571,9 +575,11 @@ below it; a higher number the person types gets the ordinary check (the owner,
 carry the offer past the line — with no history and a horizon under six months,
 any baseline up to about 18.6; 13 offers 14, +7.7% against 7.5% — and the sheet
 warned about the number it had just filled in. The rule lives in `checkGoal`,
-beside the offer, so every caller gets it. The sheet fills the offer in once,
-for the horizon on screen: switch to a shorter one afterwards and the same
-number is checked like any other, so it can warn.
+beside the offer, so every caller gets it. The offer depends on the horizon, so
+the sheet shows the offer for the horizon on screen and changes it when another
+is picked, until the person types a number of their own; from then on the
+number is theirs and stays. Filled in once, the twelve-week offer was checked
+against eight weeks when somebody tapped 8, and warned.
 
 **There is deliberately no expected pace.** The first version of this feature
 gave every goal a linear rate and flagged you for being behind it — and that is

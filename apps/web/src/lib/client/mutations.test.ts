@@ -1,6 +1,37 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  SEED_PATTERNS,
+  buildSlots,
+  findSplit,
+  index,
+  type Pattern,
+  type ProgramEntry,
+  type Slot,
+} from '@athletic/domain';
 import { rowSchemas } from '@/lib/sync/rows';
-import { boundSet, intIn, numIn } from './mutations';
+import { boundSet, intIn, numIn, setEntryExercise } from './mutations';
+
+/* The device's database and the sync queue, for the writes below: the rows
+   `setEntryExercise` reads, and every row it writes. Nothing here reaches
+   IndexedDB or the network. */
+const store = vi.hoisted(() => ({
+  entries: [] as unknown[],
+  written: [] as { table: string; row: unknown }[],
+}));
+vi.mock('./db', () => ({
+  barKey: () => 'bar',
+  setMeta: async () => undefined,
+  local: {
+    entries: { toArray: async () => store.entries },
+    table: (table: string) => ({
+      put: async (row: unknown) => void store.written.push({ table, row }),
+    }),
+  },
+}));
+vi.mock('./sync', () => ({
+  enqueue: async () => undefined,
+  reportStorageFailure: () => undefined,
+}));
 
 /**
  * The bounds `logSet` holds a set to before it is written.
@@ -143,5 +174,88 @@ describe('boundSet', () => {
       reps: 12,
       rir: null,
     });
+  });
+});
+
+describe('setEntryExercise', () => {
+  /* A swap on the Week tab. The owner: "the unit follows the exercise's
+     movement pattern in EVERY slot". It used to spread the stored row, so a
+     rotation finisher swapped for a carry kept "8-12" and the card started
+     at eight metres; and a slot with no row got "6-12" whatever it held. The
+     rule itself is `rangeAfterSwap`, tested in the domain; this holds the one
+     write that has to use it. */
+  const stamp = '2026-09-19T08:00:00.000Z';
+  const patterns: Pattern[] = SEED_PATTERNS.map((p, i) => ({
+    id: `pat-${p.key}`,
+    updatedAt: stamp,
+    deletedAt: null,
+    key: p.key,
+    name: p.key,
+    role: p.role,
+    counts: p.counts,
+    position: i,
+  }));
+  const slots: Slot[] = buildSlots(findSplit('sevenPattern')!, 3).map((s, i) => ({
+    ...s,
+    id: `slot-${i}`,
+    updatedAt: stamp,
+    deletedAt: null,
+  }));
+  const ix = index({
+    patterns,
+    slots,
+    exercises: [],
+    splitPeriods: [],
+    entries: [],
+    logs: [],
+    bodyLogs: [],
+    goals: [],
+    profile: null,
+  });
+  const finisher = slots.find((s) => s.sessionIndex === 0 && s.key === 'finisher')!;
+  const idOf = (name: string) => ix.exercises.find((e) => e.name === name)!.id;
+  const stored = (exercise: string, repRange: string): ProgramEntry => ({
+    id: 'entry-1',
+    updatedAt: stamp,
+    deletedAt: null,
+    sessionIndex: 0,
+    slotId: finisher.id,
+    exerciseId: idOf(exercise),
+    sets: 4,
+    repRange,
+    startWeight: null,
+    note: 'from the plan',
+  });
+  const written = () => {
+    expect(store.written.map((w) => w.table)).toEqual(['entries']);
+    return store.written[0]!.row as ProgramEntry;
+  };
+
+  beforeEach(() => {
+    store.entries = [];
+    store.written = [];
+  });
+
+  it('gives a swap to another movement that movement’s range', async () => {
+    store.entries = [stored('Russian Twist', '8-12')];
+    await setEntryExercise(ix, 0, finisher.id, idOf("Farmer's Carry"));
+    const row = written();
+    expect(row.repRange).toBe('30-40m');
+    // The same row, changed only where the swap changes it.
+    expect(row).toMatchObject({ id: 'entry-1', sets: 4, note: 'from the plan' });
+    expect(row.exerciseId).toBe(idOf("Farmer's Carry"));
+  });
+
+  it('keeps the stored range when the movement stays, so a trainer’s survives', async () => {
+    store.entries = [stored('Russian Twist', '6-10')];
+    await setEntryExercise(ix, 0, finisher.id, idOf('Pallof Press'));
+    expect(written().repRange).toBe('6-10');
+  });
+
+  it('gives a slot with no row yet its movement’s range', async () => {
+    await setEntryExercise(ix, 0, finisher.id, idOf("Farmer's Carry"));
+    const row = written();
+    expect(row.repRange).toBe('30-40m');
+    expect(row).toMatchObject({ sessionIndex: 0, slotId: finisher.id, sets: 3 });
   });
 });
