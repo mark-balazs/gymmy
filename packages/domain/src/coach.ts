@@ -507,5 +507,45 @@ export function lastSession(ix: Indexed, rawId: string): LastSession | null {
   return { date, weight, reps };
 }
 
+/** How many weights a card's chip row offers. Four fits a 360 px phone and is
+ *  about as far back as "what I have been lifting" reaches. */
+export const MAX_RECENT_WEIGHTS = 4;
+
+/**
+ * The weights this lift has actually been logged at, most recent first and
+ * each one only once — what the Buttons card offers as one-tap chips.
+ *
+ * Still a record, never advice. Every number here is one the person put on the
+ * bar themselves, which is the whole reason the row can exist at all: gymmy
+ * does not suggest a load (Decision log D-014), so the only weights it may
+ * offer are the ones it is reading back. A lift with no history gets an empty
+ * list and no row — the card has nothing to offer, and inventing a starting
+ * weight to fill it would be exactly the advice the app refuses to give.
+ *
+ * Stored figures, like `lastSession`: for a pair of dumbbells the card halves
+ * them back to the one in the hand, in the one place that conversion lives.
+ * Nothing is converted for the unit — a weight is stored as it was entered and
+ * switching kg to lb relabels history rather than rewriting it.
+ *
+ * A set logged without a weight counts as a zero rather than being skipped: on
+ * a bodyweight lift "nothing added" is a real answer, and the card shows it as
+ * "None". Elsewhere the card drops it.
+ */
+export function recentWeights(ix: Indexed, rawId: string, limit = MAX_RECENT_WEIGHTS): number[] {
+  const exerciseId = ix.exerciseIdOf(rawId);
+  const logs = allLogs(ix)
+    .filter((l) => l.exerciseId === exerciseId)
+    // Newest first: by day, then by the order the sets went in that day.
+    .sort((a, b) => b.date.localeCompare(a.date) || b.setNo - a.setNo);
+
+  const out: number[] = [];
+  for (const l of logs) {
+    const w = num(l.weight);
+    if (!out.includes(w)) out.push(w);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
 /** Convenience for callers holding a raw snapshot rather than an index. */
 export const indexOf = index;

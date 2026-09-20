@@ -370,6 +370,8 @@ export const en = {
   'entry.none': 'None',
   'entry.more': '{label} +',
   'entry.less': '{label} −',
+  'entry.recentWeights': 'Recent weights',
+  'entry.repsInRange': 'Reps in range',
 
   'plan.shared': 'Plans shared with you',
   'plan.by.one': 'By {name} · {n} day a week',

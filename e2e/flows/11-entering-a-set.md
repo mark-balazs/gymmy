@@ -15,7 +15,12 @@ and a tap on any number opens gymmy's own keypad, which slides up from the
 bottom and never moves the page. Three styles, chosen in Settings → **Logging
 sets**:
 
-- **Buttons** (the default) — `−` and `+` either side of the number.
+- **Buttons** (the default) — `−` and `+` either side of the number, and under
+  each one a row of one-tap chips. Under the weight, the last four distinct
+  weights logged on that lift, newest first; no row at all until it has been
+  trained, because a chip is only ever a weight this person has lifted. Under
+  the reps, every rep in the slot's range (a carry's metres step in fives). The
+  rows scroll sideways rather than wrapping, and there is no setting for them.
 - **Ruler** — drag or flick a ruler sideways; it glides and settles on a step.
   Sideways, so scrolling the page up and down can never change a number. Its
   range is realistic for the equipment: a barbell starts at the bar, and
@@ -76,6 +81,11 @@ header and the tab bar of a 640 px phone.
   row's title and by Space. Its state is `checked`, so tests read it with
   `toBeChecked`, not an `aria-checked` attribute.
 - **Bodyweight "None" is logged as no added weight.**
+- **The chips**: one tap sets the weight and one sets the reps, without opening
+  the keypad, and what they set is what gets logged. A lift never trained shows
+  no weight row, only the reps its range asks for. The ruler has neither row.
+  And with both rows on a 360×640 phone the card still fits: whole card in
+  view, log button above the tab bar, no sideways scroll.
 - **Nothing scrolls sideways** on a 360 px screen, in any style.
 - **The keypad fits a phone on its side**: at 915×412 and 667×320 it is all on
   screen, Cancel and Done included, with keys still 44 px or taller — the

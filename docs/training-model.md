@@ -653,6 +653,25 @@ in one of three styles chosen in Settings (buttons, a ruler with a range
 realistic for the equipment, or loading the bar plate by plate); flow 11 in
 `e2e/flows` describes them.
 
+In **Buttons** mode each number also gets a row of one-tap chips under it, with
+no setting to switch them off. The weight row is `recentWeights(ix, exerciseId)`
+in `coach.ts` — the last four distinct weights logged on that lift, newest
+first, per hand for a pair and "None" where nothing was added. There is no row
+at all until the lift has history, because **every chip must be a weight this
+person has lifted**: a chip holding anything else would be the app naming a
+load, which D-014 rules out. The reps row is `repChoices(repRange)` in
+`entry.ts` — every rep in the slot's range, which the plan already asks for. A
+carry's range is metres rather than reps, so it steps in fives (30, 35, 40)
+instead of offering eleven chips a metre apart; the same ladder widens the step
+on any range too long for one row, and the top of the range is always on it.
+`−`/`+` and the keypad still reach anything outside. The rows scroll sideways
+rather than wrapping, and are `contain: inline-size`, so a card on a 360 px
+phone cannot grow a second line or push the page wider than the screen.
+
+Neither row appears under the ruler or the picture of the bar: both already put
+a run of numbers under the thumb, and a card is only ever as tall as it has to
+be.
+
 **There is no rule here, and that is the design.** This section used to describe
 double progression: `suggest()` read your last session, and if you had hit the
 top of the rep range with reps to spare it told you to add 2.5 kg and drop back

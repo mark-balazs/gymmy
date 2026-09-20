@@ -371,6 +371,8 @@ export const es: Record<Key, string> = {
   'entry.none': 'Sin peso',
   'entry.more': '{label} +',
   'entry.less': '{label} −',
+  'entry.recentWeights': 'Pesos recientes',
+  'entry.repsInRange': 'Repeticiones del rango',
 
   'plan.shared': 'Planes compartidos contigo',
   'plan.by.one': 'De {name} · {n} día por semana',

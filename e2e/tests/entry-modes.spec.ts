@@ -5,6 +5,7 @@ import {
   collapsedExercises,
   expect,
   finishOpenExercise,
+  historyStart,
   numberButton,
   openCard,
   openExercise,
@@ -118,6 +119,107 @@ test.describe('Buttons, the default', () => {
     await expect(numberButton(app, 'reps')).toHaveAttribute('data-value', String(reps + 1));
     await app.getByRole('button', { name: 'reps −', exact: true }).click();
     await expect(numberButton(app, 'reps')).toHaveAttribute('data-value', String(reps));
+  });
+});
+
+/**
+ * The one-tap rows under the Buttons controls.
+ *
+ * The complaint they answer is a gym one: the reps change every set, and a
+ * weight jump is six taps of `+`. The keypad reaches anything and costs a
+ * sheet; `−`/`+` cost a tap each. A chip costs one tap.
+ *
+ * Nothing on either row is a suggestion — the weights are ones this account
+ * logged and the reps are the range the plan already asks for — so a lift with
+ * no history has no weight row to show.
+ */
+test.describe('One-tap chips', () => {
+  const weights = (page: Page) => page.getByRole('group', { name: 'Recent weights' });
+  const reps = (page: Page) => page.getByRole('group', { name: 'Reps in range' });
+  const chip = (group: ReturnType<typeof weights>, name: string) =>
+    group.getByRole('button', { name, exact: true });
+
+  /**
+   * Three sessions of Goblet Squat, each in an earlier week so none of them
+   * counts towards this week's plan — the card must still be on its first set.
+   */
+  const history = [
+    { exercise: GOBLET, date: historyStart(3), weight: 20, reps: 10, rir: 2 },
+    { exercise: GOBLET, date: historyStart(2), weight: 24, reps: 9, rir: 2 },
+    { exercise: GOBLET, date: historyStart(1), weight: 28, reps: 8, rir: 2 },
+  ];
+
+  test('a chip sets the weight and the reps in one tap', async ({ page, context, baseURL }) => {
+    await signInAs(page, context, baseURL!, { onboarded: true, sets: history });
+    await onGoblet(page);
+
+    /* Newest first, each weight once, and nothing that was never lifted — the
+       row is a reading of the log, not a recommendation. Drawn as bare
+       numbers, because the unit is in the caption over the buttons. */
+    await expect(weights(page).getByRole('button')).toHaveText(['28', '24', '20']);
+    // Heard with the unit, which the caption cannot give a screen reader.
+    for (const w of ['28 kg', '24 kg', '20 kg']) {
+      await expect(chip(weights(page), w)).toHaveCount(1);
+    }
+    // The card starts on last time's, so that chip is the pressed one.
+    await expect(chip(weights(page), '28 kg')).toHaveAttribute('aria-pressed', 'true');
+
+    // One tap, no keypad: the sheet never opens and the number is set.
+    await chip(weights(page), '24 kg').click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    expect(await cardNumber(page, 'weight')).toBe('24');
+    await expect(chip(weights(page), '24 kg')).toHaveAttribute('aria-pressed', 'true');
+    await expect(chip(weights(page), '28 kg')).toHaveAttribute('aria-pressed', 'false');
+
+    // Every rep the plan's range asks for, and the same one tap.
+    await expect(reps(page).getByRole('button')).toHaveText(['6', '7', '8', '9', '10', '11', '12']);
+    await chip(reps(page), '11').click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    expect(await cardNumber(page, 'reps')).toBe('11');
+
+    // And what the chips set is what gets logged.
+    await page.getByRole('button', { name: /^Log set 1$/ }).click();
+    expect(await recordedSet(page, 11)).toBe('24 kg × 11');
+  });
+
+  test('a lift never trained offers no weights, only reps', async ({ onboardedApp: app }) => {
+    await onGoblet(app);
+    await expect(app.getByText('First time')).toBeVisible();
+
+    /* No row at all rather than an empty one or a plausible starting weight:
+       gymmy never puts a load on the screen that the person has not lifted. */
+    await expect(weights(app)).toHaveCount(0);
+    // The reps come from the plan, not from history, so they are there at once.
+    await expect(reps(app).getByRole('button')).toHaveText(['6', '7', '8', '9', '10', '11', '12']);
+  });
+
+  test('the ruler has none of them', async ({ page, context, baseURL }) => {
+    /* The ruler already puts a run of numbers under the thumb. A chip row
+       under it would be a second way to say the same thing and a taller card. */
+    await signInAs(page, context, baseURL!, { onboarded: true, sets: history });
+    await chooseEntry(page, { mode: 'Ruler' });
+    await onGoblet(page);
+
+    await expect(ruler(page, 'Weight')).toHaveCount(1);
+    await expect(weights(page)).toHaveCount(0);
+    await expect(reps(page)).toHaveCount(0);
+  });
+
+  test('the card still fits a 360×640 phone', async ({ page, context, baseURL }) => {
+    /* Both rows are on the card here — the widest it gets — and the budget is
+       unchanged: the whole card visible on a small phone, its log button clear
+       of the tab bar, and no sideways scroll. The rows clip and scroll rather
+       than wrapping onto a second line, which is what would spend the budget. */
+    await signInAs(page, context, baseURL!, { onboarded: true, sets: history });
+    await page.setViewportSize({ width: 360, height: 640 });
+    await onGoblet(page);
+
+    await expect(weights(page).getByRole('button')).toHaveCount(3);
+    await expect(reps(page).getByRole('button')).toHaveCount(7);
+    await expectNoSideScroll(page);
+
+    await expect.poll(() => logClearsTabBar(page), { timeout: 5_000 }).toBe(true);
+    await expect(page.getByRole('heading', { name: GOBLET, exact: true })).toBeInViewport();
   });
 });
 
