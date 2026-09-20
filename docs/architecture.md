@@ -147,7 +147,10 @@ sequenceDiagram
    the client's cursor.
 4. The server validates each row against `lib/sync/rows.ts`, upserts it with
    last-write-wins on `updatedAt`, assigns a `seq` from a shared Postgres
-   sequence, and returns everything newer than the cursor.
+   sequence, and returns everything newer than the cursor. On an **update** it
+   writes only the fields the request actually carried: the schema's defaults
+   fill a new row's columns, but writing them over an existing row is how an
+   old build reset fields it had never heard of (GYM-69).
 5. The client applies the server's rows, **then re-applies anything still in the
    outbox on top**. Without that last step a pull in flight would overwrite a
    set logged while it was travelling, and it would look to the user like the

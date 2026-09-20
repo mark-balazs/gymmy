@@ -149,6 +149,13 @@ Two things are therefore required:
 2. **Backfill in the migration** if existing rows need a real value, and bump
    their `seq` if devices must re-fetch them.
 
+The **push** side of the same trap is closed in `/api/sync`: an update writes
+only the fields the request carried. The row schema still defaults everything a
+request leaves out — that is what lets a phone one build behind push at all —
+but on an insert that default is a starting value and on an update it would be
+a *decision*. Writing it was how an old build reset `planId` and `entryMode`
+(GYM-69).
+
 ## Sync protocol
 
 `lib/sync/protocol.ts` is the wire contract, imported by both sides.
@@ -253,11 +260,11 @@ are the known cases:
   the new exercise are affected. Aliasing only works old-to-new.
 - **An off-plan set.** The previous build reads its `X` label as day 23, clamped
   to the last day, and opens Train and Home on the wrong day until it reloads.
-- **A new profile setting.** An old build rebuilds the whole profile row on any
-  settings change and pushes it without the new key; the server's schema fills
-  in the default, so a device one build behind that changes, say, its theme
-  also resets "Logging sets" to Buttons. The next change on a current device
-  puts it back. Accepted because it is a preference, not training data.
+- **A new profile setting.** An old build pushes the profile row without the
+  new key. That used to reset it — changing the theme on a device one build
+  behind also put "Logging sets" back to Buttons, because the schema's default
+  was written. It does not any more: an update writes only the fields the
+  request carried (GYM-69). The old build still cannot *show* the setting.
 - **What does not correct itself:** a new column (the `seq` trap above) and a
   new table. An old build's `applyChanges` walks only the tables *it* knows, but
   the cursor moves past everything, so rows of a table it has never heard of are

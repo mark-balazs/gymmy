@@ -47,7 +47,7 @@ describe('POST /api/sync', () => {
     ...over,
   });
 
-  const sync = async (as: string, rows: Record<string, unknown>[] = []) => {
+  const push = async (as: string, mutations: { table: string; row: Record<string, unknown> }[]) => {
     who.id = as;
     const res = await POST(
       new Request('http://localhost/api/sync', {
@@ -55,13 +55,21 @@ describe('POST /api/sync', () => {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           since: 0,
-          mutations: rows.map((row) => ({ table: 'logs', op: 'put', row })),
+          mutations: mutations.map((m) => ({ ...m, op: 'put' })),
         }),
       }),
     );
     expect(res.status).toBe(200);
-    return (await res.json()) as { changes: { logs?: LogRow[] } };
+    return (await res.json()) as {
+      changes: { logs?: LogRow[]; profile?: Record<string, unknown>[] };
+    };
   };
+
+  const sync = async (as: string, rows: Record<string, unknown>[] = []) =>
+    push(
+      as,
+      rows.map((row) => ({ table: 'logs', row })),
+    );
   /** The row as the account's next pull from scratch would see it. */
   const pulled = async (as: string, id: string) =>
     (await sync(as)).changes.logs?.find((l) => l.id === id);
@@ -114,6 +122,79 @@ describe('POST /api/sync', () => {
     expect(row.user_id).toBe(a);
     expect(Number(row.seq)).toBeGreaterThan(maxSeq);
     expect(await pulled(b, id)).toBeUndefined();
+  });
+
+  it('writes only the fields a change carried, so an old build resets nothing', async () => {
+    /* GYM-69. Every field added after launch is defaulted in `rows.ts`, which
+       is what lets a phone one build behind push its profile at all. On an
+       insert that default is a starting value; on an *update* it is a value,
+       and it used to be written — so changing the language on an old phone
+       took somebody off their trainer's plan and put their entry mode back.
+
+       The shape below is the old build's exactly: the fields that have no
+       default, and nothing else. */
+    const id = randomUUID();
+    const settled = {
+      id,
+      updatedAt: at(10),
+      deletedAt: null,
+      onboarded: true,
+      split: 'upperLower',
+      days: 4,
+      where: 'gym',
+      bias: 'none',
+      blockStart: '2026-09-14',
+      blockWeeks: 8,
+      unit: 'kg',
+      lang: 'en',
+      theme: 'dark',
+      entryMode: 'ruler',
+      plateLoader: false,
+      heightCm: 181,
+      sex: 'male',
+      name: 'Sam',
+      birthYear: 1990,
+      avatar: null,
+      planId: 'plan-1',
+      planVersion: 3,
+    };
+    await push(a, [{ table: 'profile', row: settled }]);
+
+    await push(a, [
+      {
+        table: 'profile',
+        row: {
+          id,
+          updatedAt: at(11),
+          deletedAt: null,
+          onboarded: true,
+          split: 'upperLower',
+          days: 4,
+          where: 'gym',
+          bias: 'none',
+          blockStart: '2026-09-14',
+          blockWeeks: 8,
+          unit: 'kg',
+          // The one thing that phone changed.
+          lang: 'hu',
+        },
+      },
+    ]);
+
+    who.id = a;
+    const back = (await push(a, [])).changes.profile?.find((p) => p.id === id);
+    expect(back?.lang).toBe('hu');
+    expect(back).toMatchObject({
+      planId: 'plan-1',
+      planVersion: 3,
+      entryMode: 'ruler',
+      plateLoader: false,
+      theme: 'dark',
+      heightCm: 181,
+      sex: 'male',
+      name: 'Sam',
+      birthYear: 1990,
+    });
   });
 
   it('keeps two accounts’ rows apart when they share an id', async () => {

@@ -69,12 +69,31 @@ export async function POST(req: Request): Promise<NextResponse> {
       seq: nextSeq,
     };
 
+    /**
+     * Only the fields the change actually carried are written over an existing
+     * row.
+     *
+     * The schema fills in a default for every field a request leaves out, which
+     * is what lets a phone one build behind push at all. But on an *update* that
+     * default is not a fallback, it is a value — so a build that predates a
+     * column reset it: changing the language on an old phone took somebody off
+     * their trainer's plan and put their entry mode back to buttons (GYM-69).
+     *
+     * A new row still takes the whole parsed shape, defaults included, because
+     * its columns have to hold something. `seq` and `updatedAt` are always
+     * written: they are what orders the change, not part of it.
+     */
+    const sent = new Set(Object.keys(m.row));
+    const patch = Object.fromEntries(
+      Object.entries(values).filter(([k]) => k === 'seq' || k === 'updatedAt' || sent.has(k)),
+    );
+
     await db
       .insert(table)
       .values(values as never)
       .onConflictDoUpdate({
         target: [table.userId, table.id],
-        set: values as never,
+        set: patch as never,
         // Last-write-wins: an older edit arriving late must not clobber a newer
         // one. Without this, a phone that was offline for a week would overwrite
         // everything done since with stale data on its first sync.
