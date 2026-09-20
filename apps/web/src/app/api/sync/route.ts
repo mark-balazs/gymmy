@@ -39,7 +39,22 @@ export async function POST(req: Request): Promise<NextResponse> {
       { status: 400 },
     );
   }
-  const { since, mutations } = parsed.data;
+  const { since, accountId, mutations } = parsed.data;
+
+  /**
+   * Data on a phone belongs to an account, and says so.
+   *
+   * A device that still holds the previous person's rows — a sign-out wipe that
+   * failed, or a second tab that was never told — used to push them up under
+   * whoever signed in next, and pull that account's history down beside them
+   * (GYM-74). Nothing here is written or returned until the two agree.
+   *
+   * `null` is a device that has never had an answer: it is adopted, and the
+   * response names the account so it can stamp itself.
+   */
+  if (accountId !== null && accountId !== userId) {
+    return NextResponse.json({ error: 'another account' }, { status: 409 });
+  }
 
   /* ---- push ---- */
 
@@ -171,6 +186,7 @@ async function pull(userId: string, since: number): Promise<PullResponse> {
   return {
     cursor: lowestTruncated ?? highestSent,
     changes,
+    accountId: userId,
     serverTime: new Date().toISOString(),
     hasMore: lowestTruncated !== null,
   };

@@ -47,21 +47,31 @@ describe('POST /api/sync', () => {
     ...over,
   });
 
-  const push = async (as: string, mutations: { table: string; row: Record<string, unknown> }[]) => {
+  const post = async (
+    as: string,
+    mutations: { table: string; row: Record<string, unknown> }[],
+    accountId?: string | null,
+  ) => {
     who.id = as;
-    const res = await POST(
+    return POST(
       new Request('http://localhost/api/sync', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           since: 0,
+          ...(accountId === undefined ? {} : { accountId }),
           mutations: mutations.map((m) => ({ ...m, op: 'put' })),
         }),
       }),
     );
+  };
+
+  const push = async (as: string, mutations: { table: string; row: Record<string, unknown> }[]) => {
+    const res = await post(as, mutations);
     expect(res.status).toBe(200);
     return (await res.json()) as {
       changes: { logs?: LogRow[]; profile?: Record<string, unknown>[] };
+      accountId: string;
     };
   };
 
@@ -195,6 +205,29 @@ describe('POST /api/sync', () => {
       name: 'Sam',
       birthYear: 1990,
     });
+  });
+
+  it('refuses a device holding another account, and never writes what it sent', async () => {
+    /* GYM-74. A phone that still holds the previous person's rows — a wipe
+       that failed, a second tab that was never told — used to push them up
+       under whoever signed in next. Now the device says whose data it is and
+       the server refuses outright: nothing written, nothing returned. */
+    const id = randomUUID();
+    const res = await post(a, [{ table: 'logs', row: log(id, {}) }], b);
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: 'another account' });
+
+    const stored = await db.execute(sql`SELECT id FROM set_logs WHERE id = ${id}`);
+    expect(stored.rows).toHaveLength(0);
+  });
+
+  it('names the account back, so a device can stamp itself', async () => {
+    // A device that has never synced says nothing, and is adopted.
+    const res = await post(a, [{ table: 'logs', row: log(randomUUID(), {}) }], null);
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { accountId: string }).accountId).toBe(a);
+    // And one that already agrees is let through.
+    expect((await post(a, [], a)).status).toBe(200);
   });
 
   it('keeps two accounts’ rows apart when they share an id', async () => {

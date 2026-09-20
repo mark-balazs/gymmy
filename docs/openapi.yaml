@@ -150,6 +150,17 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
               example: { error: unauthorized }
+        '409':
+          description: |
+            The `accountId` the device sent is not the signed-in account, so
+            this phone is holding somebody else's training — a sign-out wipe
+            that failed, or a second tab that was never told. Nothing was
+            written and nothing is returned. The device stops, keeps its queue,
+            and asks the person.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: another account }
 
   /api/auth/email-code:
     post:
@@ -838,6 +849,16 @@ components:
           minimum: 0
           default: 0
           description: The highest `seq` this client has already applied.
+        accountId:
+          type: string
+          maxLength: 64
+          nullable: true
+          default: null
+          description: |
+            Whose data this device holds, as a previous answer named it, or
+            `null` before its first sync ever answered. Anything else than the
+            session's own account is `409`: a phone that still holds the last
+            person's rows must not push them up under whoever signed in next.
         mutations:
           type: array
           maxItems: 500
@@ -845,8 +866,14 @@ components:
 
     PullResponse:
       type: object
-      required: [cursor, changes, serverTime, hasMore]
+      required: [cursor, changes, accountId, serverTime, hasMore]
       properties:
+        accountId:
+          type: string
+          description: |
+            Whose data this is. The device stamps itself and every queued
+            change with it, and never sends one account's changes under
+            another.
         cursor:
           type: integer
           description: |

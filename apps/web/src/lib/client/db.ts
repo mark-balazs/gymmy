@@ -30,6 +30,16 @@ export interface Outbox {
   /** Serialised at enqueue time so a later local edit cannot rewrite history. */
   row: Record<string, unknown>;
   queuedAt: string;
+  /**
+   * The account this change belongs to, as the last sync named it, or `null`
+   * for one written before this device had ever synced.
+   *
+   * A change is never pushed under another account. Without it a phone that
+   * still held the previous person's queue — the wipe failed, or the app was
+   * open in a second tab when they signed out — sent their training up under
+   * whoever signed in next (GYM-74).
+   */
+  accountId?: string | null;
 }
 
 export interface Meta {
@@ -130,6 +140,10 @@ export function inTx<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 /* -------------------------------------------------------------- helpers */
+
+/** Where the account this device's data belongs to is kept, as the sync named
+ *  it. Absent until the first sync answers. */
+export const ACCOUNT_KEY = 'account';
 
 export async function getMeta<T>(key: string, fallback: T): Promise<T> {
   const row = await local.meta.get(key);

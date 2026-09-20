@@ -37,7 +37,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const profile = useProfile();
   const status = useSyncStatus();
   const router = useRouter();
-  const { t } = useT();
+  const { t, count } = useT();
   const [stuck, setStuck] = useState(false);
 
   // Must start above the profile gate, not inside AppShell. A fresh device has
@@ -59,6 +59,27 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const timer = setTimeout(() => setStuck(true), STUCK_AFTER_MS);
     return () => clearTimeout(timer);
   }, [waiting]);
+
+  /**
+   * This phone holds one account's training and somebody else is signed in.
+   *
+   * The sync said so (409) and has stopped: nothing of theirs goes up, nothing
+   * of the new account comes down. Showing the pages anyway would put one
+   * person's history under another's name, so the app shows neither until
+   * somebody decides — and says how many changes are at stake, because
+   * clearing the phone is what throws them away. Reachable when a sign-out
+   * wipe failed, or the app was open in a second tab at the time.
+   */
+  if (status.state === 'foreign') {
+    return (
+      <Recovery
+        title={t('sync.foreignTitle')}
+        body={
+          status.pending > 0 ? count('sync.foreignPending', status.pending) : t('sync.foreignBody')
+        }
+      />
+    );
+  }
 
   // A read that failed is not waited on: the page's own read throws it into
   // `error.tsx`, which says so and offers to try again.

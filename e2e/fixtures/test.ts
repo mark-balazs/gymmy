@@ -381,6 +381,72 @@ export async function logSuggested(page: Page): Promise<void> {
 }
 
 /**
+ * Puts `count` sets into this device's store and its queue, straight.
+ *
+ * A long offline session is hundreds of changes, and there is no way to tap
+ * that many inside a test. Written the way `mutations.put` writes them — the
+ * row and its outbox entry, stamped with the account the last sync named — but
+ * without going through it, because what is under test is what happens to a
+ * full queue, not how it filled.
+ *
+ * Deliberately nothing schedules a push for these, so the only thing that can
+ * send them is whatever the test does next.
+ */
+export async function queueSets(page: Page, count: number): Promise<void> {
+  await page.evaluate(async (n) => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const req = indexedDB.open('athletic-tracker');
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    const one = <T>(store: string, read: (s: IDBObjectStore) => IDBRequest): Promise<T> =>
+      new Promise((resolve) => {
+        const req = read(db.transaction(store).objectStore(store));
+        req.onsuccess = () => resolve(req.result as T);
+        req.onerror = () => resolve(undefined as T);
+      });
+
+    const account =
+      (await one<{ value: string } | undefined>('meta', (s) => s.get('account')))?.value ?? null;
+    // A lift the week already plans, so these read back like ordinary sets.
+    const entries =
+      (await one<{ exerciseId: string | null }[]>('entries', (s) => s.getAll())) ?? [];
+    const exerciseId = entries.find((e) => e.exerciseId)?.exerciseId ?? 'ex-goblet-squat';
+    const stamp = new Date().toISOString();
+
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(['logs', 'outbox'], 'readwrite');
+      for (let i = 0; i < n; i++) {
+        const row = {
+          id: `queued-${i}-${stamp}`,
+          updatedAt: stamp,
+          deletedAt: null,
+          date: stamp.slice(0, 10),
+          session: 'A',
+          exerciseId,
+          setNo: (i % 100) + 1,
+          weight: 60,
+          reps: 8,
+          rir: 2,
+          note: '',
+        };
+        tx.objectStore('logs').put(row);
+        tx.objectStore('outbox').add({
+          table: 'logs',
+          rowId: row.id,
+          row,
+          queuedAt: stamp,
+          accountId: account,
+        });
+      }
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  }, count);
+}
+
+/**
  * How many sets this device's IndexedDB still holds.
  *
  * The one witness to what a sign-out or a deletion left *on the phone*: a

@@ -61,6 +61,50 @@ test.describe('Deleting your account', () => {
     expect(await localLogCount(page)).toBe(0);
   });
 
+  test('leaves the phone alone when the server does not confirm', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* The device used to be wiped first and the account deleted afterwards, so
+       a deletion that failed left somebody signed in to an account that still
+       existed, on a phone with nothing on it and every unsent change gone
+       (GYM-74). Now nothing is wiped until the server says the account is
+       gone — and neither step runs offline, where the session cannot end. */
+    const user = await signInAs(page, context, baseURL!, {
+      onboarded: true,
+      history: { split: 'sevenPattern', weeksBack: 2, exercises: ['Goblet Squat'] },
+    });
+    await page.goto('/settings');
+    await expect(page.getByText('All saved')).toBeVisible({ timeout: 30_000 });
+    const before = await localLogCount(page);
+    expect(before).toBeGreaterThan(0);
+
+    await page.getByRole('button', { name: 'Delete my account' }).click();
+    const sheet = page.getByRole('dialog', { name: 'Delete your account?' });
+
+    // Offline first: refused outright, nothing touched.
+    await context.setOffline(true);
+    await sheet.getByRole('button', { name: 'Delete everything' }).click();
+    await expect(sheet.getByText('You are offline.', { exact: false })).toBeVisible();
+    await context.setOffline(false);
+
+    // Online, but the deletion itself fails.
+    await context.route('**/settings', (route) =>
+      route.request().method() === 'POST' ? route.abort() : route.continue(),
+    );
+    await sheet.getByRole('button', { name: 'Delete everything' }).click();
+    await expect(
+      sheet.getByText('The account was not deleted. Nothing on this phone was touched.'),
+    ).toBeVisible({ timeout: 30_000 });
+    await context.unroute('**/settings');
+
+    // Still signed in, still on the phone, still on the server.
+    await expect(page).toHaveURL(/\/settings/);
+    expect(await localLogCount(page)).toBe(before);
+    expect(await rowCount('set_logs', user.id)).toBeGreaterThan(0);
+  });
+
   test('can be backed out of', async ({ page, context, baseURL }) => {
     // The button sits one card below Sign out, and only one of them is
     // recoverable. Cancelling has to genuinely cancel.

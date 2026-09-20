@@ -74,6 +74,13 @@ export const fr: Record<Key, string> = {
   'sync.dismiss': 'Masquer',
   'sync.pending.one': '{n} en attente de synchro',
   'sync.pending.other': '{n} en attente de synchro',
+  'sync.foreignTitle': 'Ce téléphone contient un autre compte',
+  'sync.foreignBody':
+    'Quelqu’un d’autre est connecté. Rien n’est envoyé ni récupéré tant que ce téléphone n’est pas vidé.',
+  'sync.foreignPending.one':
+    '{n} changement sur ce téléphone appartient à un autre compte. Connecte-toi avec ce compte, ou vide ce téléphone ci-dessous.',
+  'sync.foreignPending.other':
+    '{n} changements sur ce téléphone appartiennent à un autre compte. Connecte-toi avec ce compte, ou vide ce téléphone ci-dessous.',
 
   'common.back': 'Retour',
   'common.cancel': 'Annuler',
@@ -435,6 +442,13 @@ export const fr: Record<Key, string> = {
   'set.deleteWeeks.other': '{n} semaines',
   'set.deleteForever': 'C’est immédiat. Aucune copie n’est gardée, donc c’est irréversible.',
   'set.deleteConfirm': 'Tout supprimer',
+  'set.deleteFailed': 'Le compte n’a pas été supprimé. Rien n’a changé sur ce téléphone.',
+  'set.leaveOffline': 'Tu es hors ligne. Se déconnecter et supprimer demandent une connexion.',
+  'set.unsentQ': 'Des changements sont encore ici',
+  'set.unsent.one': '{n} changement n’a pas atteint le serveur.',
+  'set.unsent.other': '{n} changements n’ont pas atteint le serveur.',
+  'set.unsentBody': 'La déconnexion vide ce téléphone, ils seraient donc perdus.',
+  'set.unsentGo': 'Se déconnecter et les perdre',
   'set.rebuildQ': 'Reconstruire ta semaine ?',
   'set.rebuildBody':
     'De nouveaux exercices seront choisis en conséquence. Ton historique ne bouge pas.',

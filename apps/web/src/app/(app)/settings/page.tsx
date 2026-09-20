@@ -11,7 +11,7 @@ import { PlansCard } from '@/components/plans-card';
 import { Switch } from '@/components/switch';
 import { InfoTip } from '@/components/info-tip';
 import { CoachLink } from '@/components/coach-link';
-import { useProfile, useSnapshot, useT } from '@/lib/client/hooks';
+import { useProfile, useSnapshot, useSyncStatus, useT } from '@/lib/client/hooks';
 import {
   applyCustomSplit,
   applySplit,
@@ -22,7 +22,7 @@ import {
   setTheme,
   setUnit,
 } from '@/lib/client/mutations';
-import { sync, wipeLocal } from '@/lib/client/sync';
+import { flush, stopSync, wipeLocal } from '@/lib/client/sync';
 import { deleteAccountAction, signOutAction } from './actions';
 import { LANGS } from '@/lib/i18n';
 import type { Key } from '@/lib/i18n';
@@ -59,6 +59,10 @@ const draftOf = (p: Profile | null): Draft => ({
 
 const SPLIT_OPTIONS: SplitKey[] = SPLITS.map((s) => s.key);
 
+/** Whether this phone has no signal. Both ways of leaving need one: ending a
+ *  session is a write to the server, and neither may wipe without it. */
+const offline = (): boolean => typeof navigator !== 'undefined' && !navigator.onLine;
+
 /** Compared rather than by object identity: the profile is a new object
  *  whenever any of it changes, including the fields that are none of this. */
 const signatureOf = (d: Draft): string => `${d.split}|${d.days}|${d.where}|${d.bias}`;
@@ -91,6 +95,56 @@ export default function SettingsPage() {
   const [confirm, setConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  /** What the last attempt to leave could not do, in words. */
+  const [problem, setProblem] = useState<string | null>(null);
+  /** Changes the last push could not send, so the sheet can say how many. */
+  const [unsent, setUnsent] = useState(0);
+  const pending = useSyncStatus().pending;
+
+  /**
+   * Stop, send, then wipe.
+   *
+   * The wipe is what makes signing out safe for the next person on the phone,
+   * and it is also what destroys anything the server has not got. So the
+   * timers are cancelled first — a sync fired into the gap used to refill a
+   * wiped device — then the queue is drained properly rather than given one
+   * capped push that joined whatever was already in flight, and only then is
+   * the device cleared (GYM-74).
+   *
+   * Refused offline, where the session cannot end anyway: signing out of a
+   * cookie while the row stays on the server is not signing out, and it would
+   * throw away every change still waiting to go.
+   */
+  const signOut = async () => {
+    if (offline()) return setProblem(tr.t('set.leaveOffline'));
+    setProblem(null);
+    setLeaving(true);
+    stopSync();
+    let left = 0;
+    try {
+      left = await flush();
+    } catch {
+      left = pending;
+    }
+    if (left > 0) {
+      // Not wiped, and not silently: the sheet says how many and asks.
+      setLeaving(false);
+      setUnsent(left);
+      return;
+    }
+    await wipeAndLeave();
+  };
+
+  const wipeAndLeave = async () => {
+    setLeaving(true);
+    setUnsent(0);
+    try {
+      await wipeLocal();
+    } catch {
+      /* Reported by the storage layer; the session must still end. */
+    }
+    await signOutAction();
+  };
 
   /** How much of their life is in here, for the deletion warning to be honest
    *  about. Distinct weeks trained rather than calendar weeks since they
@@ -384,38 +438,28 @@ export default function SettingsPage() {
 
       <CoachLink />
 
-      <Card>
-        <Button
-          variant="danger"
-          className="w-full"
-          disabled={leaving}
-          onClick={async () => {
-            setLeaving(true);
-            /**
-             * Order matters, and both steps are the point.
-             *
-             * The last push goes first, because everything local is about to
-             * be destroyed and an unsynced set would go with it. Then the
-             * local database is cleared — without that, the next person to
-             * sign in on this device inherits the previous account's training,
-             * and the sync engine happily pushes it up under their name.
-             */
-            try {
-              await sync();
-            } catch {
-              /* Offline. The wipe still has to happen; staying signed in is worse. */
-            }
-            try {
-              await wipeLocal();
-            } catch {
-              /* Reported by the storage layer; the session must still end. */
-            }
-            await signOutAction();
-          }}
-        >
+      <Card className="flex flex-col gap-2">
+        <Button variant="danger" className="w-full" disabled={leaving} onClick={signOut}>
           {tr.t('app.signOut')}
         </Button>
+        {problem && <p className="text-sm text-[var(--color-bad)]">{problem}</p>}
       </Card>
+
+      {/* Never a silent wipe. The queue could not be drained — no signal
+          halfway through, a row the server refuses — so the number that would
+          go is said, and going ahead takes a second tap. */}
+      <Sheet title={tr.t('set.unsentQ')} open={unsent > 0} onClose={() => setUnsent(0)}>
+        <p className="text-sm">{tr.count('set.unsent', unsent)}</p>
+        <p className="text-sm text-[var(--color-muted)]">{tr.t('set.unsentBody')}</p>
+        <div className="flex gap-2">
+          <Button className="flex-1" onClick={() => setUnsent(0)}>
+            {tr.t('common.cancel')}
+          </Button>
+          <Button variant="danger" className="flex-1" disabled={leaving} onClick={wipeAndLeave}>
+            {tr.t('set.unsentGo')}
+          </Button>
+        </div>
+      </Sheet>
 
       {/* Separate from sign-out and visually quieter than it, because the two
           are one tap apart and only one of them is recoverable. What deleting
@@ -443,7 +487,11 @@ export default function SettingsPage() {
             weeks: tr.count('set.deleteWeeks', trainedWeeks),
           })}
         </p>
+        {/* Counted here too: what is about to go includes changes the server
+            has never seen, and deleting sends none of them. */}
+        {pending > 0 && <p className="text-sm">{tr.count('set.unsent', pending)}</p>}
         <p className="text-sm text-[var(--color-muted)]">{tr.t('set.deleteForever')}</p>
+        {problem && <p className="text-sm text-[var(--color-bad)]">{problem}</p>}
         <div className="flex gap-2">
           <Button className="flex-1" onClick={() => setDeleting(false)}>
             {tr.t('common.cancel')}
@@ -453,17 +501,27 @@ export default function SettingsPage() {
             className="flex-1"
             disabled={leaving}
             onClick={async () => {
+              if (offline()) return setProblem(tr.t('set.leaveOffline'));
+              setProblem(null);
               setLeaving(true);
-              /* The device is wiped first and deliberately without a sync.
-                 Pushing local changes up to an account that is about to be
-                 erased is work done to destroy it a moment later, and if the
-                 server call then fails we have still left this device clean. */
+              /* Nothing is pushed: work done to destroy it a moment later. But
+                 the phone is wiped only once the server says the account is
+                 gone — a deletion that failed used to leave somebody signed in
+                 to an account that still existed, on a device with nothing on
+                 it and every unsent change thrown away. */
+              stopSync();
+              try {
+                await deleteAccountAction();
+              } catch {
+                setLeaving(false);
+                setProblem(tr.t('set.deleteFailed'));
+                return;
+              }
               try {
                 await wipeLocal();
               } catch {
-                /* Reported by the storage layer; the account must still go. */
+                /* Reported by the storage layer; the account is already gone. */
               }
-              await deleteAccountAction();
               // The action ends the session but deliberately does not redirect,
               // so that the deletion happens before we leave.
               window.location.replace('/sign-in');
