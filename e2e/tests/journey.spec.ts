@@ -9,6 +9,7 @@ import {
   localLogCount,
   logSet,
   openExercise,
+  queueSets,
   recordedSet,
   signInAs,
   test,
@@ -224,14 +225,11 @@ test.describe('Signing out', () => {
     context,
     baseURL,
   }) => {
-    /* Sign-out's last push joins one already in flight rather than starting
-       its own, and the one in flight left before this set was logged. So the
-       wipe that follows takes the set with it: nothing drains the queue first.
-
-       Expected to fail until sign-out drains the queue — waiting out the push
-       in flight and pushing again while anything is still queued — before it
-       wipes. Remove the marker with the fix. */
-    test.fail(true, 'sign-out wipes a set queued behind a push already in flight');
+    /* Sign-out's last push used to join one already in flight rather than
+       starting its own, and the one in flight left before this set was logged.
+       So the wipe that followed took the set with it: nothing drained the
+       queue first (GYM-74). It does now — it waits the travelling push out and
+       pushes again while anything is still queued. */
     const user = await signInAs(page, context, baseURL!, { onboarded: true });
     await expect(page.getByText('All saved')).toBeAttached({ timeout: 30_000 });
 
@@ -262,5 +260,105 @@ test.describe('Signing out', () => {
     await page.waitForURL('**/sign-in');
 
     await expect.poll(async () => (await serverSets(user.id)).length, { timeout: 20_000 }).toBe(2);
+  });
+
+  test('sends a long offline session whole, not one page of it', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* The push is capped at 200 changes a round, and sign-out used to be one
+       round. Somebody who trained for weeks without signal lost everything
+       past the first 200 the moment they signed out (GYM-74). 250 sets are
+       queued here with the server unreachable, and every one has to arrive. */
+    const user = await signInAs(page, context, baseURL!, { onboarded: true });
+    await expect(page.getByText('All saved')).toBeAttached({ timeout: 30_000 });
+
+    /* Put straight into the device's store and its queue: 250 taps is not a
+       test. Nothing schedules a push for them, so the only thing that can send
+       them is the last push sign-out makes — which is the point. */
+    await queueSets(page, 250);
+    expect(await serverSets(user.id)).toEqual([]);
+
+    await tab(page, 'Settings').click();
+    await page.waitForURL('**/settings');
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    await page.waitForURL('**/sign-in', { timeout: 60_000 });
+
+    await expect
+      .poll(async () => (await serverSets(user.id)).length, { timeout: 60_000 })
+      .toBe(250);
+  });
+
+  test('says how many are left rather than wiping them, and refuses offline', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* The owner's rule: the screens where a wipe can happen say how many
+       changes never reached the server, and never wipe silently. */
+    const user = await signInAs(page, context, baseURL!, { onboarded: true });
+    await context.route('**/api/sync', (route) => route.abort());
+    await logSet(page, 60, 8);
+    await expect(page.getByText('Could not sync')).toBeAttached({ timeout: 15_000 });
+
+    await tab(page, 'Settings').click();
+    await page.waitForURL('**/settings');
+
+    // Offline, signing out is refused outright: the session cannot end, and
+    // the wipe would take the set with it.
+    await context.setOffline(true);
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    await expect(page.getByText('You are offline.', { exact: false })).toBeVisible();
+    expect(await localLogCount(page)).toBe(1);
+    await context.setOffline(false);
+
+    // Back online but the server still refuses: the count is said, and the
+    // wipe waits for a second tap.
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    await expect(page.getByText('1 change has not reached the server.')).toBeVisible({
+      timeout: 30_000,
+    });
+    expect(await localLogCount(page)).toBe(1);
+
+    await page.getByRole('button', { name: 'Sign out and lose them' }).click();
+    await page.waitForURL('**/sign-in');
+    expect(await localLogCount(page)).toBe(0);
+    expect(await serverSets(user.id)).toEqual([]);
+  });
+
+  test('shows nobody the training on a phone that was never cleared', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* The backstop for when the wipe did not happen — it failed, or the app
+       was open in a second tab at the time. The device still holds one
+       account's rows and its queue, and somebody else is signed in. Neither
+       account's data may be shown, and none of the first account's may go up
+       under the second's name (GYM-74). */
+    const first = await signInAs(page, context, baseURL!, { onboarded: true });
+    await logSet(page, 60, 8);
+    const line = await recordedSet(page, 8);
+    await expect(page.getByText('All saved')).toBeAttached({ timeout: 30_000 });
+
+    // A set that never got out, and then the phone changes hands without a wipe.
+    await context.route('**/api/sync', (route) => route.abort());
+    await logSet(page, 60, 9);
+    await expect(page.getByText('Could not sync')).toBeAttached({ timeout: 15_000 });
+    await context.unroute('**/api/sync');
+
+    const second = await createUser({ onboarded: true });
+    await context.addCookies([sessionCookie(second, baseURL!)]);
+    await page.goto('/train');
+
+    await expect(page.getByText('This phone holds another account')).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(page.getByText(line)).toHaveCount(0);
+    // The set stayed here, and went to neither account.
+    expect(await localLogCount(page)).toBe(2);
+    expect(await serverSets(second.id)).toEqual([]);
+    expect((await serverSets(first.id)).length).toBe(1);
   });
 });

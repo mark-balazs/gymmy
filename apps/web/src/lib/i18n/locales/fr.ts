@@ -79,6 +79,13 @@ export const fr: Record<Key, string> = {
   'sync.signedOut.one': 'Connecte-toi pour envoyer {n} modification',
   'sync.signedOut.other': 'Connecte-toi pour envoyer {n} modifications',
   'sync.signedOutIdle': 'Connecte-toi pour synchroniser',
+  'sync.foreignTitle': 'Ce téléphone contient un autre compte',
+  'sync.foreignBody':
+    'Quelqu’un d’autre est connecté. Rien n’est envoyé ni récupéré tant que ce téléphone n’est pas vidé.',
+  'sync.foreignPending.one':
+    '{n} changement sur ce téléphone appartient à un autre compte. Connecte-toi avec ce compte, ou vide ce téléphone ci-dessous.',
+  'sync.foreignPending.other':
+    '{n} changements sur ce téléphone appartiennent à un autre compte. Connecte-toi avec ce compte, ou vide ce téléphone ci-dessous.',
 
   'common.back': 'Retour',
   'common.cancel': 'Annuler',
@@ -301,6 +308,7 @@ export const fr: Record<Key, string> = {
   'prog.agoFirst': 'la première séance visible ici',
   'prog.bodyWeight': 'Poids de corps',
   'prog.weightToday': 'Aujourd’hui ({unit})',
+  'prog.weightBad': 'Saisis un poids entre {from} et {to}.',
   'prog.scoreOverTime': 'Indice de force, semaine par semaine',
   'prog.table': 'Voir les chiffres',
   'prog.week': 'Semaine',
@@ -343,6 +351,7 @@ export const fr: Record<Key, string> = {
   'sex.female': 'Femme',
   'sex.male': 'Homme',
   'set.height': 'Taille (cm)',
+  'set.heightBad': 'Saisis une taille entre {from} et {to} cm.',
   'set.myTraining': 'Mon entraînement',
   'set.language': 'Langue',
   'set.units': 'Unités',
@@ -440,6 +449,13 @@ export const fr: Record<Key, string> = {
   'set.deleteWeeks.other': '{n} semaines',
   'set.deleteForever': 'C’est immédiat. Aucune copie n’est gardée, donc c’est irréversible.',
   'set.deleteConfirm': 'Tout supprimer',
+  'set.deleteFailed': 'Le compte n’a pas été supprimé. Rien n’a changé sur ce téléphone.',
+  'set.leaveOffline': 'Tu es hors ligne. Se déconnecter et supprimer demandent une connexion.',
+  'set.unsentQ': 'Des changements sont encore ici',
+  'set.unsent.one': '{n} changement n’a pas atteint le serveur.',
+  'set.unsent.other': '{n} changements n’ont pas atteint le serveur.',
+  'set.unsentBody': 'La déconnexion vide ce téléphone, ils seraient donc perdus.',
+  'set.unsentGo': 'Se déconnecter et les perdre',
   'set.rebuildQ': 'Reconstruire ta semaine ?',
   'set.rebuildBody':
     'De nouveaux exercices seront choisis en conséquence. Ton historique ne bouge pas.',

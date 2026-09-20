@@ -69,6 +69,13 @@ export const hu: Record<Key, string> = {
   'sync.signedOut.one': 'Jelentkezz be {n} változás elküldéséhez',
   'sync.signedOut.other': 'Jelentkezz be {n} változás elküldéséhez',
   'sync.signedOutIdle': 'Jelentkezz be a szinkronizáláshoz',
+  'sync.foreignTitle': 'Ezen a telefonon másik fiók adatai vannak',
+  'sync.foreignBody':
+    'Valaki más van bejelentkezve. Amíg a telefont nem ürítjük ki, semmi nem megy el és nem érkezik.',
+  'sync.foreignPending.one':
+    '{n} változás ezen a telefonon egy másik fiókhoz tartozik. Jelentkezz be azzal a fiókkal, vagy ürítsd ki lent a telefont.',
+  'sync.foreignPending.other':
+    '{n} változás ezen a telefonon egy másik fiókhoz tartozik. Jelentkezz be azzal a fiókkal, vagy ürítsd ki lent a telefont.',
 
   'common.back': 'Vissza',
   'common.cancel': 'Mégse',
@@ -289,6 +296,7 @@ export const hu: Record<Key, string> = {
   'prog.agoFirst': 'az itt látható első alkalomhoz képest',
   'prog.bodyWeight': 'Testsúly',
   'prog.weightToday': 'Ma ({unit})',
+  'prog.weightBad': 'Adj meg {from} és {to} közötti súlyt.',
   'prog.scoreOverTime': 'Erőindex hetente',
   'prog.table': 'Mutasd a számokat',
   'prog.week': 'Hét',
@@ -331,6 +339,7 @@ export const hu: Record<Key, string> = {
   'sex.female': 'Nő',
   'sex.male': 'Férfi',
   'set.height': 'Magasság (cm)',
+  'set.heightBad': 'Adj meg {from} és {to} cm közötti magasságot.',
   'set.myTraining': 'Az edzésem',
   'set.language': 'Nyelv',
   'set.units': 'Mértékegység',
@@ -428,6 +437,13 @@ export const hu: Record<Key, string> = {
   'set.deleteWeeks.other': '{n} hétnyi',
   'set.deleteForever': 'Azonnal megtörténik. Nem marad másolat, így nem vonható vissza.',
   'set.deleteConfirm': 'Mindent törlök',
+  'set.deleteFailed': 'A fiók nem törlődött. A telefonon semmi nem változott.',
+  'set.leaveOffline': 'Nincs internet. A kijelentkezéshez és a törléshez kapcsolat kell.',
+  'set.unsentQ': 'Néhány változás még itt van',
+  'set.unsent.one': '{n} változás nem jutott el a szerverre.',
+  'set.unsent.other': '{n} változás nem jutott el a szerverre.',
+  'set.unsentBody': 'A kijelentkezés kiüríti ezt a telefont, így ezek elvesznének.',
+  'set.unsentGo': 'Kijelentkezem, és elvesznek',
   'set.rebuildQ': 'Újratervezzük a heted?',
   'set.rebuildBody': 'Új gyakorlatokat választunk hozzá. Az eddigi naplód változatlan marad.',
   'set.account': 'Fiók',

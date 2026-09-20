@@ -44,6 +44,7 @@ import { GoalCard, GoalForm, useGoalCards } from '@/components/goal';
 import { useProfile, useSnapshot, useT, useToday } from '@/lib/client/hooks';
 import { fmtIndex } from '@/lib/client/format';
 import { fireAndForget, logBodyWeight } from '@/lib/client/mutations';
+import { BODY_WEIGHT } from '@/lib/sync/rows';
 import {
   DEFAULT_PREFS,
   addDays,
@@ -89,6 +90,9 @@ export default function ProgressPage() {
   const today = useToday();
 
   const [weight, setWeight] = useState('');
+  // A dropped digit — 7 for 70-something — used to be written, queued and then
+  // refused on the wire, which stopped the phone syncing for good (GYM-73).
+  const [weightBad, setWeightBad] = useState(false);
   const [explain, setExplain] = useState(false);
   const [dots, setDots] = useState(false);
   const [allTime, setAllTime] = useState(false);
@@ -355,34 +359,49 @@ export default function ProgressPage() {
         </div>
 
         <form
-          className="flex items-end gap-2 border-t border-[var(--color-line)] pt-3"
+          className="flex flex-col gap-2 border-t border-[var(--color-line)] pt-3"
           onSubmit={(e) => {
             e.preventDefault();
             const n = Number(weight.replace(',', '.'));
             if (!Number.isFinite(n) || n <= 0) return;
+            if (n < BODY_WEIGHT.min || n > BODY_WEIGHT.max) {
+              setWeightBad(true);
+              return;
+            }
+            setWeightBad(false);
             fireAndForget(logBodyWeight(today, n));
             setWeight('');
           }}
         >
-          <label className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="text-xs font-semibold text-[var(--color-muted)]">
-              {tr.t('prog.bodyWeight')}
-              {bodyWeight ? ` · ${bodyWeight} ${unit}` : ''}
-            </span>
-            <input
-              type="number"
-              inputMode="decimal"
-              step="0.1"
-              placeholder={tr.t('prog.weightToday', { unit })}
-              aria-label={tr.t('prog.weightToday', { unit })}
-              value={weight}
-              onChange={(e) => setWeight(e.target.value)}
-              className="num min-h-[var(--spacing-tap)] w-full min-w-0 rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
-            />
-          </label>
-          <Button type="submit" disabled={weight.trim() === ''}>
-            {tr.t('common.save')}
-          </Button>
+          <div className="flex items-end gap-2">
+            <label className="flex min-w-0 flex-1 flex-col gap-1">
+              <span className="text-xs font-semibold text-[var(--color-muted)]">
+                {tr.t('prog.bodyWeight')}
+                {bodyWeight ? ` · ${bodyWeight} ${unit}` : ''}
+              </span>
+              {/* Deliberately without `min`/`max`: the browser then refuses
+                  the submit itself, in its own language and its own bubble,
+                  and this form's own message never runs. */}
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.1"
+                placeholder={tr.t('prog.weightToday', { unit })}
+                aria-label={tr.t('prog.weightToday', { unit })}
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                className="num min-h-[var(--spacing-tap)] w-full min-w-0 rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
+              />
+            </label>
+            <Button type="submit" disabled={weight.trim() === ''}>
+              {tr.t('common.save')}
+            </Button>
+          </div>
+          {weightBad && (
+            <p className="text-xs text-[var(--color-bad)]">
+              {tr.t('prog.weightBad', { from: BODY_WEIGHT.min, to: BODY_WEIGHT.max })}
+            </p>
+          )}
         </form>
       </Card>
 

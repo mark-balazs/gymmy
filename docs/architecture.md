@@ -101,7 +101,8 @@ sequenceDiagram
 
     P->>UI: taps "Log set"
     UI->>M: one write path, always
-    M->>L: stamp updatedAt, write row, queue outbox
+    M->>M: hold it to the server's row rules
+    M->>L: one transaction: stamp updatedAt, write row, queue outbox
     L-->>UI: live query fires
     UI-->>P: the set is there (no network involved)
     Note over S: ~800ms debounce
@@ -119,6 +120,26 @@ sequenceDiagram
    that skips `put()` does so on purpose: `rememberBar`, the bar weight picked
    on a barbell card, goes to the local `meta` table only — it describes a
    gym's equipment, not training, and is not meant to reach the server.
+
+   `put()` makes two guarantees, and each was a way to lose a set:
+
+   - **One set of rules.** The row is held to `lib/sync/rows.ts` — the server's
+     own schemas — *before* the first local write, and a refusal throws a
+     `RefusedWrite` naming the table, the field and the rule (never the value).
+     A value the server would turn down therefore never reaches the queue,
+     where it used to sit at the head of every retry and stop the device
+     syncing altogether (GYM-73). Only the fields a change touched are judged,
+     so a row that arrived holding a value from before the check does not make
+     every other setting unchangeable. A refusal is **not** a storage failure
+     and is not reported as one: the screen that took the number says so beside
+     the field.
+   - **One transaction per action.** The row and its outbox entry are written
+     together (`inTx` in `lib/client/db.ts`), and a multi-step change — a whole
+     split install, a regenerated week — opens one transaction around the lot,
+     which the nested `put()`s join. So an interrupted write leaves nothing
+     rather than a set the server will never hear about, or slots retired with
+     nothing to replace them. Only Dexie work may be awaited inside one:
+     anything else ends the transaction early.
 2. The UI re-renders from the local write. The app's one live read of the
    database is watching (see [One read for every screen](#one-read-for-every-screen)),
    so this is immediate and does not wait on anything.
@@ -126,7 +147,10 @@ sequenceDiagram
    the client's cursor.
 4. The server validates each row against `lib/sync/rows.ts`, upserts it with
    last-write-wins on `updatedAt`, assigns a `seq` from a shared Postgres
-   sequence, and returns everything newer than the cursor.
+   sequence, and returns everything newer than the cursor. On an **update** it
+   writes only the fields the request actually carried: the schema's defaults
+   fill a new row's columns, but writing them over an existing row is how an
+   old build reset fields it had never heard of (GYM-69).
 5. The client applies the server's rows, **then re-applies anything still in the
    outbox on top**. Without that last step a pull in flight would overwrite a
    set logged while it was travelling, and it would look to the user like the

@@ -75,6 +75,13 @@ export const en = {
   'sync.signedOut.one': 'Sign in to send {n} change',
   'sync.signedOut.other': 'Sign in to send {n} changes',
   'sync.signedOutIdle': 'Sign in to sync',
+  'sync.foreignTitle': 'This phone holds another account',
+  'sync.foreignBody':
+    'Someone else is signed in. Nothing is being sent or fetched until this phone is cleared.',
+  'sync.foreignPending.one':
+    '{n} change on this phone belongs to another account. Sign in as that account to send it, or clear this phone below.',
+  'sync.foreignPending.other':
+    '{n} changes on this phone belong to another account. Sign in as that account to send them, or clear this phone below.',
 
   'common.back': 'Back',
   'common.cancel': 'Cancel',
@@ -302,6 +309,7 @@ export const en = {
   'prog.agoFirst': 'its first session in view',
   'prog.bodyWeight': 'Bodyweight',
   'prog.weightToday': 'Today ({unit})',
+  'prog.weightBad': 'Enter a weight between {from} and {to}.',
   'prog.scoreOverTime': 'Strength index, week by week',
   'prog.table': 'Show the numbers',
   'prog.week': 'Week',
@@ -346,6 +354,7 @@ export const en = {
   'sex.female': 'Female',
   'sex.male': 'Male',
   'set.height': 'Height (cm)',
+  'set.heightBad': 'Enter a height between {from} and {to} cm.',
   'set.myTraining': 'My training',
   'set.language': 'Language',
   'set.units': 'Units',
@@ -444,6 +453,13 @@ export const en = {
   'set.deleteWeeks.other': '{n} weeks',
   'set.deleteForever': 'It happens straight away. No copy is kept, so it cannot be undone.',
   'set.deleteConfirm': 'Delete everything',
+  'set.deleteFailed': 'The account was not deleted. Nothing on this phone was touched.',
+  'set.leaveOffline': 'You are offline. Signing out and deleting need a connection.',
+  'set.unsentQ': 'Some changes are still here',
+  'set.unsent.one': '{n} change has not reached the server.',
+  'set.unsent.other': '{n} changes have not reached the server.',
+  'set.unsentBody': 'Signing out clears this phone, so they would be lost.',
+  'set.unsentGo': 'Sign out and lose them',
   'set.rebuildQ': 'Rebuild your week?',
   'set.rebuildBody': 'New exercises will be chosen to fit. Your history stays exactly as it is.',
   'set.account': 'Account',

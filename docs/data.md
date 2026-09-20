@@ -149,6 +149,13 @@ Two things are therefore required:
 2. **Backfill in the migration** if existing rows need a real value, and bump
    their `seq` if devices must re-fetch them.
 
+The **push** side of the same trap is closed in `/api/sync`: an update writes
+only the fields the request carried. The row schema still defaults everything a
+request leaves out — that is what lets a phone one build behind push at all —
+but on an insert that default is a starting value and on an update it would be
+a *decision*. Writing it was how an old build reset `planId` and `entryMode`
+(GYM-69).
+
 ## Sync protocol
 
 `lib/sync/protocol.ts` is the wire contract, imported by both sides.
@@ -161,6 +168,29 @@ The client is not trusted. `userId` and `seq` are never accepted from the wire �
 the server sets both — so a client cannot write into another account or forge its
 position in the change order. Every row is validated per table by
 `lib/sync/rows.ts` before it is written.
+
+**One set of rules, checked twice.** `mutations.put()` holds a write to those
+same schemas *before* it touches IndexedDB, so a value the server would refuse
+never enters the queue — where a refusal fails the whole push and the bad row
+sits at the head of every retry, stopping the device for good (GYM-73). The
+server still checks, because the client is not trusted; the phone checks so the
+person is told by the field that took the number, while they are looking at it.
+
+**Data knows its account.** Every pull answers with `accountId`; the device
+keeps it in `meta` and stamps every outbox row with it. A push states the
+account it believes it holds, and anything but the signed-in one is refused with
+`409` — nothing written, nothing returned, and the app shows neither account's
+data until a person decides. Changes stamped with another account are never sent
+at all. A phone that still held the previous person's rows — a sign-out wipe
+that failed, a second tab that was never told — used to push them up under
+whoever signed in next (GYM-74).
+
+**Leaving is stop, send, then wipe.** Sign-out cancels the sync timers, drains
+the queue round after round (the push is capped at 200 a time), wipes and only
+then ends the session; deletion pushes nothing and wipes once the server
+confirms. Both are refused offline. And `wipeLocal` bumps an epoch that every
+sync in flight re-reads before it writes anything, so a request that left before
+a wipe cannot refill the phone for the next person.
 
 ## Migrations
 
@@ -246,11 +276,11 @@ are the known cases:
   the new exercise are affected. Aliasing only works old-to-new.
 - **An off-plan set.** The previous build reads its `X` label as day 23, clamped
   to the last day, and opens Train and Home on the wrong day until it reloads.
-- **A new profile setting.** An old build rebuilds the whole profile row on any
-  settings change and pushes it without the new key; the server's schema fills
-  in the default, so a device one build behind that changes, say, its theme
-  also resets "Logging sets" to Buttons. The next change on a current device
-  puts it back. Accepted because it is a preference, not training data.
+- **A new profile setting.** An old build pushes the profile row without the
+  new key. That used to reset it — changing the theme on a device one build
+  behind also put "Logging sets" back to Buttons, because the schema's default
+  was written. It does not any more: an update writes only the fields the
+  request carried (GYM-69). The old build still cannot *show* the setting.
 - **What does not correct itself:** a new column (the `seq` trap above) and a
   new table. An old build's `applyChanges` walks only the tables *it* knows, but
   the cursor moves past everything, so rows of a table it has never heard of are
@@ -325,10 +355,13 @@ There is no wrapping transaction. Production runs on Neon's HTTP driver, which
 has no interactive transactions; the ordering above is what makes that safe
 rather than merely tolerable.
 
-The client wipes IndexedDB before calling the server and deliberately does
-**not** sync first: pushing local changes up to an account about to be erased is
-work done to destroy it a moment later, and if the server call then fails the
-device has still been left clean.
+The client deliberately does **not** sync first: pushing local changes up to an
+account about to be erased is work done to destroy it a moment later. But it
+wipes IndexedDB only **after** the server has confirmed, and refuses to run at
+all offline. The other order left somebody signed in to an account that still
+existed, on a phone with nothing on it and every unsent change gone (GYM-74).
+The sheet counts those unsent changes alongside the sets and weeks, so nothing
+goes without being named.
 
 Its test does not check a hand-written list of tables. It asks Postgres for
 every column with a foreign key to `user`, plus every text column named like an

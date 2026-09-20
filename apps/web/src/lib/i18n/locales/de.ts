@@ -80,6 +80,13 @@ export const de: Record<Key, string> = {
   'sync.signedOut.one': 'Melde dich an, um {n} Änderung zu senden',
   'sync.signedOut.other': 'Melde dich an, um {n} Änderungen zu senden',
   'sync.signedOutIdle': 'Zum Synchronisieren anmelden',
+  'sync.foreignTitle': 'Auf diesem Handy liegt ein anderes Konto',
+  'sync.foreignBody':
+    'Jemand anderes ist angemeldet. Es wird nichts gesendet oder geholt, bis dieses Handy geleert ist.',
+  'sync.foreignPending.one':
+    '{n} Änderung auf diesem Handy gehört zu einem anderen Konto. Melde dich mit diesem Konto an oder leere das Handy unten.',
+  'sync.foreignPending.other':
+    '{n} Änderungen auf diesem Handy gehören zu einem anderen Konto. Melde dich mit diesem Konto an oder leere das Handy unten.',
 
   'common.back': 'Zurück',
   'common.cancel': 'Abbrechen',
@@ -299,6 +306,7 @@ export const de: Record<Key, string> = {
   'prog.agoFirst': 'der ersten hier sichtbaren Einheit',
   'prog.bodyWeight': 'Körpergewicht',
   'prog.weightToday': 'Heute ({unit})',
+  'prog.weightBad': 'Gib ein Gewicht zwischen {from} und {to} ein.',
   'prog.scoreOverTime': 'Kraftindex, Woche für Woche',
   'prog.table': 'Zahlen anzeigen',
   'prog.week': 'Woche',
@@ -340,6 +348,7 @@ export const de: Record<Key, string> = {
   'sex.female': 'Weiblich',
   'sex.male': 'Männlich',
   'set.height': 'Größe (cm)',
+  'set.heightBad': 'Gib eine Größe zwischen {from} und {to} cm ein.',
   'set.myTraining': 'Mein Training',
   'set.language': 'Sprache',
   'set.units': 'Maßeinheit',
@@ -438,6 +447,13 @@ export const de: Record<Key, string> = {
   'set.deleteForever':
     'Das passiert sofort. Es bleibt keine Kopie, also lässt es sich nicht rückgängig machen.',
   'set.deleteConfirm': 'Alles löschen',
+  'set.deleteFailed': 'Das Konto wurde nicht gelöscht. Auf diesem Handy hat sich nichts geändert.',
+  'set.leaveOffline': 'Du bist offline. Abmelden und Löschen brauchen eine Verbindung.',
+  'set.unsentQ': 'Ein paar Änderungen sind noch hier',
+  'set.unsent.one': '{n} Änderung hat den Server nicht erreicht.',
+  'set.unsent.other': '{n} Änderungen haben den Server nicht erreicht.',
+  'set.unsentBody': 'Beim Abmelden wird dieses Handy geleert, sie wären also weg.',
+  'set.unsentGo': 'Abmelden und verlieren',
   'set.rebuildQ': 'Deine Woche neu aufbauen?',
   'set.rebuildBody':
     'Es werden passende neue Übungen gewählt. Dein Verlauf bleibt genau so, wie er ist.',

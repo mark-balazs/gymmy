@@ -52,8 +52,13 @@ Fixture accounts, because what is being tested is the leaving, not the arriving:
 2. Log a set while the server is unreachable, let the network come back, and
    sign out: the sign-out's own last push delivers it before the wipe.
 3. Log a set while a push is already travelling, and sign out: the set must
-   not be wiped. **This one fails today** and is marked as expected to — the
-   last push joins the one in flight, which left before the set was logged.
+   not be wiped. Sign-out waits the travelling push out and pushes again while
+   anything is still queued (GYM-74).
+4. Queue 250 changes straight into the device's store — a long stretch without
+   signal — and sign out: all 250 arrive, not the 200 one push carries.
+5. With the server unreachable, sign out: offline it is refused outright, and
+   online it says how many changes never reached the server and waits for a
+   second tap before wiping them.
 
 ## Steps — a second device
 
@@ -73,6 +78,9 @@ Fixture accounts, because what is being tested is the leaving, not the arriving:
 - Onboarding runs once. Coming back lands on Train, not on setup.
 - A set survives the device being wiped — the sign-out path destroys local
   storage, so anything that comes back afterwards came from the server.
+- Nothing is ever wiped silently. Signing out sends everything it can first,
+  and what it cannot send is counted on screen and thrown away only on a
+  second tap.
 - The same account on a different device shows the same training. A reload only
   proves IndexedDB kept it; a second device proves the sync did.
 

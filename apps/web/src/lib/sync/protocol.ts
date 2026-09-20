@@ -29,6 +29,15 @@ export type Mutation = z.infer<typeof mutation>;
 export const pushRequest = z.object({
   /** Highest server sequence this client has already seen. */
   since: z.number().int().nonnegative().default(0),
+  /**
+   * The account this device believes its data belongs to, or `null` before its
+   * first sync ever answered.
+   *
+   * Data on a phone used to belong to nobody in particular, so a queue left
+   * behind by a failed sign-out wipe went up under whoever signed in next
+   * (GYM-74). Stating it lets the server refuse: `409` for another account.
+   */
+  accountId: z.string().max(64).nullable().default(null),
   mutations: z.array(mutation).max(500),
 });
 export type PushRequest = z.infer<typeof pushRequest>;
@@ -36,6 +45,9 @@ export type PushRequest = z.infer<typeof pushRequest>;
 export interface PullResponse {
   cursor: number;
   changes: Record<string, unknown[]>;
+  /** Whose data this is. The device stamps itself and every queued change with
+   *  it, and never sends one account's changes under another. */
+  accountId: string;
   /** Server time, so a client with a skewed clock can warn rather than corrupt. */
   serverTime: string;
   /** At least one table filled its page, so the cursor was held back and there

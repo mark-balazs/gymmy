@@ -82,6 +82,13 @@ export const es: Record<Key, string> = {
   'sync.signedOut.one': 'Inicia sesión para enviar {n} cambio',
   'sync.signedOut.other': 'Inicia sesión para enviar {n} cambios',
   'sync.signedOutIdle': 'Inicia sesión para sincronizar',
+  'sync.foreignTitle': 'Este teléfono tiene otra cuenta',
+  'sync.foreignBody':
+    'Hay otra persona con la sesión iniciada. No se envía ni se trae nada hasta que se vacíe este teléfono.',
+  'sync.foreignPending.one':
+    '{n} cambio de este teléfono pertenece a otra cuenta. Inicia sesión con esa cuenta o vacía el teléfono abajo.',
+  'sync.foreignPending.other':
+    '{n} cambios de este teléfono pertenecen a otra cuenta. Inicia sesión con esa cuenta o vacía el teléfono abajo.',
 
   'common.back': 'Atrás',
   'common.cancel': 'Cancelar',
@@ -302,6 +309,7 @@ export const es: Record<Key, string> = {
   'prog.agoFirst': 'la primera sesión visible aquí',
   'prog.bodyWeight': 'Peso corporal',
   'prog.weightToday': 'Hoy ({unit})',
+  'prog.weightBad': 'Introduce un peso entre {from} y {to}.',
   'prog.scoreOverTime': 'Índice de fuerza, semana a semana',
   'prog.table': 'Ver los números',
   'prog.week': 'Semana',
@@ -343,6 +351,7 @@ export const es: Record<Key, string> = {
   'sex.female': 'Mujer',
   'sex.male': 'Hombre',
   'set.height': 'Altura (cm)',
+  'set.heightBad': 'Introduce una altura entre {from} y {to} cm.',
   'set.myTraining': 'Mi entrenamiento',
   'set.language': 'Idioma',
   'set.units': 'Unidades',
@@ -440,6 +449,13 @@ export const es: Record<Key, string> = {
   'set.deleteForever':
     'Ocurre de inmediato. No se guarda ninguna copia, así que no se puede deshacer.',
   'set.deleteConfirm': 'Eliminarlo todo',
+  'set.deleteFailed': 'La cuenta no se eliminó. En este teléfono no ha cambiado nada.',
+  'set.leaveOffline': 'Estás sin conexión. Cerrar sesión y eliminar necesitan conexión.',
+  'set.unsentQ': 'Aún quedan cambios aquí',
+  'set.unsent.one': '{n} cambio no ha llegado al servidor.',
+  'set.unsent.other': '{n} cambios no han llegado al servidor.',
+  'set.unsentBody': 'Cerrar sesión vacía este teléfono, así que se perderían.',
+  'set.unsentGo': 'Cerrar sesión y perderlos',
   'set.rebuildQ': '¿Rehacer tu semana?',
   'set.rebuildBody': 'Se elegirán ejercicios nuevos que encajen. Tu historial queda tal cual.',
   'set.account': 'Cuenta',

@@ -29,6 +29,18 @@ const base = {
 
 const isoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'expected yyyy-mm-dd');
 
+/**
+ * The two bounds a person types past by accident, named so the field that
+ * takes them can say the same numbers the wire enforces.
+ *
+ * They were written twice before — once here, once nowhere — and a height of
+ * 18 went into the queue and stopped the device syncing for good (GYM-73).
+ * `put()` now holds every write to these schemas before anything is written,
+ * so the screens only need the numbers for the message.
+ */
+export const HEIGHT_CM = { min: 80, max: 260 } as const;
+export const BODY_WEIGHT = { min: 20, max: 700 } as const;
+
 export const rowSchemas = {
   patterns: z.object({
     ...base,
@@ -99,7 +111,7 @@ export const rowSchemas = {
     date: isoDay,
     // A plausible human, in either unit. Out of range is a typo, and a typo in
     // the denominator of the strength score is worse than a rejected write.
-    weight: z.number().min(20).max(700),
+    weight: z.number().min(BODY_WEIGHT.min).max(BODY_WEIGHT.max),
     note: z.string().max(500).default(''),
   }),
 
@@ -132,7 +144,7 @@ export const rowSchemas = {
     // such push would be refused and that phone would stop syncing entirely.
     entryMode: z.enum(ENTRY_MODES).default('buttons'),
     plateLoader: z.boolean().default(true),
-    heightCm: z.number().int().min(80).max(260).nullable().default(null),
+    heightCm: z.number().int().min(HEIGHT_CM.min).max(HEIGHT_CM.max).nullable().default(null),
     sex: z.enum(SEXES).default('unspecified'),
     name: z.string().max(60).default(''),
     // A plausible living person. Out of range is a typo, and a typo here shifts
