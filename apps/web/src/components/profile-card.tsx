@@ -32,6 +32,7 @@ import {
   setSex,
 } from '@/lib/client/mutations';
 import { AvatarError, toAvatar } from '@/lib/client/avatar';
+import { HEIGHT_CM } from '@/lib/sync/rows';
 import { DEFAULT_PREFS, SEXES, type Profile } from '@athletic/domain';
 import type { Key } from '@/lib/i18n';
 
@@ -49,9 +50,11 @@ export function ProfileCard() {
   const fileId = useId();
   const yearId = useId();
   const sexId = useId();
+  const heightId = useId();
 
   const [name, setNameDraft] = useState<string | null>(null);
   const [year, setYearDraft] = useState<string | null>(null);
+  const [height, setHeightDraft] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   // The picture just removed, kept only so it can be put straight back.
@@ -62,6 +65,7 @@ export function ProfileCard() {
   // field fights you: every keystroke syncs and re-renders from the store.
   const shownName = name ?? profile?.name ?? '';
   const shownYear = year ?? (profile?.birthYear ? String(profile.birthYear) : '');
+  const shownHeight = height ?? (profile?.heightCm ? String(profile.heightCm) : '');
   const avatar = profile?.avatar ?? null;
 
   useEffect(() => {
@@ -79,6 +83,20 @@ export function ProfileCard() {
     }
     setProblem(null);
     fireAndForget(setBirthYear(n));
+  };
+
+  const commitHeight = (raw: string) => {
+    if (raw.trim() === '') {
+      setProblem(null);
+      return fireAndForget(setHeight(null));
+    }
+    const n = Number(raw);
+    if (!Number.isInteger(n) || n < HEIGHT_CM.min || n > HEIGHT_CM.max) {
+      setProblem(tr.t('set.heightBad', { from: HEIGHT_CM.min, to: HEIGHT_CM.max }));
+      return;
+    }
+    setProblem(null);
+    fireAndForget(setHeight(n));
   };
 
   const pick = async (chosen: File | undefined) => {
@@ -281,14 +299,22 @@ export function ProfileCard() {
           </select>
         </Field>
 
-        <Field label={tr.t('set.height')}>
+        {/* Saved on leaving the field, like the year of birth beside it and for
+            the same reason: typing 180 passes through 1 and 18, and a field
+            that saved every keystroke queued both. 1 cm is not a height the
+            server accepts, and a refused change used to stop the phone syncing
+            altogether (GYM-73). */}
+        <Field label={tr.t('set.height')} htmlFor={heightId}>
           <input
+            id={heightId}
             type="number"
             inputMode="numeric"
-            value={profile?.heightCm ?? ''}
-            onChange={(e) =>
-              fireAndForget(setHeight(e.target.value === '' ? null : Number(e.target.value)))
-            }
+            value={shownHeight}
+            onChange={(e) => setHeightDraft(e.target.value)}
+            onBlur={(e) => {
+              setHeightDraft(null);
+              commitHeight(e.target.value);
+            }}
             className="num min-h-[var(--spacing-tap)] w-full min-w-0 rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3"
           />
         </Field>

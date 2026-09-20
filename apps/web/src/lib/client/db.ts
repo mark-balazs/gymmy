@@ -107,6 +107,28 @@ export const DOMAIN_TABLES: TableName[] = [
   'profile',
 ];
 
+/** Everything a single action may touch: its own rows, and the queue entries
+ *  that have to land with them. */
+const TX_TABLES: string[] = [...DOMAIN_TABLES, 'outbox', 'meta'];
+
+/**
+ * One local transaction per action.
+ *
+ * A change is a row *and* its queue entry, and until these were written
+ * together the gap between them was reachable: a reload during a service-worker
+ * update, or a store that filled up between the two writes, left a set saved on
+ * the phone that the server would never hear about — or a whole split half
+ * installed, slots retired with nothing to replace them.
+ *
+ * Nested calls join the transaction already open rather than starting a second
+ * one, which is what lets `put` guarantee its own pair while a split install
+ * still commits or rolls back whole. Only Dexie work may be awaited inside:
+ * anything else loses the transaction and commits it early.
+ */
+export function inTx<T>(fn: () => Promise<T>): Promise<T> {
+  return local.transaction('rw', TX_TABLES, fn);
+}
+
 /* -------------------------------------------------------------- helpers */
 
 export async function getMeta<T>(key: string, fallback: T): Promise<T> {

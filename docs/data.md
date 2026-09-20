@@ -162,6 +162,13 @@ the server sets both — so a client cannot write into another account or forge 
 position in the change order. Every row is validated per table by
 `lib/sync/rows.ts` before it is written.
 
+**One set of rules, checked twice.** `mutations.put()` holds a write to those
+same schemas *before* it touches IndexedDB, so a value the server would refuse
+never enters the queue — where a refusal fails the whole push and the bad row
+sits at the head of every retry, stopping the device for good (GYM-73). The
+server still checks, because the client is not trusted; the phone checks so the
+person is told by the field that took the number, while they are looking at it.
+
 ## Migrations
 
 `drizzle-kit`, generated into `apps/web/drizzle/`. `vercel-build` runs

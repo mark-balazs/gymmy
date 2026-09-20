@@ -7,31 +7,105 @@ import {
   type Pattern,
   type ProgramEntry,
   type Slot,
+  type Snapshot,
 } from '@athletic/domain';
 import { rowSchemas } from '@/lib/sync/rows';
-import { boundSet, intIn, numIn, setEntryExercise } from './mutations';
+import {
+  RefusedWrite,
+  applySplit,
+  boundSet,
+  intIn,
+  logBodyWeight,
+  logSet,
+  numIn,
+  setEntryExercise,
+  setHeight,
+  setName,
+} from './mutations';
 
-/* The device's database and the sync queue, for the writes below: the rows
-   `setEntryExercise` reads, and every row it writes. Nothing here reaches
-   IndexedDB or the network. */
+/* The device's database and the sync queue, for the writes below: the rows the
+   mutations read, every row they write, and every change that reached the
+   queue. Nothing here touches IndexedDB or the network.
+
+   `inTx` is Dexie's guarantee in miniature — whatever the body wrote is undone
+   if it throws — which is what lets the tests below watch a half-written action
+   leave nothing behind without standing up a real IndexedDB. */
 const store = vi.hoisted(() => ({
-  entries: [] as unknown[],
+  tables: {
+    patterns: [],
+    exercises: [],
+    slots: [],
+    splitPeriods: [],
+    entries: [],
+    logs: [],
+    bodyLogs: [],
+    goals: [],
+    profile: [],
+  } as Record<string, Record<string, unknown>[]>,
   written: [] as { table: string; row: unknown }[],
+  queued: [] as { table: string; row: unknown }[],
+  /** Queue writes throw once this many have succeeded — the device filling up
+   *  between a row and the change that says it has to be sent. */
+  failQueueAfter: Number.POSITIVE_INFINITY,
+  queueCalls: 0,
 }));
-vi.mock('./db', () => ({
-  barKey: () => 'bar',
-  setMeta: async () => undefined,
-  local: {
-    entries: { toArray: async () => store.entries },
-    table: (table: string) => ({
-      put: async (row: unknown) => void store.written.push({ table, row }),
-    }),
-  },
-}));
+
+vi.mock('./db', () => {
+  const table = (name: string) => ({
+    toArray: async () => store.tables[name]!.slice(),
+    get: async (id: string) => store.tables[name]!.find((r) => r.id === id),
+    put: async (row: Record<string, unknown>) => {
+      const rows = store.tables[name]!;
+      const at = rows.findIndex((r) => r.id === row.id);
+      if (at === -1) rows.push(row);
+      else rows[at] = row;
+      store.written.push({ table: name, row });
+    },
+  });
+  return {
+    barKey: () => 'bar',
+    setMeta: async () => undefined,
+    getMeta: async (_key: string, fallback: unknown) => fallback,
+    ACCOUNT_KEY: 'account',
+    inTx: async (fn: () => Promise<unknown>) => {
+      const rows = Object.fromEntries(
+        Object.entries(store.tables).map(([k, v]) => [k, v.map((r) => ({ ...r }))]),
+      );
+      const written = store.written.slice();
+      const queued = store.queued.slice();
+      try {
+        return await fn();
+      } catch (err) {
+        store.tables = rows;
+        store.written = written;
+        store.queued = queued;
+        throw err;
+      }
+    },
+    local: {
+      table,
+      ...Object.fromEntries(Object.keys(store.tables).map((n) => [n, table(n)])),
+    },
+  };
+});
+
 vi.mock('./sync', () => ({
-  enqueue: async () => undefined,
+  enqueue: async (table: string, row: unknown) => {
+    if (store.queueCalls >= store.failQueueAfter) throw new Error('QuotaExceededError');
+    store.queueCalls += 1;
+    store.queued.push({ table, row });
+  },
   reportStorageFailure: () => undefined,
 }));
+
+/** A device with nothing on it and a queue that works. */
+function reset(): void {
+  for (const name of Object.keys(store.tables)) store.tables[name] = [];
+  store.written = [];
+  store.queued = [];
+  store.failQueueAfter = Number.POSITIVE_INFINITY;
+  store.queueCalls = 0;
+}
 
 /**
  * The bounds `logSet` holds a set to before it is written.
@@ -231,13 +305,10 @@ describe('setEntryExercise', () => {
     return store.written[0]!.row as ProgramEntry;
   };
 
-  beforeEach(() => {
-    store.entries = [];
-    store.written = [];
-  });
+  beforeEach(reset);
 
   it('gives a swap to another movement that movement’s range', async () => {
-    store.entries = [stored('Russian Twist', '8-12')];
+    store.tables.entries = [stored('Russian Twist', '8-12') as unknown as Record<string, unknown>];
     await setEntryExercise(ix, 0, finisher.id, idOf("Farmer's Carry"));
     const row = written();
     expect(row.repRange).toBe('30-40m');
@@ -247,7 +318,7 @@ describe('setEntryExercise', () => {
   });
 
   it('keeps the stored range when the movement stays, so a trainer’s survives', async () => {
-    store.entries = [stored('Russian Twist', '6-10')];
+    store.tables.entries = [stored('Russian Twist', '6-10') as unknown as Record<string, unknown>];
     await setEntryExercise(ix, 0, finisher.id, idOf('Pallof Press'));
     expect(written().repRange).toBe('6-10');
   });
@@ -257,5 +328,205 @@ describe('setEntryExercise', () => {
     const row = written();
     expect(row.repRange).toBe('30-40m');
     expect(row).toMatchObject({ sessionIndex: 0, slotId: finisher.id, sets: 3 });
+  });
+});
+
+/**
+ * One set of rules, applied before the first local write.
+ *
+ * A value the server refuses used to be written, queued, and only then turned
+ * down — and because a refusal fails the whole push, that one row sat at the
+ * head of every retry and the device neither pushed nor pulled again until
+ * somebody signed out and lost the queue with it (GYM-73). A height typed key
+ * by key was the likeliest way in: 180 passes through 1 and 18.
+ *
+ * The browser half — the fields that produce these numbers, and the set logged
+ * afterwards reaching the server — is `bad-input.spec.ts`.
+ */
+describe('a write the server would refuse', () => {
+  beforeEach(reset);
+
+  it('never reaches the device or the queue', async () => {
+    await expect(setHeight(18)).rejects.toBeInstanceOf(RefusedWrite);
+    expect(store.written).toEqual([]);
+    expect(store.queued).toEqual([]);
+    expect(store.tables.profile).toEqual([]);
+  });
+
+  it('says the table, the field and the rule, and never the value', async () => {
+    const err = (await setHeight(18).catch((e: unknown) => e)) as RefusedWrite;
+    expect(err.table).toBe('profile');
+    expect(err.about('heightCm')).toBe(true);
+    expect(err.problems).toEqual([{ field: 'heightCm', rule: 'too_small' }]);
+    expect(err.message).not.toContain('18');
+  });
+
+  it('lets a height inside the range through', async () => {
+    await setHeight(180);
+    expect(store.queued.map((q) => q.table)).toEqual(['profile']);
+    expect((store.tables['profile']![0] as { heightCm: number }).heightCm).toBe(180);
+  });
+
+  it('turns down a bodyweight a dropped digit produced', async () => {
+    await expect(logBodyWeight('2026-09-20', 7)).rejects.toBeInstanceOf(RefusedWrite);
+    expect(store.tables.bodyLogs).toEqual([]);
+    expect(store.queued).toEqual([]);
+  });
+
+  it('judges only the fields the change touched', async () => {
+    /* A row that arrived from a phone predating the check. Renaming yourself
+       must still work, or the fix would be a second way to be stuck. */
+    store.tables['profile'] = [
+      {
+        id: 'p1',
+        updatedAt: '2026-09-01T00:00:00.000Z',
+        deletedAt: null,
+        onboarded: true,
+        split: 'sevenPattern',
+        days: 3,
+        where: 'gym',
+        bias: 'none',
+        blockStart: '2026-09-01',
+        blockWeeks: 8,
+        unit: 'kg',
+        lang: 'en',
+        theme: 'system',
+        entryMode: 'buttons',
+        plateLoader: true,
+        heightCm: 18,
+        sex: 'unspecified',
+        name: '',
+        birthYear: null,
+        avatar: null,
+        planId: null,
+        planVersion: null,
+      },
+    ];
+    await expect(setName('Sam')).resolves.toBeTruthy();
+    expect((store.tables['profile']![0] as { name: string }).name).toBe('Sam');
+  });
+
+  it('merges a patch into the row rather than rebuilding it', async () => {
+    /* `{...defaults, ...existing, ...patch}`. The row used to be listed out
+       field by field, and a field missed off that list was dropped by every
+       unrelated write — editing your name took you off your trainer's plan. */
+    store.tables['profile'] = [
+      {
+        id: 'p1',
+        updatedAt: '2026-09-01T00:00:00.000Z',
+        deletedAt: null,
+        onboarded: true,
+        split: 'upperLower',
+        days: 4,
+        where: 'home',
+        bias: 'none',
+        blockStart: '2026-09-14',
+        blockWeeks: 8,
+        unit: 'lb',
+        lang: 'hu',
+        theme: 'dark',
+        entryMode: 'ruler',
+        plateLoader: false,
+        heightCm: 181,
+        sex: 'male',
+        name: '',
+        birthYear: 1990,
+        avatar: null,
+        planId: 'plan-1',
+        planVersion: 3,
+      },
+    ];
+    await setName('Sam');
+    expect(store.tables['profile']![0]).toMatchObject({
+      id: 'p1',
+      name: 'Sam',
+      planId: 'plan-1',
+      planVersion: 3,
+      entryMode: 'ruler',
+      plateLoader: false,
+      unit: 'lb',
+      lang: 'hu',
+      theme: 'dark',
+      heightCm: 181,
+      birthYear: 1990,
+      split: 'upperLower',
+      days: 4,
+      where: 'home',
+    });
+  });
+});
+
+/**
+ * One local transaction per action.
+ *
+ * A row and the queue entry that says it has to be sent are one change. Until
+ * they were written together the gap between them was reachable — a reload
+ * during a service-worker update, a store that filled up between the two — and
+ * it left a set saved on the phone that the server would never hear about, or
+ * a split half installed: slots retired with nothing to replace them.
+ */
+describe('an action that fails partway', () => {
+  const stamp = '2026-09-19T08:00:00.000Z';
+  const patterns: Pattern[] = SEED_PATTERNS.map((p, i) => ({
+    id: `pat-${p.key}`,
+    updatedAt: stamp,
+    deletedAt: null,
+    key: p.key,
+    name: p.key,
+    role: p.role,
+    counts: p.counts,
+    position: i,
+  }));
+  const oldSlots: Slot[] = buildSlots(findSplit('sevenPattern')!, 3).map((s, i) => ({
+    ...s,
+    id: `old-${i}`,
+    updatedAt: stamp,
+    deletedAt: null,
+  }));
+  const snap = (): Snapshot => ({
+    patterns,
+    exercises: [],
+    slots: oldSlots,
+    splitPeriods: [],
+    entries: [],
+    logs: [],
+    bodyLogs: [],
+    goals: [],
+    profile: null,
+  });
+
+  beforeEach(reset);
+
+  it('leaves no set on the phone when its queue entry cannot be written', async () => {
+    store.failQueueAfter = 0;
+    await expect(
+      logSet({
+        date: '2026-09-20',
+        session: 'A',
+        exerciseId: 'ex-goblet-squat',
+        setNo: 1,
+        weight: 60,
+        reps: 8,
+        rir: 2,
+      }),
+    ).rejects.toThrow('QuotaExceededError');
+    expect(store.tables.logs).toEqual([]);
+  });
+
+  it('installs a whole split or none of it', async () => {
+    store.tables.slots = oldSlots.map((s) => ({ ...s }) as unknown as Record<string, unknown>);
+    // Two of the old slots retire, and then the device stops taking changes.
+    store.failQueueAfter = 2;
+
+    await expect(
+      applySplit(snap(), { split: 'upperLower', days: 4, where: 'gym', bias: 'none' }),
+    ).rejects.toThrow('QuotaExceededError');
+
+    expect(store.written).toEqual([]);
+    expect(store.queued).toEqual([]);
+    // Every old slot is still live: nothing was retired, nothing replaced it.
+    expect(store.tables.slots.map((s) => s.deletedAt)).toEqual(oldSlots.map(() => null));
+    expect(store.tables.splitPeriods).toEqual([]);
+    expect(store.tables.profile).toEqual([]);
   });
 });

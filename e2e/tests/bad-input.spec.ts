@@ -87,25 +87,23 @@ test('the largest number the keypad takes still syncs, as the nearest valid set'
 });
 
 /*
- * The same hazard through the two other number fields a person types into, and
- * both are open today. Every change is its own row in the queue, so a field
- * that writes on every keystroke queues each prefix of what is being typed —
- * and the first prefix outside the server's bounds stops the device for good,
- * with the sets behind it. Each test logs a set afterwards and asks the server
- * whether it arrived.
+ * The same hazard through the two other number fields a person types into.
+ * Every change is its own row in the queue, so a field that writes on every
+ * keystroke queued each prefix of what was being typed — and the first prefix
+ * outside the server's bounds stopped the device for good, with the sets
+ * behind it. Each test logs a set afterwards and asks the server whether it
+ * arrived.
  *
- * Expected to fail until those fields are held to the server's bounds before
- * anything is queued — the height committed on blur and checked like the year
- * of birth, a bodyweight outside 20–700 refused with a message — and the write
- * layer refuses them too, as it does a set. Remove the markers with the fix;
- * the bounds then want unit tests in `mutations.test.ts` beside `boundSet`'s.
+ * Both are closed now (GYM-73): the height is saved on leaving the field and
+ * the bodyweight is refused with a message, and underneath them `put` holds
+ * every write to the server's own row schemas before anything is written. The
+ * bounds themselves are unit-tested in `mutations.test.ts`, beside `boundSet`'s.
  */
 test('a height typed key by key does not stop the device syncing', async ({
   page,
   context,
   baseURL,
 }) => {
-  test.fail(true, 'the height field queues "1" and "18" on the way to 180, below the 80 cm floor');
   const { profileHeight, serverSets } = await import('../fixtures/auth');
   const user = await signInAs(page, context, baseURL!, { onboarded: true });
 
@@ -126,7 +124,6 @@ test('an impossible bodyweight does not stop the device syncing', async ({
   context,
   baseURL,
 }) => {
-  test.fail(true, 'a bodyweight of 7 is queued, and the server accepts 20 to 700');
   const { rowCount, serverSets } = await import('../fixtures/auth');
   // Some training, so Progress draws the bodyweight form rather than its
   // empty state.
@@ -139,6 +136,10 @@ test('an impossible bodyweight does not stop the device syncing', async ({
   await page.goto('/progress');
   await page.getByLabel('Today (kg)').fill('7');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
+
+  // Said, not swallowed: a number that quietly does nothing is the other way
+  // to lose a weigh-in.
+  await expect(page.getByText('Enter a weight between 20 and 700.')).toBeVisible();
 
   await page.getByRole('link', { name: 'Train', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Train', exact: true })).toBeVisible();

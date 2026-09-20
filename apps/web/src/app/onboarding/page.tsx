@@ -23,6 +23,7 @@ import {
   setLang,
 } from '@/lib/client/mutations';
 import { startSync } from '@/lib/client/sync';
+import { BODY_WEIGHT } from '@/lib/sync/rows';
 import { LANGS } from '@/lib/i18n';
 import type { Key } from '@/lib/i18n';
 import {
@@ -54,6 +55,13 @@ import {
  * went looking for a field is a number that does not work.
  */
 const STEPS = 5;
+
+/** A bodyweight the server will accept, as typed. Anything else is a typo —
+ *  and a typo used to be queued, refused, and stop the phone syncing. */
+const inRange = (raw: string): boolean => {
+  const n = Number(raw.replace(',', '.'));
+  return Number.isFinite(n) && n >= BODY_WEIGHT.min && n <= BODY_WEIGHT.max;
+};
 
 /** Defined at module scope: a component declared inside render is a brand-new
  *  type on every keystroke, so React would unmount and remount the list below it. */
@@ -115,6 +123,7 @@ export default function Onboarding() {
   const [where, setWhere] = useState<Where>('gym');
   const [bias, setBias] = useState<Bias>('none');
   const [weight, setWeight] = useState('');
+  const [weightBad, setWeightBad] = useState(false);
   const [info, setInfo] = useState<SplitKey | null>(null);
   const unitId = useId();
 
@@ -339,7 +348,10 @@ export default function Onboarding() {
               aria-describedby={unitId}
               placeholder={tr.t('onboard.q4.placeholder')}
               value={weight}
-              onChange={(e) => setWeight(e.target.value)}
+              onChange={(e) => {
+                setWeight(e.target.value);
+                setWeightBad(false);
+              }}
               className="num min-h-[var(--spacing-tap)] w-full rounded-[11px] border border-[var(--color-line)] bg-[var(--color-surface-2)] pr-12 pl-3 text-lg"
             />
             <span
@@ -350,7 +362,23 @@ export default function Onboarding() {
             </span>
           </div>
 
-          <Button variant="primary" onClick={() => setStep(STEPS)}>
+          {weightBad && (
+            <p className="text-xs text-[var(--color-bad)]">
+              {tr.t('prog.weightBad', { from: BODY_WEIGHT.min, to: BODY_WEIGHT.max })}
+            </p>
+          )}
+
+          {/* Said here rather than at the end: a weight the server will not
+              take is caught on the step that asked for it, so nothing can be
+              queued that the phone would then have to carry. */}
+          <Button
+            variant="primary"
+            onClick={() => {
+              if (weight.trim() !== '' && !inRange(weight)) return setWeightBad(true);
+              setWeightBad(false);
+              setStep(STEPS);
+            }}
+          >
             {tr.t('common.next')}
           </Button>
           {/* Skippable, and it says so. Asking is what was missing; insisting
@@ -411,8 +439,10 @@ export default function Onboarding() {
               /* Dated, like every other bodyweight: the score divides by what
                  you weighed that week, and one undated value would rewrite
                  what every past week meant the next time you stepped on a
-                 scale. Skipped silently when nobody answered. */
-              if (Number.isFinite(kg) && kg > 0) {
+                 scale. Skipped silently when nobody answered, and held to the
+                 same range as the field that asked — a write the server would
+                 refuse must never be able to stop setup finishing. */
+              if (inRange(weight)) {
                 await logBodyWeight(isoDate(new Date()), kg);
               }
               await applySplit(snap, { split, days, where, bias });
