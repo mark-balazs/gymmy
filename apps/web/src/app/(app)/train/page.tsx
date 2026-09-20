@@ -757,9 +757,10 @@ function ExerciseCard({
    * taps of `+`, so the answers somebody actually gives are one tap each. The
    * `−`/`+` stay for a nudge and the keypad still reaches anything.
    *
-   * Buttons only. The ruler already puts a run of numbers under the thumb, and
-   * the picture of the bar answers "which plates" rather than "which weight" —
-   * neither gains a row, and a card is only ever as tall as it has to be.
+   * Buttons only: the ruler already puts a run of numbers under the thumb, so
+   * it gains neither row. A bar being loaded plate by plate keeps the reps row
+   * and loses only the weight one — the picture answers "which plates" rather
+   * than "which weight", but the reps change every set at a rack too.
    *
    * Nothing here is a suggestion. The weights are ones this person lifted
    * (`recentWeights`) and the reps are what the plan already asks for
@@ -797,9 +798,9 @@ function ExerciseCard({
     [range],
   );
 
-  /* Where the rows are allowed, said once. Buttons mode only, and never under
-     the picture of the bar — which is why the rows below can be handed to
-     every layout: in the other modes they are nothing. */
+  /* Where the rows are allowed, said once. Buttons mode only, and no weight
+     row under the picture of the bar — which is why the rows below can be
+     handed to every layout: in the other modes they are nothing. */
   const chips = entryMode === 'buttons';
   const weightChipRow =
     chips && !plates && weightChips.length > 0 ? (

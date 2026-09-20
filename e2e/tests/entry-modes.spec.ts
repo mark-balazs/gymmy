@@ -34,10 +34,27 @@ import type { Page } from '@playwright/test';
 
 const GOBLET = 'Goblet Squat';
 const BENCH = 'Barbell Bench Press';
+/** Day B's first card: a dumbbell in each hand, so what is stored is the pair. */
+const LUNGE = 'Reverse Lunge';
+/** Day B's second card, and the only kind of lift where a logged zero is a real
+ *  answer rather than a missing one. */
+const CHIN = 'Chin-Up';
 
 /** Opens the first card and checks it is the one these numbers are about. */
 async function onGoblet(page: Page): Promise<void> {
   expect(await openExercise(page), 'Day A no longer opens on a single dumbbell').toBe(GOBLET);
+}
+
+/**
+ * Goes to Day B and checks it still opens on a dumbbell pair.
+ *
+ * Stated rather than assumed: if the generator stops putting a pair first on
+ * Day B, this fails with the reason instead of with a puzzling assertion about
+ * a halved number.
+ */
+async function onPair(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Day B', exact: true }).click();
+  expect(await openExercise(page), 'Day B no longer opens on a dumbbell pair').toBe(LUNGE);
 }
 
 /**
@@ -132,6 +149,10 @@ test.describe('Buttons, the default', () => {
  * Nothing on either row is a suggestion — the weights are ones this account
  * logged and the reps are the range the plan already asks for — so a lift with
  * no history has no weight row to show.
+ *
+ * The ruler has neither row. A bar being loaded plate by plate has the reps
+ * row but no weight row: the picture already says which plates, and the reps
+ * still change every set.
  */
 test.describe('One-tap chips', () => {
   const weights = (page: Page) => page.getByRole('group', { name: 'Recent weights' });
@@ -147,6 +168,14 @@ test.describe('One-tap chips', () => {
     { exercise: GOBLET, date: historyStart(3), weight: 20, reps: 10, rir: 2 },
     { exercise: GOBLET, date: historyStart(2), weight: 24, reps: 9, rir: 2 },
     { exercise: GOBLET, date: historyStart(1), weight: 28, reps: 8, rir: 2 },
+  ];
+
+  /** The same three weeks on the bench, so the barbell tests below have
+   *  weights a row could offer if the card ever offered one. */
+  const benchHistory = [
+    { exercise: BENCH, date: historyStart(3), weight: 40, reps: 8, rir: 2 },
+    { exercise: BENCH, date: historyStart(2), weight: 50, reps: 8, rir: 2 },
+    { exercise: BENCH, date: historyStart(1), weight: 60, reps: 8, rir: 2 },
   ];
 
   test('a chip sets the weight and the reps in one tap', async ({ page, context, baseURL }) => {
@@ -203,6 +232,99 @@ test.describe('One-tap chips', () => {
     await expect(ruler(page, 'Weight')).toHaveCount(1);
     await expect(weights(page)).toHaveCount(0);
     await expect(reps(page)).toHaveCount(0);
+  });
+
+  test('a bar being loaded keeps the reps row and never the weights', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* The owner, after the chips landed: a barbell card with Load the bar on —
+       the default for barbell lifts — does get the reps row, because "the reps
+       change every set" is just as true at a rack. The weights are the half
+       the picture already answers: it shows which plates, so a row of totals
+       under it would be a second way to say the same thing.
+
+       Three bench sessions are seeded so the weight row would have something
+       to show. Without them this would pass on an empty history instead. */
+    await signInAs(page, context, baseURL!, { onboarded: true, sets: benchHistory });
+    await openCard(page, BENCH);
+
+    // The picture is untouched: the bar, the plates on it, and the sum.
+    await expect(numberButton(page, 'weight')).toHaveAttribute('data-value', '60');
+    await expect(page.getByRole('button', { name: 'Bar 20 kg' })).toBeVisible();
+    await expect(page.getByText('bar 20 + 2 × 20')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add 10 kg to each side' })).toHaveCount(1);
+
+    // No weight row under it, though the weights to fill one are right there.
+    await expect(weights(page)).toHaveCount(0);
+
+    // The reps do get one, and it works like any other.
+    await expect(reps(page).getByRole('button')).toHaveText(['6', '7', '8', '9', '10', '11', '12']);
+    await chip(reps(page), '11').click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    expect(await cardNumber(page, 'reps')).toBe('11');
+
+    // And the plates are where they were: a reps chip touches nothing else.
+    await expect(page.getByText('bar 20 + 2 × 20')).toBeVisible();
+    expect(await cardNumber(page, 'weight')).toBe('60');
+  });
+
+  test('a pair’s chips read per hand, like the card’s own number', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* A pair is entered one dumbbell at a time and stored as both, so the row
+       has to halve what it reads back — exactly as the card's own number does.
+       Untouched it would offer 40 and 50: a pair nobody picked up, and double
+       what was lifted. Nothing else in the suite covers this conversion. */
+    await signInAs(page, context, baseURL!, {
+      onboarded: true,
+      sets: [
+        { exercise: LUNGE, date: historyStart(2), weight: 40, reps: 10, rir: 2 },
+        { exercise: LUNGE, date: historyStart(1), weight: 50, reps: 8, rir: 2 },
+      ],
+    });
+    await onPair(page);
+
+    await expect(weights(page).getByRole('button')).toHaveText(['25', '20']);
+    for (const w of ['25 kg', '20 kg']) {
+      await expect(chip(weights(page), w)).toHaveCount(1);
+    }
+    // The card prefills the stored 50 as 25, so that chip is the pressed one.
+    await expect(chip(weights(page), '25 kg')).toHaveAttribute('aria-pressed', 'true');
+
+    // And a tap goes back through the same conversion, in the same direction.
+    await chip(weights(page), '20 kg').click();
+    expect(await cardNumber(page, 'weight')).toBe('20');
+    await expect(page.getByText('One dumbbell — saved as 40 kg for both.')).toBeVisible();
+  });
+
+  test('a bodyweight lift logged with nothing added offers “None”', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* A zero is an answer on a bodyweight lift, so it keeps its place on the
+       row — as the word, like every other control on the card writes it. A
+       chip reading "0" would be the one place in the app that does not.
+       Nothing else in the suite covers this either. */
+    await signInAs(page, context, baseURL!, {
+      onboarded: true,
+      sets: [{ exercise: CHIN, date: historyStart(1), weight: 0, reps: 8, rir: 2 }],
+    });
+    await page.getByRole('button', { name: 'Day B', exact: true }).click();
+    await openCard(page, CHIN);
+
+    await expect(weights(page).getByRole('button')).toHaveText(['None']);
+    await expect(chip(weights(page), 'None')).toHaveAttribute('aria-pressed', 'true');
+
+    // And it is a chip, not a caption: one tap puts the weight back to nothing.
+    await page.getByRole('button', { name: 'weight +', exact: true }).click();
+    await expect(chip(weights(page), 'None')).toHaveAttribute('aria-pressed', 'false');
+    await chip(weights(page), 'None').click();
+    expect(await cardNumber(page, 'weight')).toBe('0');
   });
 
   test('the card still fits a 360×640 phone', async ({ page, context, baseURL }) => {
