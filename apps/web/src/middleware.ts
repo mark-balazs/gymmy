@@ -19,6 +19,22 @@ export function middleware(req: NextRequest) {
     req.cookies.has('authjs.session-token') || req.cookies.has('__Secure-authjs.session-token');
 
   if (!hasSession) {
+    /**
+     * The API answers; it never redirects.
+     *
+     * A redirect is a sensible thing to do to a person and a terrible thing to
+     * do to `fetch`. The sync follows it, gets the sign-in page back as `200`
+     * with a body of HTML, and reports a parse error — so a session that ended
+     * ninety days ago looked exactly like a bad connection, on full signal,
+     * and the phone went on retrying for ever while the queue grew. Answering
+     * `401` is what lets it stop and say "Sign in to send 3 changes".
+     *
+     * Documented in `docs/openapi.yaml` under every route's `401`.
+     */
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    }
+
     const url = new URL('/sign-in', req.url);
     if (pathname !== '/') url.searchParams.set('from', pathname);
     return NextResponse.redirect(url);

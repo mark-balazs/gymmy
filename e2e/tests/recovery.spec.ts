@@ -1,5 +1,18 @@
-import { createUser, rowCount, seedPatternsOnly, sessionCookie } from '../fixtures/auth';
-import { completeOnboarding, expect, test } from '../fixtures/test';
+import {
+  createUser,
+  rowCount,
+  seedPatternsOnly,
+  serverSets,
+  sessionCookie,
+} from '../fixtures/auth';
+import {
+  completeOnboarding,
+  expect,
+  logSet,
+  queuedChanges,
+  signInAs,
+  test,
+} from '../fixtures/test';
 
 test.describe('Not getting stuck', () => {
   /**
@@ -63,6 +76,39 @@ test.describe('Not getting stuck', () => {
     // Finished, not duplicated: the rows written before are the rows kept.
     expect(await rowCount('patterns', user.id)).toBe(8);
     expect(await rowCount('profiles', user.id)).toBe(1);
+  });
+
+  /**
+   * A session that has ended is not a bad connection, and must not read like
+   * one.
+   *
+   * Sessions last 90 days, and they also end when somebody signs out on
+   * another device or deletes the account. Before this, the API redirected a
+   * cookieless request to the sign-in page: the sync followed the redirect,
+   * got HTML back as a `200`, failed to parse it, and showed a red "could not
+   * sync" dot on full signal — so the phone retried for ever and the person
+   * had no idea what to do (GYM-57, cause 15). Now the API answers `401`, the
+   * sync stops, and the header says what to do and how much is waiting.
+   */
+  test('a session that has ended says to sign in, and keeps the changes', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    const user = await signInAs(page, context, baseURL!, { onboarded: true });
+    await expect(page.getByText('All saved')).toBeVisible();
+
+    // The session ends while the app is open — signed out elsewhere, or simply
+    // ninety days later.
+    await context.clearCookies();
+    await logSet(page, 60, 8);
+
+    await expect(page.getByText('Sign in to send 1 change')).toBeVisible({ timeout: 15_000 });
+    // In the singular, and never "1 changes" — the reset warning got this wrong.
+    await expect(page.getByText('Sign in to send 1 changes')).toHaveCount(0);
+    // Not dropped, and not on the server either: still the device's to send.
+    expect(await queuedChanges(page)).toBe(1);
+    expect(await serverSets(user.id)).toEqual([]);
   });
 
   /**
@@ -215,28 +261,7 @@ test.describe('Not getting stuck', () => {
     await page.getByRole('button', { name: 'Reset', exact: true }).click();
     await page.waitForURL('**/home');
 
-    const outbox = () =>
-      page.evaluate(
-        () =>
-          new Promise<number>((resolve) => {
-            const r = indexedDB.open('athletic-tracker');
-            r.onsuccess = () => {
-              const db = r.result;
-              if (!db.objectStoreNames.contains('outbox')) {
-                db.close();
-                return resolve(0);
-              }
-              const q = db.transaction('outbox').objectStore('outbox').count();
-              q.onsuccess = () => {
-                db.close();
-                resolve(q.result);
-              };
-              q.onerror = () => resolve(-1);
-            };
-            r.onerror = () => resolve(-1);
-          }),
-      );
-    await expect.poll(outbox).toBe(0);
+    await expect.poll(() => queuedChanges(page)).toBe(0);
     expect(await page.evaluate(() => caches.keys())).not.toContain('athletic-old');
   });
 });
