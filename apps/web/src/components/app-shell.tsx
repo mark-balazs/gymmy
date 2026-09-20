@@ -282,14 +282,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             out here and in there. Its move starts in the navigation's own
             commit, and the bar is drawn live during a slide, so the two travel
             together. Under reduced motion it jumps. Hidden where no tab is on
-            (Coaching). */}
+            (Coaching).
+
+            `--swipe-ms` rather than `--dur-page`: it is one movement, so it
+            takes one length of time. A tapped tab leaves the token at
+            `--dur-page` and nothing changes; a swipe finishes at the finger's
+            own speed, and the mark used to keep gliding for another ~110 ms
+            after the page had landed. */}
         <span
           aria-hidden
           data-tab-mark
           style={{ translate: `${Math.max(on, 0) * 100}% 0` }}
           className={cn(
             'pointer-events-none absolute top-0 left-0 flex w-1/5 justify-center',
-            'transition-[translate,opacity] duration-(--dur-page) ease-(--ease-out) motion-reduce:transition-opacity',
+            'transition-[translate,opacity] duration-(--swipe-ms) ease-(--ease-out) motion-reduce:transition-opacity',
             on < 0 && 'opacity-0',
           )}
         >

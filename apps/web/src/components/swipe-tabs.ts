@@ -14,12 +14,15 @@
  *  - **Sideways, the page moves with the finger**, the transform written
  *    straight onto `[data-page]` — no CSS variable on the way, which would make
  *    the browser restyle every card on every frame — and `will-change` only
- *    while a finger is down. Past the first or last tab it resists.
+ *    while a finger is down: on at `touchstart`, off again the moment the
+ *    gesture turns out to be a tap or a scroll. Past the first or last tab it
+ *    resists.
  *  - **Letting go** moves to the next tab after a flick or a long drag
  *    (`commits`), and the move carries on from where the page is, at the
- *    finger's speed (`finishMs`, the `swipe` transition type in
- *    `globals.css`). Otherwise the page springs back — a CSS transition, so a
- *    finger landing on it mid-way catches it where it is.
+ *    finger's speed and over the distance it has left (`finishMs`, the `Pace`
+ *    handed to `useMove`, the `swipe` transition type in `globals.css`).
+ *    Otherwise the page springs back — a CSS transition, so a finger landing
+ *    on it mid-way catches it where it is.
  *
  * Left to others: a touch that starts in the edge strip (`EDGE_PX` — the
  * phone's own Back), inside `[data-no-swipe]` (a chart, the ruler, the
@@ -37,6 +40,7 @@
 
 import { useEffect } from 'react';
 import { duration, reducedMotion } from './motion';
+import type { Pace } from './navigate';
 import { EDGE_PX, axisOf, commits, finishMs, follow, releaseSpeed, type Sample } from './swipe';
 import { TABS, tabIndex } from './tabs';
 
@@ -71,7 +75,10 @@ const clear = (page: HTMLElement) => {
   page.style.willChange = '';
 };
 
-export function useSwipeTabs(pathname: string, move: (href: string, types?: string[]) => void) {
+export function useSwipeTabs(
+  pathname: string,
+  move: (href: string, types?: string[], pace?: Pace) => void,
+) {
   useEffect(() => {
     const index = tabIndex(pathname);
     if (index < 0) return;
@@ -117,9 +124,20 @@ export function useSwipeTabs(pathname: string, move: (href: string, types?: stri
       return x;
     };
 
+    /**
+     * A gesture that turned out not to be a sideways drag: the page gives its
+     * layer back. Every touch promotes one (see `start`), so every touch that
+     * is a tap or a scroll has to hand it back, or the app keeps a composited
+     * copy of the page for nothing.
+     */
+    const demote = (d: Drag | null) => {
+      if (d?.page && !d.still && d.axis !== 'x') d.page.style.willChange = '';
+    };
+
     const cancel = () => {
       const d = drag;
       drag = null;
+      demote(d);
       if (d?.axis === 'x' && d.page && !d.still) springBack(d.page);
     };
 
@@ -134,6 +152,13 @@ export function useSwipeTabs(pathname: string, move: (href: string, types?: stri
       const page = document.querySelector<HTMLElement>('[data-page]');
       const still = reducedMotion();
       const base = page && !still ? grab(page) : 0;
+      /* Promoted here rather than where the drag turns out to be sideways.
+         Giving the page a layer of its own repaints it once — 5–19 ms of the
+         phone's main thread — and at the lock that repaint lands in the middle
+         of the gesture, where it is a stall the finger can feel. With the
+         finger down and nothing moving yet there is nothing to stall. The cost
+         is that a tap pays for it too, so `demote` hands it straight back. */
+      if (page && !still) page.style.willChange = 'transform';
       drag = {
         x0: touch.clientX,
         y0: touch.clientY,
@@ -158,14 +183,13 @@ export function useSwipeTabs(pathname: string, move: (href: string, types?: stri
         if (!axis) return;
         if (axis === 'y') {
           drag = null; // a scroll, and none of ours
+          demote(d);
           return;
         }
         d.axis = 'x';
         d.lockAt = touch.clientX;
-        if (d.page && !d.still) {
-          d.page.style.transition = 'none';
-          d.page.style.willChange = 'transform';
-        }
+        // The layer is already there, from `start`; only the spring has to go.
+        if (d.page && !d.still) d.page.style.transition = 'none';
       }
 
       // Sideways: the page must not scroll under the finger as well.
@@ -181,6 +205,7 @@ export function useSwipeTabs(pathname: string, move: (href: string, types?: stri
     const end = (e: TouchEvent) => {
       const d = drag;
       drag = null;
+      demote(d);
       if (!d || d.axis !== 'x') return;
       const touch = e.changedTouches[0];
       const x = touch?.clientX ?? d.samples[d.samples.length - 1]!.x;
@@ -200,14 +225,12 @@ export function useSwipeTabs(pathname: string, move: (href: string, types?: stri
 
       /* The rest of the slide, at the finger's speed. The page is left where
          the finger let go of it: the transition takes its picture of the old
-         page from here, and `swipe` carries it on to the edge. */
-      const root = document.documentElement.style;
-      root.setProperty(
-        '--swipe-ms',
-        `${finishMs(moved, speed, width, duration('--dur-page'), duration('--dur-press'))}ms`,
-      );
-      root.setProperty('--swipe-rest', `${Math.max(0, width - Math.abs(moved))}px`);
-      move(next.href, ['swipe']);
+         page from here, `swipe` carries it on to the edge, and the page
+         arriving starts one screen further on so the two move together. */
+      move(next.href, ['swipe'], {
+        ms: finishMs(moved, speed, width, duration('--dur-page'), duration('--dur-press')),
+        rest: Math.max(0, width - Math.abs(moved)),
+      });
       const page = d.page;
       window.setTimeout(() => {
         if (page.isConnected) springBack(page);

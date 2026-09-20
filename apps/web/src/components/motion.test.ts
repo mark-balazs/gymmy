@@ -58,6 +58,13 @@ describe('the tokens', () => {
     expect(ms('--dur-page')).toBeLessThanOrEqual(300);
   });
 
+  it('a move between tabs takes the page duration unless a swipe says otherwise', () => {
+    /* Written as the token, not as `300ms`: a copy of the number would not be
+       shortened by the reduced-motion block, and the tab bar's mark reads this
+       one directly (`app-shell.tsx`). */
+    expect(tokens['--swipe-ms']).toBe('var(--dur-page)');
+  });
+
   it('the spring is a real one where the browser can draw it', () => {
     const value = spring['--ease-spring'];
     expect(value).toMatch(/^linear\(/);

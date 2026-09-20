@@ -39,19 +39,63 @@ let opened: string | null = null;
 let thenGo: { href: string; types: string[] } | null = null;
 
 /**
- * Moves to `href` with its direction, and with the history rule for the move.
- * `types` adds transition types to the direction — a swipe adds `swipe`.
+ * What a committed swipe hands to the animations that draw the rest of it:
+ * how long the movement still has to run, and how far the pages still have to
+ * travel.
  */
-export function useMove(): (href: string, types?: string[]) => void {
+export interface Pace {
+  ms: number;
+  rest: number;
+}
+
+/**
+ * The measurements of the move about to start, for everything that draws it:
+ * `--swipe-ms` is how long this one move takes and `--swipe-rest` how far the
+ * two pages have left to go (`globals.css` for the pages, `app-shell.tsx` for
+ * the tab bar's mark).
+ *
+ * Set by a swipe from the finger's own speed, and **taken away by every other
+ * move**, so a tab tapped a moment after a swipe is not drawn at the swipe's
+ * speed. Removing a property that is not there costs nothing, which is the
+ * common case: only the first tap after a swipe actually removes anything.
+ *
+ * These are on the document element because the view-transition
+ * pseudo-elements can read nothing else, and they inherit — so writing them
+ * restyles the whole document (139 elements on Train, 391 on Progress; 1–2 ms
+ * on a desktop, 8–13 ms at 4× and 15–21 ms at 6× CPU throttling), inside the
+ * task that starts the navigation. That was measured and left alone: taking
+ * the write away entirely moved the time from letting go to the first moving
+ * frame by less than the run-to-run spread at every throttle, and the ways of
+ * keeping it off the root cost more than they save (see
+ * `docs/architecture.md`).
+ */
+function pacing(pace: Pace | undefined): void {
+  const root = document.documentElement.style;
+  if (!pace) {
+    root.removeProperty('--swipe-ms');
+    root.removeProperty('--swipe-rest');
+    return;
+  }
+  root.setProperty('--swipe-ms', `${pace.ms}ms`);
+  root.setProperty('--swipe-rest', `${pace.rest}px`);
+}
+
+/**
+ * Moves to `href` with its direction, and with the history rule for the move.
+ * `types` adds transition types to the direction — a swipe adds `swipe`, and
+ * `pace` with it.
+ */
+export function useMove(): (href: string, types?: string[], pace?: Pace) => void {
   const router = useRouter();
   const pathname = usePathname();
 
   return useCallback(
-    (href: string, types: string[] = []) => {
+    (href: string, types: string[] = [], pace?: Pace) => {
       const from = pathname;
       if (href === from) return;
       const direction = directionOf(from, href);
       const transitionTypes = direction ? [direction, ...types] : types;
+      pacing(pace);
 
       switch (historyFor(from, href, opened === from)) {
         case 'push':
@@ -138,6 +182,7 @@ export function useHistorySlides(pathname: string): void {
 
       if (next) {
         e.stopImmediatePropagation();
+        pacing(undefined); // Back is never a swipe, whatever came before it
         router.replace(next.href, { transitionTypes: next.types });
         return;
       }
@@ -146,6 +191,7 @@ export function useHistorySlides(pathname: string): void {
       const direction = directionOf(from, to);
       if (!direction) return;
       e.stopImmediatePropagation();
+      pacing(undefined);
       router.replace(`${to}${window.location.search}${window.location.hash}`, {
         transitionTypes: [direction],
       });
