@@ -668,9 +668,10 @@ on any range too long for one row, and the top of the range is always on it.
 rather than wrapping, and are `contain: inline-size`, so a card on a 360 px
 phone cannot grow a second line or push the page wider than the screen.
 
-Neither row appears under the ruler or the picture of the bar: both already put
-a run of numbers under the thumb, and a card is only ever as tall as it has to
-be.
+The ruler gets neither row: it already puts a run of numbers under the thumb. A
+bar being loaded plate by plate loses only the weight row — the picture already
+says what is on the bar — and keeps the reps row, because the reps change every
+set at a rack too (owner, 2026-09-20).
 
 **There is no rule here, and that is the design.** This section used to describe
 double progression: `suggest()` read your last session, and if you had hit the

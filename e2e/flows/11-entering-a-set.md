@@ -34,7 +34,9 @@ sets**:
   you put on one side, and gymmy adds the bar and the other side. The bar weight
   is a chip, remembered per exercise on the device. The setting is the phone's
   own switch (`<input type="checkbox" switch>`, the only haptic an iPhone gives
-  a web page), and the whole row flips it.
+  a web page), and the whole row flips it. The reps below the picture keep the
+  one-tap row — they change every set at a rack too — and only the weight loses
+  its, since the picture already shows what is on the bar.
 
 The card also opens and closes smoothly, and each style fits between the
 header and the tab bar of a 640 px phone.
@@ -83,9 +85,12 @@ header and the tab bar of a 640 px phone.
 - **Bodyweight "None" is logged as no added weight.**
 - **The chips**: one tap sets the weight and one sets the reps, without opening
   the keypad, and what they set is what gets logged. A lift never trained shows
-  no weight row, only the reps its range asks for. The ruler has neither row.
-  And with both rows on a 360×640 phone the card still fits: whole card in
-  view, log button above the tab bar, no sideways scroll.
+  no weight row, only the reps its range asks for. The ruler has neither row; a
+  bar being loaded keeps the reps row and never the weights, with the plates
+  picture untouched. A pair of dumbbells offers the weight in the hand, half
+  what is stored, and a bodyweight lift logged with nothing added offers
+  "None". And with both rows on a 360×640 phone the card still fits: whole card
+  in view, log button above the tab bar, no sideways scroll.
 - **Nothing scrolls sideways** on a 360 px screen, in any style.
 - **The keypad fits a phone on its side**: at 915×412 and 667×320 it is all on
   screen, Cancel and Done included, with keys still 44 px or taller — the
