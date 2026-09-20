@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   GOAL_HORIZONS,
+  LOAD_CONVENTION_FROM,
   SEED_PATTERNS,
   addDays,
+  conventionChanged,
   daysBetween,
   toEntered,
   loadClassOf,
@@ -56,20 +58,47 @@ import { DEMO_LOADS } from './demo-loads';
  * calendar under its 22 weeks. A dated rule in the domain lands somewhere
  * different in the block every week: leaving out pull-ups logged before
  * `LOAD_CONVENTION_FROM` passed on the day it was written and broke the
- * plateau below when the suite ran between 2026-11-23 and 2026-12-13. So the
- * demo is built on every Monday from the week after that date until six weeks
- * after it has left the block, and on this week's, which is what a seed today
- * would write. `demoHistory` and `demoGoals` take the Monday as an argument;
- * nothing here reads the clock except to add this week.
+ * plateau below when the suite ran between 2026-11-23 and 2026-12-13.
+ *
+ * So there are two spreads, both derived rather than written out. One walks
+ * the dumbbell cutover through the block, from the first Monday whose history
+ * reaches back to it until six weeks after it has dropped off the far end. The
+ * other does the same for *today*, because a rule written this week sits at
+ * the very end of the block on the Monday the suite happens to run and would
+ * be checked in one position only — the mistake above, in advance. The two
+ * overlap while the cutover is recent and drift apart as it ages.
+ *
+ * `demoHistory` and `demoGoals` take the Monday as an argument; nothing here
+ * reads the clock except to place the second spread.
  */
 
-/** Every Monday from `from` to `to`, both included. */
-function mondays(from: string, to: string): string[] {
-  const out: string[] = [];
-  for (let d = mondayOf(from); d <= to; d = addDays(d, 7)) out.push(d);
-  return out;
+/**
+ * Mondays to walk a rule dated at one end of the block out of the other.
+ *
+ * `DEMO_WEEKS` of them cover every position a date can hold inside the block;
+ * six more cover the weeks after it has gone, where the rule stops applying to
+ * the demo at all and a shape that only held because of it would break.
+ */
+const SPREAD_WEEKS = DEMO_WEEKS + 6;
+
+/** `count` Mondays, starting from the Monday of `from`. */
+function mondaysFrom(from: Date | string, count: number): string[] {
+  const start = mondayOf(from);
+  return Array.from({ length: count }, (_, i) => addDays(start, 7 * i));
 }
-const MONDAYS = [...new Set([...mondays('2026-09-21', '2027-03-29'), mondayOf(new Date())])].sort();
+
+/** Whether a seed on `monday` has `date` somewhere in its block of history. */
+const inBlock = (monday: string, date: string): boolean =>
+  date >= addDays(monday, -7 * DEMO_WEEKS) && date < monday;
+
+const MONDAYS = [
+  ...new Set([
+    // The cutover first enters a block the week after its own Monday.
+    ...mondaysFrom(addDays(mondayOf(LOAD_CONVENTION_FROM), 7), SPREAD_WEEKS),
+    // And this week's, which is what a seed today would write, onwards.
+    ...mondaysFrom(new Date(), SPREAD_WEEKS),
+  ]),
+].sort();
 
 let n = 0;
 const id = (p: string) => `${p}-${++n}`;
@@ -182,11 +211,28 @@ function longestFlatRun(scores: number[], tolerance: number): number {
   return best;
 }
 
-it('is checked on every Monday of the spread, and on this one', () => {
-  // Twenty-eight Mondays: every place the cutover can sit in the block, and
-  // six weeks with it gone. A spread that shrank to a day would pass anything.
-  expect(MONDAYS.length).toBeGreaterThanOrEqual(28);
+it('walks both a dated rule and today through every place in the block', () => {
+  /* The spread is the thing every claim below rests on, so it is asserted
+     rather than trusted: one that quietly shrank to a day would still pass
+     every other test in this file, on one lucky placement of the calendar.
+
+     Stated as coverage rather than as a count of Mondays. The window used to
+     be written out by hand, and a hand-written window cannot follow
+     `DEMO_WEEKS` or the cutover's date when either moves. */
+  const covered = (date: string) => MONDAYS.filter((m) => inBlock(m, date)).length;
+
+  // Every position the cutover can hold, and six weeks after it has gone.
+  expect(covered(LOAD_CONVENTION_FROM)).toBe(DEMO_WEEKS);
+  expect(MONDAYS.filter((m) => !inBlock(m, LOAD_CONVENTION_FROM)).length).toBeGreaterThanOrEqual(6);
+  // The first Monday the pull-up rule broke the plateau on, named because it
+  // is the one placement this whole spread was built out of.
   expect(MONDAYS).toContain('2026-11-23');
+
+  // And the same for a rule dated today, which on this Monday alone would sit
+  // at the very end of the block and be checked nowhere else.
+  const todayIso = new Date().toISOString().slice(0, 10);
+  expect(covered(todayIso)).toBe(DEMO_WEEKS);
+  // Including this week's Monday, which is what a seed right now would write.
   expect(MONDAYS).toContain(mondayOf(new Date()));
 });
 
@@ -384,6 +430,40 @@ describe.each(MONDAYS)('the demo, seeded on %s', (today) => {
       const goblet = byName('Goblet Squat')!.topSet!.weight!;
       expect(goblet).toBeLessThan(2 * DEMO_LOADS['Goblet Squat']!.start);
       expect(toEntered('Goblet Squat', goblet)).toBe(goblet);
+    });
+
+    it('never tells the reader the counting changed', () => {
+      /* The demo is generated under the current convention for all 22 weeks —
+         a pair is doubled on the way out whatever the date — so there is no
+         step on the cutover, and the note explaining one would be a lie.
+
+         This is here because that note has misfired on this account before:
+         the first `conventionChanged` answered on the dates alone, so from the
+         week the block first reached back past the cutover the demo claimed a
+         change it had never had. Nothing would have caught that coming back —
+         it is a caption, no test read it, and it only appears on some weeks. */
+      const pairs = summary.filter((p) => loadClassOf(p.exercise.name) === 'dumbbellPair');
+      expect(pairs.length).toBeGreaterThan(0);
+      for (const p of pairs) {
+        expect(conventionChanged(p.exercise.name, p.sessions), p.exercise.name).toBe(false);
+      }
+
+      /* And not for want of anything to compare. `conventionChanged` needs
+         sessions on both sides of the cutover, so on the Mondays where it sits
+         near an edge of the block — or outside it — the answer is no for free.
+         Where it sits properly inside, there has to be a lift straddling it,
+         or this whole test is passing on an empty comparison. */
+      const wellInside =
+        LOAD_CONVENTION_FROM >= addDays(today, -7 * (DEMO_WEEKS - 3)) &&
+        LOAD_CONVENTION_FROM <= addDays(today, -21);
+      if (wellInside) {
+        const straddling = pairs.filter(
+          (p) =>
+            p.sessions.some((s) => s.date < LOAD_CONVENTION_FROM) &&
+            p.sessions.some((s) => s.date >= LOAD_CONVENTION_FROM),
+        );
+        expect(straddling.length, 'no pair spans the cutover').toBeGreaterThan(0);
+      }
     });
 
     it('logs a bodyweight lift as the weight added to the body, none until there is some', () => {

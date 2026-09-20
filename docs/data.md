@@ -336,10 +336,19 @@ which is where the mistakes actually are.
 **Its shape is checked on many dates, not one.** The history is dated back from
 the Monday it is seeded on, so a dated rule in the domain lands somewhere new in
 the block every week, and one run checks only today's placement. So
-`demo-history.test.ts` builds the demo on every Monday from 2026-09-21 to
-2027-03-29, and on this week's, and holds every shape to each.
+`demo-history.test.ts` builds the demo on a spread of Mondays and holds every
+shape to each. The spread is derived, not written out: `DEMO_WEEKS` Mondays walk
+a date from one end of the block to the other, and six more cover the weeks
+after it has gone. It is taken twice — once from `LOAD_CONVENTION_FROM`, and
+once from **today**, so a rule written this week is checked at every position in
+the block rather than only at the end of it, where this Monday puts it.
 `seed-demo.test.ts` seeds once, on today's date: its job is the trip into the
 database, and its one shape claim follows from the spread at the same Monday.
+
+One of the shapes is a *negative*: no lift in the demo ever draws the "counting
+changed" note. The demo's pairs are doubled on the way out for all 22 weeks, so
+there is no step on the cutover to explain — and an earlier `conventionChanged`,
+which answered on the dates alone, claimed one anyway on exactly this account.
 
 **It produces sets, and only sets.** One row per set performed, carrying what
 was on the bar, how many reps went up and how many were left in reserve — the
