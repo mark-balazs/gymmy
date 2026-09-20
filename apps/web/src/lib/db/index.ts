@@ -33,3 +33,41 @@ function build() {
 export const db = build();
 export type Db = typeof db;
 export { schema, isNeon };
+
+/** A drizzle statement as the builder hands it back: not yet run. */
+type Statement = PromiseLike<unknown>;
+
+/**
+ * Runs a list of writes so that either all of them land or none do.
+ *
+ * **The two drivers need two different mechanisms, and this is the whole
+ * reason it exists.** Neon's HTTP driver has no interactive transaction at all
+ * — `db.transaction()` throws "No transactions support in neon-http driver" —
+ * so production cannot use the obvious thing. What it does have is `batch()`,
+ * which sends the statements together and Neon runs them in one transaction.
+ * node-postgres has no `batch()` and a real `transaction()`. So: the caller
+ * *builds* the statements against whatever handle it is given, and this picks
+ * the mechanism.
+ *
+ * The consequence for callers is the one thing worth remembering: **there is
+ * nothing to read between the statements.** A batch is sent in one go, so
+ * anything a later statement needs has to be worked out before the first one.
+ * That is not a limitation here — seeding derives every row from the account
+ * id — and it is what makes the same code atomic on both drivers.
+ *
+ * Without it, a seed that timed out halfway left an account with patterns and
+ * no profile, which the app can only render as a loading screen (GYM-70).
+ */
+export async function inOneTransaction(build: (on: Db) => Statement[]): Promise<void> {
+  if (isNeon) {
+    const statements = build(db) as unknown as Parameters<
+      ReturnType<typeof drizzleNeon<typeof schema>>['batch']
+    >[0];
+    await (db as ReturnType<typeof drizzleNeon<typeof schema>>).batch(statements);
+    return;
+  }
+
+  await (db as ReturnType<typeof drizzlePg<typeof schema>>).transaction(async (tx) => {
+    for (const statement of build(tx as unknown as Db)) await statement;
+  });
+}

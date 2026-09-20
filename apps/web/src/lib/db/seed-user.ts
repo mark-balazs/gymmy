@@ -19,11 +19,18 @@
  * derived from the account and the thing it represents, and every insert
  * ignores conflicts. Running this twice writes the same library twice into the
  * same rows; running it over a half-written one completes it.
+ *
+ * **And it is one transaction**, so a half-written one should no longer exist.
+ * Written a statement at a time, a timeout between two of them left patterns
+ * and no profile — permanently, because the repair looked for an account with
+ * *nothing* in it (GYM-70). See `inOneTransaction`: Neon's HTTP driver has no
+ * interactive transaction, so the statements are built first and sent as a
+ * batch, which means nothing here may read a row it has just written.
  */
 
 import { createHash } from 'node:crypto';
 import { sql } from 'drizzle-orm';
-import { db } from '@/lib/db';
+import { inOneTransaction } from '@/lib/db';
 import { patterns, profiles, programEntries, slots, splitPeriods } from '@/lib/db/schema';
 import { SEED_PATTERNS, buildSlots, findSplit } from '@athletic/domain';
 import { addDays, buildProgram, index, mondayOf } from '@athletic/domain';
@@ -101,57 +108,98 @@ export async function seedNewUser(userId: string, email?: string | null): Promis
     patternKeys: [...defaultSplit.covers],
   };
 
-  await db
-    .insert(patterns)
-    .values(patternRows.map((r) => ({ ...r, seq: nextSeq })))
-    .onConflictDoNothing();
-  await db
-    .insert(splitPeriods)
-    .values({ ...periodRow, seq: nextSeq })
-    .onConflictDoNothing();
-  await db
-    .insert(slots)
-    .values(slotRows.map((r) => ({ ...r, seq: nextSeq })))
-    .onConflictDoNothing();
-  await db
-    .insert(profiles)
-    .values({
-      id: userId,
-      userId,
-      updatedAt: now,
-      deletedAt: null,
-      seq: nextSeq,
-      onboarded: isDemo,
-      split: defaultSplit.key,
-      days: defaultSplit.defaultDays,
-      where: 'gym',
-      bias: 'none',
-      blockStart: startWeek,
-      blockWeeks,
-      unit: 'kg',
-      lang: 'en',
-      theme: 'system',
-      /* The demo needs these: without a sex and a bodyweight there is no
-       * strength score to show, and the one screen it most needs to sell sits
-       * there saying "add your bodyweight". A real account is asked instead. */
-      heightCm: isDemo ? DEMO_HEIGHT_CM : null,
-      sex: isDemo ? DEMO_SEX : 'unspecified',
-    })
-    // Never overwritten: a retry must not reset someone's settings, and the
-    // profile is the row most likely to have been edited since.
-    .onConflictDoNothing();
+  const profileRow = {
+    id: userId,
+    userId,
+    updatedAt: now,
+    deletedAt: null,
+    seq: nextSeq,
+    onboarded: isDemo,
+    split: defaultSplit.key,
+    days: defaultSplit.defaultDays,
+    where: 'gym' as const,
+    bias: 'none' as const,
+    blockStart: startWeek,
+    blockWeeks,
+    unit: 'kg' as const,
+    lang: 'en' as const,
+    theme: 'system' as const,
+    /* The demo needs these: without a sex and a bodyweight there is no
+     * strength score to show, and the one screen it most needs to sell sits
+     * there saying "add your bodyweight". A real account is asked instead. */
+    heightCm: isDemo ? DEMO_HEIGHT_CM : null,
+    sex: isDemo ? DEMO_SEX : ('unspecified' as const),
+  };
 
-  if (!isDemo) return;
-
-  /* Built with the real generator over the rows just written, so the demo's
-   * week is one the app would actually have produced — and its coverage
+  /* The demo's week, built by the real generator over the rows about to be
+   * written — in memory, because nothing can be read back mid-transaction, and
+   * because the generator only ever needed the rows themselves. So the demo's
+   * week is one the app would actually have produced, and its coverage
    * guarantee holds for the same reason everyone else's does. */
+  const entryRows = !isDemo
+    ? []
+    : demoWeek(userId, now, patternRows, slotRows, periodRow, defaultSplit.defaultDays);
+
+  /**
+   * All of it, or none of it.
+   *
+   * These four tables are what makes an account openable, and the profile is
+   * the row the app waits for. Written one statement at a time, a timeout
+   * between two of them left a real, permanent state: patterns and no profile,
+   * which renders as a loading screen that never resolves and which the old
+   * repair — "asked from zero and got nothing" — could never reach, because
+   * the patterns came back and moved the cursor past zero (GYM-70).
+   *
+   * Still idempotent on every row, and that is still load-bearing: the seed
+   * runs from Auth.js's `createUser` event *and* from the sync repair, so two
+   * of them can overlap, and neither may produce a second library or reset a
+   * profile somebody has since edited.
+   */
+  await inOneTransaction((on) => [
+    on
+      .insert(patterns)
+      .values(patternRows.map((r) => ({ ...r, seq: nextSeq })))
+      .onConflictDoNothing(),
+    on
+      .insert(splitPeriods)
+      .values({ ...periodRow, seq: nextSeq })
+      .onConflictDoNothing(),
+    on
+      .insert(slots)
+      .values(slotRows.map((r) => ({ ...r, seq: nextSeq })))
+      .onConflictDoNothing(),
+    on
+      .insert(profiles)
+      .values(profileRow)
+      // Never overwritten: a retry must not reset someone's settings, and the
+      // profile is the row most likely to have been edited since.
+      .onConflictDoNothing(),
+    ...(entryRows.length
+      ? [on.insert(programEntries).values(entryRows).onConflictDoNothing()]
+      : []),
+  ]);
+
+  /* Outside the transaction on purpose: months of generated sets, and nothing
+   * about the demo's history decides whether the account opens. */
+  if (isDemo) await seedDemoHistory(userId);
+}
+
+/** The demo's opening week, as program entry rows. */
+function demoWeek(
+  userId: string,
+  now: Date,
+  patternRows: { updatedAt: Date; deletedAt: null }[],
+  slotRows: { updatedAt: Date; deletedAt: null }[],
+  periodRow: { updatedAt: Date; deletedAt: null },
+  days: number,
+) {
+  const iso = now.toISOString();
   const snapshot: Snapshot = {
-    patterns: patternRows.map((r) => ({ ...r, updatedAt: now.toISOString(), deletedAt: null })),
+    patterns: patternRows.map((r) => ({ ...r, updatedAt: iso, deletedAt: null })) as never,
     // None: the library is the catalogue, which `index()` supplies.
     exercises: [],
-    slots: slotRows.map((r) => ({ ...r, updatedAt: now.toISOString(), deletedAt: null })),
-    splitPeriods: [{ ...periodRow, updatedAt: now.toISOString(), deletedAt: null }],
+    slots: slotRows.map((r) => ({ ...r, updatedAt: iso, deletedAt: null })) as never,
+    splitPeriods: [{ ...periodRow, updatedAt: iso, deletedAt: null }] as never,
     entries: [],
     logs: [],
     bodyLogs: [],
@@ -160,7 +208,7 @@ export async function seedNewUser(userId: string, email?: string | null): Promis
   };
 
   const draft = buildProgram(index(snapshot), {
-    days: defaultSplit.defaultDays,
+    days,
     where: 'gym',
     bias: 'none',
     /* Zero, deliberately, and not the account's own offset. The demo's history
@@ -170,19 +218,12 @@ export async function seedNewUser(userId: string, email?: string | null): Promis
     variety: 0,
   });
 
-  await db
-    .insert(programEntries)
-    .values(
-      draft.map((d) => ({
-        id: seedId(userId, 'entry', `${d.sessionIndex}:${d.slotId}`),
-        userId,
-        updatedAt: now,
-        deletedAt: null,
-        seq: nextSeq,
-        ...d,
-      })),
-    )
-    .onConflictDoNothing();
-
-  await seedDemoHistory(userId);
+  return draft.map((d) => ({
+    id: seedId(userId, 'entry', `${d.sessionIndex}:${d.slotId}`),
+    userId,
+    updatedAt: now,
+    deletedAt: null,
+    seq: nextSeq,
+    ...d,
+  }));
 }

@@ -71,10 +71,13 @@ paths:
       description: |
         Both directions in one request.
 
-        **Push.** Each mutation is validated against the schema for its table
-        before anything is written. The first invalid row rejects the whole
-        request with `400` — partial acceptance would leave the client believing
-        its outbox had drained.
+        **Push.** Mutations are validated and written one at a time, in the
+        order they arrive. The first invalid row answers `400` and stops there,
+        so the rows *before* it are already saved. The client keeps its whole
+        batch queued and re-sends it — which is safe, because every write is an
+        idempotent upsert — but until it is told which row was refused it can
+        only retry the same batch and be refused again. Per-mutation answers
+        are being built (GYM-57).
 
         **Pull.** Every table newer than `since` is returned, paged
         independently at 500 rows each.
@@ -89,11 +92,14 @@ paths:
         re-sent next round; applying them twice is idempotent and costs only
         bandwidth.
 
-        **Seed repair.** A request with `since: 0` that finds no rows at all
-        means first-run seeding never completed — it happens in an Auth.js
-        event that fires exactly once per account and cannot be made to fire
-        again. This endpoint is the one every device touches on every visit, so
-        it seeds on the spot and pulls again before answering.
+        **Seed repair.** An account with no profile row was never set up —
+        first-run seeding happens in an Auth.js event that fires exactly once
+        per account and cannot be made to fire again. This endpoint is the one
+        every device touches on every visit, so it seeds on the spot and pulls
+        again before answering. The check is the profile, at any `since`: a
+        seed that died partway leaves rows that move the cursor past zero, and
+        a repair keyed on "asked from zero and got nothing" could never run for
+        it again.
       requestBody:
         required: true
         content:
@@ -131,8 +137,9 @@ paths:
         '400':
           description: |
             Unparseable JSON, an envelope that does not match `PushRequest`, or
-            a row that does not match the schema for its table. Nothing was
-            written.
+            a row that does not match the schema for its table. A bad envelope
+            writes nothing; a bad row leaves every mutation before it in the
+            list already written, and nothing after it. No pull is returned.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/SyncError' }
@@ -145,7 +152,14 @@ paths:
                         path: [weight]
                         message: Number must be greater than or equal to 20
         '401':
-          description: No session.
+          description: |
+            No session cookie, or a session that has ended.
+
+            **Answered, never redirected.** Every `/api/*` path returns this
+            body rather than a redirect to the sign-in page — a redirect
+            reaches `fetch` as a `200` full of HTML, which the client can only
+            report as a broken connection. On `401` the client stops syncing,
+            keeps everything queued, and asks the person to sign in.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }

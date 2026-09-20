@@ -235,8 +235,25 @@ something got somebody stuck:
   pretending.
 - **`components/boot-watchdog.tsx`** — plain DOM inlined in `<head>`, because if
   the bundle fails to load there is no React and no error boundary to help.
-- **Seed repair in `/api/sync`** — an account with no rows gets seeded on the
-  spot. See [data.md](./data.md#seeding).
+- **Seed repair in `/api/sync`** — an account with no profile row gets seeded on
+  the spot, at any cursor. See [data.md](./data.md#seeding).
+
+**No recovery path deletes training.** The watchdog replaces the app's copy of
+itself — the service worker and its caches — and never IndexedDB, which is the
+one store that may hold the only copy of a set. It does that only once a fresh
+`/` has come back from the network, clears nothing at all when offline, and
+stops rather than escalating if a fresh copy did not help: it shows the errors
+it collected for somebody to send on (GYM-78, owner 2026-09-20). The in-app
+reset in `components/recovery.tsx` can still empty the device, because the
+person asked for it — so it counts what is queued first, and says so when it
+cannot read the count at all (`SyncStatus.pending` is `null`, not `0`).
+
+**A session that ended is not a bad connection.** `middleware.ts` answers
+`/api/*` with `401` and JSON rather than redirecting to `/sign-in`: `fetch`
+follows a redirect and gets HTML back as a `200`, which the sync could only
+report as a broken connection — so an expired session showed a red dot on full
+signal for ever. On `401` the sync stops, keeps the queue, and the header reads
+"Sign in to send 3 changes".
 
 ## One read for every screen
 

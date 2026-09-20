@@ -10,7 +10,7 @@ import { NextResponse } from 'next/server';
 import { and, asc, eq, gt, sql } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { SYNC_TABLES, type SyncTableName } from '@/lib/db/schema';
+import { profiles, SYNC_TABLES, type SyncTableName } from '@/lib/db/schema';
 import { seedNewUser } from '@/lib/db/seed-user';
 import { pushRequest, SYNC_LIMIT, type PullResponse } from '@/lib/sync/protocol';
 import { rowSchemas } from '@/lib/sync/rows';
@@ -87,27 +87,56 @@ export async function POST(req: Request): Promise<NextResponse> {
   let payload = await pull(userId, since);
 
   /**
-   * A device asking from scratch and getting nothing back means the account has
-   * no rows at all — first-run seeding never completed.
+   * An account with no profile row was never set up, and the app cannot open
+   * without one.
    *
-   * That seeding happens in Auth.js's `createUser` event, which fires exactly
-   * once per account and cannot be made to fire again. Without this, a single
-   * failed seed leaves someone signed in, syncing perfectly, and permanently
-   * empty — and an empty account has no profile, which the app can only render
-   * as a loading screen that never resolves.
+   * First-run seeding happens in Auth.js's `createUser` event, which fires
+   * exactly once per account and cannot be made to fire again. Without a
+   * repair, a single failed seed leaves someone signed in, syncing perfectly,
+   * and with no profile — which the app can only render as a loading screen
+   * that never resolves.
+   *
+   * **The test is the profile, not an empty pull, and it is not tied to the
+   * cursor.** It used to be "asked from zero and got nothing back", which
+   * catches a seed that wrote *nothing* and misses every seed that died
+   * partway: the patterns come back, the cursor moves past zero, and the
+   * condition can never be true again — permanently stuck, at any cursor, on
+   * every device (GYM-70). Seeding is now one transaction, so a half-written
+   * account should not arise again; the repair does not assume that, because
+   * the accounts already in that state have to be able to recover too.
    *
    * This is the one place every device touches on every visit, so it is where
    * the repair belongs. Seeding writes stable ids and ignores conflicts, so
-   * two devices arriving at once cannot produce two libraries, and a seed that
-   * half-wrote is finished rather than duplicated.
+   * two devices arriving at once cannot produce two libraries.
+   *
+   * The cost is one indexed lookup per sync, and only when the pull did not
+   * already carry the profile — a device syncing from scratch, or after any
+   * change to the profile row, pays nothing.
    */
-  if (since === 0 && Object.keys(payload.changes).length === 0) {
-    console.warn(`[sync] empty account ${userId}; seeding now`);
+  if (!payload.changes.profile?.length && !(await hasProfile(userId))) {
+    console.warn(`[sync] account ${userId} has no profile; seeding now`);
     await seedNewUser(userId, session.user?.email);
     payload = await pull(userId, since);
   }
 
   return NextResponse.json(payload);
+}
+
+/**
+ * Whether the account has a profile row at all — soft-deleted ones included.
+ *
+ * Deliberately not filtered by `deletedAt`: a row that exists is a seed that
+ * ran, and writing a fresh profile over a deleted one would resurrect an
+ * account the person asked to be rid of. The question here is only "was this
+ * account ever set up", and a row of any kind answers it.
+ */
+async function hasProfile(userId: string): Promise<boolean> {
+  const found = await db
+    .select({ id: profiles.id })
+    .from(profiles)
+    .where(eq(profiles.userId, userId))
+    .limit(1);
+  return found.length > 0;
 }
 
 /**

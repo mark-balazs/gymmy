@@ -283,10 +283,25 @@ that never resolves. So:
 - every insert is `onConflictDoNothing`, and the profile is never overwritten so
   a retry cannot reset settings;
 - the `createUser` event is **best-effort**, logging rather than throwing;
-- **`/api/sync` repairs it**: a device asking from cursor 0 and getting nothing
-  back means the account has no rows, so it is seeded then and there. That is
-  the one endpoint every device touches on every visit, and it costs nothing on
-  a normal sync because the emptiness is read off the pull already done.
+- **it is one transaction** (`inOneTransaction` in `lib/db/index.ts`), so a
+  half-written account cannot be left behind. See the trap below;
+- **`/api/sync` repairs it**: an account with no profile row was never set up,
+  so it is seeded then and there, whatever cursor the device asked from.
+
+> **Trap: the repair used to be keyed on the cursor, and could not reach the
+> accounts that needed it most.** It ran only for "asked from zero and got
+> nothing back" — which catches a seed that wrote *nothing* and misses every
+> seed that died partway. The patterns come back, the cursor moves past zero,
+> and the condition is never true again: a loading screen on every device that
+> account ever signs in on, for ever (GYM-70). The question is the profile, and
+> the cursor does not come into it.
+
+> **Trap: `db.transaction()` throws in production.** Neon's HTTP driver has no
+> interactive transactions. `inOneTransaction` takes a function that *builds*
+> statements against the handle it is given, and sends them as a Neon `batch()`
+> or runs them in a node-postgres transaction. The cost is that **nothing can
+> be read between the statements** — anything a later one needs must be worked
+> out before the first.
 
 ### Deleting an account
 

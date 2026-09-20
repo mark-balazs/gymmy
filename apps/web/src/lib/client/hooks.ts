@@ -199,7 +199,9 @@ export function useT(): Translator {
 export function useSyncStatus(): SyncStatus {
   const [status, setStatus] = useState<SyncStatus>({
     state: 'idle',
-    pending: 0,
+    // Nothing has counted the outbox yet, and "not counted" is not "empty" —
+    // the recovery screens decide what to promise from this (GYM-78).
+    pending: null,
     lastSyncedAt: null,
     error: null,
     storageFailure: null,

@@ -388,6 +388,69 @@ export async function logSuggested(page: Page): Promise<void> {
  * not rendered, and the next person to sign in on the device inherits whatever
  * is still there. Zero when the database is gone altogether.
  */
+/**
+ * How many changes this device still has queued for the server.
+ *
+ * The other half of `localLogCount`, and the one that matters on a recovery
+ * screen: only the queue can say how much a reset is about to cost, and a
+ * screen that reads it as zero is how "your training is safe on the server"
+ * ended up printed above a button that deleted it (GYM-78). Zero when the
+ * database or the store is gone, -1 when it will not open.
+ */
+export async function queuedChanges(page: Page): Promise<number> {
+  return page.evaluate(async () => {
+    const names = (await indexedDB.databases()).map((d) => d.name);
+    if (!names.includes('athletic-tracker')) return 0;
+    return new Promise<number>((resolve) => {
+      const req = indexedDB.open('athletic-tracker');
+      req.onsuccess = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains('outbox')) {
+          db.close();
+          return resolve(0);
+        }
+        const count = db.transaction('outbox').objectStore('outbox').count();
+        count.onsuccess = () => {
+          db.close();
+          resolve(count.result);
+        };
+        count.onerror = () => resolve(-1);
+      };
+      req.onerror = () => resolve(-1);
+    });
+  });
+}
+
+/**
+ * Makes the boot watchdog believe the app never started, without breaking it.
+ *
+ * The watchdog stands down on one flag, which React sets when it mounts. Held
+ * false, the panel appears over a perfectly working app — which is what lets a
+ * test queue a set through the real UI first and *then* arrive on the screen
+ * that used to delete it. Blocking the script bundle instead gives a device
+ * with no way to log anything, so the interesting case could never be set up.
+ *
+ * Switched by a localStorage key rather than by the init script alone, because
+ * Playwright cannot remove an init script: the test turns it off again for the
+ * final load, where the app has to come up and sync for real.
+ */
+export async function holdBootBack(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    if (localStorage.getItem('e2e.holdBoot') !== '1') return;
+    Object.defineProperty(window, '__gymmyBooted', {
+      configurable: true,
+      get: () => false,
+      set: () => {},
+    });
+  });
+  await page.evaluate(() => localStorage.setItem('e2e.holdBoot', '1'));
+}
+
+/** Lets the next load boot normally again. */
+export async function releaseBoot(page: Page): Promise<void> {
+  await page.evaluate(() => localStorage.removeItem('e2e.holdBoot'));
+}
+
 export async function localLogCount(page: Page): Promise<number> {
   return page.evaluate(async () => {
     const names = (await indexedDB.databases()).map((d) => d.name);

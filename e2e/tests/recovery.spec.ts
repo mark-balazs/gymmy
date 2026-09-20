@@ -1,5 +1,18 @@
-import { createUser, rowCount, seedPatternsOnly, sessionCookie } from '../fixtures/auth';
-import { completeOnboarding, expect, test } from '../fixtures/test';
+import {
+  createUser,
+  rowCount,
+  seedPatternsOnly,
+  serverSets,
+  sessionCookie,
+} from '../fixtures/auth';
+import {
+  completeOnboarding,
+  expect,
+  logSet,
+  queuedChanges,
+  signInAs,
+  test,
+} from '../fixtures/test';
 
 test.describe('Not getting stuck', () => {
   /**
@@ -41,17 +54,14 @@ test.describe('Not getting stuck', () => {
     context,
     baseURL,
   }) => {
-    /* The seed is written a statement at a time with no transaction around
-       it, so a timeout can leave the patterns and nothing else. The repair
-       above only runs for an account with no rows at all, and this one has
-       some: the first pull returns them, the cursor moves past zero, and the
-       repair can never run again — a loading screen, then the recovery panel,
-       and "Try again" only syncs again.
+    /* Accounts seeded before the seed became one transaction can still be in
+       this state: a timeout left the patterns and nothing else. The old repair
+       only ran for an account with no rows at all, and this one has some — the
+       first pull returns them, the cursor moves past zero, and the repair could
+       never run again. A loading screen, then the recovery panel, and "Try
+       again" only syncs again.
 
-       Expected to fail until the repair checks for the profile itself, on every
-       pull, rather than for "asked from zero and got nothing". Remove the
-       marker with the fix. */
-    test.fail(true, 'the sync route only repairs an account with no rows at all');
+       The repair now asks whether there is a profile, at any cursor. */
     const user = await createUser({ bare: true });
     await seedPatternsOnly(user.id);
     await context.addCookies([sessionCookie(user, baseURL!)]);
@@ -63,6 +73,39 @@ test.describe('Not getting stuck', () => {
     // Finished, not duplicated: the rows written before are the rows kept.
     expect(await rowCount('patterns', user.id)).toBe(8);
     expect(await rowCount('profiles', user.id)).toBe(1);
+  });
+
+  /**
+   * A session that has ended is not a bad connection, and must not read like
+   * one.
+   *
+   * Sessions last 90 days, and they also end when somebody signs out on
+   * another device or deletes the account. Before this, the API redirected a
+   * cookieless request to the sign-in page: the sync followed the redirect,
+   * got HTML back as a `200`, failed to parse it, and showed a red "could not
+   * sync" dot on full signal — so the phone retried for ever and the person
+   * had no idea what to do (GYM-57, cause 15). Now the API answers `401`, the
+   * sync stops, and the header says what to do and how much is waiting.
+   */
+  test('a session that has ended says to sign in, and keeps the changes', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    const user = await signInAs(page, context, baseURL!, { onboarded: true });
+    await expect(page.getByText('All saved')).toBeVisible();
+
+    // The session ends while the app is open — signed out elsewhere, or simply
+    // ninety days later.
+    await context.clearCookies();
+    await logSet(page, 60, 8);
+
+    await expect(page.getByText('Sign in to send 1 change')).toBeVisible({ timeout: 15_000 });
+    // In the singular, and never "1 changes" — the reset warning got this wrong.
+    await expect(page.getByText('Sign in to send 1 changes')).toHaveCount(0);
+    // Not dropped, and not on the server either: still the device's to send.
+    expect(await queuedChanges(page)).toBe(1);
+    expect(await serverSets(user.id)).toEqual([]);
   });
 
   /**
@@ -215,28 +258,7 @@ test.describe('Not getting stuck', () => {
     await page.getByRole('button', { name: 'Reset', exact: true }).click();
     await page.waitForURL('**/home');
 
-    const outbox = () =>
-      page.evaluate(
-        () =>
-          new Promise<number>((resolve) => {
-            const r = indexedDB.open('athletic-tracker');
-            r.onsuccess = () => {
-              const db = r.result;
-              if (!db.objectStoreNames.contains('outbox')) {
-                db.close();
-                return resolve(0);
-              }
-              const q = db.transaction('outbox').objectStore('outbox').count();
-              q.onsuccess = () => {
-                db.close();
-                resolve(q.result);
-              };
-              q.onerror = () => resolve(-1);
-            };
-            r.onerror = () => resolve(-1);
-          }),
-      );
-    await expect.poll(outbox).toBe(0);
+    await expect.poll(() => queuedChanges(page)).toBe(0);
     expect(await page.evaluate(() => caches.keys())).not.toContain('athletic-old');
   });
 });

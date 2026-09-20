@@ -42,6 +42,8 @@ export const es: Record<Key, string> = {
   'err.resetSafe': 'Todo está sincronizado, no se pierde nada.',
   'err.resetPending.one': 'Hay {n} cambio sin sincronizar que se perdería.',
   'err.resetPending.other': 'Hay {n} cambios sin sincronizar que se perderían.',
+  'err.resetUnknown':
+    'Este dispositivo no pudo leer qué falta por sincronizar, así que algo podría perderse.',
   'err.resetGo': 'Restablecer',
   'err.stuckTitle': 'Esto está tardando demasiado',
   'err.stuckDetail': 'Tu entrenamiento todavía no ha llegado a este dispositivo.',
@@ -77,6 +79,9 @@ export const es: Record<Key, string> = {
   'sync.dismiss': 'Descartar',
   'sync.pending.one': '{n} pendiente de sincronizar',
   'sync.pending.other': '{n} pendientes de sincronizar',
+  'sync.signedOut.one': 'Inicia sesión para enviar {n} cambio',
+  'sync.signedOut.other': 'Inicia sesión para enviar {n} cambios',
+  'sync.signedOutIdle': 'Inicia sesión para sincronizar',
 
   'common.back': 'Atrás',
   'common.cancel': 'Cancelar',
