@@ -313,13 +313,22 @@ same journey.
   resists. Letting go moves on after a flick faster than 0.2 px/ms or a drag
   past 30% of the width, unless the finger was flicking back; otherwise the
   page springs back on a CSS transition, which a finger can catch mid-way.
-- **`will-change` goes on at `touchstart`, not at the axis lock.** Giving the
-  page a layer of its own repaints it once (6 ms on Train, 18 ms on Progress
-  at 6× CPU throttling), and at the lock that repaint landed in the middle of
-  the gesture. Promoted when the finger arrives, it lands while nothing is
-  moving: measured from a trace, the drag after its first transform went from
-  5–19 ms of paint to none. Every touch pays it, so `demote` takes it away the
-  moment the gesture turns out to be a tap or a scroll.
+- **`will-change` goes on at the first movement that leans sideways, and the
+  page does not move in that event.** Giving the page a layer of its own
+  repaints it once (6 ms on Train, 18 ms on Progress at 6× CPU throttling), so
+  where that repaint lands is the whole question, and the answer has two
+  halves. *Only a gesture going sideways pays*: at `touchstart` every tap and
+  every scroll paid for it and handed it straight back, two full-page repaints
+  for a gesture that never moved the page; a `touchmove` going more across than
+  down is something a tap never produces and a scroll does not lean towards.
+  *And the page holds still for that one event*: there is no window before the
+  axis lock to use instead, because **Chrome swallows a touch's first ~15 px**,
+  so the first `touchmove` the page ever sees is already past the 10 px lock
+  (measured; `LOCK_PX` decides the axis, it does not delay anything). Skipping
+  that one move is what gives the repaint a frame with nothing travelling in
+  it — `lockAt` is the finger's position then, so the gesture loses a frame
+  rather than a position. A drag that starts sideways and turns into a scroll
+  hands the layer back (`demote`).
 - **A committed swipe carries on from where the page is, and both pages move
   as one sheet of paper.** The page is left where the finger let go, so the
   transition's picture of it is taken there; the move adds a `swipe` type and
@@ -334,6 +343,24 @@ same journey.
   `[data-no-swipe]`, dialogs, a second finger, and any screen that is not a
   tab itself. Under reduced motion nothing moves under the finger; the swipe
   still changes tab, as a crossfade.
+- **`<main>` clips sideways (`overflow-x-clip`), and a swipe back does not
+  animate at all without it.** Dragged to the right the page hangs off the
+  right-hand edge, and that is scrollable overflow: the document goes from 412
+  to 672 px wide for as long as the finger is down. Chrome compares the
+  document's size when it takes the transition's two pictures with its size
+  when the new page is in place, and a difference throws the whole transition
+  away — `InvalidStateError: … Viewport size changed`. The old page was simply
+  replaced by the new one with no frames in between, which is the other half
+  of "it jumps to the new page" (GYM-92). Dragging left never did it: overflow
+  off the left-hand edge of a left-to-right document is not scrollable, so the
+  document never changed size. `clip` rather than `hidden`, which would make
+  `<main>` a scroll container and take the page's scrolling off the window.
+- **The distance left to travel is floored at an eighth of the screen**
+  (`restPx` in `swipe.ts`, which `--swipe-rest` and `--swipe-ms` both come
+  from). A finger can carry the page a whole screen or more — a long drag, or
+  one that caught a page already part of the way across — and a rest of zero
+  starts both pages where they finish, so the move has no movement in it and
+  ends in the hard cut the gesture was there to replace.
 - **`--swipe-ms` and `--swipe-rest` sit on the document element**, because the
   view-transition pseudo-elements can read nothing else. They inherit, so each
   write restyles the whole document (139 elements on Train, 391 on Progress —
@@ -552,6 +579,13 @@ single rep", the onboarding weight's unit). Everything read once went behind an
   db:migrate` really does migrate the remote.
 - **Auth.js reads email-callback params from the query string**, never the body.
   This broke email sign-in for the entire life of the feature.
+- **Moving an element to the right makes the document wider; moving it to the
+  left does not.** Overflow off the right-hand edge of a left-to-right document
+  is scrollable; off the left-hand edge it is unreachable and does not count.
+  A document that changes size between a view transition's two pictures is one
+  Chrome throws away, so the same drag animated one way and not the other for
+  months. Anything that moves an element sideways across a navigation needs
+  something clipping it (`<main>` does).
 - **Next.js restores Back and Forward with no transition**, so no
   `<ViewTransition>` sees them, and **Chrome runs a window's `popstate`
   listeners in the order they were added, capture or not.** So a listener

@@ -3,11 +3,13 @@ import {
   COMMIT_SHARE,
   FLICK_SPEED,
   LOCK_PX,
+  REST_MIN_SHARE,
   axisOf,
   commits,
   finishMs,
   follow,
   releaseSpeed,
+  restPx,
 } from './swipe';
 
 /**
@@ -93,6 +95,25 @@ describe('whether letting go moves to the next tab', () => {
 
   it('stays past the first or last tab', () => {
     expect(commits(-300, -2, W, false)).toBe(false);
+  });
+});
+
+describe('how far the pages still have to travel', () => {
+  it('is the width less what the drag already did', () => {
+    expect(restPx(-150, W)).toBe(250);
+    expect(restPx(120, W)).toBe(280);
+  });
+
+  it('never leaves them nothing to do, however long the drag', () => {
+    /* A finger can carry the page a whole screen and more — a long drag, or
+       one that caught a page already part of the way across. A rest of zero
+       starts both pages where they finish, so nothing moves at all and the
+       swipe ends in the hard cut it was there to replace. */
+    const floor = W * REST_MIN_SHARE;
+    expect(restPx(-W, W)).toBe(floor);
+    expect(restPx(W + 200, W)).toBe(floor);
+    expect(restPx(-10_000, W)).toBe(floor);
+    expect(floor).toBeGreaterThan(0);
   });
 });
 

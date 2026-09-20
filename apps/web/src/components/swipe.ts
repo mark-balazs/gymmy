@@ -29,6 +29,10 @@ export const COMMIT_SHARE = 0.3;
 /** Only the last stretch of the drag says how fast the finger was going. */
 export const SAMPLE_MS = 100;
 
+/** The least the two pages are ever left to travel, as a share of the screen.
+ *  About what a tapped tab slides. */
+export const REST_MIN_SHARE = 0.125;
+
 /** Which way the first real movement went: sideways is ours, anything
  *  steeper is a scroll, and under `LOCK_PX` it is too early to tell. */
 export function axisOf(dx: number, dy: number): 'x' | 'y' | null {
@@ -82,6 +86,20 @@ export function commits(dx: number, speed: number, width: number, canGo: boolean
 }
 
 /**
+ * How far the two pages still have to travel when the finger lets go: the
+ * width, less what the drag has already done.
+ *
+ * **Never nothing.** A finger can carry the page a whole screen or more — a
+ * long drag, or one that caught a page already part of the way across — and a
+ * rest of zero starts both pages at their final places, so the move has no
+ * movement in it: the hard cut the gesture was there to replace. So it is
+ * floored, and the two always travel the last eighth of the screen together.
+ */
+export function restPx(dx: number, width: number): number {
+  return Math.max(width * REST_MIN_SHARE, width - Math.abs(dx));
+}
+
+/**
  * How long the rest of the slide takes once a swipe commits: the distance
  * left to the edge at the finger's own speed, so the page carries on as it
  * was moving — never longer than a tab change (`cap`), never so short that it
@@ -94,7 +112,7 @@ export function finishMs(
   cap: number,
   floor: number,
 ): number {
-  const rest = Math.max(0, width - Math.abs(dx));
+  const rest = restPx(dx, width);
   const towards = Math.abs(speed);
   const ms = towards > 0 ? rest / towards : cap;
   return Math.round(Math.min(cap, Math.max(floor, ms)));

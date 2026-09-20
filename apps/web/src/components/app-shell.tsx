@@ -269,8 +269,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* The flex column moved into `Page`: that is the element which slides,
           and spacing applied outside it would leave the cards travelling
-          independently of the box carrying them. */}
-      <main className="mx-auto max-w-[760px] p-4">{children}</main>
+          independently of the box carrying them.
+
+          `overflow-x-clip` is what makes a back swipe animate at all. Dragged
+          to the right the page hangs off the right-hand edge, and that is
+          scrollable overflow: the document gets wider (412 → 672 px on a
+          phone) for as long as the finger is down. Chrome compares the
+          document's size when it takes the transition's pictures with its size
+          when the new page is in place, and a difference aborts the whole
+          transition — "Viewport size changed" — so the old page was simply
+          replaced by the new one with no frames in between. Dragging left
+          never did it: overflow off the left-hand edge is not scrollable.
+          `clip` rather than `hidden`, which would make this a scroll container
+          and take the page's scrolling off the window. */}
+      <main className="mx-auto max-w-[760px] overflow-x-clip p-4">{children}</main>
 
       <nav
         ref={nav}

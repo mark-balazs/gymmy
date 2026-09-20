@@ -14,8 +14,9 @@
  *  - **Sideways, the page moves with the finger**, the transform written
  *    straight onto `[data-page]` — no CSS variable on the way, which would make
  *    the browser restyle every card on every frame — and `will-change` only
- *    while a finger is down: on at `touchstart`, off again the moment the
- *    gesture turns out to be a tap or a scroll. Past the first or last tab it
+ *    while a finger is down: on at the first movement that leans sideways,
+ *    which is the one event the page does not move in, off again the moment
+ *    the gesture turns out to be a scroll. Past the first or last tab it
  *    resists.
  *  - **Letting go** moves to the next tab after a flick or a long drag
  *    (`commits`), and the move carries on from where the page is, at the
@@ -41,7 +42,16 @@
 import { useEffect } from 'react';
 import { duration, reducedMotion } from './motion';
 import type { Pace } from './navigate';
-import { EDGE_PX, axisOf, commits, finishMs, follow, releaseSpeed, type Sample } from './swipe';
+import {
+  EDGE_PX,
+  axisOf,
+  commits,
+  finishMs,
+  follow,
+  releaseSpeed,
+  restPx,
+  type Sample,
+} from './swipe';
 import { TABS, tabIndex } from './tabs';
 
 /** How long a page that was let go of waits for its move to land before it
@@ -63,6 +73,8 @@ interface Drag {
   page: HTMLElement | null;
   /** Reduced motion: the gesture counts, the page does not move. */
   still: boolean;
+  /** Whether the page has been given a compositing layer for this gesture. */
+  promoted: boolean;
 }
 
 const place = (page: HTMLElement, x: number) => {
@@ -125,13 +137,38 @@ export function useSwipeTabs(
     };
 
     /**
-     * A gesture that turned out not to be a sideways drag: the page gives its
-     * layer back. Every touch promotes one (see `start`), so every touch that
-     * is a tap or a scroll has to hand it back, or the app keeps a composited
-     * copy of the page for nothing.
+     * The page takes a compositing layer of its own, and says whether this is
+     * the moment it did.
+     *
+     * Doing so repaints it once — 6 ms on Train, 18 ms on Progress at 6× CPU
+     * throttling — so *when* is the whole question, and the answer has two
+     * halves.
+     *
+     * **Only a gesture that is going sideways pays.** At `touchstart` every
+     * tap and every scroll paid for it and handed it straight back: two
+     * full-page repaints for a gesture that never moved the page. Here it
+     * takes a `touchmove` going more across than down, which a tap never
+     * produces and a scroll does not lean towards.
+     *
+     * **And the page does not move in the same event** (`follows`). There is
+     * no window before the axis lock to use instead: the browser swallows a
+     * touch's first ~15 px, so the first `touchmove` the page ever sees is
+     * already past the 10 px lock. Skipping that one move is what gives the
+     * repaint a frame with nothing travelling in it — the page follows from
+     * the next event, and from where the finger is by then, so a gesture
+     * loses a frame rather than a position.
      */
+    const promote = (d: Drag): boolean => {
+      if (d.promoted || !d.page || d.still) return false;
+      d.page.style.willChange = 'transform';
+      d.promoted = true;
+      return true;
+    };
+
+    /** A gesture that took a layer and then turned out to be a scroll hands it
+     *  back, or the app keeps a composited copy of the page for nothing. */
     const demote = (d: Drag | null) => {
-      if (d?.page && !d.still && d.axis !== 'x') d.page.style.willChange = '';
+      if (d?.promoted && d.page && d.axis !== 'x') d.page.style.willChange = '';
     };
 
     const cancel = () => {
@@ -152,13 +189,8 @@ export function useSwipeTabs(
       const page = document.querySelector<HTMLElement>('[data-page]');
       const still = reducedMotion();
       const base = page && !still ? grab(page) : 0;
-      /* Promoted here rather than where the drag turns out to be sideways.
-         Giving the page a layer of its own repaints it once — 5–19 ms of the
-         phone's main thread — and at the lock that repaint lands in the middle
-         of the gesture, where it is a stall the finger can feel. With the
-         finger down and nothing moving yet there is nothing to stall. The cost
-         is that a tap pays for it too, so `demote` hands it straight back. */
-      if (page && !still) page.style.willChange = 'transform';
+      /* Nothing is promoted here: a touch that turns out to be a tap must cost
+         the page nothing at all. See `promote`. */
       drag = {
         x0: touch.clientX,
         y0: touch.clientY,
@@ -169,6 +201,8 @@ export function useSwipeTabs(
         samples: [{ x: touch.clientX, t: e.timeStamp }],
         page,
         still,
+        // `grab` had to promote it to catch it; it is already moving sideways.
+        promoted: base !== 0,
       };
     };
 
@@ -178,8 +212,13 @@ export function useSwipeTabs(
       if (e.touches.length !== 1) return cancel();
       const touch = e.touches[0]!;
 
+      let took = false;
       if (!d.axis) {
-        const axis = axisOf(touch.clientX - d.x0, touch.clientY - d.y0);
+        const dx = touch.clientX - d.x0;
+        const dy = touch.clientY - d.y0;
+        // Leaning sideways: the layer is taken here, and only here (`promote`).
+        if (Math.abs(dx) > Math.abs(dy)) took = promote(d);
+        const axis = axisOf(dx, dy);
         if (!axis) return;
         if (axis === 'y') {
           drag = null; // a scroll, and none of ours
@@ -188,7 +227,7 @@ export function useSwipeTabs(
         }
         d.axis = 'x';
         d.lockAt = touch.clientX;
-        // The layer is already there, from `start`; only the spring has to go.
+        // Only the spring still has to go; the layer came with the lean above.
         if (d.page && !d.still) d.page.style.transition = 'none';
       }
 
@@ -197,6 +236,10 @@ export function useSwipeTabs(
       d.samples.push({ x: touch.clientX, t: e.timeStamp });
       if (d.samples.length > 12) d.samples.shift();
       if (!d.page || d.still) return;
+      /* Nothing is written in the event that took the layer, so the repaint
+         it costs has a frame in which nothing is travelling. `lockAt` is this
+         finger's position, so the next event carries on from here. */
+      if (took) return;
       const moved = d.base + (touch.clientX - d.lockAt);
       const canGo = !!TABS[index + (moved < 0 ? 1 : -1)];
       place(d.page, follow(moved, window.innerWidth, canGo));
@@ -229,7 +272,7 @@ export function useSwipeTabs(
          arriving starts one screen further on so the two move together. */
       move(next.href, ['swipe'], {
         ms: finishMs(moved, speed, width, duration('--dur-page'), duration('--dur-press')),
-        rest: Math.max(0, width - Math.abs(moved)),
+        rest: restPx(moved, width),
       });
       const page = d.page;
       window.setTimeout(() => {

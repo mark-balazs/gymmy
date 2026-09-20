@@ -340,6 +340,9 @@ interface FirstFrame {
   pages: { side: 'old' | 'new'; translate: number; opacity: number; ms: number }[];
   /** How long the tab bar's mark takes to reach the tab you chose. */
   markMs: number | null;
+  /** Why the browser threw the move away before drawing a frame of it, if it
+   *  did — the page is simply replaced then, with nothing in between. */
+  aborted?: string;
 }
 
 /**
@@ -359,6 +362,9 @@ async function watchFirstFrame(page: Page): Promise<void> {
     w.firstFrame = null;
     document.startViewTransition = ((arg: never) => {
       const t = start(arg);
+      t.ready.catch((e: unknown) => {
+        w.firstFrame = { pages: [], markMs: null, aborted: String(e) };
+      });
       t.ready.then(() => {
         const root = document.documentElement;
         const held: [Animation, CSSNumberish | null][] = [];
@@ -491,77 +497,131 @@ test.describe('The page follows the finger', () => {
     await app.waitForURL('**/week');
   });
 
-  test('the page arriving starts where the gesture was pointing, not 56 px out', async ({
-    onboardedApp: app,
-  }) => {
-    /*
-     * The owner, on an Android phone: "Swipes between pages are not so smooth,
-     * its laggy and then jumps to the new page." The jump was this. The swipe
-     * rules gave the leaving page the gesture's distance but left the arriving
-     * one on the tapped tab's 56 px and the tapped tab's fade — so a finger
-     * that let go 263 px out handed over to a page appearing from 56 px away
-     * and from nothing. The movement stopped and a crossfade happened
-     * somewhere else.
-     *
-     * The two pages are one sheet of paper: whatever the gesture did, they
-     * start exactly one screen apart and both are solid.
-     */
-    await watchFirstFrame(app);
-    const f = await finger(app);
-    await f.down(330, 300);
-    await f.move(314, 300, 1);
-    await f.move(164, 302); // 150 px of 412, let go while still moving
-    const left = await app.evaluate(
-      () => document.querySelector('[data-page]')!.getBoundingClientRect().left,
-    );
-    await f.up();
-    await app.waitForURL('**/week');
+  /* Both directions, from the same 166 px drag mirrored about the middle of
+     the screen. The two used to behave nothing alike: see the test. */
+  const ARRIVALS = [
+    { way: 'left, forwards', from: '/train', wait: '**/week', x0: 330, x1: 164, sign: 1 },
+    { way: 'right, backwards', from: '/week', wait: '**/train', x0: 82, x1: 248, sign: -1 },
+  ] as const;
 
-    const { pages, markMs } = await firstFrame(app);
-    const old = pages.find((p) => p.side === 'old')!;
-    const arriving = pages.find((p) => p.side === 'new')!;
+  for (const { way, from, wait, x0, x1, sign } of ARRIVALS) {
+    test(`dragging ${way}, the page arriving starts where the gesture was pointing`, async ({
+      onboardedApp: app,
+    }) => {
+      /*
+       * The owner, on an Android phone: "Swipes between pages are not so
+       * smooth, its laggy and then jumps to the new page." Two faults, one per
+       * direction, and both of them the jump.
+       *
+       * Dragging left, the swipe rules gave the leaving page the gesture's
+       * distance but left the arriving one on the tapped tab's 56 px and the
+       * tapped tab's fade — so a finger that let go 263 px out handed over to
+       * a page appearing from 56 px away and from nothing.
+       *
+       * Dragging right, there was no move at all. The page hanging off the
+       * right-hand edge made the document wider while the finger was down, and
+       * a document that changes size between the transition's two pictures is
+       * one Chrome throws away ("Viewport size changed"): the old page was
+       * replaced by the new one with no frames in between. `<main>` clips it
+       * now (`app-shell.tsx`).
+       *
+       * Either way the two pages are one sheet of paper: whatever the gesture
+       * did, they start exactly one screen apart and both are solid.
+       */
+      await app.goto(from);
+      await app.waitForFunction(() => !!document.querySelector('[data-tab-mark]'));
+      await app.waitForFunction(() => !document.documentElement.matches(':active-view-transition'));
 
-    // Where each picture actually sits on screen on that first frame.
-    const { home, width } = await app.evaluate(() => ({
-      home: document.querySelector('[data-page]')!.getBoundingClientRect().left,
-      width: window.innerWidth,
-    }));
-    expect(old.translate).toBeCloseTo(0, 0); // leaving: from where it was let go
-    expect(home + arriving.translate - (left + old.translate)).toBeCloseTo(width, -1);
+      await watchFirstFrame(app);
+      const f = await finger(app);
+      await f.down(x0, 300);
+      await f.move(x0 - sign * 16, 300, 1);
+      await f.move(x1, 302); // 150 px more of 412, let go while still moving
+      const left = await app.evaluate(
+        () => document.querySelector('[data-page]')!.getBoundingClientRect().left,
+      );
+      await f.up();
+      await app.waitForURL(wait);
 
-    // Solid, both of them. A fade here is the page being replaced, not moved.
-    expect(old.opacity).toBe(1);
-    expect(arriving.opacity).toBe(1);
+      const { pages, markMs, aborted } = await firstFrame(app);
+      expect(aborted, 'the browser drew the move rather than throwing it away').toBeUndefined();
+      const old = pages.find((p) => p.side === 'old')!;
+      const arriving = pages.find((p) => p.side === 'new')!;
 
-    /* One movement, one duration: the pages and the tab bar's mark all run for
-       as long as the finger's speed says, so the mark is not still gliding
-       after the page has landed. */
-    expect(arriving.ms).toBe(old.ms);
-    expect(arriving.ms).toBeLessThan(300); // the finger was quicker than a tap
-    expect(markMs).toBe(arriving.ms);
+      // Where each picture actually sits on screen on that first frame.
+      const { home, width } = await app.evaluate(() => ({
+        home: document.querySelector('[data-page]')!.getBoundingClientRect().left,
+        width: window.innerWidth,
+      }));
+      expect(old.translate).toBeCloseTo(0, 0); // leaving: from where it was let go
+      expect(home + arriving.translate - (left + old.translate)).toBeCloseTo(sign * width, -1);
+
+      // Solid, both of them. A fade here is the page being replaced, not moved.
+      expect(old.opacity).toBe(1);
+      expect(arriving.opacity).toBe(1);
+
+      /* One movement, one duration: the pages and the tab bar's mark all run
+         for as long as the finger's speed says, so the mark is not still
+         gliding after the page has landed. */
+      expect(arriving.ms).toBe(old.ms);
+      expect(arriving.ms).toBeLessThan(300); // the finger was quicker than a tap
+      expect(markMs).toBe(arriving.ms);
+    });
+  }
+
+  /* Giving the page a compositing layer of its own repaints it — 6 ms on
+     Train, 18 ms on Progress at 6× CPU throttling — so when that repaint lands
+     is the whole question, and the answer is in two parts, one test each. */
+
+  test('a tap and a scroll never give the page a layer', async ({ onboardedApp: app }) => {
+    /* `will-change` used to go on at `touchstart`, where it landed while
+       nothing was moving — but every tap and every scroll then paid for it and
+       handed it straight back: two full-page repaints for a gesture that never
+       moved the page. Measured on Progress at 6×, a plain scroll cost 35 ms of
+       paint and now costs none. */
+
+    // A scroll goes down more than across, and is never taken for a drag.
+    const scroll = await finger(app);
+    await scroll.down(300, 300);
+    await scroll.move(302, 340);
+    expect(await pageState(app)).toEqual({ x: 0, willChange: '' });
+    await scroll.move(303, 430);
+    expect(await pageState(app)).toEqual({ x: 0, willChange: '' });
+    await scroll.up();
+
+    /* A tap: down and up again, and the page is never touched. Last, because a
+       tap lands on whatever control is under it. */
+    const tap = await finger(app);
+    await tap.down(300, 300);
+    expect(await pageState(app)).toEqual({ x: 0, willChange: '' });
+    await tap.up();
+    expect(await pageState(app)).toEqual({ x: 0, willChange: '' });
   });
 
-  test('the page takes its layer as the finger lands, and hands it straight back', async ({
+  test('the page takes its layer on the first sideways move, and holds still for it', async ({
     onboardedApp: app,
   }) => {
-    /* Giving the page a layer of its own repaints it. That used to happen at
-       the moment the drag turned out to be sideways — in the middle of the
-       gesture, where it is a stall the finger feels. Now it happens while the
-       finger is still still. */
+    /* There is no window before the axis lock to take the layer in: the
+       browser swallows a touch's first ~15 px, so the first `touchmove` the
+       page ever sees is already past the 10 px lock. What buys the repaint a
+       frame of its own is that the page does not move in the event that takes
+       it — it carries on from the next one, and from where the finger is by
+       then, so the gesture loses a frame rather than a position. */
     const f = await finger(app);
     await f.down(300, 300);
+    await f.move(280, 302, 1);
     expect(await pageState(app)).toEqual({ x: 0, willChange: 'transform' });
+    // Nothing else written in that event at all — not even a transform of zero.
+    expect(
+      await app.evaluate(() => document.querySelector<HTMLElement>('[data-page]')!.style.transform),
+    ).toBe('');
 
-    // A scroll is not a swipe, and the page does not keep a layer for one.
-    await f.move(302, 360);
-    expect(await pageState(app)).toEqual({ x: 0, willChange: '' });
+    // From the next event it follows, carrying on from where the finger is.
+    await f.move(240, 304, 1);
+    expect(await pageState(app)).toEqual({ x: -40, willChange: 'transform' });
+
+    f.hold(200); // let go at a standstill, short of a third: it springs back
     await f.up();
-
-    // Nor for a tap that never went anywhere.
-    const g = await finger(app);
-    await g.down(300, 300);
-    expect((await pageState(app)).willChange).toBe('transform');
-    await g.up();
     await expect.poll(() => pageState(app)).toEqual({ x: 0, willChange: '' });
   });
 
