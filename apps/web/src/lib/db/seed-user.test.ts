@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildSlots, findSplit, mondayOf } from '@athletic/domain';
 
 /**
@@ -152,5 +152,80 @@ describe('seeding is safe to run again', () => {
     expect(profile?.onboarded).toBe(true);
     expect(profile?.days).toBe(5);
     expect(profile?.unit).toBe('lb');
+  });
+});
+
+/**
+ * A seed that dies partway leaves nothing behind (GYM-70).
+ *
+ * This was the state that stranded people: four separate inserts, a timeout
+ * between two of them, and an account left with patterns and no profile — which
+ * the app can only render as a loading screen, and which the old repair could
+ * never reach, because the patterns came back and moved the cursor past zero.
+ *
+ * The failure is injected rather than waited for, because a database timeout is
+ * not something a test can arrange: the third statement throws, exactly as a
+ * dropped connection would, and the question is what is left afterwards.
+ */
+describe('a seed that fails partway', () => {
+  const userId = randomUUID();
+  const email = `halfseed-${randomUUID().slice(0, 8)}@example.test`;
+
+  let db: typeof import('@/lib/db').db;
+  let schema: typeof import('@/lib/db/schema');
+
+  const count = async (table: 'patterns' | 'slots' | 'splitPeriods' | 'profiles') => {
+    const t = schema[table];
+    const rows = await db
+      .select()
+      .from(t as never)
+      .where(sql`${(t as { userId: unknown }).userId} = ${userId}`);
+    return rows.length;
+  };
+
+  beforeAll(async () => {
+    process.env.DEMO_EMAIL = `someone-else-${randomUUID().slice(0, 8)}@example.test`;
+    ({ db } = await import('@/lib/db'));
+    schema = await import('@/lib/db/schema');
+    await db.insert(schema.users).values({ id: userId, name: 'Half seed', email });
+  });
+
+  afterAll(async () => {
+    vi.restoreAllMocks();
+    await db.delete(schema.users).where(sql`${schema.users.id} = ${userId}`);
+  });
+
+  it('leaves the account exactly as empty as it found it', async () => {
+    const real = db.transaction.bind(db);
+    /* Wraps the real transaction and breaks the third statement inside it —
+       the slots, with the patterns and the opening period already written.
+       Nothing is mocked away: the rows really are attempted, and the rollback
+       really is Postgres's. */
+    vi.spyOn(db, 'transaction').mockImplementation((async (
+      run: (tx: Record<string, unknown>) => Promise<unknown>,
+    ) =>
+      real(async (tx) => {
+        const handle = tx as unknown as Record<string, unknown>;
+        const insert = (handle.insert as (t: unknown) => unknown).bind(handle);
+        let n = 0;
+        handle.insert = (t: unknown) => {
+          if (++n === 3) throw new Error('seed timed out');
+          return insert(t);
+        };
+        return run(handle);
+      })) as never);
+
+    const { seedNewUser } = await import('./seed-user');
+    const failure = await seedNewUser(userId, email).then(
+      () => null,
+      (e: unknown) => e as Error,
+    );
+
+    // Nothing at all — not the patterns that were written before the failure.
+    for (const table of ['patterns', 'slots', 'splitPeriods', 'profiles'] as const) {
+      expect(await count(table), table).toBe(0);
+    }
+    // And the caller is told, rather than left believing the account is ready.
+    expect(failure?.message).toContain('seed timed out');
   });
 });

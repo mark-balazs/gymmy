@@ -54,17 +54,14 @@ test.describe('Not getting stuck', () => {
     context,
     baseURL,
   }) => {
-    /* The seed is written a statement at a time with no transaction around
-       it, so a timeout can leave the patterns and nothing else. The repair
-       above only runs for an account with no rows at all, and this one has
-       some: the first pull returns them, the cursor moves past zero, and the
-       repair can never run again — a loading screen, then the recovery panel,
-       and "Try again" only syncs again.
+    /* Accounts seeded before the seed became one transaction can still be in
+       this state: a timeout left the patterns and nothing else. The old repair
+       only ran for an account with no rows at all, and this one has some — the
+       first pull returns them, the cursor moves past zero, and the repair could
+       never run again. A loading screen, then the recovery panel, and "Try
+       again" only syncs again.
 
-       Expected to fail until the repair checks for the profile itself, on every
-       pull, rather than for "asked from zero and got nothing". Remove the
-       marker with the fix. */
-    test.fail(true, 'the sync route only repairs an account with no rows at all');
+       The repair now asks whether there is a profile, at any cursor. */
     const user = await createUser({ bare: true });
     await seedPatternsOnly(user.id);
     await context.addCookies([sessionCookie(user, baseURL!)]);

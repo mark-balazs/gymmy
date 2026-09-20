@@ -92,11 +92,14 @@ paths:
         re-sent next round; applying them twice is idempotent and costs only
         bandwidth.
 
-        **Seed repair.** A request with `since: 0` that finds no rows at all
-        means first-run seeding never completed — it happens in an Auth.js
-        event that fires exactly once per account and cannot be made to fire
-        again. This endpoint is the one every device touches on every visit, so
-        it seeds on the spot and pulls again before answering.
+        **Seed repair.** An account with no profile row was never set up —
+        first-run seeding happens in an Auth.js event that fires exactly once
+        per account and cannot be made to fire again. This endpoint is the one
+        every device touches on every visit, so it seeds on the spot and pulls
+        again before answering. The check is the profile, at any `since`: a
+        seed that died partway leaves rows that move the cursor past zero, and
+        a repair keyed on "asked from zero and got nothing" could never run for
+        it again.
       requestBody:
         required: true
         content:
