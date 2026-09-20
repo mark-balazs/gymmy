@@ -39,6 +39,8 @@ export const fr: Record<Key, string> = {
   'err.resetPending.one': '{n} modification n’est pas encore synchronisée et serait perdue.',
   'err.resetPending.other':
     '{n} modifications ne sont pas encore synchronisées et seraient perdues.',
+  'err.resetUnknown':
+    'Cet appareil n’a pas pu lire ce qui attend la synchro, quelque chose peut être perdu.',
   'err.resetGo': 'Réinitialiser',
   'err.stuckTitle': 'Ça prend trop de temps',
   'err.stuckDetail': 'Ton entraînement n’est pas encore arrivé sur cet appareil.',
@@ -74,6 +76,9 @@ export const fr: Record<Key, string> = {
   'sync.dismiss': 'Masquer',
   'sync.pending.one': '{n} en attente de synchro',
   'sync.pending.other': '{n} en attente de synchro',
+  'sync.signedOut.one': 'Connecte-toi pour envoyer {n} modification',
+  'sync.signedOut.other': 'Connecte-toi pour envoyer {n} modifications',
+  'sync.signedOutIdle': 'Connecte-toi pour synchroniser',
 
   'common.back': 'Retour',
   'common.cancel': 'Annuler',

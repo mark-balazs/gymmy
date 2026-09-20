@@ -31,6 +31,9 @@ export const en = {
   'err.resetSafe': 'Everything is synced, so nothing will be lost.',
   'err.resetPending.one': '{n} change has not synced yet and would be lost.',
   'err.resetPending.other': '{n} changes have not synced yet and would be lost.',
+  // Neither promise can be made: the queue itself would not open.
+  'err.resetUnknown':
+    'This device could not read what is waiting to sync, so something may be lost.',
   'err.resetGo': 'Reset',
   'err.stuckTitle': 'This is taking too long',
   'err.stuckDetail': 'Your training has not reached this device yet.',
@@ -67,6 +70,11 @@ export const en = {
   'sync.dismiss': 'Dismiss',
   'sync.pending.one': '{n} waiting to sync',
   'sync.pending.other': '{n} waiting to sync',
+  /* The session has ended, so nothing queued moves until somebody signs in.
+     Not "offline": the signal is fine and waiting will not fix it. */
+  'sync.signedOut.one': 'Sign in to send {n} change',
+  'sync.signedOut.other': 'Sign in to send {n} changes',
+  'sync.signedOutIdle': 'Sign in to sync',
 
   'common.back': 'Back',
   'common.cancel': 'Cancel',

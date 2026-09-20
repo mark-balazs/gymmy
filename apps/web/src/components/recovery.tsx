@@ -40,7 +40,9 @@ export function Recovery({
         {/* The reassurance is what keeps people off the red button — so it is
             only given when it is true. With changes still waiting to sync,
             "safe on the server" is not, and the reset below says what would
-            go. */}
+            go. A null count means the outbox could not be read: not knowing is
+            not the same as knowing there is nothing, and the promise is the one
+            thing that must never be guessed (GYM-78). */}
         <p className="text-sm text-[var(--color-muted)]">
           {body ?? t('err.body')}
           {status.pending === 0 && ` ${t('err.bodySynced')}`}
@@ -74,7 +76,11 @@ export function Recovery({
           <div className="flex flex-col gap-2 rounded-[11px] border border-[var(--color-bad)]/40 p-3">
             <p className="text-sm font-semibold">{t('err.resetQ')}</p>
             <p className="text-xs text-[var(--color-muted)]">
-              {status.pending > 0 ? count('err.resetPending', status.pending) : t('err.resetSafe')}
+              {status.pending === null
+                ? t('err.resetUnknown')
+                : status.pending > 0
+                  ? count('err.resetPending', status.pending)
+                  : t('err.resetSafe')}
             </p>
             <div className="flex gap-2">
               <Button className="flex-1" onClick={() => setConfirming(false)}>

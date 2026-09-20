@@ -15,13 +15,31 @@ import { local, DOMAIN_TABLES, getMeta, setMeta, type Outbox } from './db';
 import type { PullResponse } from '@/lib/sync/protocol';
 import type { TableName } from '@athletic/domain';
 
-/** Where the sync is. An `error` means the change is safe on this device but
- *  has not reached the server yet — annoying, and it resolves itself. */
-export type SyncState = 'idle' | 'syncing' | 'offline' | 'error';
+/**
+ * Where the sync is. An `error` means the change is safe on this device but
+ * has not reached the server yet — annoying, and it resolves itself.
+ *
+ * `signedOut` is the one state that does not resolve itself. The session ended
+ * — 90 days, a sign-out somewhere else, a deleted account — and the server
+ * answers 401. Nothing queued will move until somebody signs in, so it must not
+ * look like `offline`, which it did: an amber dot on full signal, and a person
+ * who waits for the signal to come back waits forever.
+ */
+export type SyncState = 'idle' | 'syncing' | 'offline' | 'error' | 'signedOut';
 
 export interface SyncStatus {
   state: SyncState;
-  pending: number;
+  /**
+   * How many changes are queued, or **null when the outbox could not be read**.
+   *
+   * Null is not zero, and the difference is the whole of GYM-78. The recovery
+   * screens decide from this number whether to say the training is safe on the
+   * server and whether a reset would lose anything — and the failure that puts
+   * somebody on those screens is often the local store refusing to open, which
+   * is exactly when a count of 0 is a lie. So an unreadable outbox says so, and
+   * every screen reading this treats "unknown" as "something might be waiting".
+   */
+  pending: number | null;
   lastSyncedAt: string | null;
   error: string | null;
   /**
@@ -74,7 +92,9 @@ type Listener = (s: SyncStatus) => void;
 const listeners = new Set<Listener>();
 let status: SyncStatus = {
   state: 'idle',
-  pending: 0,
+  // Unknown until `startSync` counts it. A page that has not looked in the
+  // outbox must not let a screen say the training is safe on the server.
+  pending: null,
   lastSyncedAt: null,
   error: null,
   // A warning the last page load left up, and nobody has dismissed.
@@ -96,7 +116,14 @@ function emit(patch: Partial<SyncStatus>): void {
 }
 
 async function refreshPending(): Promise<void> {
-  emit({ pending: await local.outbox.count() });
+  try {
+    emit({ pending: await local.outbox.count() });
+  } catch {
+    /* The store will not open or will not read. Anything already queued is
+       still queued — we simply cannot say how much, and saying "0" is what let
+       a reset screen promise the training was safe. */
+    emit({ pending: null });
+  }
 }
 
 /** Queue a change and schedule a push. Callers never await the network. */
@@ -144,7 +171,7 @@ export function schedule(delay = 800): void {
 export async function sync(): Promise<void> {
   if (inFlight) return inFlight;
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
-    emit({ state: 'offline' });
+    if (status.state !== 'signedOut') emit({ state: 'offline' });
     return;
   }
   inFlight = run().finally(() => {
@@ -170,8 +197,12 @@ async function run(): Promise<void> {
     });
 
     if (res.status === 401) {
-      // Not signed in. Local data is untouched and still fully usable.
-      emit({ state: 'offline', error: null });
+      /* The session has ended. Local data is untouched and still fully usable,
+         and everything queued stays queued — but it will not move again until
+         somebody signs in, so the header says that rather than "offline". No
+         retry is scheduled: there is nothing to retry until the person acts. */
+      await refreshPending();
+      emit({ state: 'signedOut', error: null });
       return;
     }
     if (!res.ok) {
@@ -200,7 +231,7 @@ async function run(): Promise<void> {
 
     // The push is capped per round, so a long offline session leaves more
     // behind. Without this it drains 200 at a time on the five-minute backstop.
-    else if (status.pending > 0) schedule(200);
+    else if ((status.pending ?? 0) > 0) schedule(200);
     emit({ state: 'idle', lastSyncedAt: new Date().toISOString(), error: null });
   } catch (err) {
     const offline = typeof navigator !== 'undefined' && !navigator.onLine;
@@ -233,10 +264,14 @@ export function startSync(): void {
   started = true;
 
   window.addEventListener('online', () => {
-    emit({ state: 'idle' });
+    // Signal returning does not sign anybody back in, so it must not paint over
+    // "Sign in to send N changes" with a green dot.
+    if (status.state !== 'signedOut') emit({ state: 'idle' });
     schedule(200);
   });
-  window.addEventListener('offline', () => emit({ state: 'offline' }));
+  window.addEventListener('offline', () => {
+    if (status.state !== 'signedOut') emit({ state: 'offline' });
+  });
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') schedule(400);

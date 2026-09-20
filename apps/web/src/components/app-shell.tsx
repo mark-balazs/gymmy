@@ -28,18 +28,30 @@ function SyncBadge() {
 
   const label = lost
     ? t('sync.storage')
-    : status.state === 'syncing'
-      ? t('sync.syncing')
-      : status.state === 'offline'
-        ? t('sync.offline')
-        : status.state === 'error'
-          ? t('sync.error')
-          : status.pending > 0
-            ? count('sync.pending', status.pending)
-            : t('sync.idle');
+    : /* The session ended, so nothing queued moves until somebody signs in.
+         It says how many are waiting, because that is the size of what the
+         person is being asked to act on. */
+      status.state === 'signedOut'
+      ? status.pending
+        ? count('sync.signedOut', status.pending)
+        : t('sync.signedOutIdle')
+      : status.state === 'syncing'
+        ? t('sync.syncing')
+        : status.state === 'offline'
+          ? t('sync.offline')
+          : status.state === 'error'
+            ? t('sync.error')
+            : /* A null count means the outbox could not be read, which the
+                 recovery screens care about (they are about to offer to delete
+                 it) and the header cannot act on: a store that will not read is
+                 a store the whole app is already failing on, and the error
+                 boundary has the person by then. */
+              (status.pending ?? 0) > 0
+              ? count('sync.pending', status.pending!)
+              : t('sync.idle');
 
   const dot =
-    status.state === 'error'
+    status.state === 'error' || status.state === 'signedOut'
       ? 'bg-[var(--color-bad)]'
       : status.state === 'offline'
         ? 'bg-[var(--color-warn)]'

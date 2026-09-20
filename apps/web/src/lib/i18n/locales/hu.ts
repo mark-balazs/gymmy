@@ -30,6 +30,8 @@ export const hu: Record<Key, string> = {
   'err.resetSafe': 'Minden szinkronizálva van, semmi nem vész el.',
   'err.resetPending.one': '{n} változás még nincs szinkronizálva, és elveszne.',
   'err.resetPending.other': '{n} változás még nincs szinkronizálva, ezek elvesznének.',
+  'err.resetUnknown':
+    'Az eszköz nem tudta kiolvasni, mi vár szinkronizálásra, így valami elveszhet.',
   'err.resetGo': 'Visszaállítás',
   'err.stuckTitle': 'Ez túl sokáig tart',
   'err.stuckDetail': 'Az edzéseid még nem érkeztek meg erre az eszközre.',
@@ -64,6 +66,9 @@ export const hu: Record<Key, string> = {
   'sync.dismiss': 'Elrejtés',
   'sync.pending.one': '{n} vár szinkronizálásra',
   'sync.pending.other': '{n} vár szinkronizálásra',
+  'sync.signedOut.one': 'Jelentkezz be {n} változás elküldéséhez',
+  'sync.signedOut.other': 'Jelentkezz be {n} változás elküldéséhez',
+  'sync.signedOutIdle': 'Jelentkezz be a szinkronizáláshoz',
 
   'common.back': 'Vissza',
   'common.cancel': 'Mégse',
