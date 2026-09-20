@@ -126,8 +126,11 @@ export function useSwipeTabs(
     };
 
     /** Catches a page mid-spring where it is, and says where that is. */
-    const grab = (page: HTMLElement): number => {
-      if (settling?.page !== page) return 0;
+    /** Where the page was caught, or null when there was nothing to catch.
+     *  Null and 0 are different answers: a spring passing through the middle
+     *  is caught at 0, and the layer it takes here has to be handed back. */
+    const grab = (page: HTMLElement): number | null => {
+      if (settling?.page !== page) return null;
       const x = new DOMMatrixReadOnly(getComputedStyle(page).transform).m41;
       settling.stop();
       page.style.transition = 'none';
@@ -188,21 +191,21 @@ export function useSwipeTabs(
 
       const page = document.querySelector<HTMLElement>('[data-page]');
       const still = reducedMotion();
-      const base = page && !still ? grab(page) : 0;
+      const caught = page && !still ? grab(page) : null;
       /* Nothing is promoted here: a touch that turns out to be a tap must cost
          the page nothing at all. See `promote`. */
       drag = {
         x0: touch.clientX,
         y0: touch.clientY,
-        base,
+        base: caught ?? 0,
         // A page caught mid-spring was being moved sideways; it still is.
-        axis: base !== 0 ? 'x' : null,
+        axis: caught !== null ? 'x' : null,
         lockAt: touch.clientX,
         samples: [{ x: touch.clientX, t: e.timeStamp }],
         page,
         still,
         // `grab` had to promote it to catch it; it is already moving sideways.
-        promoted: base !== 0,
+        promoted: caught !== null,
       };
     };
 

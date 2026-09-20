@@ -309,10 +309,15 @@ test.describe('One-tap chips', () => {
     /* A zero is an answer on a bodyweight lift, so it keeps its place on the
        row — as the word, like every other control on the card writes it. A
        chip reading "0" would be the one place in the app that does not.
-       Nothing else in the suite covers this either. */
+       Nothing else in the suite covers this either.
+
+       Seeded as null, which is what the app really stores for a chin-up with
+       nothing added ("None" is logged as no added weight, further down this
+       file). A 0 here would pin the rendering while never exercising the row
+       a real set produces. */
     await signInAs(page, context, baseURL!, {
       onboarded: true,
-      sets: [{ exercise: CHIN, date: historyStart(1), weight: 0, reps: 8, rir: 2 }],
+      sets: [{ exercise: CHIN, date: historyStart(1), weight: null, reps: 8, rir: 2 }],
     });
     await page.getByRole('button', { name: 'Day B', exact: true }).click();
     await openCard(page, CHIN);

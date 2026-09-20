@@ -81,8 +81,10 @@ export interface DatedSet {
   exercise: string;
   /** ISO date. Absolute, not relative to today. */
   date: string;
-  /** The stored figure — both dumbbells for a pair, as the Train card records. */
-  weight: number;
+  /** The stored figure — both dumbbells for a pair, as the Train card records.
+   *  Null is what a bodyweight lift with nothing added really stores, so a
+   *  test about that case has to seed null rather than 0. */
+  weight: number | null;
   reps: number;
   rir: number;
 }
