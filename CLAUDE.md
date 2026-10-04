@@ -63,6 +63,16 @@ Look there before starting. File what you find instead of carrying it in a
 session: a bug as a bug, a question only the owner can settle as
 "Decide: …". Move an issue as its work lands, and comment the commit hash.
 
+**Work moves through dextra's Requirement Lifecycle** (D-023).
+[gymmy — how we work](https://dextra.atlassian.net/wiki/spaces/~712020296b34b54b84454489d16860c808e925/pages/980549636)
+says who holds each role and where each step's output lives: a ticket is
+written to *Write a ticket — gymmy*, implementation hints to *Write
+implementation hints — gymmy*. Topics and their order live in the Jira Product
+Discovery space **gymmy-roadmap**
+([GR](https://dextra.atlassian.net/jira/polaris/projects/GR/ideas)), ranked top
+first; each GYM epic implements its GR idea. GYM's statuses are the lifecycle's
+steps, so a ticket moves as its step changes.
+
 **Sweep between features.** The owner asked for housekeeping without being
 prompted: between landed features, look through the tree for bugs, stale docs,
 dead code and tests that pass for the wrong reason. The bar is a concrete
@@ -107,6 +117,7 @@ column is not optional:
 | changes a route, the sync envelope, a status code, or a rate limit | [`docs/openapi.yaml`](./docs/openapi.yaml) — **not** a Confluence table; see below |
 | adds an environment variable, changes hosting, or changes a CI job | **Infrastructure** |
 | changes a deploy, migration or support procedure — or you hit a failure that took real work to diagnose | **Runbooks** |
+| changes how work moves — a role, a status, or where a step's output lives | **gymmy — how we work** |
 | settles a question that would be a project to reverse | **Decision log** (append; never edit an entry — mark it superseded) |
 
 Every page ends with an **"update this page when"** note. If yours is not in the
