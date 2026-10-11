@@ -71,9 +71,9 @@ to *Write a ticket — gymmy*, implementation hints to *Write implementation hin
 — gymmy*. gymmy is the owner's private project, so it is in no DI registry and
 **nothing about it is ever written on dextra's DI pages**, learnings about a
 process included. The skills `gymmy-product-discovery`,
-`gymmy-nontech-refinement` and `gymmy-tech-refinement` in `.claude/skills/` load
-each DI playbook with gymmy's extension instead; dextra's own skills stop on a
-gymmy key. Discovery and non-tech refinement wait for the product docs migration
+`gymmy-nontech-refinement`, `gymmy-tech-refinement` and
+`gymmy-release-documentation` in `.claude/skills/` load each DI playbook with
+gymmy's extension instead; dextra's own skills stop on a gymmy key. Discovery and non-tech refinement wait for the product docs migration
 ([GYM-97](https://dextra.atlassian.net/browse/GYM-97)), tech refinement for the
 architecture docs ([GYM-106](https://dextra.atlassian.net/browse/GYM-106)); in
 between, one pass ranks every open idea
@@ -114,11 +114,10 @@ column is not optional:
 | If your change… | Update |
 | --- | --- |
 | changes a product rule, a behaviour, a boundary, a plan or a price | [`docs/facts/`](./docs/facts/README.md) first, then everything under that fact's `appears` |
-| adds or removes a screen, or rearranges one | **Product → Feature reference** |
-| changes what a feature *does* (not how it looks) | **Product → Feature reference** |
-| touches a pattern, split, progression rule, the strength score, or a verdict threshold | **Product → How the training model works** |
-| targets a new kind of user, or drops a use case | **Product direction** and **Product → Who it is for** |
-| changes the pitch, the promises, or what gymmy refuses to be | **Product direction** and **Product → What gymmy is** |
+| adds, removes or rearranges a screen, or changes what a feature *does* | **Product**: the release documentation pass (`gymmy-release-documentation` skill) writes the page that [Product's page index](https://dextra.atlassian.net/wiki/spaces/~712020296b34b54b84454489d16860c808e925/pages/934510594) names, once the change is on main |
+| touches a pattern, split, progression rule, the strength score, or a verdict threshold | The same pass, on the owning page in **The week** or **Progress**; **Terminology** when a term changes |
+| targets a new kind of user, or drops a use case | **Product direction** (segments, non-goals) and **Terminology** (personas), as a direction change Mark confirms |
+| changes the pitch, the promises, or what gymmy refuses to be | **Product direction**, as a direction change Mark confirms |
 | adds or drops an external system | **Architecture → C1** |
 | adds a container, or moves a responsibility between client and server | **Architecture → C2** |
 | gives a component a new responsibility | **Architecture → C3** |
