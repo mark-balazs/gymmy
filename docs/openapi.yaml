@@ -621,26 +621,36 @@ paths:
   /api/auth/session:
     get:
       tags: [auth]
+      security: [{}, { sessionCookie: [] }]
       summary: The current session, if any
       operationId: getSession
       responses:
         '200':
           description: |
-            The session, or `{}` when there is none — not a `401`. This is how
-            Auth.js reports "signed out", and the client treats an empty object
+            The session, or `null` when there is none — not a `401`. This is how
+            Auth.js reports "signed out", and the client reads a missing `user`
             as exactly that.
+
+            Only these fields, and never the sign-in token: the cookie that
+            carries it is HttpOnly so no script can read it, and this answer is
+            readable by any script on the page.
           content:
             application/json:
               schema:
-                type: object
+                type: [object, 'null']
+                additionalProperties: false
+                required: [user, expires]
                 properties:
                   user:
                     type: object
+                    additionalProperties: false
+                    required: [id, email, name, image, role]
                     properties:
                       id: { type: string }
                       email: { type: string, format: email }
-                      name: { type: string }
-                      image: { type: string }
+                      name: { type: [string, 'null'] }
+                      image: { type: [string, 'null'] }
+                      role: { type: string, enum: [athlete, trainer] }
                   expires: { type: string, format: date-time }
 
   /api/auth/csrf:
