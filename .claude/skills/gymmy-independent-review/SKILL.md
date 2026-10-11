@@ -83,9 +83,9 @@ can do.
   holds several is asked one decision at a time, each reviewed on its own. A
   *Mismatch* ticket gets a recommendation and what it unblocks before it is
   asked.
-- **Order:** what harms people first; then what blocks the work in hand; then
-  what blocks the most other work; then the oldest. Each still waits for the one
-  he is answering.
+- **Order,** a working default until Mark answers (GYM-162): what harms people
+  first; then what blocks the work in hand; then what blocks the most other
+  work; then the oldest. Each still waits for the one he is answering.
 - **One per question.** Put the next decision only once he has answered the one
   before. Never list several, in a question, a reply, a retro or a report; say
   how many wait behind it instead, unless he asks to see the queue.

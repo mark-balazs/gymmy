@@ -66,8 +66,9 @@ below 8, ask him that one question instead of showing the work. How: the
 **One decision at a time** (D-027). Never put several decisions to Mark at once,
 in a question, a message, a retro or a report. Decisions, and anything only he
 can do (filed as a ticket saying what he does and why), wait in a queue of GYM
-tickets: what harms people first; then what blocks the work in hand; then what
-blocks the most other work; then the oldest. The next comes only once he has
+tickets, in this order (a working default until Mark answers): what harms people
+first; then what blocks the work in hand; then what blocks the most other work;
+then the oldest. The next comes only once he has
 answered the one before; meanwhile, carry on with whatever the answer does not
 block. A new ticket holds one decision; one that already holds several is asked
 one decision at a time, each reviewed on its own. Ask each in short, plain words
@@ -283,7 +284,9 @@ And the part no command checks: **is the documentation current?** Both sets.
 **Done means pushed.** Commit, then push, once per landed piece of work — not
 batched at the end of a session. The owner follows the work from GitHub and
 other devices. Work pushed before its independent review says so in the commit,
-and the review's score goes on the next one. If you cannot see CI, say what you verified locally rather than
+and the review's score goes on the next one (a working default, see *Score before
+you show*). Merge a pull request yourself once all of it has scored 8 or more and
+all its checks are green (Mark, 11/10/2026). If you cannot see CI, say what you verified locally rather than
 calling it green.
 
 @AGENTS.md

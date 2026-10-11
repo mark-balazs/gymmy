@@ -36,10 +36,10 @@ never from memory:
    is Done), the pages the playbook trusts are not ready: say so and stop.
 4. **Scored before Mark sees it.** Before Mark sees an idea's options, a
    proposal or its mockups, run the `gymmy-independent-review` skill: a fresh
-   agent scores the work from 1 to 10, and it reaches Mark only at 8 or more,
-   with its score at the end (Decision log D-026). The playbook's questions to
-   Mark come one at a time, and one with options or a recommendation is scored
-   the same way before he sees it (D-027).
+   agent scores the work from 1 to 10, and it is fixed until it scores 8, then
+   reaches Mark with its score at the end (Decision log D-026 and D-027). The
+   playbook's questions to Mark come one at a time, and one with options or a
+   recommendation is scored the same way before he sees it (D-027).
 
 ## Stop and tell Mark when
 
