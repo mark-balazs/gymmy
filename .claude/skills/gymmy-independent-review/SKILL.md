@@ -1,27 +1,30 @@
 ---
 name: gymmy-independent-review
-description: The independent review every piece of gymmy work passes before Mark sees it — a fresh agent that did not do the work scores it from 1 to 10 against the rules that govern it, and the work is revised and re-scored until it reaches 8. Use before presenting Mark any idea, proposal, mockup, epic or story, implementation hints, documentation pass, migration or other deliverable or recommendation for his review or decision.
+description: The independent review everything made for gymmy passes before it reaches Mark — a fresh agent that did not do the work scores it from 1 to 10 against the rules that govern it, the work is revised and re-scored until it reaches 8, and it reaches him with its score at the end. Also how decisions reach him — one at a time, from a queue. Use before presenting Mark any idea, proposal, mockup, epic or story, implementation hints, documentation pass, migration, fix, retro, report, decision or other deliverable or recommendation.
 ---
 
 # Independent review — gymmy
 
-Mark's rule (owner, 11/10/2026; Decision log D-026): he is involved only once the
-work already scores 8 or more out of 10 in an independent review. Work below 8 is
-not shown to him; it is fixed and reviewed again.
+Mark's rules (owner, 11/10/2026; Decision log D-026 and D-027): everything made
+for gymmy reaches him, and only once it scores 8 or more out of 10 in an
+independent review. Work below 8 is fixed and reviewed again, never shown and
+never quietly kept from him. Decisions reach him one at a time.
 
 ## When it applies
 
-Before Mark sees any of these, for a decision, a review or an approval:
+Before Mark sees any of these:
 
 - an idea or a proposal and its mockups (product discovery);
 - an epic and its stories (non-tech refinement);
 - implementation hints (tech refinement);
 - a release documentation pass or a migration: its pages and its record;
-- any other deliverable, plan or recommendation put to him.
+- a fix, a retro or a report on work done;
+- every decision put to him (see *Decisions, one at a time*);
+- any other deliverable, plan or recommendation.
 
-It does not apply to a factual question only Mark can answer, or to a status
-update. A question that carries options or a recommendation is reviewed together
-with the work it belongs to.
+It does not apply to a factual question with no options or recommendation, or to
+a one-line status saying what was done and where. The work that status points
+to is reviewed like everything else.
 
 ## How
 
@@ -45,15 +48,42 @@ with the work it belongs to.
 4. **Below 8:** fix every finding that costs the score. Then start another new
    reviewer with the same brief. Never ask a reviewer to re-score its own
    findings. Repeat until the score reaches 8.
-5. **At 8 or more:** present the work to Mark with:
+5. **At 8 or more:** present the work to Mark, ending with:
    - the overall score and the score for each dimension;
    - the minor findings still open;
    - where the report is.
-6. **Held below 8 by something only Mark can decide:** ask him that one question.
-   Say what it blocks and the score so far. Show him the work only once it
-   scores 8.
+6. **Held below 8 by something only Mark can decide:** ask him that one question,
+   as a decision (below). Say what it blocks and the score so far. Show him the
+   work only once it scores 8.
 7. **Record every round** (date, score, where the report is) where the work
-   lives: the proposal, the drafts page, the pass record or the commit message.
+   lives: the proposal, the drafts page, the pass record, the ticket or the
+   commit message.
+
+## Decisions, one at a time
+
+Mark decides one thing at a time (D-027).
+
+- **The queue** is GYM's open *Decide* and *Mismatch* tickets. A question only
+  Mark can settle is filed there, never carried in a session or listed in a
+  reply.
+- **Order:** what blocks the most work comes first, then the oldest. A decision
+  blocking the work in hand moves to the front, but still waits for the one he
+  is answering.
+- **One per message.** Put the next decision only once he has answered the one
+  before. Never list several, in a reply, a retro or a report; say how many wait
+  behind it instead, unless he asks to see the queue.
+- **Short and plain**, in this order:
+  1. what to decide, in one sentence;
+  2. the options, two to four, your recommendation first, a line each;
+  3. what the answer unblocks, and the ticket;
+  4. the review score, at the end.
+- **Reviewed first,** like any work, with the *Decision* dimension below. Below
+  8, fix it and start a new reviewer.
+- **Asked with the question tool** when there is one, with everything in the
+  question itself: the phone app shows only that.
+- **Once he answers:** write the decision down where CLAUDE.md says (the fact
+  file, and the Decision log when it would be a project to reverse), quote the
+  sentence back, move or close the ticket, then put the next one.
 
 ## Rubric
 
@@ -77,3 +107,6 @@ Pick the dimensions that fit the work, and name them in the brief.
 - **Readiness** (for stories and hints). The acceptance criteria are numbered and
   testable; the story's Feature pages line names the pages it changes; the hints
   follow the architecture docs and the technical direction.
+- **Decision** (for a decision put to Mark). It is one decision; the options are
+  real, fair and few; the recommendation follows from the evidence; the words
+  are short and plain; it names what it unblocks and its ticket.

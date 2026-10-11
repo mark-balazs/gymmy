@@ -46,15 +46,23 @@ building the wrong shape. "Grill me about X", "let's spec out X" or "poke holes
 in this" are all requests for it, and it is the right move whenever a plan has
 more than one defensible direction in it.
 
-**Score before you show.** Mark sees work only once an independent review
-scores it 8 or more out of 10 (D-026). That covers an idea, a proposal or
-mockup, a refinement, implementation hints, a documentation pass, and any other
-deliverable or recommendation. Before he sees it, a fresh agent that did not do
-the work scores it against the rules that govern it. The work is fixed and
-scored again by a new reviewer until it reaches 8. Show him the score and where
-the report is. If something only he can decide holds the work below 8, ask him
-that one question instead of showing the work. How: the
-`gymmy-independent-review` skill.
+**Score before you show.** Everything you make for gymmy reaches Mark, and only
+once an independent review scores it 8 or more out of 10 (D-026, D-027).
+Nothing is done quietly and kept from him. That covers an idea, a proposal or
+mockup, a refinement, implementation hints, a documentation pass, a fix, a retro
+or report, every decision put to him, and any other deliverable or
+recommendation. A fresh agent that did not do the work scores it against the
+rules that govern it; the work is fixed and scored again by a new reviewer until
+it reaches 8. Show him the work with its score at the end and where the report
+is. If something only he can decide holds the work below 8, ask him that one
+question instead of showing the work. How: the `gymmy-independent-review` skill.
+
+**One decision at a time** (D-027). Never put several decisions to Mark in one
+message, a retro or a report. Decisions wait in a queue — GYM's open Decide and
+Mismatch tickets — and the next one comes only once he has answered the one
+before. Ask each in short, plain words: what to decide, the options with your
+recommendation first, what the answer unblocks, and its review score at the end.
+How: the same skill, *Decisions, one at a time*.
 
 **Extend the tests as you go, not afterwards.** A change without a test that
 would have failed before it is not finished. The discipline that has actually
