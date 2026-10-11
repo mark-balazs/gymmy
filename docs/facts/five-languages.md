@@ -6,7 +6,7 @@ appears:
   repo: ["docs/README.md#invariants", "e2e/flows/06-language.md#flow-06--language", "e2e/flows/06-language.md#expected", "e2e/flows/06-language.md#not-translated-deliberately", "docs/openapi.yaml#/components/schemas/Profile"]
   copy: ["set.language"]
   tests: ["packages/domain/test/exercise-names.test.ts", "e2e/tests/language.spec.ts"]
-  confluence: ["934445118", "994574338", "994574595"]
+  confluence: ["934445118", "994574338", "994574595", "994639895"]
 ---
 
 The app is in English, Magyar, Deutsch, Français and Español, exercise names included (English kept where lifters say it, like Face Pull). The language follows the account, switches without a reload, and a missing translation fails the build.
