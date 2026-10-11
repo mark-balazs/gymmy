@@ -72,11 +72,15 @@ Mark decides one thing at a time (D-027).
 - **One per message.** Put the next decision only once he has answered the one
   before. Never list several, in a reply, a retro or a report; say how many wait
   behind it instead, unless he asks to see the queue.
-- **Short and plain**, in this order:
+- **Short and plain, with its context**, so he can answer without opening
+  anything, in this order:
   1. what to decide, in one sentence;
-  2. the options, two to four, your recommendation first, a line each;
-  3. what the answer unblocks, and the ticket;
-  4. the review score, at the end.
+  2. what it is about and why it comes up, in two or three plain sentences;
+  3. the options, two to four, your recommendation first, a line each;
+  4. what the answer unblocks;
+  5. the review score, at the end, then the ticket as a reference.
+- **No bare numbers.** A ticket, page or decision number never stands in for
+  what it is: say what it is, and give the number only after, as a reference.
 - **Reviewed first,** like any work, with the *Decision* dimension below. Below
   8, fix it and start a new reviewer.
 - **Asked with the question tool** when there is one, with everything in the
@@ -107,6 +111,8 @@ Pick the dimensions that fit the work, and name them in the brief.
 - **Readiness** (for stories and hints). The acceptance criteria are numbered and
   testable; the story's Feature pages line names the pages it changes; the hints
   follow the architecture docs and the technical direction.
-- **Decision** (for a decision put to Mark). It is one decision; the options are
-  real, fair and few; the recommendation follows from the evidence; the words
-  are short and plain; it names what it unblocks and its ticket.
+- **Decision** (for a decision put to Mark). It is one decision; it carries its
+  context, so he can answer without opening anything, and no number stands in
+  for what it is; the options are real, fair and few; the recommendation
+  follows from the evidence; the words are short and plain; it names what it
+  unblocks and, as a reference, its ticket.

@@ -60,9 +60,11 @@ question instead of showing the work. How: the `gymmy-independent-review` skill.
 **One decision at a time** (D-027). Never put several decisions to Mark in one
 message, a retro or a report. Decisions wait in a queue — GYM's open Decide and
 Mismatch tickets — and the next one comes only once he has answered the one
-before. Ask each in short, plain words: what to decide, the options with your
-recommendation first, what the answer unblocks, and its review score at the end.
-How: the same skill, *Decisions, one at a time*.
+before. Ask each in short, plain words with its context, so he can answer
+without opening anything: what to decide, what it is about and why it comes up,
+the options with your recommendation first, what the answer unblocks, and its
+review score at the end. A ticket or decision number never stands in for what it
+is. How: the same skill, *Decisions, one at a time*.
 
 **Extend the tests as you go, not afterwards.** A change without a test that
 would have failed before it is not finished. The discipline that has actually
@@ -186,7 +188,8 @@ everyday words:
 
 The same goes for text in the app itself — explanations belong behind an ⓘ,
 not in paragraphs on the screen — and for replies to the owner: the answer
-first, in plain words.
+first, in plain words, saying what a ticket or page is about rather than only
+giving its number.
 
 ### Diagrams in Confluence
 
