@@ -67,15 +67,22 @@ goes on the next commit or into the record.
 
 ## Decisions, one at a time
 
-Mark decides one thing at a time (D-027).
+Mark decides one thing at a time (D-027), and the same holds for anything only he
+can do.
 
-- **The queue** is GYM's open *Decide* and *Mismatch* tickets, each one decision
-  in the shape *Write a ticket — gymmy* gives, linked in Jira to what it blocks.
-  A question asked and answered in the session, as in a grill, is not filed; one
-  left open is. None is ever listed in a reply.
+- **The queue** is GYM's open *Decide* and *Mismatch* tickets, and tickets titled
+  `For Mark: …` for an action only he can take, saying what he does and why. Each
+  is linked in Jira to what it blocks. A question asked and answered in the
+  session, as in a grill, is not filed; one left open is. None is ever listed in
+  a reply.
+- **One decision each.** A new ticket holds one decision. A ticket that already
+  holds several is asked one decision at a time, each reviewed on its own. A
+  *Mismatch* ticket gets a recommendation and what it unblocks before it is
+  asked.
 - **Order:** what harms people using gymmy comes first, then what blocks the
-  most work, then the oldest. A decision blocking the work in hand moves to the
-  front, but still waits for the one he is answering.
+  most work, then the oldest. Among the ones that harm no one, a decision
+  blocking the work in hand comes first. Each still waits for the one he is
+  answering.
 - **One per message.** Put the next decision only once he has answered the one
   before. Never list several, in a reply, a retro or a report; say how many wait
   behind it instead, unless he asks to see the queue.
@@ -89,9 +96,10 @@ Mark decides one thing at a time (D-027).
 - **No bare numbers.** A ticket, page or decision number never stands in for
   what it is: say what it is, and give the number only after, as a reference.
 - **Reviewed first,** like any work, with the *Decision* dimension below. Below
-  8, fix it and start a new reviewer.
-- **Asked with the question tool** when there is one, with everything in the
-  question itself, so it reads on its own on a phone.
+  8, fix it and start a new reviewer. At 8 or more it goes to him with its
+  overall score, and the report attached.
+- **Asked in a message,** so work goes on while it waits; the question tool holds
+  everything until he answers, so use it only when nothing else can move.
 - **Once he answers:** write the decision down where CLAUDE.md says (the fact
   file, and the Decision log when it would be a project to reverse), quote the
   sentence back, move or close the ticket, then put the next one.

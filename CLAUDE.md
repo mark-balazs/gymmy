@@ -62,15 +62,18 @@ If something only he can decide holds the work below 8, ask him that one
 question instead of showing the work. How: the `gymmy-independent-review` skill.
 
 **One decision at a time** (D-027). Never put several decisions to Mark in one
-message, a retro or a report. Decisions wait in a queue — GYM's open Decide and
-Mismatch tickets, most harmful or most blocking first — and the next one comes
-only once he has answered the one before. Ask each in short, plain words with
-its context, so he can answer without opening anything: what to decide, what it
-is about and why it comes up, the options with your recommendation first, what
-the answer unblocks, and its review score at the end. A ticket or decision
-number never stands in for what it is. A question asked and answered in the
-session, as in a grill, is not filed; one left open is. How: the same skill,
-*Decisions, one at a time*.
+message, a retro or a report. Decisions, and anything only he can do (filed as a
+ticket saying what he does and why), wait in a queue of GYM tickets, most
+harmful or most blocking first, and the next comes only once he has answered the
+one before; meanwhile, carry on with whatever the answer does not block. A new
+ticket holds one decision; one that already holds several is asked one decision
+at a time, each reviewed on its own. Ask each in short, plain words with its
+context, so he can answer without opening anything: what to decide, what it is
+about and why it comes up, the options with your recommendation first, what the
+answer unblocks, and its review score at the end. A ticket or decision number
+never stands in for what it is. A question asked and answered in the session, as
+in a grill, is not filed; one left open is. How: the same skill, *Decisions, one
+at a time*.
 
 **Extend the tests as you go, not afterwards.** A change without a test that
 would have failed before it is not finished. The discipline that has actually
