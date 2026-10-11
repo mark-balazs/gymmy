@@ -63,17 +63,22 @@ Look there before starting. File what you find instead of carrying it in a
 session: a bug as a bug, a question only the owner can settle as
 "Decide: …". Move an issue as its work lands, and comment the commit hash.
 
-**Work moves through dextra's Requirement Lifecycle** (D-023, D-024).
+**Work moves through dextra's Requirement Lifecycle** (D-023 to D-025).
 [gymmy — how we work](https://dextra.atlassian.net/wiki/spaces/~712020296b34b54b84454489d16860c808e925/pages/980549636)
-says who holds each role and where each step's output lives: a story is written
-to the DI and gymmy product writing guides, any other ticket to *Write a ticket
-— gymmy*, implementation hints to *Write implementation hints — gymmy*. Product
-discovery, non-tech refinement and tech refinement each have a gymmy extension
-there, but none of their skills runs on a gymmy key yet: the first two wait for
-the product docs to be on DI's Product documentation standard
-([GYM-97](https://dextra.atlassian.net/browse/GYM-97)), and GYM stays out of the
-tech-refinement registry for now. Topics and their order live in the Jira
-Product Discovery space **gymmy-roadmap**
+says who holds each role, where each step's output lives and the order of work:
+a story is written to the DI and gymmy product writing guides, any other ticket
+to *Write a ticket — gymmy*, implementation hints to *Write implementation hints
+— gymmy*. gymmy is the owner's private project, so it is in no DI registry and
+**nothing about it is ever written on dextra's DI pages**, learnings about a
+process included. The skills `gymmy-product-discovery`,
+`gymmy-nontech-refinement` and `gymmy-tech-refinement` in `.claude/skills/` load
+each DI playbook with gymmy's extension instead; dextra's own skills stop on a
+gymmy key. Discovery and non-tech refinement wait for the product docs migration
+([GYM-97](https://dextra.atlassian.net/browse/GYM-97)), tech refinement for the
+architecture docs ([GYM-106](https://dextra.atlassian.net/browse/GYM-106)); in
+between, one pass ranks every open idea
+([GYM-107](https://dextra.atlassian.net/browse/GYM-107)). Topics and their order
+live in the Jira Product Discovery space **gymmy-roadmap**
 ([GR](https://dextra.atlassian.net/jira/polaris/projects/GR/ideas)), ranked top
 first; each GYM epic implements its GR idea. GYM's statuses are the lifecycle's
 steps, so a ticket moves as its step changes.

@@ -1,14 +1,14 @@
 ---
 id: working-mode
 status: current
-decided: "D-023; D-024; owner 2026-10-11"
+decided: "D-023; D-024; D-025; owner 2026-10-11"
 appears:
-  repo: ["CLAUDE.md#how-to-work-here", "CLAUDE.md#2-confluence--for-everyone-else"]
+  repo: ["CLAUDE.md#how-to-work-here", "CLAUDE.md#2-confluence--for-everyone-else", ".claude/skills/gymmy-product-discovery/SKILL.md#where-gymmy-differs-from-the-playbook", ".claude/skills/gymmy-nontech-refinement/SKILL.md#where-gymmy-differs-from-the-playbook", ".claude/skills/gymmy-tech-refinement/SKILL.md#where-gymmy-differs-from-the-playbook"]
   copy: []
   tests: []
-  confluence: ["980549636", "934543399", "980975618", "980713505", "994541593", "994410530", "994312199"]
+  confluence: ["980549636", "934543399", "980975618", "980713505", "994541593", "994410530", "994312199", "980713485", "994410547", "994574373"]
 ---
 
-gymmy follows dextra's Requirement Lifecycle: topics are ideas in the Jira Product Discovery space gymmy-roadmap (GR), each GYM epic implements one of them, and GYM uses 123datei's delivery statuses. Product discovery, non-tech refinement and tech refinement each have a gymmy extension under 'gymmy — how we work', but none of their skills runs on a gymmy key yet: GR and GYM join the first two registries once the product docs are on DI's Product documentation standard, and GYM stays out of the tech-refinement registry for now.
+gymmy follows dextra's Requirement Lifecycle and playbooks but stays off dextra's records: it is in no DI registry and nothing about it is written on DI pages, so three skills in the repository load each playbook with gymmy's extension. Topics are ideas in the Jira Product Discovery space gymmy-roadmap (GR), each GYM epic implements one, and GYM uses 123datei's delivery statuses. Once the product docs are moved (GYM-97), one pass ranks every open idea (GYM-107); discovery and non-tech refinement then start, and tech refinement waits for the architecture docs (GYM-106).
 
-Product discovery reads GR's statuses as 123datei reads its roadmap's (new is Backlog, drafting Ideation, with the client Planning / Refinement, accepted Ready for implementation, delivered Done, dropped archived), and the client is Mark, who holds every PO, PM, RE and TL role. Behaviour checks run on production with the demo account, which Mark signs in to. Each idea has a type (Feature, Business or Maintenance); a second space for technical health was rejected. What is not set up yet sits under the epic GYM-96.
+Product discovery reads GR's statuses as 123datei reads its roadmap's (new is Backlog, drafting Ideation, with the client Planning / Refinement, accepted Ready for implementation, delivered Done, dropped archived), and the client is Mark, who holds every PO, PM, RE and TL role. A learning about a process stays in gymmy's own queue, for Mark to carry over by hand. Behaviour checks run on production with the demo account, which Mark signs in to. Each idea has a type (Feature, Business or Maintenance); a second space for technical health was rejected. What is not set up yet sits under the epic GYM-96.
