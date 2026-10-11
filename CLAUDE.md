@@ -51,29 +51,36 @@ once an independent review scores it 8 or more out of 10 (D-026, D-027).
 Nothing is done quietly and kept from him. That covers an idea, a proposal or
 mockup, a refinement, implementation hints, a documentation pass, a fix, a retro
 or report, every decision put to him, and any other deliverable or
-recommendation; only a plain question with no options, or a one-line status,
-skips the review. A fresh agent that did not do the work scores it against the
-rules that govern it; the work is fixed and scored again by a new reviewer until
-it reaches 8. Reaching him means being shown, sent or asked: work in progress
-may be pushed to the working branch, or written where its playbook writes it,
-before the review, as long as the commit or the record says the review is still
-to come. Show him the work with its score at the end and a report he can open.
-If something only he can decide holds the work below 8, ask him that one
-question instead of showing the work. How: the `gymmy-independent-review` skill.
+recommendation; only a plain question with no options, a one-line status, or a
+grill's questions skip the review. A fresh agent that did not do the work scores
+it against the rules that govern it; the work is fixed and scored again by a new
+reviewer until it reaches 8. Reaching him means being shown, sent or asked: work
+in progress may be pushed to the working branch, or written where its playbook
+writes it, before the review, as long as the commit or the record says the
+review is still to come. (Those exemptions and the work-in-progress rule are
+working defaults until Mark answers.) Show him the work with its score at the
+end and a report he can open. If something only he can decide holds the work
+below 8, ask him that one question instead of showing the work. How: the
+`gymmy-independent-review` skill.
 
-**One decision at a time** (D-027). Never put several decisions to Mark in one
-message, a retro or a report. Decisions, and anything only he can do (filed as a
-ticket saying what he does and why), wait in a queue of GYM tickets, most
-harmful or most blocking first, and the next comes only once he has answered the
-one before; meanwhile, carry on with whatever the answer does not block. A new
-ticket holds one decision; one that already holds several is asked one decision
-at a time, each reviewed on its own. Ask each in short, plain words with its
-context, so he can answer without opening anything: what to decide, what it is
-about and why it comes up, the options with your recommendation first, what the
-answer unblocks, and its review score at the end. A ticket or decision number
-never stands in for what it is. A question asked and answered in the session, as
-in a grill, is not filed; one left open is. How: the same skill, *Decisions, one
-at a time*.
+**One decision at a time** (D-027). Never put several decisions to Mark at once,
+in a question, a message, a retro or a report. Decisions, and anything only he
+can do (filed as a ticket saying what he does and why), wait in a queue of GYM
+tickets: what harms people first; then what blocks the work in hand; then what
+blocks the most other work; then the oldest. The next comes only once he has
+answered the one before; meanwhile, carry on with whatever the answer does not
+block. A new ticket holds one decision; one that already holds several is asked
+one decision at a time, each reviewed on its own. Ask each in short, plain words
+with its context, so he can answer without opening anything: what to decide,
+what it is about and why it comes up, the options with your recommendation
+first, what the answer unblocks, and its review score at the end. A ticket or
+decision number never stands in for what it is. Ask it with the question tool,
+not as text in a reply, where it gets missed: everything in the question, each
+option a label of five words at most with a one-line description, the review
+report sent as a file just before it, and whatever work does not wait on the
+answer started in the background first. A question asked and answered in the
+session, as in a grill, is not filed (a working default until Mark answers); one
+left open is. How: the same skill, *Decisions, one at a time*.
 
 **Extend the tests as you go, not afterwards.** A change without a test that
 would have failed before it is not finished. The discipline that has actually
@@ -90,7 +97,8 @@ happens on the way in; that is what `e2e/flows/08` exists for.
 **GYM** ([board](https://dextra.atlassian.net/jira/software/projects/GYM/boards/647)).
 Look there before starting. File what you find instead of carrying it in a
 session: a bug as a bug, a question only the owner can settle as
-"Decide: …". Move an issue as its work lands, and comment the commit hash.
+"Decide: …", an action only the owner can take as "For Mark: …". Move an issue
+as its work lands, and comment the commit hash.
 
 **Work moves through dextra's Requirement Lifecycle** (D-023 to D-025).
 [gymmy — how we work](https://dextra.atlassian.net/wiki/spaces/~712020296b34b54b84454489d16860c808e925/pages/980549636)

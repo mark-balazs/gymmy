@@ -24,12 +24,16 @@ Before Mark sees any of these:
 
 It does not apply to a factual question with no options or recommendation, or to
 a one-line status saying what was done and where. The work that status points
-to is reviewed like everything else.
+to is reviewed like everything else. A grill's questions are not reviewed one by
+one either, since the grill is his request.
 
 Reaching Mark means being shown, sent or asked. Work in progress may be pushed to
 the working branch, or written where its playbook writes it, before the review,
 as long as the commit or the record says the review is still to come; the score
 goes on the next commit or into the record.
+
+These exemptions and the work-in-progress rule are working defaults awaiting
+Mark's answer (GYM-162).
 
 ## How
 
@@ -73,19 +77,18 @@ can do.
 - **The queue** is GYM's open *Decide* and *Mismatch* tickets, and tickets titled
   `For Mark: …` for an action only he can take, saying what he does and why. Each
   is linked in Jira to what it blocks. A question asked and answered in the
-  session, as in a grill, is not filed; one left open is. None is ever listed in
-  a reply.
+  session, as in a grill, is not filed (a working default awaiting Mark's
+  answer); one left open is.
 - **One decision each.** A new ticket holds one decision. A ticket that already
   holds several is asked one decision at a time, each reviewed on its own. A
   *Mismatch* ticket gets a recommendation and what it unblocks before it is
   asked.
-- **Order:** what harms people using gymmy comes first, then what blocks the
-  most work, then the oldest. Among the ones that harm no one, a decision
-  blocking the work in hand comes first. Each still waits for the one he is
-  answering.
-- **One per message.** Put the next decision only once he has answered the one
-  before. Never list several, in a reply, a retro or a report; say how many wait
-  behind it instead, unless he asks to see the queue.
+- **Order:** what harms people first; then what blocks the work in hand; then
+  what blocks the most other work; then the oldest. Each still waits for the one
+  he is answering.
+- **One per question.** Put the next decision only once he has answered the one
+  before. Never list several, in a question, a reply, a retro or a report; say
+  how many wait behind it instead, unless he asks to see the queue.
 - **Short and plain, with its context**, so he can answer without opening
   anything, in this order:
   1. what to decide, in one sentence;

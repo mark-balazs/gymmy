@@ -9,4 +9,4 @@ appears:
   confluence: ["980549636", "934543399", "980713505"]
 ---
 
-Decisions, and anything only Mark can do, reach him one at a time from a queue of GYM tickets, most harmful or most blocking first, the next only once he has answered; meanwhile work goes on wherever the answer does not block it. Each says in short, plain words what to decide, what it is about and why, the options with a recommendation, and what the answer unblocks, so he can answer without opening anything; no ticket or decision number stands in for what it is.
+Decisions, and anything only Mark can do, reach him one at a time from a queue of GYM tickets: what harms people first; then what blocks the work in hand; then what blocks the most other work; then the oldest. The next waits for his answer, and work goes on meanwhile. Each says in short, plain words what to decide, what it is about and why, the options with a recommendation, and what it unblocks; no ticket or decision number stands in for what it is.
