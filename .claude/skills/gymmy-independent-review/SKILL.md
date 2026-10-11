@@ -26,6 +26,11 @@ It does not apply to a factual question with no options or recommendation, or to
 a one-line status saying what was done and where. The work that status points
 to is reviewed like everything else.
 
+Reaching Mark means being shown, sent or asked. Work in progress may be pushed to
+the working branch, or written where its playbook writes it, before the review,
+as long as the commit or the record says the review is still to come; the score
+goes on the next commit or into the record.
+
 ## How
 
 1. **Freeze the work** as Mark would see it: the pages, files or text, with
@@ -40,7 +45,8 @@ to is reviewed like everything else.
    The reviewer is read-only.
 3. **It scores** each dimension from 1 to 10, then gives an overall score, which is
    its judgement and not an average:
-   - 10: a DI owner would accept the work without a single change.
+   - 10: a DI owner would accept the work without a single change; for a
+     decision, Mark could answer it without asking anything.
    - 8: minor fixes only.
    - 6: real gaps.
    It lists its findings ranked by how much each costs the score, each with the
@@ -51,7 +57,7 @@ to is reviewed like everything else.
 5. **At 8 or more:** present the work to Mark, ending with:
    - the overall score and the score for each dimension;
    - the minor findings still open;
-   - where the report is.
+   - the report, sent as a file he can open or linked where he can read it.
 6. **Held below 8 by something only Mark can decide:** ask him that one question,
    as a decision (below). Say what it blocks and the score so far. Show him the
    work only once it scores 8.
@@ -63,12 +69,13 @@ to is reviewed like everything else.
 
 Mark decides one thing at a time (D-027).
 
-- **The queue** is GYM's open *Decide* and *Mismatch* tickets. A question only
-  Mark can settle is filed there, never carried in a session or listed in a
-  reply.
-- **Order:** what blocks the most work comes first, then the oldest. A decision
-  blocking the work in hand moves to the front, but still waits for the one he
-  is answering.
+- **The queue** is GYM's open *Decide* and *Mismatch* tickets, each one decision
+  in the shape *Write a ticket — gymmy* gives, linked in Jira to what it blocks.
+  A question asked and answered in the session, as in a grill, is not filed; one
+  left open is. None is ever listed in a reply.
+- **Order:** what harms people using gymmy comes first, then what blocks the
+  most work, then the oldest. A decision blocking the work in hand moves to the
+  front, but still waits for the one he is answering.
 - **One per message.** Put the next decision only once he has answered the one
   before. Never list several, in a reply, a retro or a report; say how many wait
   behind it instead, unless he asks to see the queue.
@@ -84,7 +91,7 @@ Mark decides one thing at a time (D-027).
 - **Reviewed first,** like any work, with the *Decision* dimension below. Below
   8, fix it and start a new reviewer.
 - **Asked with the question tool** when there is one, with everything in the
-  question itself: the phone app shows only that.
+  question itself, so it reads on its own on a phone.
 - **Once he answers:** write the decision down where CLAUDE.md says (the fact
   file, and the Decision log when it would be a project to reverse), quote the
   sentence back, move or close the ticket, then put the next one.

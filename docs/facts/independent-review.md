@@ -9,4 +9,4 @@ appears:
   confluence: ["980549636", "934543399"]
 ---
 
-Everything made for gymmy reaches Mark, and only once an independent review scores it 8 or more out of 10; nothing is done quietly and kept from him. A fresh agent that did not do the work scores it against the rules that govern it, and a new reviewer scores it again after each round of fixes until it reaches 8. That covers ideas, proposals, mockups, refinements, implementation hints, documentation passes, fixes, retros and reports, every decision put to him and any other deliverable or recommendation, and each reaches him with its score at the end. If something only he can decide holds the work below 8, he gets that one question, not the work.
+Everything made for gymmy reaches Mark once a fresh agent that did not do it scores it 8 or more out of 10 against the rules that govern it; below 8 it is fixed and a new reviewer scores it again. Nothing is kept from him, and each piece, decisions included, reaches him with its score at the end. Only a plain question with no options, or a one-line status, skips the review. If only he can settle what holds work below 8, he gets that one question.

@@ -51,20 +51,26 @@ once an independent review scores it 8 or more out of 10 (D-026, D-027).
 Nothing is done quietly and kept from him. That covers an idea, a proposal or
 mockup, a refinement, implementation hints, a documentation pass, a fix, a retro
 or report, every decision put to him, and any other deliverable or
-recommendation. A fresh agent that did not do the work scores it against the
+recommendation; only a plain question with no options, or a one-line status,
+skips the review. A fresh agent that did not do the work scores it against the
 rules that govern it; the work is fixed and scored again by a new reviewer until
-it reaches 8. Show him the work with its score at the end and where the report
-is. If something only he can decide holds the work below 8, ask him that one
+it reaches 8. Reaching him means being shown, sent or asked: work in progress
+may be pushed to the working branch, or written where its playbook writes it,
+before the review, as long as the commit or the record says the review is still
+to come. Show him the work with its score at the end and a report he can open.
+If something only he can decide holds the work below 8, ask him that one
 question instead of showing the work. How: the `gymmy-independent-review` skill.
 
 **One decision at a time** (D-027). Never put several decisions to Mark in one
 message, a retro or a report. Decisions wait in a queue — GYM's open Decide and
-Mismatch tickets — and the next one comes only once he has answered the one
-before. Ask each in short, plain words with its context, so he can answer
-without opening anything: what to decide, what it is about and why it comes up,
-the options with your recommendation first, what the answer unblocks, and its
-review score at the end. A ticket or decision number never stands in for what it
-is. How: the same skill, *Decisions, one at a time*.
+Mismatch tickets, most harmful or most blocking first — and the next one comes
+only once he has answered the one before. Ask each in short, plain words with
+its context, so he can answer without opening anything: what to decide, what it
+is about and why it comes up, the options with your recommendation first, what
+the answer unblocks, and its review score at the end. A ticket or decision
+number never stands in for what it is. A question asked and answered in the
+session, as in a grill, is not filed; one left open is. How: the same skill,
+*Decisions, one at a time*.
 
 **Extend the tests as you go, not afterwards.** A change without a test that
 would have failed before it is not finished. The discipline that has actually
@@ -265,7 +271,8 @@ And the part no command checks: **is the documentation current?** Both sets.
 
 **Done means pushed.** Commit, then push, once per landed piece of work — not
 batched at the end of a session. The owner follows the work from GitHub and
-other devices. If you cannot see CI, say what you verified locally rather than
+other devices. Work pushed before its independent review says so in the commit,
+and the review's score goes on the next one. If you cannot see CI, say what you verified locally rather than
 calling it green.
 
 @AGENTS.md
