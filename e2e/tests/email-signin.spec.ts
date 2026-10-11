@@ -107,6 +107,32 @@ test.describe('Entering a sign-in code', () => {
     ).toBeVisible({ timeout: 20_000 });
   });
 
+  test('an address typed with a capital letter still uses its code', async ({ page }) => {
+    /* Codes are stored under the trimmed, lower-cased address, and Auth.js
+       looks one up under exactly the address the form sends, so the form must
+       send it the same way. A capital can be typed, pasted or autofilled, in
+       either half of the address, and a pasted one can bring spaces. */
+    const email = freshEmail();
+    await seedSignInCode(email, '123456');
+
+    await page.goto('/sign-in');
+    const emailField = page.getByLabel('Email address');
+    await expect(emailField, REQUIRED).toBeVisible();
+
+    // " Otp-1a2b3c4d@EXAMPLE.TEST ": a capital in each half, and spaces.
+    const at = email.indexOf('@');
+    await emailField.fill(
+      ` ${email.charAt(0).toUpperCase()}${email.slice(1, at)}${email.slice(at).toUpperCase()} `,
+    );
+    await page.getByRole('button', { name: /Email me a code/ }).click();
+    await page.getByLabel('Sign-in code').fill('123456');
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+
+    await expect(
+      page.getByRole('heading', { name: 'How should your week be shaped?' }),
+    ).toBeVisible({ timeout: 20_000 });
+  });
+
   test('a wrong code does not, and says so in plain words', async ({ page }) => {
     const email = freshEmail();
     await seedSignInCode(email, '123456');

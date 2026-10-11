@@ -225,24 +225,30 @@ paths:
     get:
       tags: [auth]
       security: []
-      summary: Follow the link in the sign-in email
+      summary: Check a sign-in code
       operationId: emailCallback
       description: |
         Auth.js reads these from the **query string and never the body**. A form
-        POSTing them is accepted and then ignored, which is not an error
-        anywhere and broke email sign-in for the entire life of the feature.
+        POSTing them in the body is accepted and then ignored, which is not an
+        error anywhere.
+
+        `email` is matched exactly against the address the code was stored
+        under, which is trimmed and lower-cased, so the sign-in form sends it
+        that way: `Anna@example.com` as typed would never match.
       parameters:
         - { name: token, in: query, required: true, schema: { type: string } }
         - { name: email, in: query, required: true, schema: { type: string, format: email } }
         - { name: callbackUrl, in: query, required: false, schema: { type: string } }
       responses:
         '302':
-          description: Session cookie set; redirected into the app.
+          description: |
+            A right code: the session cookie is set and the browser goes into
+            the app. A code that is wrong, used or expired, or an address that
+            does not match the stored one: no cookie, and the browser goes to
+            Auth.js's error page, `/api/auth/error?error=Verification`.
           headers:
             Set-Cookie:
               schema: { type: string }
-        '400':
-          description: The token is wrong, already used, or expired.
 
   /api/auth/signin/{provider}:
     post:
