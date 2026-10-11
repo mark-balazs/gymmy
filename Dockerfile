@@ -18,7 +18,6 @@ RUN npm ci --ignore-scripts
 FROM node:24-alpine AS build
 WORKDIR /repo
 COPY --from=deps /repo/node_modules ./node_modules
-COPY --from=deps /repo/apps/web/node_modules ./apps/web/node_modules
 COPY . .
 
 # The build only needs the schema to typecheck, not a reachable database.
