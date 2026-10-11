@@ -150,7 +150,10 @@ sequenceDiagram
    sequence, and returns everything newer than the cursor. On an **update** it
    writes only the fields the request actually carried: the schema's defaults
    fill a new row's columns, but writing them over an existing row is how an
-   old build reset fields it had never heard of (GYM-69).
+   old build reset fields it had never heard of (GYM-69). Every field its
+   table stores as a time is made a date first, read from the table's own
+   columns: a goal's end time once arrived as text and stopped the phone
+   syncing (GYM-123).
 5. The client applies the server's rows, **then re-applies anything still in the
    outbox on top**. Without that last step a pull in flight would overwrite a
    set logged while it was travelling, and it would look to the user like the
