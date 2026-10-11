@@ -235,14 +235,6 @@ or a live share points at you, directly or through a group you are in. Cached as
 a flag, every membership change would have to find and rewrite every plan, and
 the first one missed leaves somebody reading a plan they were removed from.
 
-> **Known gap:** `installSkeleton` is a dozen writes with no wrapping
-> transaction, and the profile is the last of them. Tear the page down partway —
-> a navigation, a crash — and the week installs while the profile still names
-> the old split, so Settings and the Week tab disagree until it is applied
-> again. This predates plans and is true of `applySplit` too; it surfaced when
-> an e2e test navigated the moment the button was clicked. Dexie has
-> transactions; nothing here uses them yet.
-
 ## Offline and recovery
 
 The service worker (`apps/web/sw-src.js`, stamped with the build id by
