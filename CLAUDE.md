@@ -46,6 +46,16 @@ building the wrong shape. "Grill me about X", "let's spec out X" or "poke holes
 in this" are all requests for it, and it is the right move whenever a plan has
 more than one defensible direction in it.
 
+**Score before you show.** Mark sees work only once an independent review
+scores it 8 or more out of 10 (D-026). That covers an idea, a proposal or
+mockup, a refinement, implementation hints, a documentation pass, and any other
+deliverable or recommendation. Before he sees it, a fresh agent that did not do
+the work scores it against the rules that govern it. The work is fixed and
+scored again by a new reviewer until it reaches 8. Show him the score and where
+the report is. If something only he can decide holds the work below 8, ask him
+that one question instead of showing the work. How: the
+`gymmy-independent-review` skill.
+
 **Extend the tests as you go, not afterwards.** A change without a test that
 would have failed before it is not finished. The discipline that has actually
 caught things here is stronger than "add a test": **break the fix and watch the

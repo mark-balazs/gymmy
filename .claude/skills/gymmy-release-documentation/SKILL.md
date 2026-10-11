@@ -16,7 +16,7 @@ Through the Atlassian connector, cloudId `5d8c32ca-6cbf-4ac3-b09b-7717b64295cf`,
 never from memory:
 
 1. **The playbook:** [Release documentation — agent playbook](https://dextra.atlassian.net/wiki/spaces/DI/pages/981532673/Release+documentation+agent+playbook),
-   page `981532673`. It is the process: follow it exactly, except for the three
+   page `981532673`. It is the process: follow it exactly, except for the four
    points below.
 2. **gymmy's extension:** [Release documentation — gymmy extension](https://dextra.atlassian.net/wiki/spaces/~712020296b34b54b84454489d16860c808e925/pages/994672658/Release+documentation+gymmy+extension),
    page `994672658`. It fills the playbook's slots, as the extension the
@@ -35,6 +35,12 @@ never from memory:
    tickets moved to Done since the last pass (E6). Until
    [GYM-101](https://dextra.atlassian.net/browse/GYM-101) settles what counts as
    a test release, confirm each pass's scope with Mark before Phase 1.
+4. **Scored before Mark sees it.** Before Mark sees a page plan, the pages a
+   pass wrote or its record, run the `gymmy-independent-review` skill: a fresh
+   agent scores the work from 1 to 10, and it reaches Mark only at 8 or more
+   (Decision log D-026). The playbook's own questions to Mark still come one at
+   a time; the options and recommendation in a question are reviewed with the
+   work they belong to.
 
 ## Stop and tell Mark when
 

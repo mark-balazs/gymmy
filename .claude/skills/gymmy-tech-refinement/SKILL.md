@@ -16,7 +16,7 @@ Through the Atlassian connector, cloudId `5d8c32ca-6cbf-4ac3-b09b-7717b64295cf`,
 never from memory:
 
 1. **The playbook:** [Tech refinement — agent playbook](https://dextra.atlassian.net/wiki/spaces/DI/pages/960823309/Tech+refinement+agent+playbook),
-   page `960823309`. It is the process: follow it exactly, except for the three
+   page `960823309`. It is the process: follow it exactly, except for the four
    points below.
 2. **gymmy's extension:** [Tech refinement — gymmy extension](https://dextra.atlassian.net/wiki/spaces/~712020296b34b54b84454489d16860c808e925/pages/980975618/Tech+refinement+gymmy+extension),
    page `980975618`. It fills the playbook's slots, as the extension the
@@ -35,6 +35,12 @@ never from memory:
    architecture docs are on DI's Architecture documentation standard
    ([GYM-106](https://dextra.atlassian.net/browse/GYM-106) is Done), hints
    would rest on no agreed technical direction: say so and stop.
+4. **Scored before Mark sees it.** Before Mark sees implementation hints or a
+   draft of them, run the `gymmy-independent-review` skill: a fresh agent scores
+   the work from 1 to 10, and it reaches Mark only at 8 or more (Decision log
+   D-026). The playbook's own questions to Mark still come one at a time; the
+   options and recommendation in a question are reviewed with the work they
+   belong to.
 
 ## Stop and tell Mark when
 
