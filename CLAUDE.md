@@ -68,10 +68,10 @@ in a question, a message, a retro or a report. Decisions, and anything only he
 can do (filed as a ticket saying what he does and why), wait in a queue of GYM
 tickets, in this order (a working default until Mark answers): what harms people
 first; then what blocks the work in hand; then what blocks the most other work;
-then the oldest. The next comes only once he has
-answered the one before; meanwhile, carry on with whatever the answer does not
-block. A new ticket holds one decision; one that already holds several is asked
-one decision at a time, each reviewed on its own. Ask each in short, plain words
+then the oldest. The next comes only once he has answered the one before;
+meanwhile, carry on with whatever the answer does not block. A new ticket holds
+one decision; one that already holds several is asked one decision at a time,
+each reviewed on its own. Ask each in short, plain words
 with its context, so he can answer without opening anything: what to decide,
 what it is about and why it comes up, the options with your recommendation
 first, what the answer unblocks, and its review score at the end. A ticket or
@@ -285,8 +285,8 @@ And the part no command checks: **is the documentation current?** Both sets.
 batched at the end of a session. The owner follows the work from GitHub and
 other devices. Work pushed before its independent review says so in the commit,
 and the review's score goes on the next one (a working default, see *Score before
-you show*). Merge a pull request yourself once all of it has scored 8 or more and
-all its checks are green (Mark, 11/10/2026). If you cannot see CI, say what you verified locally rather than
-calling it green.
+you show*). You may merge a pull request yourself once all of it has scored 8 or
+more and all its checks are green (Mark, 11/10/2026). If you cannot see CI, say
+what you verified locally rather than calling it green.
 
 @AGENTS.md
