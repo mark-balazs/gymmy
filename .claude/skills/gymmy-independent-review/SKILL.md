@@ -100,9 +100,14 @@ can do.
   what it is: say what it is, and give the number only after, as a reference.
 - **Reviewed first,** like any work, with the *Decision* dimension below. Below
   8, fix it and start a new reviewer. At 8 or more it goes to him with its
-  overall score, and the report attached.
-- **Asked in a message,** so work goes on while it waits; the question tool holds
-  everything until he answers, so use it only when nothing else can move.
+  overall score at the end.
+- **Asked with the question tool,** never as text in a reply, where one was
+  missed. Everything goes in the question text, in the order above; the options
+  are short labels, five words at most, each with a one-line description. The
+  tool cannot attach files, so send the review report as a file just before the
+  question, and say "report sent above" in it. Before asking, start in the
+  background whatever work does not wait on the answer, so work goes on while
+  the question waits.
 - **Once he answers:** write the decision down where CLAUDE.md says (the fact
   file, and the Decision log when it would be a project to reverse), quote the
   sentence back, move or close the ticket, then put the next one.
