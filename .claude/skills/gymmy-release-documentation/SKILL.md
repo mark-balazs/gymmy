@@ -33,8 +33,8 @@ never from memory:
    DI by hand, without gymmy's details, if he wants.
 3. **No fix versions.** Every merge to main deploys, so a pass's scope is the GYM
    tickets moved to Done since the last pass (E6). Until
-   [GYM-101](https://dextra.atlassian.net/browse/GYM-101) settles what counts as
-   a test release, confirm each pass's scope with Mark before Phase 1.
+   [GYM-163](https://dextra.atlassian.net/browse/GYM-163) settles what counts as
+   a release, confirm each pass's scope with Mark before Phase 1.
 4. **Scored before Mark sees it.** Before Mark sees a page plan, the pages a
    pass wrote or its record, run the `gymmy-independent-review` skill: a fresh
    agent scores the work from 1 to 10, and it is fixed until it scores 8, then

@@ -167,8 +167,9 @@ column is not optional:
 | changes how work moves — a role, a status, or where a step's output lives | **gymmy — how we work** |
 | settles a question that would be a project to reverse | **Decision log** (append; never edit an entry — mark it superseded) |
 
-Every page outside **Product** ends with an **"update this page when"** note;
-Product pages have none, because the release documentation pass keeps them. If
+Every page in this table outside **Product** and **Product direction** ends with
+an **"update this page when"** note; Product pages have none, because the
+release documentation pass keeps them. If
 yours is not in the table, that note is the tiebreak. If it is genuinely neither, it probably does
 not need a Confluence change — say so rather than guessing.
 
