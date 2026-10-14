@@ -51,7 +51,7 @@ tags:
   - name: sync
     description: The one data endpoint.
   - name: auth
-    description: Sign-in. Google OAuth, or a six-digit code by email.
+    description: Sign-in. Google OAuth, or a ten-digit code by email.
   - name: plans
     description: |
       Plans a trainer writes and shares. The one part of the API where a row is
@@ -180,22 +180,34 @@ paths:
     post:
       tags: [auth]
       security: []
-      summary: Request a six-digit sign-in code
+      summary: Request a ten-digit sign-in code
       operationId: requestEmailCode
       description: |
-        **Every outcome answers the same way.** Whether the address has an
-        account, whether it was throttled, and whether the send failed are all
-        facts about somebody else's account; an endpoint that distinguishes
-        them is a way to enumerate users. So the body is always `{"ok": true}`
-        and the only thing that varies is the status code — `429`, so a client
-        can back off, which reveals nothing an attacker could not learn by
-        counting their own requests.
+        **Every outcome answers with the same body**, `{"ok": true}`. Whether
+        the address has an account and whether the send failed are facts about
+        somebody else's account; an endpoint that told them apart would be a
+        way to enumerate users. Only the status code varies: `429` past a
+        limit, so a client can back off, and `403` for an ask this site's form
+        never sends. Neither says whether the address has an account, though a
+        `429` on a first ask does say that someone asked for that address
+        twice in the last 5 minutes.
 
         It is separate from Auth.js's own sign-in route so the throttle sits in
         front of the send rather than beside it.
 
-        Throttled per address and per client over a rolling 15 minutes. The
-        client key is the first `X-Forwarded-For` hop.
+        **Limited per address and per client.** An address gets 2 asks in a
+        rolling 5 minutes, so whenever the address's limit refuses an ask the
+        newest code, at most 5 minutes old, still works; a client gets 20 in
+        15 minutes, and when that limit refuses an ask the address may have no
+        live code. The client key is the first `X-Forwarded-For` hop (on
+        Vercel, the caller's own address), an IPv6 address cut to its /48
+        block.
+
+        **Only the newest code works.** Once a new code is stored, the
+        address's codes made before it are deleted, however they were made, so
+        a guess has a single target; two asks at once never leave none, and
+        rarely both. A send that fails leaves the new code stored and the old
+        one gone.
       requestBody:
         required: true
         content:
@@ -213,10 +225,19 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Ok' }
+        '403':
+          description: |
+            Sent by a page on another site (`Sec-Fetch-Site` of `cross-site` or
+            `same-site`), or not as `application/json`: only this site's form
+            asks, so nothing is counted or sent. The body is identical to a
+            `200`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
         '429':
           description: |
-            Over 5 requests for this address, or 20 from this client, in the
-            last 15 minutes. The body is identical to a `200`.
+            Over 2 requests for this address in the last 5 minutes, or 20 from
+            this client in the last 15. The body is identical to a `200`.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Ok' }
@@ -228,13 +249,37 @@ paths:
       summary: Check a sign-in code
       operationId: emailCallback
       description: |
-        Auth.js reads these from the **query string and never the body**. A form
-        POSTing them in the body is accepted and then ignored, which is not an
-        error anywhere.
+        Checks a sign-in code. Auth.js reads these from the **query string and
+        never the body**. A form POSTing them in the body is accepted and then
+        ignored, which is not an error anywhere. A POST that carries them in the
+        query string is checked exactly like a GET.
 
         `email` is matched exactly against the address the code was stored
         under, which is trimmed and lower-cased, so the sign-in form sends it
         that way: `Anna@example.com` as typed would never match.
+
+        **A check sent by a page on another site is refused before it is
+        counted** (`Sec-Fetch-Site` of `cross-site` or `same-site`), answered
+        like a wrong code: the code email has no link, so no real check comes
+        from another site, and a page elsewhere could otherwise spend a
+        visitor's tries on the visitor's own connection.
+
+        **Limited per address and client, and per client.** An address gets 5
+        checks in a rolling 15 minutes and 10 in 24 hours from each client; a
+        client gets 30 in 15 minutes over all addresses, keyed like the code
+        request. A wrong check counts; a right one is given back, and a refused
+        one is not counted. Past a limit the check is refused where Auth.js
+        looks the code up, so it fails exactly as a wrong code does, whatever
+        the method or query, and the stored code is left alone. Nothing in the
+        answer tells a refused check from a wrong code, or a known address from
+        an unknown one.
+
+        Never per address alone: that would be a budget anyone who knows the
+        address could spend to shut its owner out. The cost: someone using many
+        clients gets ten guesses a day from each, which is why codes have ten
+        digits: 10,000 clients need about 270 years for one lucky guess on one
+        address. And one office or household network is one client, so people
+        trying codes from it share its budgets.
       parameters:
         - { name: token, in: query, required: true, schema: { type: string } }
         - { name: email, in: query, required: true, schema: { type: string, format: email } }
@@ -243,9 +288,10 @@ paths:
         '302':
           description: |
             A right code: the session cookie is set and the browser goes into
-            the app. A code that is wrong, used or expired, or an address that
-            does not match the stored one: no cookie, and the browser goes to
-            Auth.js's error page, `/api/auth/error?error=Verification`.
+            the app. A code that is wrong, used, expired or refused by the
+            limits, or an address that does not match the stored one: no
+            cookie, and the browser goes to Auth.js's error page,
+            `/api/auth/error?error=Verification`.
           headers:
             Set-Cookie:
               schema: { type: string }
@@ -256,14 +302,21 @@ paths:
       security: []
       summary: Begin sign-in with a provider
       operationId: signIn
+      description: |
+        Google only. Auth.js also answers `resend` here, emailing a code to any
+        address for anyone holding a CSRF token and beside the limits on asking
+        for one, so the route answers `404` for it. Codes are asked for through
+        `/api/auth/email-code`.
       parameters:
         - name: provider
           in: path
           required: true
-          schema: { type: string, enum: [google, resend] }
+          schema: { type: string, enum: [google] }
       responses:
         '302':
           description: Redirected to the provider.
+        '404':
+          description: '`resend`: closed, as above.'
 
   /api/auth/callback/{provider}:
     get:

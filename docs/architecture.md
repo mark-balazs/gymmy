@@ -11,7 +11,7 @@ flowchart TB
 
     person -->|"uses, often with no signal"| gymmy
     gymmy -->|"sign in with a Google account"| google
-    gymmy -->|"send a six-digit code"| resend
+    gymmy -->|"send a ten-digit code"| resend
 ```
 
 Both external systems are on the **sign-in path only**. Once somebody is signed
@@ -76,6 +76,7 @@ second implementation to disagree with the first.
 | `apps/web/src/lib/sync/` | The wire contract and per-table row validation |
 | `apps/web/src/lib/db/plans.ts` | Plans, groups, shares, and who can see what. **Not** a replicated table |
 | `apps/web/src/lib/api/plans.ts` | The session/trainer guard and the wire schema for the plan endpoints |
+| `apps/web/src/lib/auth.ts` `sign-in-codes.ts` `sign-in-throttle.ts` `email-otp.ts` | Sign-in: Auth.js with Google and the emailed code; its adapter, where only the newest code works and tries on one are limited; the limits on asking for and trying a code, and what counts as one connection; the code and its email |
 | `apps/web/src/app/(app)/` | The five tabs |
 | `apps/web/src/components/` | The UI kit, the charts, the calendar, the sheets, the lightbox, the profile card, the recovery screens |
 | `apps/web/src/components/entry/` | Train's number controls — buttons, the ruler, the plate loader, gymmy's keypad — and the card's open/close. `rolling-number.tsx` rolls a changed digit in from the way the number moved |
@@ -617,6 +618,22 @@ single rep", the onboarding weight's unit). Everything read once went behind an
   This broke email sign-in for the entire life of the feature. And it looks the
   code up under exactly the address it is given, while codes are stored under
   the trimmed, lower-cased one, so the code form sends it lower-cased.
+- **Tries on a sign-in code are limited inside Auth.js's adapter**
+  (`withCodeLimits` in `sign-in-codes.ts`), not in front of a route. Auth.js
+  checks a code on a GET or a POST, from whatever query it is handed, and
+  every one ends in `useVerificationToken`, so every route and method counts.
+  A refused try answers `null`, which Auth.js shows exactly as a wrong code.
+- **Auth.js's own `POST /api/auth/signin/resend` answers 404.** It would email
+  a code to any address for anyone holding a CSRF token, beside the limits on
+  asking. The app asks through `/api/auth/email-code`, which calls next-auth's
+  server-side `signIn` in the same process.
+- **A code check or an ask sent from another site is refused before anything
+  is counted** (`fromAnotherSite`, from `Sec-Fetch-Site`). Otherwise a page
+  elsewhere, with an image tag or a hidden form, could spend a visitor's tries
+  and asks on the visitor's own connection. An ask must also be JSON, which a
+  page elsewhere cannot send without the browser's leave. Google's callback
+  arrives from another site by design, so only the email code's is held to
+  this.
 - **Moving an element to the right makes the document wider; moving it to the
   left does not.** Overflow off the right-hand edge of a left-to-right document
   is scrollable; off the left-hand edge it is unreachable and does not count.

@@ -70,7 +70,10 @@ export const sessions = pgTable('session', {
 });
 
 /**
- * One row per sign-in code request, kept just long enough to rate limit.
+ * One row per sign-in code request or code check, kept just long enough to
+ * rate limit. `kind` says which: a request ('send') and a check ('check') have
+ * separate limits, so typing a code wrong never spends the budget for asking
+ * for a new one, and the other way round.
  *
  * In Postgres rather than memory because the app runs on serverless functions:
  * an in-process counter is per-instance, so it caps nothing once there is more
@@ -88,6 +91,9 @@ export const signInAttempts = pgTable(
       .$defaultFn(() => crypto.randomUUID()),
     email: text('email').notNull(),
     client: text('client').notNull(),
+    kind: text('kind', { enum: ['send', 'check'] })
+      .notNull()
+      .default('send'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
