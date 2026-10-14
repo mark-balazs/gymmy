@@ -302,4 +302,58 @@ describe('POST /api/sync', () => {
     expect((await pulled(a, id))?.weight).toBe(80);
     expect((await pulled(b, id))?.weight).toBe(99);
   });
+
+  it('stores the moment a goal ended, so ending one never blocks the sync', async () => {
+    /* GYM-123. Every time crosses the wire as text, and a goal's end time
+       lands in a timestamp column. Only `updatedAt` and `deletedAt` used to be
+       made dates on the way in, so ending a goal threw inside Drizzle: a 500 on
+       every retry, and the phone that sent it never synced again. Both ways it
+       reaches the server are here: a goal ended after it was synced, and the
+       ticket's own case, a goal set and stopped offline, which goes up as two
+       changes in one push, ahead of a bodyweight logged afterwards. */
+    const goal = (id: string) => ({
+      id,
+      updatedAt: at(10),
+      deletedAt: null,
+      exerciseId: 'ex-1',
+      target: 110,
+      baseline: 100,
+      startedOn: '2026-09-18',
+      targetDate: '2026-11-13',
+      retiredAt: null,
+    });
+    const endedAt = async (id: string) => {
+      const stored = await db.execute(
+        sql`SELECT retired_at FROM goals WHERE user_id = ${a} AND id = ${id}`,
+      );
+      const row = stored.rows[0] as { retired_at: string | Date | null } | undefined;
+      return row?.retired_at ? new Date(row.retired_at).toISOString() : null;
+    };
+
+    const later = randomUUID();
+    await push(a, [{ table: 'goals', row: goal(later) }]);
+    const after = await push(a, [
+      { table: 'goals', row: { ...goal(later), updatedAt: at(11), retiredAt: at(11) } },
+    ]);
+    expect(await endedAt(later)).toBe(at(11));
+    // And another phone, pulling from scratch, sees it ended rather than running.
+    const goals = (after.changes as { goals?: { id: string; retiredAt: string | null }[] }).goals;
+    expect(goals?.find((g) => g.id === later)?.retiredAt).toBe(at(11));
+
+    const offline = randomUUID();
+    const weighed = randomUUID();
+    await push(a, [
+      { table: 'goals', row: goal(offline) },
+      { table: 'goals', row: { ...goal(offline), updatedAt: at(12), retiredAt: at(12) } },
+      {
+        table: 'bodyLogs',
+        row: { id: weighed, updatedAt: at(13), deletedAt: null, date: '2026-09-18', weight: 80 },
+      },
+    ]);
+    expect(await endedAt(offline)).toBe(at(12));
+    const body = await db.execute(
+      sql`SELECT weight FROM body_logs WHERE user_id = ${a} AND id = ${weighed}`,
+    );
+    expect(body.rows).toHaveLength(1);
+  });
 });

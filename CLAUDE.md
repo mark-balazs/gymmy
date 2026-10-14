@@ -46,6 +46,43 @@ building the wrong shape. "Grill me about X", "let's spec out X" or "poke holes
 in this" are all requests for it, and it is the right move whenever a plan has
 more than one defensible direction in it.
 
+**Score before you show.** Everything you make for gymmy reaches Mark, and only
+once an independent review scores it 8 or more out of 10 (D-026, D-027).
+Nothing is done quietly and kept from him. That covers an idea, a proposal or
+mockup, a refinement, implementation hints, a documentation pass, a fix, a retro
+or report, every decision put to him, and any other deliverable or
+recommendation; only a plain question with no options, a one-line status, or a
+grill's questions skip the review. A fresh agent that did not do the work scores
+it against the rules that govern it; the work is fixed and scored again by a new
+reviewer until it reaches 8. Reaching him means being shown, sent or asked: work
+in progress may be pushed to the working branch, or written where its playbook
+writes it, before the review, as long as the commit or the record says the
+review is still to come. (Those exemptions and the work-in-progress rule are
+working defaults until Mark answers.) Show him the work with its score at the
+end and a report he can open. If something only he can decide holds the work
+below 8, ask him that one question instead of showing the work. How: the
+`gymmy-independent-review` skill.
+
+**One decision at a time** (D-027). Never put several decisions to Mark at once,
+in a question, a message, a retro or a report. Decisions, and anything only he
+can do (filed as a ticket saying what he does and why), wait in a queue of GYM
+tickets, in this order (a working default until Mark answers): what harms people
+first; then what blocks the work in hand; then what blocks the most other work;
+then the oldest. The next comes only once he has answered the one before;
+meanwhile, carry on with whatever the answer does not block. A new ticket holds
+one decision; one that already holds several is asked one decision at a time,
+each reviewed on its own. Ask each in short, plain words
+with its context, so he can answer without opening anything: what to decide,
+what it is about and why it comes up, the options with your recommendation
+first, what the answer unblocks, and its review score at the end. A ticket or
+decision number never stands in for what it is. Ask it with the question tool,
+not as text in a reply, where it gets missed: everything in the question, each
+option a label of five words at most with a one-line description, the review
+report sent as a file just before it, and whatever work does not wait on the
+answer started in the background first. A question asked and answered in the
+session, as in a grill, is not filed (a working default until Mark answers); one
+left open is. How: the same skill, *Decisions, one at a time*.
+
 **Extend the tests as you go, not afterwards.** A change without a test that
 would have failed before it is not finished. The discipline that has actually
 caught things here is stronger than "add a test": **break the fix and watch the
@@ -61,14 +98,25 @@ happens on the way in; that is what `e2e/flows/08` exists for.
 **GYM** ([board](https://dextra.atlassian.net/jira/software/projects/GYM/boards/647)).
 Look there before starting. File what you find instead of carrying it in a
 session: a bug as a bug, a question only the owner can settle as
-"Decide: …". Move an issue as its work lands, and comment the commit hash.
+"Decide: …", an action only the owner can take as "For Mark: …". Move an issue
+as its work lands, and comment the commit hash.
 
-**Work moves through dextra's Requirement Lifecycle** (D-023).
+**Work moves through dextra's Requirement Lifecycle** (D-023 to D-025).
 [gymmy — how we work](https://dextra.atlassian.net/wiki/spaces/~712020296b34b54b84454489d16860c808e925/pages/980549636)
-says who holds each role and where each step's output lives: a ticket is
-written to *Write a ticket — gymmy*, implementation hints to *Write
-implementation hints — gymmy*. Topics and their order live in the Jira Product
-Discovery space **gymmy-roadmap**
+says who holds each role, where each step's output lives and the order of work:
+a story is written to the DI and gymmy product writing guides, any other ticket
+to *Write a ticket — gymmy*, implementation hints to *Write implementation hints
+— gymmy*. gymmy is the owner's private project, so it is in no DI registry and
+**nothing about it is ever written on dextra's DI pages**, learnings about a
+process included. The skills `gymmy-product-discovery`,
+`gymmy-nontech-refinement`, `gymmy-tech-refinement` and
+`gymmy-release-documentation` in `.claude/skills/` load each DI playbook with
+gymmy's extension instead; dextra's own skills stop on a gymmy key. Discovery and non-tech refinement wait for the product docs migration
+([GYM-97](https://dextra.atlassian.net/browse/GYM-97)), tech refinement for the
+architecture docs ([GYM-106](https://dextra.atlassian.net/browse/GYM-106)); in
+between, one pass ranks every open idea
+([GYM-107](https://dextra.atlassian.net/browse/GYM-107)). Topics and their order
+live in the Jira Product Discovery space **gymmy-roadmap**
 ([GR](https://dextra.atlassian.net/jira/polaris/projects/GR/ideas)), ranked top
 first; each GYM epic implements its GR idea. GYM's statuses are the lifecycle's
 steps, so a ticket moves as its step changes.
@@ -104,11 +152,10 @@ column is not optional:
 | If your change… | Update |
 | --- | --- |
 | changes a product rule, a behaviour, a boundary, a plan or a price | [`docs/facts/`](./docs/facts/README.md) first, then everything under that fact's `appears` |
-| adds or removes a screen, or rearranges one | **Product → Feature reference** |
-| changes what a feature *does* (not how it looks) | **Product → Feature reference** |
-| touches a pattern, split, progression rule, the strength score, or a verdict threshold | **Product → How the training model works** |
-| targets a new kind of user, or drops a use case | **Product → Who it is for** |
-| changes the pitch, the promises, or what gymmy refuses to be | **Product → What gymmy is** |
+| adds, removes or rearranges a screen, or changes what a feature *does* | **Product**: the release documentation pass (`gymmy-release-documentation` skill) writes the page that [Product's page index](https://dextra.atlassian.net/wiki/spaces/~712020296b34b54b84454489d16860c808e925/pages/934510594) names, once the change is on main |
+| touches a pattern, split, progression rule, the strength score, or a verdict threshold | The same pass, on the owning page in **The week** or **Progress**; **Terminology** when a term changes |
+| targets a new kind of user, or drops a use case | **Product direction** (segments, non-goals) and **Terminology** (personas), as a direction change Mark confirms |
+| changes the pitch, the promises, or what gymmy refuses to be | **Product direction**, as a direction change Mark confirms |
 | adds or drops an external system | **Architecture → C1** |
 | adds a container, or moves a responsibility between client and server | **Architecture → C2** |
 | gives a component a new responsibility | **Architecture → C3** |
@@ -120,8 +167,10 @@ column is not optional:
 | changes how work moves — a role, a status, or where a step's output lives | **gymmy — how we work** |
 | settles a question that would be a project to reverse | **Decision log** (append; never edit an entry — mark it superseded) |
 
-Every page ends with an **"update this page when"** note. If yours is not in the
-table, that note is the tiebreak. If it is genuinely neither, it probably does
+Every page in this table outside **Product** and **Product direction** ends with
+an **"update this page when"** note; Product pages have none, because the
+release documentation pass keeps them. If
+yours is not in the table, that note is the tiebreak. If it is genuinely neither, it probably does
 not need a Confluence change — say so rather than guessing.
 
 ### The API is the one exception
@@ -158,7 +207,8 @@ everyday words:
 
 The same goes for text in the app itself — explanations belong behind an ⓘ,
 not in paragraphs on the screen — and for replies to the owner: the answer
-first, in plain words.
+first, in plain words, saying what a ticket or page is about rather than only
+giving its number.
 
 ### Diagrams in Confluence
 
@@ -234,7 +284,10 @@ And the part no command checks: **is the documentation current?** Both sets.
 
 **Done means pushed.** Commit, then push, once per landed piece of work — not
 batched at the end of a session. The owner follows the work from GitHub and
-other devices. If you cannot see CI, say what you verified locally rather than
-calling it green.
+other devices. Work pushed before its independent review says so in the commit,
+and the review's score goes on the next one (a working default, see *Score before
+you show*). You may merge a pull request yourself once all of it has scored 8 or
+more and all its checks are green (Mark, 11/10/2026). If you cannot see CI, say
+what you verified locally rather than calling it green.
 
 @AGENTS.md

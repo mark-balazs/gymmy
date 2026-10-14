@@ -150,7 +150,10 @@ sequenceDiagram
    sequence, and returns everything newer than the cursor. On an **update** it
    writes only the fields the request actually carried: the schema's defaults
    fill a new row's columns, but writing them over an existing row is how an
-   old build reset fields it had never heard of (GYM-69).
+   old build reset fields it had never heard of (GYM-69). Every field its
+   table stores as a time is made a date first, read from the table's own
+   columns: a goal's end time once arrived as text and stopped the phone
+   syncing (GYM-123).
 5. The client applies the server's rows, **then re-applies anything still in the
    outbox on top**. Without that last step a pull in flight would overwrite a
    set logged while it was travelling, and it would look to the user like the
@@ -234,14 +237,6 @@ Visibility is computed per request rather than stored on the plan: you own it,
 or a live share points at you, directly or through a group you are in. Cached as
 a flag, every membership change would have to find and rewrite every plan, and
 the first one missed leaves somebody reading a plan they were removed from.
-
-> **Known gap:** `installSkeleton` is a dozen writes with no wrapping
-> transaction, and the profile is the last of them. Tear the page down partway —
-> a navigation, a crash — and the week installs while the profile still names
-> the old split, so Settings and the Week tab disagree until it is applied
-> again. This predates plans and is true of `applySplit` too; it surfaced when
-> an e2e test navigated the moment the button was clicked. Dexie has
-> transactions; nothing here uses them yet.
 
 ## Offline and recovery
 

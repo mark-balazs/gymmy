@@ -274,7 +274,12 @@ test.describe('The app pushes only where it was asked to', () => {
     await sheet.getByRole('button', { name: 'Set the goal' }).click();
     await expect(page.getByRole('heading', { name: 'What you are pushing' })).toBeVisible();
 
+    const ended = page.waitForResponse(
+      (r) => r.url().endsWith('/api/sync') && /"retiredAt":"/.test(r.request().postData() ?? ''),
+    );
     await page.getByRole('button', { name: 'Stop pushing this' }).click();
+    // GYM-123: ending a goal reaches the server, not just the screen.
+    expect((await ended).status()).toBe(200);
 
     // Back to silence — both cards gone, not just the goal.
     await expect(page.getByRole('heading', { name: 'What you are pushing' })).toHaveCount(0);

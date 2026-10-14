@@ -176,6 +176,13 @@ sits at the head of every retry, stopping the device for good (GYM-73). The
 server still checks, because the client is not trusted; the phone checks so the
 person is told by the field that took the number, while they are looking at it.
 
+**Times cross the wire as text.** A row's times arrive as ISO strings, and the
+route makes every field its table holds as a timestamp into a `Date` before
+writing, by reading the table's own columns, so a new timestamp column needs no
+code here. Handed a string, Drizzle's timestamp column throws: a goal's end
+time once was, and every push from that phone failed with a 500 until it signed
+out (GYM-123).
+
 **Data knows its account.** Every pull answers with `accountId`; the device
 keeps it in `meta` and stamps every outbox row with it. A push states the
 account it believes it holds, and anything but the signed-in one is refused with

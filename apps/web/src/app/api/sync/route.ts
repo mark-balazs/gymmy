@@ -7,7 +7,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { and, asc, eq, gt, sql } from 'drizzle-orm';
+import { and, asc, eq, getTableColumns, gt, sql } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { profiles, SYNC_TABLES, type SyncTableName } from '@/lib/db/schema';
@@ -75,8 +75,22 @@ export async function POST(req: Request): Promise<NextResponse> {
       deletedAt: string | null;
     };
 
+    /* Every time crosses the wire as text, and a timestamp column takes a
+       Date: handed the string, Drizzle throws while building the query, the
+       push fails with a 500 on every retry, and the device never syncs again.
+       So every field the table holds as a timestamp is made a Date here, not
+       only the two every row has. A goal's end time was the one that slipped
+       through (GYM-123). */
+    const columns: Record<string, { dataType: string }> = getTableColumns(table);
+    const dated = Object.fromEntries(
+      Object.entries(rest).map(([k, v]) => [
+        k,
+        typeof v === 'string' && columns[k]?.dataType === 'date' ? new Date(v) : v,
+      ]),
+    );
+
     const values = {
-      ...rest,
+      ...dated,
       id,
       userId,
       updatedAt: new Date(updatedAt),
