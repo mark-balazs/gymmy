@@ -541,6 +541,31 @@ describe('a phone that has been wiped', () => {
 
     expect(srv.sent).toEqual([]);
   });
+
+  it('starts no sync while the wipe is still clearing', async () => {
+    /* The sheet's resume leaves a round due in 300 ms and the backstop
+       running. A wipe that stopped them only once its clears were done would
+       let either fire in between, read the emptied phone as cursor 0 and pull
+       the whole account back with the session that still works. */
+    vi.useFakeTimers({ toFake: [...TIMERS] });
+    browser();
+    const srv = server();
+    vi.stubGlobal('fetch', srv.fetch);
+    signedInAs('acct-1');
+
+    sync.startSync();
+    sync.stopSync();
+    sync.resumeSync();
+
+    const held = holdAt('clear:logs');
+    const wipe = sync.wipeLocal();
+    await held.reached;
+    await vi.advanceTimersByTimeAsync(5 * 60_000);
+    held.open();
+    await wipe;
+
+    expect(srv.sent).toEqual([]);
+  });
 });
 
 describe('data that knows its account', () => {
