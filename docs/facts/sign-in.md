@@ -9,4 +9,4 @@ appears:
   confluence: ["934379522", "934576149", "934445078", "934379542", "994672734"]
 ---
 
-Sign-in has no password: Continue with Google, or a ten-digit email code (valid 10 minutes, once) shown only when RESEND_API_KEY is set. Only the newest code works. Trying codes is limited per address and connection (five tries in 15 minutes, ten a day), so nobody elsewhere can use up the owner's tries, and asking for them per address (two in five minutes) and per connection. Every outcome looks the same, so nobody can find out who has an account.
+Sign-in has no password: Continue with Google, or a ten-digit email code (valid 10 minutes, once) shown only when RESEND_API_KEY is set. Only the newest code works, though two codes asked for at the same moment can rarely both work. Trying codes is limited per address and connection (five tries in 15 minutes, ten a day) and per connection (30 in 15 minutes), never per address alone, so nobody elsewhere can use up the owner's tries; asking for codes is limited per address (two in five minutes) and per connection (20 in 15 minutes). Every outcome looks the same, so nobody can find out who has an account.

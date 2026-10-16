@@ -44,7 +44,7 @@ describe('sign-in codes', () => {
     expect(normaliseCode('123 456')).toBe('123456');
     expect(normaliseCode('123-456')).toBe('123456');
     expect(normaliseCode(' 123456\n')).toBe('123456');
-    // As the email shows it, or grouped by a person copying it out.
+    // Grouped, as a person copying it out might write it.
     expect(normaliseCode('12345 67890')).toBe('1234567890');
   });
 
