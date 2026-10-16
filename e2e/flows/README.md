@@ -20,11 +20,11 @@ before the test that covers it. Every file maps to one spec in `../tests`.
 | [13 — Closing a sheet](./13-closing-a-sheet.md) | `sheets.spec.ts` | A sheet leaves the way it came, and can be pulled down to dismiss |
 
 Other specs cover narrower ground against the same fixtures: `settings`,
-`exercise-detail`, `email-signin`, `sync-paging`, `write-failure`, `recovery`,
-`boot-watchdog`, `pwa-update`, `motion` (the motion tokens and reduced motion as
-the browser applies them) and `info-tip` (the ⓘ that holds explanations: opens
-where it can be read, closes on a second tap, a tap elsewhere or Escape, one at
-a time, and moves nothing).
+`delete-account`, `exercise-detail`, `email-signin`, `sync-paging`,
+`write-failure`, `recovery`, `boot-watchdog`, `pwa-update`, `motion` (the motion
+tokens and reduced motion as the browser applies them) and `info-tip` (the ⓘ
+that holds explanations: opens where it can be read, closes on a second tap, a
+tap elsewhere or Escape, one at a time, and moves nothing).
 
 ## Two layers, on purpose
 

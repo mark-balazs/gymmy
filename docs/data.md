@@ -195,13 +195,15 @@ whoever signed in next (GYM-74).
 **Leaving is stop, send, then wipe.** Sign-out cancels the sync timers, drains
 the queue round after round (the push is capped at 200 a time), wipes and only
 then ends the session; deletion pushes nothing and wipes once the server
-confirms. Both are refused offline. A person who does not leave after all (the
-drain could not send everything and they keep their changes, or the server did
-not confirm the deletion) gets the timers back with `resumeSync`, so the phone
-goes on syncing; it used to stop until the app was reloaded (GYM-125). And
-`wipeLocal` bumps an epoch that every sync in flight re-reads before it writes
-anything, so a request that left before a wipe cannot refill the phone for the
-next person.
+confirms. Both are refused offline. Whoever stays signed in keeps syncing:
+sign-out's sheet, which says how many changes did not go, gives the timers back
+with `resumeSync` as it opens, and so does a deletion the server did not
+confirm; both used to leave the phone stopped until a reload (GYM-125). So a
+sync can be running when the wipe comes. `wipeLocal` stops it before it clears
+anything, and bumps an epoch (a count of wipes) that a sync re-reads before
+each write: a write already made lands before the clears, since IndexedDB runs
+writes to a store in the order they were made, and none follows, so a sync that
+started before the wipe cannot refill the phone for the next person.
 
 ## Migrations
 

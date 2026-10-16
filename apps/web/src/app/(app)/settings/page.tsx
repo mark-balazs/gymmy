@@ -145,8 +145,9 @@ export default function SettingsPage() {
   const wipeAndLeave = async () => {
     setLeaving(true);
     setUnsent(0);
-    // Stopped again for the second tap, which comes after the sheet started it.
-    stopSync();
+    // `wipeLocal` stops the sync before it clears anything, the one the sheet
+    // started again while it asked included, so no round starts before the
+    // session ends.
     try {
       await wipeLocal();
     } catch {

@@ -112,17 +112,19 @@ let started = false;
 /**
  * How many times this device has been wiped.
  *
- * A sync that left before a wipe comes back after it, holding the account it
+ * A sync that started before a wipe goes on after it, holding the account it
  * was reading a moment ago — and writing those rows, or clearing the outbox it
  * no longer describes, refills a phone somebody has just handed over (GYM-74).
- * Every run takes a copy of this number and does nothing with its answer if it
- * has moved.
+ * Every run takes a copy of this number and reads it again before each write,
+ * so once a wipe has moved it the run writes nothing more: not when its answer
+ * arrives, and not halfway through writing one (GYM-125).
  */
 let epoch = 0;
 
-/** Stopped: sign-out and deletion cancel the timers before they wipe, so
- *  nothing starts a sync into the gap. `resumeSync` undoes it for a person who
- *  turns out to be staying. */
+/** Stopped: sign-out and deletion cancel the timers before they ask the
+ *  server, and a wipe cancels them again before it clears anything, so nothing
+ *  starts a sync into the gap. `resumeSync` undoes it for a person who turns
+ *  out to be staying. */
 let stopped = false;
 
 export function onSyncStatus(fn: Listener): () => void {
@@ -263,28 +265,35 @@ async function run(): Promise<void> {
 
     const payload = (await res.json()) as PullResponse;
 
-    /* The device was wiped while this was travelling — a sign-out, a deletion,
-       a reset. Everything below describes an account this phone no longer
+    /* The device was wiped while this was travelling — a sign-out or a
+       deletion. Everything below describes an account this phone no longer
        holds, so writing any of it hands the next person the last one's
        training, and clearing the outbox clears changes this request never
-       carried. */
+       carried. A wipe can also come while the writes below are under way, so
+       every one of them is preceded by the same check: here, and inside the
+       two helpers that write table by table and row by row (GYM-125). */
     if (epoch !== mine) return;
 
     if (account === null) {
       // First answer this device has ever had: it, and everything queued
       // before it, belong to this account from now on.
       await setMeta(ACCOUNT_KEY, payload.accountId);
+      if (epoch !== mine) return;
       await local.outbox.toCollection().modify({ accountId: payload.accountId });
     }
+    if (epoch !== mine) return;
 
-    await applyChanges(payload.changes);
+    await applyChanges(payload.changes, mine);
+    if (epoch !== mine) return;
 
     // Only clear what we actually sent; anything queued since stays put.
     const sentIds = queued.map((q) => q.seq).filter((s): s is number => typeof s === 'number');
     if (sentIds.length) await local.outbox.bulkDelete(sentIds);
+    if (epoch !== mine) return;
 
     // Re-apply the still-queued rows so an in-flight pull cannot clobber them.
-    await reapplyOutbox();
+    await reapplyOutbox(mine);
+    if (epoch !== mine) return;
 
     await setMeta('cursor', payload.cursor);
     await refreshPending();
@@ -338,9 +347,11 @@ export async function flush(): Promise<number> {
 /**
  * Cancels every trigger, until `resumeSync`.
  *
- * Called before a wipe: the debounce, the five-minute backstop and the
- * reconnect and focus handlers all fire into an app that is being taken apart,
- * and a sync started in that gap is how a wiped phone refilled itself.
+ * Sign-out calls it before its last push, deletion before it asks the server,
+ * and `wipeLocal` before anything else: the debounce, the five-minute backstop
+ * and the reconnect and focus handlers all fire into an app that is being
+ * taken apart, and a sync started in that gap is how a wiped phone refilled
+ * itself.
  */
 export function stopSync(): void {
   stopped = true;
@@ -367,8 +378,11 @@ export function resumeSync(): void {
   schedule(300);
 }
 
-async function applyChanges(changes: Record<string, unknown[]>): Promise<void> {
+/** Writes a pull's rows a table at a time, and stops at the next table once a
+ *  wipe has moved the epoch from `mine`, the run's own copy. */
+async function applyChanges(changes: Record<string, unknown[]>, mine: number): Promise<void> {
   for (const name of DOMAIN_TABLES) {
+    if (epoch !== mine) return;
     const rows = changes[name];
     if (!rows?.length) continue;
     const table = local.table(name);
@@ -376,9 +390,13 @@ async function applyChanges(changes: Record<string, unknown[]>): Promise<void> {
   }
 }
 
-async function reapplyOutbox(): Promise<void> {
+/** Puts back what is still queued a row at a time, and stops the same way: a
+ *  wipe that lands after the read must not see the rows it just cleared put
+ *  back, the last person's unsent sets among them. */
+async function reapplyOutbox(mine: number): Promise<void> {
   const remaining = await local.outbox.orderBy('seq').toArray();
   for (const item of remaining) {
+    if (epoch !== mine) return;
     await local.table(item.table).put(item.row as never);
   }
 }
@@ -410,14 +428,22 @@ export function startSync(): void {
 }
 
 /**
- * Full reset — used on sign-out so the next account does not inherit a cache.
+ * Full reset — used on sign-out and deletion so the next account does not
+ * inherit a cache.
  *
- * The epoch moves *first*, so a request already travelling cannot come back and
- * write the account this is erasing. Callers that are about to end the session
- * call `stopSync()` before this; a reset that keeps the app running (the
- * recovery screen) does not, and relies on the epoch alone.
+ * Both callers are leaving, so it stops the sync before anything else: a round
+ * started between the wipe and the end of the session would ask from cursor 0
+ * with a session that still works, and pull the whole account back onto the
+ * emptied phone. Then the epoch moves, so a round already running writes
+ * nothing more: the round reads it again before every write, and a write it
+ * made before this lands before these clears, because IndexedDB runs writes to
+ * a store in the order they were made.
+ *
+ * The recovery screen's reset does not come through here: it deletes the whole
+ * database and loads the app again (`recover.ts`).
  */
 export async function wipeLocal(): Promise<void> {
+  stopSync();
   epoch += 1;
   await Promise.all([
     ...DOMAIN_TABLES.map((t) => local.table(t).clear()),
