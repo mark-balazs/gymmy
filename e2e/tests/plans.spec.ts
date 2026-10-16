@@ -1,6 +1,7 @@
 import {
   planInEffect,
   planOwnedBy,
+  planRow,
   publishNewVersion,
   serverSets,
   shareAPlanWith,
@@ -272,6 +273,54 @@ test.describe('The plans a trainer writes', () => {
     await expect(page.getByText('No plans yet.')).toHaveCount(0);
 
     await context.setOffline(false);
+  });
+
+  test('publishes what is on the screen, not what was last saved', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* Publish sent the plan as it was last saved and closed the editor, so an
+       edit made since Save was thrown away without a word, and the people it
+       is shared with got the older version (GYM-117). */
+    const trainer = await signInAs(page, context, baseURL!, { onboarded: true, role: 'trainer' });
+    const { planId } = await planOwnedBy(trainer.id, { name: 'Winter block', published: false });
+
+    await page.goto('/coach');
+    await page.getByText('Winter block').click();
+    const sheet = page.getByRole('dialog');
+    await sheet.getByLabel('Name').fill('Winter block, week 2');
+    await sheet.getByRole('button', { name: 'Publish' }).click();
+    // Gone, not only fading out: its own title would match the name below.
+    await expect(sheet).toHaveCount(0);
+
+    // The list is read back from the server once the editor closes.
+    await expect(page.getByRole('button', { name: /^Winter block, week 2/ })).toBeVisible();
+    expect(await planRow(planId)).toEqual({
+      name: 'Winter block, week 2',
+      version: 1,
+      published: true,
+    });
+  });
+
+  test('publishing a plan nobody changed offers nobody an update', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* Saving a published plan raises its version, and a higher version is what
+       offers its people an update. So Publish saves first only when something
+       changed: tapped on an unchanged plan, it leaves the version alone. */
+    const trainer = await signInAs(page, context, baseURL!, { onboarded: true, role: 'trainer' });
+    const { planId } = await planOwnedBy(trainer.id, { name: 'Summer block' });
+
+    await page.goto('/coach');
+    await page.getByText('Summer block').click();
+    const sheet = page.getByRole('dialog');
+    await sheet.getByRole('button', { name: 'Publish' }).click();
+    await expect(sheet).toHaveCount(0);
+
+    expect(await planRow(planId)).toEqual({ name: 'Summer block', version: 1, published: true });
   });
 
   test('labels a plan by the days the athlete will get, not the numbers stored', async ({

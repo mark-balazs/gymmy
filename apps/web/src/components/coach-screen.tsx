@@ -272,6 +272,23 @@ function PlanEditor({
     }
   };
 
+  /* Publishes what is on the screen. It used to publish the plan as last
+     saved and close the editor, so anything changed since Save was thrown
+     away without a word, and people got the older version (GYM-117). An
+     unchanged plan is not saved again: saving a published plan makes a new
+     version, and its people would be offered an update with nothing in it. */
+  const publish = async () => {
+    if (!state.id || !draft.name.trim()) return;
+    setBusy(true);
+    try {
+      const changed = JSON.stringify(draft) !== JSON.stringify(state.draft);
+      if (changed && !(await savePlan(state.id, draft))) return;
+      if (await publishPlan(state.id)) onSaved();
+    } finally {
+      setBusy(false);
+    }
+  };
+
   /* Days are labelled by their place in the week, never by the number stored
      on the slot. Applying a plan renumbers the days densely, so a plan whose
      days are 0, 0 and 2 is Day A and Day B to the athlete — and the trainer was
@@ -403,13 +420,8 @@ function PlanEditor({
         {state.id && (
           <Button
             className="shrink-0"
-            disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              await publishPlan(state.id!);
-              setBusy(false);
-              onSaved();
-            }}
+            disabled={busy || !draft.name.trim()}
+            onClick={() => void publish()}
           >
             {tr.t('coach.publish')}
           </Button>
