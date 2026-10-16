@@ -10,7 +10,7 @@
 
 import { useState } from 'react';
 import { buttonClass } from '@/components/ui';
-import { CODE_LENGTH, normaliseCode } from '@/lib/email-otp';
+import { CODE_LENGTH, normaliseCode, normaliseEmail } from '@/lib/email-otp';
 
 const field =
   'min-h-[var(--spacing-tap)] w-full rounded-[12px] border border-[var(--color-line)] ' +
@@ -88,7 +88,7 @@ export function EmailSignIn({ callbackUrl }: { callbackUrl: string }) {
    * A GET form puts the same fields in the query string, which is exactly the
    * request a magic link would have made. It needs no CSRF token for the same
    * reason a link does not: the code itself is the secret, it is single-use,
-   * and it expires in ten minutes.
+   * it expires in ten minutes, and the tries at it are limited.
    */
   return (
     <form className="flex w-full flex-col gap-2" method="get" action="/api/auth/callback/resend">
@@ -100,7 +100,9 @@ export function EmailSignIn({ callbackUrl }: { callbackUrl: string }) {
       </p>
 
       {/* Auth.js verifies the pair, so both travel with the form. */}
-      <input type="hidden" name="email" value={email} />
+      {/* Lower-cased as the code was stored: Auth.js looks the code up under
+          exactly this address, so "Anna@…" would never match "anna@…" (GYM-164). */}
+      <input type="hidden" name="email" value={normaliseEmail(email)} />
       <input type="hidden" name="callbackUrl" value={callbackUrl} />
 
       <input
@@ -108,8 +110,7 @@ export function EmailSignIn({ callbackUrl }: { callbackUrl: string }) {
         required
         inputMode="numeric"
         autoComplete="one-time-code"
-        maxLength={CODE_LENGTH}
-        placeholder="000000"
+        placeholder={'0'.repeat(CODE_LENGTH)}
         aria-label="Sign-in code"
         value={code}
         onChange={(e) => setCode(normaliseCode(e.target.value).slice(0, CODE_LENGTH))}

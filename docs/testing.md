@@ -79,9 +79,26 @@ Two ways the suite lies to you if you skip that:
 
 ## Fragilities worth knowing
 
-- **The sign-in throttle is shared.** It buckets by `x-forwarded-for`, which no
-  test sends, so the whole suite shares one bucket. Any test asserting on an
-  un-throttled response must call `resetSignInThrottle()` first.
+- **The sign-in limits count per client**, and per address. The client key is
+  the first `x-forwarded-for` hop, and tests that send none share one bucket.
+  So a test that asks for a code or enters one sends its own `x-forwarded-for`
+  and uses a fresh address: then no earlier run, and no test running beside
+  it, can spend the limits it asserts past. Nothing resets them; a reset
+  would wipe the count of a test running beside it.
+- **Run the browser suite on Playwright's headless shell**, the kind of browser
+  CI uses, which is Playwright's default. Pointed at a full Chromium build, as
+  a machine without Playwright's own browsers may need, the suite fails
+  `navigation.spec.ts:785`: the full browser goes Back by itself on a sideways
+  drag that the page does not cancel (GYM-168).
+- **Write a test's sign-in code after asking for one.** Only the newest code
+  works, so a code stored before the request is deleted by it. Wait for the
+  code field, then `seedSignInCode`.
+- **A lock is tested by holding it, not by a burst.** With the ask lock taken
+  out, a burst of asks at once still came out right in the whole file, every
+  time: the race it needs comes only now and then. So the throttle's tests
+  hold the lock in a transaction of their own, a row written and not committed
+  (`askInFlight`), while the asks start, and the lock either makes them wait
+  for that row or plainly does not.
 - **Tab-bar locators must be `exact: true`.** A card whose description mentions
   "week" will otherwise match `link named "Week"`.
 - **Charts need two sessions** before they render anything, so a test that
