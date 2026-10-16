@@ -284,6 +284,27 @@ describe('the last push before a wipe', () => {
     expect(dev.outbox).toHaveLength(0);
   });
 
+  it('starts again for a person who stays signed in', async () => {
+    /* Sign-out and deletion stop the sync before they wipe. When the person
+       stays instead, nothing else ever started it again, so the phone sent
+       nothing until it was reloaded (GYM-125). */
+    const srv = server();
+    vi.stubGlobal('fetch', srv.fetch);
+    signedInAs('acct-1');
+    queue(2);
+
+    sync.stopSync();
+    await sync.sync();
+    expect(srv.sent).toHaveLength(0);
+
+    sync.resumeSync();
+    await sync.sync();
+    expect(srv.sent.map((r) => r.rows)).toEqual([['s0', 's1']]);
+    expect(dev.outbox).toHaveLength(0);
+    // The round resumeSync scheduled must not fire into the next test.
+    sync.stopSync();
+  });
+
   it('says how many are left when it cannot send them', async () => {
     vi.stubGlobal('fetch', answer(500));
     signedInAs('acct-1');

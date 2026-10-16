@@ -120,8 +120,9 @@ let started = false;
  */
 let epoch = 0;
 
-/** Stopped for good: sign-out and deletion cancel the timers before they wipe,
- *  so nothing starts a sync into the gap. */
+/** Stopped: sign-out and deletion cancel the timers before they wipe, so
+ *  nothing starts a sync into the gap. `resumeSync` undoes it for a person who
+ *  turns out to be staying. */
 let stopped = false;
 
 export function onSyncStatus(fn: Listener): () => void {
@@ -335,7 +336,7 @@ export async function flush(): Promise<number> {
 }
 
 /**
- * Cancels every trigger, for good.
+ * Cancels every trigger, until `resumeSync`.
  *
  * Called before a wipe: the debounce, the five-minute backstop and the
  * reconnect and focus handlers all fire into an app that is being taken apart,
@@ -347,6 +348,23 @@ export function stopSync(): void {
   timer = null;
   if (backstop) clearInterval(backstop);
   backstop = null;
+}
+
+/**
+ * Undoes `stopSync`, for a person who is still signed in after all.
+ *
+ * Sign-out stops the sync before it pushes and wipes, and deletion before it
+ * asks the server. When the person stays instead (sign-out found changes it
+ * could not send, or the server did not confirm the deletion), nothing else
+ * ever started it again: the phone neither pushed nor pulled until the app was
+ * reloaded (GYM-125). The listeners `startSync` wired are still there; only
+ * the flag, the backstop and the next round need putting back.
+ */
+export function resumeSync(): void {
+  stopped = false;
+  if (started && !backstop) backstop = setInterval(() => void sync(), 5 * 60 * 1000);
+  void refreshPending();
+  schedule(300);
 }
 
 async function applyChanges(changes: Record<string, unknown[]>): Promise<void> {

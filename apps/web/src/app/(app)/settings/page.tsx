@@ -22,7 +22,7 @@ import {
   setTheme,
   setUnit,
 } from '@/lib/client/mutations';
-import { flush, stopSync, wipeLocal } from '@/lib/client/sync';
+import { flush, resumeSync, stopSync, wipeLocal } from '@/lib/client/sync';
 import { deleteAccountAction, signOutAction } from './actions';
 import { LANGS } from '@/lib/i18n';
 import type { Key } from '@/lib/i18n';
@@ -130,7 +130,11 @@ export default function SettingsPage() {
       left = pending ?? 1;
     }
     if (left > 0) {
-      // Not wiped, and not silently: the sheet says how many and asks.
+      /* Not wiped, and not silently: the sheet says how many and asks. Until
+         they answer they are still signed in, so the sync starts again, however
+         they leave the sheet; staying used to leave the phone neither pushing
+         nor pulling until it was reloaded (GYM-125). */
+      resumeSync();
       setLeaving(false);
       setUnsent(left);
       return;
@@ -141,6 +145,8 @@ export default function SettingsPage() {
   const wipeAndLeave = async () => {
     setLeaving(true);
     setUnsent(0);
+    // Stopped again for the second tap, which comes after the sheet started it.
+    stopSync();
     try {
       await wipeLocal();
     } catch {
@@ -518,6 +524,10 @@ export default function SettingsPage() {
               try {
                 await deleteAccountAction();
               } catch {
+                /* Nothing was wiped, so the phone carries on as before: it
+                   pushes and pulls again, or says to sign in if the failure
+                   came after the session ended (GYM-125). */
+                resumeSync();
                 setLeaving(false);
                 setProblem(tr.t('set.deleteFailed'));
                 return;

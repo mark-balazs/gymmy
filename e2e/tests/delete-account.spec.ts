@@ -102,7 +102,18 @@ test.describe('Deleting your account', () => {
     // Still signed in, still on the phone, still on the server.
     await expect(page).toHaveURL(/\/settings/);
     expect(await localLogCount(page)).toBe(before);
-    expect(await rowCount('set_logs', user.id)).toBeGreaterThan(0);
+    const onServer = await rowCount('set_logs', user.id);
+    expect(onServer).toBeGreaterThan(0);
+
+    /* And still syncing. The deletion stopped the sync before it asked the
+       server, and a deletion that failed never started it again, so nothing
+       logged afterwards went up until the app was reloaded (GYM-125). */
+    await sheet.getByRole('button', { name: 'Cancel' }).click();
+    await expect(sheet).toBeHidden();
+    await page.getByRole('link', { name: 'Train', exact: true }).click();
+    await page.waitForURL('**/train');
+    await logSet(page, 60, 8);
+    await expect.poll(() => rowCount('set_logs', user.id), { timeout: 30_000 }).toBe(onServer + 1);
   });
 
   test('can be backed out of', async ({ page, context, baseURL }) => {

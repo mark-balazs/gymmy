@@ -327,6 +327,36 @@ test.describe('Signing out', () => {
     expect(await serverSets(user.id)).toEqual([]);
   });
 
+  test('keeps syncing for a person who stays', async ({ page, context, baseURL }) => {
+    /* Sign-out stops the sync before its last push. When that push could not
+       send everything and the person kept their changes instead, nothing ever
+       started the sync again: the phone sent nothing more, and fetched nothing,
+       until it was reloaded (GYM-125). */
+    const user = await signInAs(page, context, baseURL!, { onboarded: true });
+    await context.route('**/api/sync', (route) => route.abort());
+    await logSet(page, 60, 8);
+    await expect(page.getByText('Could not sync')).toBeAttached({ timeout: 15_000 });
+
+    await tab(page, 'Settings').click();
+    await page.waitForURL('**/settings');
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    const sheet = page.getByRole('dialog', { name: 'Some changes are still here' });
+    await expect(sheet.getByText('1 change has not reached the server.')).toBeVisible({
+      timeout: 30_000,
+    });
+    await context.unroute('**/api/sync');
+    await sheet.getByRole('button', { name: 'Cancel' }).click();
+    await expect(sheet).toBeHidden();
+
+    // Still signed in, so the next set goes up, and the one that waited with it.
+    // Client-side, so no page load starts a sync of its own on the way.
+    await tab(page, 'Train').click();
+    await page.waitForURL('**/train');
+    await logSet(page, 60, 9);
+    await expect.poll(async () => (await serverSets(user.id)).length, { timeout: 30_000 }).toBe(2);
+    expect(await localLogCount(page)).toBe(2);
+  });
+
   test('shows nobody the training on a phone that was never cleared', async ({
     page,
     context,

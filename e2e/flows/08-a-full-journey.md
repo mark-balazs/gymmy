@@ -59,6 +59,8 @@ Fixture accounts, because what is being tested is the leaving, not the arriving:
 5. With the server unreachable, sign out: offline it is refused outright, and
    online it says how many changes never reached the server and waits for a
    second tap before wiping them.
+6. The same, but keep the changes: once the server is back, the next set goes
+   up, and the one that waited with it, without a reload (GYM-125).
 
 ## Steps — a second device
 
@@ -80,7 +82,7 @@ Fixture accounts, because what is being tested is the leaving, not the arriving:
   storage, so anything that comes back afterwards came from the server.
 - Nothing is ever wiped silently. Signing out sends everything it can first,
   and what it cannot send is counted on screen and thrown away only on a
-  second tap.
+  second tap. Whoever stays signed in keeps syncing.
 - The same account on a different device shows the same training. A reload only
   proves IndexedDB kept it; a second device proves the sync did.
 

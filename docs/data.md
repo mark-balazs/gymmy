@@ -195,9 +195,13 @@ whoever signed in next (GYM-74).
 **Leaving is stop, send, then wipe.** Sign-out cancels the sync timers, drains
 the queue round after round (the push is capped at 200 a time), wipes and only
 then ends the session; deletion pushes nothing and wipes once the server
-confirms. Both are refused offline. And `wipeLocal` bumps an epoch that every
-sync in flight re-reads before it writes anything, so a request that left before
-a wipe cannot refill the phone for the next person.
+confirms. Both are refused offline. A person who does not leave after all (the
+drain could not send everything and they keep their changes, or the server did
+not confirm the deletion) gets the timers back with `resumeSync`, so the phone
+goes on syncing; it used to stop until the app was reloaded (GYM-125). And
+`wipeLocal` bumps an epoch that every sync in flight re-reads before it writes
+anything, so a request that left before a wipe cannot refill the phone for the
+next person.
 
 ## Migrations
 
