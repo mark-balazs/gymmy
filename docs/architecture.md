@@ -108,9 +108,8 @@ sequenceDiagram
     Note over S: ~800ms debounce
     S->>API: outbox + highest seq seen
     API-->>S: rows newer than that, all tables
-    S->>L: apply server rows
-    S->>L: re-apply outbox on top
-    Note over S,L: without that last step, a pull in flight<br/>overwrites a set logged while it travelled
+    S->>L: one transaction: apply server rows, re-apply outbox on top
+    Note over S,L: without the re-apply, a pull in flight<br/>overwrites a set logged while it travelled
 ```
 
 1. A tap calls a function in `lib/client/mutations.ts`. **Every** write goes
@@ -155,9 +154,14 @@ sequenceDiagram
    columns: a goal's end time once arrived as text and stopped the phone
    syncing (GYM-123).
 5. The client applies the server's rows, **then re-applies anything still in the
-   outbox on top**. Without that last step a pull in flight would overwrite a
-   set logged while it was travelling, and it would look to the user like the
-   app simply lost it.
+   outbox on top**, all in **one transaction** with the cursor. Without the
+   put-back a pull in flight would overwrite a set logged while it was
+   travelling, and it would look to the user like the app simply lost it.
+   Without the one transaction every screen, reading the database live, saw the
+   server's older copy for a moment before the put-back landed: straight after
+   setup that was a profile not yet set up, and the app sent the person back to
+   setup's first step (GYM-176). A wipe that comes while it runs abandons the
+   whole transaction (GYM-125).
 
 If step 1's own write to IndexedDB fails, nothing was saved anywhere.
 `put()` calls `reportStorageFailure`, which sets `storageFailure` on the sync

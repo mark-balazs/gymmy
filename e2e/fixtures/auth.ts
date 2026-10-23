@@ -773,6 +773,21 @@ export async function profileLang(userId: string): Promise<string | null> {
   return (r.rows[0] as { lang: string } | undefined)?.lang ?? null;
 }
 
+/** Whether the server holds the profile as set up. */
+export async function profileOnboarded(userId: string): Promise<boolean | null> {
+  const r = await db().query('SELECT onboarded FROM profiles WHERE user_id = $1 LIMIT 1', [userId]);
+  return (r.rows[0] as { onboarded: boolean } | undefined)?.onboarded ?? null;
+}
+
+/**
+ * Gives the server's profile a new change number, unchanged otherwise, as
+ * another device's write would: the next sync from any phone then brings the
+ * server's copy down again.
+ */
+export async function touchProfile(userId: string): Promise<void> {
+  await db().query(`UPDATE profiles SET seq = nextval('change_seq') WHERE user_id = $1`, [userId]);
+}
+
 /** The height the server holds, in centimetres. */
 export async function profileHeight(userId: string): Promise<number | null> {
   const r = await db().query('SELECT height_cm FROM profiles WHERE user_id = $1 LIMIT 1', [userId]);

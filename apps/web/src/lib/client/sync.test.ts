@@ -99,6 +99,10 @@ vi.mock('./db', () => {
       dev.meta.set(key, value);
       await dev.write(`meta.set:${key}`);
     },
+    // No rollback here: these tests hold the order of writes and the checks
+    // between them. That a round's writes land together is a browser test's
+    // to hold, against the real database (GYM-176).
+    inTx: (fn: () => Promise<unknown>) => fn(),
   };
 });
 

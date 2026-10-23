@@ -32,7 +32,9 @@ app has failed at the thing it exists to do.
   because the bias is the one answer that acts only in the isolation slot.
 - Two accounts that answer the same way get different exercises: each account
   has its own offset into the library, and setup passes it to the generator.
-- Landing on `/train` afterwards, not back on onboarding.
+- Landing on `/train` afterwards, not back on onboarding, even when a sync that
+  left before the last step comes back after it with the server's older
+  profile (GYM-176).
 - Re-opening the app goes straight to `/train` — onboarding does not repeat.
 - The generated plan covers **every** counted pattern. This is the guarantee
   the repair pass in `buildProgram` exists to provide, and the unit tests

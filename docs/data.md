@@ -199,11 +199,15 @@ confirms. Both are refused offline. Whoever stays signed in keeps syncing:
 sign-out's sheet, which says how many changes did not go, gives the timers back
 with `resumeSync` as it opens, and so does a deletion the server did not
 confirm; both used to leave the phone stopped until a reload (GYM-125). So a
-sync can be running when the wipe comes. `wipeLocal` stops it before it clears
-anything, and bumps an epoch (a count of wipes) that a sync re-reads before
-each write: a write already made lands before the clears, since IndexedDB runs
-writes to a store in the order they were made, and none follows, so a sync that
-started before the wipe cannot refill the phone for the next person.
+sync can be running when the wipe comes. `wipeLocal` stops it and bumps an
+epoch (a count of wipes) before it clears anything. A sync writes everything
+its answer brings in one transaction, and re-reads the epoch before each write
+inside it: finding it moved, it abandons the whole transaction. One already
+past its last check lands before the clears, since IndexedDB runs transactions
+on the same stores in the order they were made, so a sync that started before
+the wipe cannot refill the phone for the next person. The one transaction also
+means no screen sees a row the server sent before the phone's own unsent change
+is put back on top of it (GYM-176).
 
 ## Migrations
 

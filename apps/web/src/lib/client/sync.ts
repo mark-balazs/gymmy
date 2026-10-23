@@ -8,10 +8,11 @@
  * The subtle part is ordering. Server changes are applied first, then anything
  * still sitting in the outbox is re-applied on top — otherwise a pull could
  * overwrite a set you logged while the request was in flight, and it would look
- * to you like the app simply lost it.
+ * to you like the app simply lost it. Both land in one transaction, so no screen
+ * sees the server's copy before the put-back covers it.
  */
 
-import { local, ACCOUNT_KEY, DOMAIN_TABLES, getMeta, setMeta, type Outbox } from './db';
+import { local, ACCOUNT_KEY, DOMAIN_TABLES, getMeta, inTx, setMeta, type Outbox } from './db';
 import type { PullResponse } from '@/lib/sync/protocol';
 import type { TableName } from '@athletic/domain';
 
@@ -117,7 +118,8 @@ let started = false;
  * no longer describes, refills a phone somebody has just handed over (GYM-74).
  * Every run takes a copy of this number and reads it again before each write,
  * so once a wipe has moved it the run writes nothing more: not when its answer
- * arrives, and not halfway through writing one (GYM-125).
+ * arrives, and not halfway through writing one, when it abandons the whole
+ * transaction it was writing in (GYM-125).
  */
 let epoch = 0;
 
@@ -274,28 +276,37 @@ async function run(): Promise<void> {
        two helpers that write table by table and row by row (GYM-125). */
     if (epoch !== mine) return;
 
-    if (account === null) {
-      // First answer this device has ever had: it, and everything queued
-      // before it, belong to this account from now on.
-      await setMeta(ACCOUNT_KEY, payload.accountId);
-      if (epoch !== mine) return;
-      await local.outbox.toCollection().modify({ accountId: payload.accountId });
-    }
-    if (epoch !== mine) return;
-
-    await applyChanges(payload.changes, mine);
-    if (epoch !== mine) return;
-
     // Only clear what we actually sent; anything queued since stays put.
     const sentIds = queued.map((q) => q.seq).filter((s): s is number => typeof s === 'number');
-    if (sentIds.length) await local.outbox.bulkDelete(sentIds);
-    if (epoch !== mine) return;
 
-    // Re-apply the still-queued rows so an in-flight pull cannot clobber them.
-    await reapplyOutbox(mine);
-    if (epoch !== mine) return;
-
-    await setMeta('cursor', payload.cursor);
+    /* Everything the answer writes lands in one transaction (GYM-176). Every
+       screen reads this database live, and these writes used to land one by
+       one: the server's rows first, the phone's own unsent changes put back on
+       top a moment later. In between, a screen saw the server's older copy of
+       a row the phone had already changed. Straight after Setup that was a
+       profile not yet set up, and the app sent the person back to Setup's
+       first step. In one transaction a screen sees all of it or none of it. A
+       check that finds the epoch moved throws, which abandons the transaction
+       whole, so a wipe that comes while it runs leaves none of it behind. */
+    await inTx(async () => {
+      stillMine(mine);
+      if (account === null) {
+        // First answer this device has ever had: it, and everything queued
+        // before it, belong to this account from now on.
+        await setMeta(ACCOUNT_KEY, payload.accountId);
+        stillMine(mine);
+        await local.outbox.toCollection().modify({ accountId: payload.accountId });
+      }
+      stillMine(mine);
+      await applyChanges(payload.changes, mine);
+      stillMine(mine);
+      if (sentIds.length) await local.outbox.bulkDelete(sentIds);
+      stillMine(mine);
+      // Re-apply the still-queued rows so an in-flight pull cannot clobber them.
+      await reapplyOutbox(mine);
+      stillMine(mine);
+      await setMeta('cursor', payload.cursor);
+    });
     await refreshPending();
 
     // The server held the cursor back because a table filled its page. Come
@@ -378,11 +389,21 @@ export function resumeSync(): void {
   schedule(300);
 }
 
-/** Writes a pull's rows a table at a time, and stops at the next table once a
- *  wipe has moved the epoch from `mine`, the run's own copy. */
+/** Thrown inside a round's transaction once a wipe has moved the epoch from
+ *  `mine`, the round's own copy. Throwing, rather than returning, abandons the
+ *  transaction, so nothing the round wrote before the check lands either; the
+ *  round's `catch` sees the moved epoch and says nothing. */
+class Wiped extends Error {}
+
+function stillMine(mine: number): void {
+  if (epoch !== mine) throw new Wiped('the phone was wiped while this sync ran');
+}
+
+/** Writes a pull's rows a table at a time, and throws at the next table once a
+ *  wipe has moved the epoch, which abandons the round's transaction. */
 async function applyChanges(changes: Record<string, unknown[]>, mine: number): Promise<void> {
   for (const name of DOMAIN_TABLES) {
-    if (epoch !== mine) return;
+    stillMine(mine);
     const rows = changes[name];
     if (!rows?.length) continue;
     const table = local.table(name);
@@ -396,7 +417,7 @@ async function applyChanges(changes: Record<string, unknown[]>, mine: number): P
 async function reapplyOutbox(mine: number): Promise<void> {
   const remaining = await local.outbox.orderBy('seq').toArray();
   for (const item of remaining) {
-    if (epoch !== mine) return;
+    stillMine(mine);
     await local.table(item.table).put(item.row as never);
   }
 }
@@ -436,8 +457,10 @@ export function startSync(): void {
  * with a session that still works, and pull the whole account back onto the
  * emptied phone. Then, still before any clear, the epoch moves, so a round
  * already running writes nothing more: the round reads it again before every
- * write, and a write it made before this lands before these clears, because
- * IndexedDB runs writes to a store in the order they were made.
+ * write inside its one transaction, and on finding it moved abandons the whole
+ * transaction, so none of it lands. A transaction already past its last check
+ * lands before these clears, because IndexedDB runs transactions on the same
+ * stores in the order they were made.
  *
  * The recovery screen's reset does not come through here: it deletes the whole
  * database and loads the app again (`recover.ts`).
