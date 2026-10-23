@@ -566,6 +566,30 @@ describe('a phone that has been wiped', () => {
 
     expect(srv.sent).toEqual([]);
   });
+
+  it('counts the wipe before it clears anything', async () => {
+    /* A round whose answer lands while the clears are still running must
+       already see the wipe: anything it wrote then would be made after the
+       clears, and land on the emptied phone. */
+    vi.stubGlobal('fetch', previousPerson());
+    signedInAs('acct-1');
+    queue(2);
+    const answer = holdAt('request');
+    const round = sync.sync();
+    await answer.reached;
+
+    const clearing = holdAt('clear:logs');
+    const wipe = sync.wipeLocal();
+    await clearing.reached;
+    const wiped = dev.writes.length;
+    answer.open();
+    await round;
+    clearing.open();
+    await wipe;
+
+    expect(dev.writes.slice(wiped)).toEqual([]);
+    expect([...dev.meta.keys()]).toEqual([]);
+  });
 });
 
 describe('data that knows its account', () => {

@@ -434,10 +434,10 @@ export function startSync(): void {
  * Both callers are leaving, so it stops the sync before anything else: a round
  * started between the wipe and the end of the session would ask from cursor 0
  * with a session that still works, and pull the whole account back onto the
- * emptied phone. Then the epoch moves, so a round already running writes
- * nothing more: the round reads it again before every write, and a write it
- * made before this lands before these clears, because IndexedDB runs writes to
- * a store in the order they were made.
+ * emptied phone. Then, still before any clear, the epoch moves, so a round
+ * already running writes nothing more: the round reads it again before every
+ * write, and a write it made before this lands before these clears, because
+ * IndexedDB runs writes to a store in the order they were made.
  *
  * The recovery screen's reset does not come through here: it deletes the whole
  * database and loads the app again (`recover.ts`).
