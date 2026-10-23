@@ -16,8 +16,8 @@
  *
  *  - `verificationToken` is keyed on the address itself, because a sign-in code
  *    is issued before anyone knows whether there is an account behind it;
- *  - `sign_in_attempts` records the address to rate-limit code requests and
- *    code checks, for the same reason.
+ *  - `sign_in_attempts` records the address to rate-limit code requests, for
+ *    the same reason.
  *
  * They are cleared first, so the irreversible step is last: if the cascade
  * fails the account is still intact, and the worst that has happened is that

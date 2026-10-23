@@ -536,7 +536,8 @@ export async function seedPatternsOnly(userId: string): Promise<void> {
  * database dump is not a pile of working sign-in codes.
  */
 export async function seedSignInCode(email: string, code: string): Promise<void> {
-  const token = codeHash(code);
+  const secret = process.env.AUTH_SECRET ?? 'e2e-secret-e2e-secret-e2e-secret-32ch';
+  const token = createHash('sha256').update(`${code}${secret}`).digest('hex');
 
   await db().query(
     'INSERT INTO "verificationToken" (identifier, token, expires) VALUES ($1, $2, $3)',
@@ -544,19 +545,17 @@ export async function seedSignInCode(email: string, code: string): Promise<void>
   );
 }
 
-/** The hashes of the sign-in codes stored for an address, newest last. */
-export async function storedCodes(email: string): Promise<string[]> {
-  const { rows } = await db().query<{ token: string }>(
-    'SELECT token FROM "verificationToken" WHERE identifier = $1 ORDER BY expires',
-    [email],
-  );
-  return rows.map((r) => r.token);
-}
-
-/** A stored code's hash, as Auth.js computes it. */
-export function codeHash(code: string): string {
-  const secret = process.env.AUTH_SECRET ?? 'e2e-secret-e2e-secret-e2e-secret-32ch';
-  return createHash('sha256').update(`${code}${secret}`).digest('hex');
+/**
+ * Clears the sign-in rate limiter.
+ *
+ * The per-client limit buckets by `x-forwarded-for`, and every test in this
+ * suite arrives with none — so they all share one bucket, and enough sign-in
+ * traffic in fifteen minutes makes the *next* test see a 429 it did nothing to
+ * earn. Any test that asserts on the un-throttled response has to start from a
+ * known state rather than inherit whatever the run before it left behind.
+ */
+export async function resetSignInThrottle(): Promise<void> {
+  await db().query('DELETE FROM sign_in_attempts');
 }
 
 /** Cookie shape Auth.js looks for over plain HTTP. */

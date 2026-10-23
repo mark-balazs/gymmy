@@ -1,1 +1,0 @@
-ALTER TABLE "sign_in_attempts" ADD COLUMN "kind" text DEFAULT 'send' NOT NULL;

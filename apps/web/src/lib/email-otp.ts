@@ -1,5 +1,5 @@
 /**
- * Sign-in by ten-digit code, sent over Resend.
+ * Sign-in by six-digit code, sent over Resend.
  *
  * A code rather than a magic link, for two reasons that both come from this
  * being a phone app. You are signing in on the device you are already holding,
@@ -11,14 +11,7 @@
 
 import { randomInt } from 'node:crypto';
 
-/**
- * Ten digits: tries are counted per address and connection, so nobody
- * elsewhere can use up the owner's, and someone with many connections gets ten
- * tries a day from each. Against ten billion codes, 10,000 connections need
- * about 270 years for one lucky guess on one address; against the million
- * six-digit codes, about ten days (GYM-154).
- */
-export const CODE_LENGTH = 10;
+export const CODE_LENGTH = 6;
 /** Long enough to fetch a phone from another room, short enough to matter. */
 export const CODE_TTL_SECONDS = 10 * 60;
 
@@ -30,9 +23,6 @@ export const generateCode = (): string =>
   String(randomInt(0, 10 ** CODE_LENGTH)).padStart(CODE_LENGTH, '0');
 
 export const normaliseEmail = (raw: string): string => raw.trim().toLowerCase();
-
-/** The longest address an ask accepts, and so the longest any code is stored under. */
-export const MAX_ADDRESS_LENGTH = 320;
 
 /** Digits only, so a pasted "123 456" or "123-456" still works. */
 export const normaliseCode = (raw: string): string => raw.replace(/\D/g, '');
@@ -46,14 +36,11 @@ export function codeEmail(code: string): { subject: string; text: string; html: 
     'If you did not ask to sign in, you can ignore this email.',
   ].join('\n');
 
-  // Ten digits in a row look like a phone number, so the email asks mail apps
-  // not to make the code a call link. Whether Apple Mail and Gmail do as asked
-  // is checked on real phones before it goes live (GYM-169).
-  const html = `<!doctype html><html><head><meta name="format-detection" content="telephone=no"></head><body style="margin:0;padding:24px;background:#f4f6f9;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#0e1620">
+  const html = `<!doctype html><html><body style="margin:0;padding:24px;background:#f4f6f9;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#0e1620">
 <div style="max-width:420px;margin:0 auto;background:#fff;border-radius:16px;padding:28px">
 <h1 style="margin:0 0 8px;font-size:19px">Your sign-in code</h1>
 <p style="margin:0 0 20px;font-size:14px;color:#5b6878">Enter this in gymmy to finish signing in.</p>
-<div style="font-size:28px;font-weight:700;letter-spacing:4px;white-space:nowrap;text-align:center;padding:16px;border-radius:12px;background:#eef2f7">${code}</div>
+<div style="font-size:34px;font-weight:700;letter-spacing:8px;text-align:center;padding:16px;border-radius:12px;background:#eef2f7">${code}</div>
 <p style="margin:20px 0 0;font-size:13px;color:#5b6878">It expires in 10 minutes and can be used once. If you did not ask to sign in, ignore this email.</p>
 </div></body></html>`;
 
@@ -88,23 +75,5 @@ export async function sendCode(opts: {
     // endpoint learns nothing about the account it belongs to.
     const detail = await res.text().catch(() => '');
     throw new Error(`resend ${res.status}: ${detail.slice(0, 300)}`);
-  }
-}
-
-/**
- * Sends a code, logging a failure instead of throwing it.
- *
- * Auth.js stores the code beside the send, and a throw would answer before that
- * store — and the delete of older codes behind it — had run. A bad key or an
- * unverified sender belongs in the log, not the response.
- */
-export async function sendCodeLogged(
-  opts: Parameters<typeof sendCode>[0],
-  send: typeof sendCode = sendCode,
-): Promise<void> {
-  try {
-    await send(opts);
-  } catch (err) {
-    console.error('[sign-in] send failed', err);
   }
 }

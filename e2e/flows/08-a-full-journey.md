@@ -19,10 +19,9 @@ walks the rest.
 ## Preconditions
 
 - `RESEND_API_KEY` set, so email sign-in is offered. Sending genuinely fails
-  with the test key — that is fine and deliberate: the test never sees the code
-  that was asked for. Once the request is answered it writes a code of its own
-  to the database, as the email would have delivered one, rather than reading an
-  inbox belonging to somebody else's service.
+  with the test key — that is fine and deliberate: the code is written to the
+  database before it is sent, and the test reads it from there rather than from
+  an inbox belonging to somebody else's service.
 - No user, no profile, no patterns. The server creates all of it.
 
 ## Steps — signing up and coming back
@@ -104,6 +103,5 @@ device and the sign-out wipe are all that kind of step.
 
 **Throttling cannot make these flaky.** Requesting a code more often than the
 limit answers `429`, and the form advances anyway — deliberately, so a stranger
-cannot tell a rate limit from an unknown address. The code these tests use is
-written to the database directly once the request has been answered — a request
-replaces any older code — so it stays valid either way.
+cannot tell a rate limit from an unknown address. The code these tests use was
+written to the database directly, so it stays valid either way.

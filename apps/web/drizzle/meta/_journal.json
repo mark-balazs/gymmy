@@ -99,13 +99,6 @@
       "when": 1789762164480,
       "tag": "0013_curious_stark_industries",
       "breakpoints": true
-    },
-    {
-      "idx": 14,
-      "version": "7",
-      "when": 1791740942065,
-      "tag": "0014_sign_in_checks",
-      "breakpoints": true
     }
   ]
 }

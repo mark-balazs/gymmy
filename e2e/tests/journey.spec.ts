@@ -37,8 +37,7 @@ const freshEmail = () => `journey-${randomUUID().slice(0, 8)}@example.test`;
 
 /** The real front door: request a code, then enter it. */
 async function signInWithCode(page: Page, email: string, code: string): Promise<void> {
-  // Its own client key, so no other test's code checks spend its budget.
-  await page.setExtraHTTPHeaders({ 'x-forwarded-for': `journey-${randomUUID()}` });
+  await seedSignInCode(email, code);
   await page.goto('/sign-in');
 
   const field = page.getByLabel('Email address');
@@ -52,16 +51,11 @@ async function signInWithCode(page: Page, email: string, code: string): Promise<
 
   await field.fill(email);
   await page.getByRole('button', { name: /Email me a code/ }).click();
-  /* The code field appears once the request has been answered. Only then is
-   * the code written, as the email would have delivered it: a request replaces
-   * any older code, so one written before it would be thrown away. A throttled
-   * request answers 429 and the form advances anyway — by design, so a stranger
-   * cannot tell a rate limit from an unknown address — and the code written
-   * here is valid either way, so a busy test run cannot make this flaky. */
-  const codeField = page.getByLabel('Sign-in code');
-  await expect(codeField).toBeVisible();
-  await seedSignInCode(email, code);
-  await codeField.fill(code);
+  /* A throttled request answers 429 and the form advances anyway — by design,
+   * so a stranger cannot tell a rate limit from an unknown address. The code
+   * below was seeded directly, so it is valid either way and a busy test run
+   * cannot make this flaky. */
+  await page.getByLabel('Sign-in code').fill(code);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
 }
 
@@ -73,7 +67,7 @@ test.describe('A full journey', () => {
 
     // 1. Sign up. Nothing about this account exists yet — the server creates
     //    the user and seeds its patterns, slots and profile in response to this.
-    await signInWithCode(page, email, '1111111111');
+    await signInWithCode(page, email, '111111');
 
     // 2. Setup. A brand-new account is sent here rather than to an empty Train
     //    tab, and this is the first proof the seeding actually happened: there
@@ -124,7 +118,7 @@ test.describe('A full journey', () => {
     // 7. Come back. No setup this time — the account is already onboarded —
     //    and the training is pulled back down onto an emptied device. This is
     //    the step that proves the sets were ever really saved anywhere.
-    await signInWithCode(page, email, '2222222222');
+    await signInWithCode(page, email, '222222');
     await expect(page.getByRole('heading', { name: 'Train', exact: true })).toBeVisible({
       timeout: 30_000,
     });
@@ -140,7 +134,7 @@ test.describe('A full journey', () => {
     // IndexedDB kept it; another device proves the server did.
     const email = freshEmail();
 
-    await signInWithCode(page, email, '3333333333');
+    await signInWithCode(page, email, '333333');
     await expect(
       page.getByRole('heading', { name: 'How should your week be shaped?' }),
     ).toBeVisible({ timeout: 30_000 });
@@ -159,7 +153,7 @@ test.describe('A full journey', () => {
     const second = await browser.newContext({ baseURL });
     try {
       const other = await second.newPage();
-      await signInWithCode(other, email, '4444444444');
+      await signInWithCode(other, email, '444444');
 
       await expect(other.getByRole('heading', { name: 'Train', exact: true })).toBeVisible({
         timeout: 30_000,
