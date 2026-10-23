@@ -325,7 +325,7 @@ test.describe('The plans a trainer writes', () => {
     expect(await planRow(planId)).toEqual({ name: 'Summer block', version: 1, published: true });
   });
 
-  test('keeps the editor open, and publishes nothing, when the save fails', async ({
+  test('keeps the editor open, and publishes nothing, when the save fails, and saves the retry first', async ({
     page,
     context,
     baseURL,
@@ -352,6 +352,16 @@ test.describe('The plans a trainer writes', () => {
     await expect(sheet.getByRole('button', { name: 'Publish' })).toBeEnabled();
     await expect(sheet.getByLabel('Name')).toHaveValue('Winter block, week 2');
     expect(await planRow(planId)).toEqual({ name: 'Winter block', version: 1, published: false });
+
+    // Once the save can go through, Publish saves the edits, then publishes them.
+    await context.unroute(`**/api/plans/${planId}`);
+    await sheet.getByRole('button', { name: 'Publish' }).click();
+    await expect(sheet).toHaveCount(0);
+    expect(await planRow(planId)).toEqual({
+      name: 'Winter block, week 2',
+      version: 1,
+      published: true,
+    });
   });
 
   test('keeps the editor open when the publish fails, and a retry only publishes', async ({
