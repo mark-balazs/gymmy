@@ -10,7 +10,7 @@
 
 import { useState } from 'react';
 import { buttonClass } from '@/components/ui';
-import { CODE_LENGTH, normaliseCode } from '@/lib/email-otp';
+import { CODE_LENGTH, normaliseCode, normaliseEmail } from '@/lib/email-otp';
 
 const field =
   'min-h-[var(--spacing-tap)] w-full rounded-[12px] border border-[var(--color-line)] ' +
@@ -100,7 +100,9 @@ export function EmailSignIn({ callbackUrl }: { callbackUrl: string }) {
       </p>
 
       {/* Auth.js verifies the pair, so both travel with the form. */}
-      <input type="hidden" name="email" value={email} />
+      {/* Lower-cased as the code was stored: Auth.js looks the code up under
+          exactly this address, so "Anna@…" would never match "anna@…" (GYM-164). */}
+      <input type="hidden" name="email" value={normaliseEmail(email)} />
       <input type="hidden" name="callbackUrl" value={callbackUrl} />
 
       <input

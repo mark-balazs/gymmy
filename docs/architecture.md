@@ -614,7 +614,9 @@ single rep", the onboarding weight's unit). Everything read once went behind an
   an explicitly exported `DATABASE_URL` first — so `DATABASE_URL=<remote> npm run
   db:migrate` really does migrate the remote.
 - **Auth.js reads email-callback params from the query string**, never the body.
-  This broke email sign-in for the entire life of the feature.
+  This broke email sign-in for the entire life of the feature. And it looks the
+  code up under exactly the address it is given, while codes are stored under
+  the trimmed, lower-cased one, so the code form sends it lower-cased.
 - **Moving an element to the right makes the document wider; moving it to the
   left does not.** Overflow off the right-hand edge of a left-to-right document
   is scrollable; off the left-hand edge it is unreachable and does not count.

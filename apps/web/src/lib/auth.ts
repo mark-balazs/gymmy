@@ -62,17 +62,33 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: 'database', maxAge: 60 * 60 * 24 * 90 },
   pages: { signIn: '/sign-in' },
   callbacks: {
+    /**
+     * What a session says about its person, built field by field.
+     *
+     * With database sessions, `session` is the stored row, sign-in token
+     * included, and whatever this returns is also the JSON of
+     * `/api/auth/session`. Returning it whole handed that token to any script
+     * on the page, which the HttpOnly cookie exists to prevent (GYM-144). So
+     * the answer is named field by field: Auth.js's name, email and picture,
+     * the id and role the app adds, and the expiry — never the whole row,
+     * whatever columns it grows.
+     */
     session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id;
-        /* The role rides along so a server component can decide whether the
-           coach area exists for this person without a second query. It is
-           only ever a hint for rendering: every write that depends on it
-           re-reads the row, because a role is the kind of thing that gets
-           revoked and a session can outlive that by three months. */
-        session.user.role = (user as { role?: string }).role === 'trainer' ? 'trainer' : 'athlete';
-      }
-      return session;
+      return {
+        user: {
+          id: user.id,
+          name: user.name ?? null,
+          email: user.email,
+          image: user.image ?? null,
+          /* The role rides along so a server component can decide whether the
+             coach area exists for this person without a second query. It is
+             only ever a hint for rendering: every write that depends on it
+             re-reads the row, because a role is the kind of thing that gets
+             revoked and a session can outlive that by three months. */
+          role: (user as { role?: string }).role === 'trainer' ? 'trainer' : 'athlete',
+        },
+        expires: session.expires,
+      };
     },
   },
   events: {
