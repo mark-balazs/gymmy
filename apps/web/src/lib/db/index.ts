@@ -38,7 +38,8 @@ export { schema, isNeon };
 type Statement = PromiseLike<unknown>;
 
 /**
- * Runs a list of writes so that either all of them land or none do.
+ * Runs a list of writes so that either all of them land or none do, and hands
+ * back what each one returned, in order.
  *
  * **The two drivers need two different mechanisms, and this is the whole
  * reason it exists.** Neon's HTTP driver has no interactive transaction at all
@@ -58,16 +59,20 @@ type Statement = PromiseLike<unknown>;
  * Without it, a seed that timed out halfway left an account with patterns and
  * no profile, which the app can only render as a loading screen (GYM-70).
  */
-export async function inOneTransaction(build: (on: Db) => Statement[]): Promise<void> {
+export async function inOneTransaction(build: (on: Db) => Statement[]): Promise<unknown[]> {
   if (isNeon) {
     const statements = build(db) as unknown as Parameters<
       ReturnType<typeof drizzleNeon<typeof schema>>['batch']
     >[0];
-    await (db as ReturnType<typeof drizzleNeon<typeof schema>>).batch(statements);
-    return;
+    const results: readonly unknown[] = await (
+      db as ReturnType<typeof drizzleNeon<typeof schema>>
+    ).batch(statements);
+    return [...results];
   }
 
-  await (db as ReturnType<typeof drizzlePg<typeof schema>>).transaction(async (tx) => {
-    for (const statement of build(tx as unknown as Db)) await statement;
+  return (db as ReturnType<typeof drizzlePg<typeof schema>>).transaction(async (tx) => {
+    const results: unknown[] = [];
+    for (const statement of build(tx as unknown as Db)) results.push(await statement);
+    return results;
   });
 }
