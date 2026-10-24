@@ -20,21 +20,21 @@ before the test that covers it. Every file maps to one spec in `../tests`.
 | [13 — Closing a sheet](./13-closing-a-sheet.md) | `sheets.spec.ts` | A sheet leaves the way it came, and can be pulled down to dismiss |
 
 Other specs cover narrower ground against the same fixtures: `settings`,
-`delete-account`, `exercise-detail`, `email-signin`, `sync-paging`,
-`write-failure`, `recovery`, `boot-watchdog`, `pwa-update`, `bad-input` (a
-number the server would refuse never stops a phone syncing), `calendar` (a day
-on Home's calendar opens what was logged that day), `device-upgrade` (an
-unsynced set survives the upgrade of the phone's local database), `goals`
-(setting a goal and the checks on it, and what Progress says with and without
-one), `plans` (a shared plan is applied as a copy and a newer version only
-offered, and Coaching's plan editor), `profile` (the profile card, and the year
-of birth in the strength score), `progress` (charts over all of a lift's
-history, the movements trained, and the two strength numbers),
-`train-accordion` (Train opens one exercise at a time and ticks a finished
-day), `motion` (the motion tokens and reduced motion as the browser applies
-them) and `info-tip` (the ⓘ that holds explanations: opens where it can be
-read, closes on a second tap, a tap elsewhere or Escape, one at a time, and
-moves nothing).
+`delete-account`, `exercise-detail`, `email-signin`, `session-endpoint` (the
+session endpoint names its fields and never returns the sign-in token),
+`sync-paging`, `write-failure`, `recovery`, `boot-watchdog`, `pwa-update`,
+`bad-input` (a number the server would refuse never stops a phone syncing),
+`calendar` (a day on Home's calendar opens what was logged that day),
+`device-upgrade` (an unsynced set survives the upgrade of the phone's local
+database), `goals` (setting a goal and the checks on it, and what Progress says
+with and without one), `plans` (a shared plan is applied as a copy and a newer
+version only offered, and Coaching's plan editor), `profile` (the profile card,
+and the year of birth in the strength score), `progress` (charts over all of a
+lift's history, the movements trained, and the two strength numbers),
+`train-accordion` (Train opens one exercise at a time and ticks a finished day),
+`motion` (the motion tokens and reduced motion as the browser applies them) and
+`info-tip` (the ⓘ that holds explanations: opens where it can be read, closes on
+a second tap, a tap elsewhere or Escape, one at a time, and moves nothing).
 
 ## Two layers, on purpose
 

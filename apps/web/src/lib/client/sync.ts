@@ -286,9 +286,12 @@ async function run(): Promise<void> {
        a row the phone had already changed. Straight after Setup that was a
        profile not yet set up, and the app sent the person back to Setup's
        first step. In one transaction a screen sees all of it or none of it. A
-       check that finds the epoch moved throws, which abandons the transaction
-       whole, so a wipe that comes while it runs leaves none of it behind. */
+       check that finds the epoch moved throws, which abandons the transaction,
+       so none of it lands; one already past its last check lands before the
+       wipe's clears, which wait for it. */
     await inTx(async () => {
+      // Again here: Dexie opens the transaction a step later, and a wipe can
+      // come in between.
       stillMine(mine);
       if (account === null) {
         // First answer this device has ever had: it, and everything queued

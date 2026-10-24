@@ -101,8 +101,13 @@ vi.mock('./db', () => {
     },
     // No rollback here: these tests hold the order of writes and the checks
     // between them. That a round's writes land together is a browser test's
-    // to hold, against the real database (GYM-176).
-    inTx: (fn: () => Promise<unknown>) => fn(),
+    // to hold, against the real database (GYM-176). Like Dexie's, the
+    // transaction opens a step after it is asked for, and a wipe can come
+    // in between.
+    inTx: async (fn: () => Promise<unknown>) => {
+      await dev.pass('transaction');
+      return fn();
+    },
   };
 });
 
@@ -491,6 +496,7 @@ describe('a wipe that lands while a sync is writing', () => {
   it.each([
     // The moment the wipe comes, the step held open for it, whose phone it was.
     ['its first answer is on the way', 'request', null],
+    ['it opens its transaction', 'transaction', null],
     ['it records whose phone this is', 'meta.set:account', null],
     ['it writes the first table', 'bulkPut:logs', 'acct-1'],
     ['it puts back the sets logged while it travelled', 'put:logs', 'acct-1'],

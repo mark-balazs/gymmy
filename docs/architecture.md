@@ -157,11 +157,13 @@ sequenceDiagram
    outbox on top**, all in **one transaction** with the cursor. Without the
    put-back a pull in flight would overwrite a set logged while it was
    travelling, and it would look to the user like the app simply lost it.
-   Without the one transaction every screen, reading the database live, saw the
-   server's older copy for a moment before the put-back landed: straight after
-   setup that was a profile not yet set up, and the app sent the person back to
-   setup's first step (GYM-176). A wipe that comes while it runs abandons the
-   whole transaction (GYM-125).
+   Without the one transaction a screen, reading the database live, could see
+   the server's older copy for a moment before the put-back landed: straight
+   after setup that was a profile not yet set up, and the app sent the person
+   back to setup's first step (GYM-176). A wipe that comes while it runs is
+   seen at the next check, which abandons the whole transaction; one already
+   past its last check lands first, and the wipe clears it straight after
+   (GYM-125).
 
 If step 1's own write to IndexedDB fails, nothing was saved anywhere.
 `put()` calls `reportStorageFailure`, which sets `storageFailure` on the sync
