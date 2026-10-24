@@ -734,8 +734,9 @@ paths:
       summary: Sign out
       operationId: signOut
       description: |
-        The database session row is deleted, so the sign-out is real on every
-        device rather than a cookie cleared on this one.
+        The database session row is deleted, so the sign-out holds on the
+        server rather than only clearing a cookie here: a copy of the cookie
+        stops working too. Other devices keep their own sessions.
       requestBody:
         required: true
         content:
