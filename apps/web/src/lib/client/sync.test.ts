@@ -13,22 +13,48 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
  */
 
 /** The device's database, as far as the sync engine uses it. */
-const dev = vi.hoisted(() => ({
-  outbox: [] as {
-    seq: number;
-    table: string;
-    row: Record<string, unknown>;
-    accountId: string | null;
-  }[],
-  meta: new Map<string, unknown>(),
-  /** Everything a pull wrote into a table. */
-  applied: [] as { table: string; rows: unknown[] }[],
-}));
+const dev = vi.hoisted(() => {
+  const dev = {
+    outbox: [] as {
+      seq: number;
+      table: string;
+      row: Record<string, unknown>;
+      accountId: string | null;
+    }[],
+    /** The outbox's last key. Like IndexedDB's, a wipe does not set it back. */
+    seq: 0,
+    meta: new Map<string, unknown>(),
+    /** Everything a pull wrote into a table. */
+    applied: [] as { table: string; rows: unknown[] }[],
+    /**
+     * Every write, a wipe's included, in the order it was made. IndexedDB runs
+     * writes to a store in that order, so a write made before a wipe's clear
+     * lands before it, and one made after it lands on the emptied phone.
+     */
+    writes: [] as string[],
+    /** The step a test is holding open, to wipe the phone in the middle of it. */
+    held: null as { step: string; reached: () => void; until: Promise<void> } | null,
+    /** Lets a step through, or holds it there if a test asked to. */
+    async pass(step: string): Promise<void> {
+      const held = dev.held;
+      if (held?.step !== step) return;
+      dev.held = null;
+      held.reached();
+      await held.until;
+    },
+    /** A write: done and recorded the moment it is made, then let through. */
+    async write(op: string): Promise<void> {
+      dev.writes.push(op);
+      await dev.pass(op);
+    },
+  };
+  return dev;
+});
 
 vi.mock('./db', () => {
   const sorted = () => dev.outbox.slice().sort((a, b) => a.seq - b.seq);
   return {
-    DOMAIN_TABLES: ['logs'],
+    DOMAIN_TABLES: ['logs', 'profile'],
     ACCOUNT_KEY: 'account',
     local: {
       outbox: {
@@ -39,32 +65,84 @@ vi.mock('./db', () => {
         }),
         bulkDelete: async (seqs: number[]) => {
           dev.outbox = dev.outbox.filter((o) => !seqs.includes(o.seq));
+          await dev.write('outbox.bulkDelete');
         },
-        clear: async () => void (dev.outbox = []),
+        clear: async () => {
+          dev.outbox = [];
+          await dev.write('outbox.clear');
+        },
         toCollection: () => ({
           modify: async (patch: Record<string, unknown>) => {
             dev.outbox = dev.outbox.map((o) => ({ ...o, ...patch }));
+            await dev.write('outbox.modify');
           },
         }),
       },
-      meta: { clear: async () => dev.meta.clear() },
+      meta: {
+        clear: async () => {
+          dev.meta.clear();
+          await dev.write('meta.clear');
+        },
+      },
       table: (name: string) => ({
-        bulkPut: async (rows: unknown[]) => void dev.applied.push({ table: name, rows }),
-        put: async () => undefined,
-        clear: async () => undefined,
+        bulkPut: async (rows: unknown[]) => {
+          dev.applied.push({ table: name, rows });
+          await dev.write(`bulkPut:${name}`);
+        },
+        put: async () => dev.write(`put:${name}`),
+        clear: async () => dev.write(`clear:${name}`),
       }),
     },
     getMeta: async (key: string, fallback: unknown) =>
       dev.meta.has(key) ? dev.meta.get(key) : fallback,
-    setMeta: async (key: string, value: unknown) => void dev.meta.set(key, value),
+    setMeta: async (key: string, value: unknown) => {
+      dev.meta.set(key, value);
+      await dev.write(`meta.set:${key}`);
+    },
+    // No rollback here: these tests hold the order of writes and the checks
+    // between them. That a round's writes land together is a browser test's
+    // to hold, against the real database (GYM-176). Like Dexie's, the
+    // transaction opens a step after it is asked for, and a wipe can come
+    // in between.
+    inTx: async (fn: () => Promise<unknown>) => {
+      await dev.pass('transaction');
+      return fn();
+    },
   };
 });
 
 /** `n` sets waiting to go, stamped with the account given. */
 function queue(n: number, accountId: string | null = 'acct-1'): void {
   for (let i = 0; i < n; i++) {
-    dev.outbox.push({ seq: dev.outbox.length + 1, table: 'logs', row: { id: `s${i}` }, accountId });
+    dev.outbox.push({ seq: ++dev.seq, table: 'logs', row: { id: `s${i}` }, accountId });
   }
+}
+
+/** Holds the sync at one step until `open()`: the moment a test wipes the phone. */
+function holdAt(step: string): { reached: Promise<void>; open: () => void } {
+  let reached!: () => void;
+  let open!: () => void;
+  const at = new Promise<void>((r) => (reached = r));
+  dev.held = { step, reached, until: new Promise<void>((r) => (open = r)) };
+  return { reached: at, open };
+}
+
+/** The timers the sync engine schedules with, and only those, so a test can
+ *  run them on a fake clock while everything else runs as it would. */
+const TIMERS = ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] as const;
+
+/** A browser, as far as `startSync` uses one: it adds handlers for the signal
+ *  coming back and for the app being looked at again. Returns a way to fire
+ *  them. */
+function browser(): { fire: (event: 'online' | 'visibilitychange') => void } {
+  const handlers = new Map<string, () => void>();
+  const target = {
+    addEventListener: (event: string, fn: () => void) => void handlers.set(event, fn),
+    removeEventListener: (event: string) => void handlers.delete(event),
+  };
+  vi.stubGlobal('window', target);
+  vi.stubGlobal('document', { ...target, visibilityState: 'visible' });
+  return { fire: (event) => handlers.get(event)?.() };
 }
 
 /** A device that has synced before and knows whose it is. */
@@ -143,10 +221,34 @@ function server(): {
   return { fetch: fetchMock, sent };
 }
 
+/** The server answering for whoever this phone held: rows in both tables and
+ *  a cursor. Two more sets are logged while the request is out, so the round
+ *  has something of theirs to put back afterwards. */
+function previousPerson(): ReturnType<typeof vi.fn> {
+  return vi.fn(async (_url: string, init: { body: string }) => {
+    const { accountId } = JSON.parse(init.body) as { accountId: string | null };
+    queue(2, accountId);
+    await dev.pass('request');
+    return new Response(
+      JSON.stringify({
+        cursor: 99,
+        changes: { logs: [{ id: 'their-set' }], profile: [{ id: 'their-profile' }] },
+        accountId: 'acct-1',
+        serverTime: new Date().toISOString(),
+        hasMore: false,
+      }),
+      { status: 200, headers: { 'content-type': 'application/json' } },
+    );
+  });
+}
+
 beforeEach(async () => {
   vi.resetModules();
   dev.outbox = [];
+  dev.seq = 0;
   dev.applied = [];
+  dev.writes = [];
+  dev.held = null;
   dev.meta = new Map();
   vi.stubGlobal('navigator', { onLine: true });
   vi.stubGlobal('localStorage', storage());
@@ -156,6 +258,10 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
+  // A round a test left scheduled must not fire into the next one, whether the
+  // test passed or failed: they share the stand-in database and `fetch`.
+  sync.stopSync();
+  vi.useRealTimers();
   stop();
   vi.unstubAllGlobals();
 });
@@ -284,6 +390,50 @@ describe('the last push before a wipe', () => {
     expect(dev.outbox).toHaveLength(0);
   });
 
+  it('starts again for a person who stays signed in', async () => {
+    /* Sign-out and deletion stop the sync before they wipe. When the person
+       stays instead, nothing else ever started it again, so the phone sent
+       nothing until it was reloaded (GYM-125). */
+    const srv = server();
+    vi.stubGlobal('fetch', srv.fetch);
+    signedInAs('acct-1');
+    queue(2);
+
+    sync.stopSync();
+    await sync.sync();
+    expect(srv.sent).toHaveLength(0);
+
+    sync.resumeSync();
+    await sync.sync();
+    expect(srv.sent.map((r) => r.rows)).toEqual([['s0', 's1']]);
+    expect(dev.outbox).toHaveLength(0);
+  });
+
+  it('starts its own rounds again: one 300 ms later, and one backstop however often it is resumed', async () => {
+    /* A person who stays may not log another set for hours, so the phone has
+       to start again by itself. The handlers `startSync` added outlive the
+       stop; the round it scheduled and the five-minute backstop do not, so
+       resuming puts both back. A second resume must not add a second
+       backstop, which would double what a tab left open all day sends. */
+    vi.useFakeTimers({ toFake: [...TIMERS] });
+    browser();
+    const srv = server();
+    vi.stubGlobal('fetch', srv.fetch);
+    signedInAs('acct-1');
+    queue(2);
+
+    sync.startSync();
+    sync.stopSync();
+    sync.resumeSync();
+    sync.resumeSync();
+
+    await vi.advanceTimersByTimeAsync(300);
+    expect(srv.sent.map((r) => r.rows)).toEqual([['s0', 's1']]);
+
+    await vi.advanceTimersByTimeAsync(5 * 60_000);
+    expect(srv.sent.map((r) => r.rows)).toEqual([['s0', 's1'], []]);
+  });
+
   it('says how many are left when it cannot send them', async () => {
     vi.stubGlobal('fetch', answer(500));
     signedInAs('acct-1');
@@ -329,6 +479,126 @@ describe('a sync that comes back after a wipe', () => {
     expect(dev.applied).toEqual([]);
     expect(dev.meta.get('cursor')).toBeUndefined();
     expect(dev.outbox).toHaveLength(1);
+  });
+});
+
+/**
+ * A wipe that lands while a sync is writing (GYM-125).
+ *
+ * Sign-out's sheet starts the sync again while it asks, so "Sign out and lose
+ * them" can wipe the phone halfway through a round. The round used to look at
+ * the epoch once, before its first write, and then write the rest anyway: the
+ * last person's rows in every table after the one it was on, their cursor, and
+ * whose phone it was. The next person then sees the last one's training, or
+ * their first sync asks from the wrong place and their own history never comes.
+ */
+describe('a wipe that lands while a sync is writing', () => {
+  it.each([
+    // The moment the wipe comes, the step held open for it, whose phone it was.
+    ['its first answer is on the way', 'request', null],
+    ['it opens its transaction', 'transaction', null],
+    ['it records whose phone this is', 'meta.set:account', null],
+    ['it writes the first table', 'bulkPut:logs', 'acct-1'],
+    ['it puts back the sets logged while it travelled', 'put:logs', 'acct-1'],
+  ] as const)('leaves nothing behind when it comes while %s', async (_, step, account) => {
+    vi.stubGlobal('fetch', previousPerson());
+    if (account) signedInAs(account);
+    queue(2, account);
+    const held = holdAt(step);
+
+    const round = sync.sync();
+    await held.reached;
+    await sync.wipeLocal();
+    const wiped = dev.writes.length;
+    // The next person's first set, logged before the round has finished.
+    queue(1, null);
+    held.open();
+    await round;
+
+    // Not one write after the wipe: no rows, no cursor, nobody's account.
+    expect(dev.writes.slice(wiped)).toEqual([]);
+    expect([...dev.meta.keys()]).toEqual([]);
+    // And the next person's set is still theirs to send.
+    expect(dev.outbox.map((o) => o.accountId)).toEqual([null]);
+  });
+});
+
+describe('a phone that has been wiped', () => {
+  it('starts no sync afterwards, whatever fires', async () => {
+    /* Sign-out and deletion, the wipe's only callers, are both leaving. A
+       round started between the wipe and the end of the session asks from
+       cursor 0 with a session that still works, and pulls the whole account
+       back onto the emptied phone; and sign-out's sheet starts the sync again
+       while it asks. So the wipe stops it itself, rather than trust every
+       caller to. */
+    vi.useFakeTimers({ toFake: [...TIMERS] });
+    const { fire } = browser();
+    const srv = server();
+    vi.stubGlobal('fetch', srv.fetch);
+    signedInAs('acct-1');
+
+    // The app starts it, sign-out stops it to push, and the sheet starts it again.
+    sync.startSync();
+    sync.stopSync();
+    sync.resumeSync();
+
+    await sync.wipeLocal();
+    queue(1, null);
+    sync.schedule(0);
+    fire('online');
+    fire('visibilitychange');
+    await vi.advanceTimersByTimeAsync(5 * 60_000);
+
+    expect(srv.sent).toEqual([]);
+  });
+
+  it('starts no sync while the wipe is still clearing', async () => {
+    /* The sheet's resume leaves a round due in 300 ms and the backstop
+       running. A wipe that stopped them only once its clears were done would
+       let either fire in between, read the emptied phone as cursor 0 and pull
+       the whole account back with the session that still works. */
+    vi.useFakeTimers({ toFake: [...TIMERS] });
+    browser();
+    const srv = server();
+    vi.stubGlobal('fetch', srv.fetch);
+    signedInAs('acct-1');
+
+    sync.startSync();
+    sync.stopSync();
+    sync.resumeSync();
+
+    const held = holdAt('clear:logs');
+    const wipe = sync.wipeLocal();
+    await held.reached;
+    await vi.advanceTimersByTimeAsync(5 * 60_000);
+    held.open();
+    await wipe;
+
+    expect(srv.sent).toEqual([]);
+  });
+
+  it('counts the wipe before it clears anything', async () => {
+    /* A round whose answer lands while the clears are still running must
+       already see the wipe: anything it wrote then would be made after the
+       clears, and land on the emptied phone. */
+    vi.stubGlobal('fetch', previousPerson());
+    signedInAs('acct-1');
+    queue(2);
+    const answer = holdAt('request');
+    const round = sync.sync();
+    await answer.reached;
+
+    const clearing = holdAt('clear:logs');
+    const wipe = sync.wipeLocal();
+    await clearing.reached;
+    const wiped = dev.writes.length;
+    answer.open();
+    await round;
+    clearing.open();
+    await wipe;
+
+    expect(dev.writes.slice(wiped)).toEqual([]);
+    expect([...dev.meta.keys()]).toEqual([]);
   });
 });
 

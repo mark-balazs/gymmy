@@ -239,6 +239,9 @@ function PlanEditor({
 }) {
   const tr = useT();
   const [draft, setDraft] = useState(state.draft);
+  /* The plan as the server holds it: what the editor opened with, then what
+     Publish last saved. */
+  const [saved, setSaved] = useState(state.draft);
   const [split, setSplit] = useState<Exclude<SplitKey, 'custom'>>('sevenPattern');
   const [busy, setBusy] = useState(false);
 
@@ -267,6 +270,28 @@ function PlanEditor({
     try {
       const res = state.id ? await savePlan(state.id, draft) : await createPlan(draft);
       if (res) onSaved();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /* Publishes what is on the screen. It used to publish the plan as last
+     saved and close the editor, so anything changed since Save was thrown
+     away without a word, and people got the older version (GYM-117). It
+     saves first only what the server does not hold yet, so an unchanged plan
+     is not saved again, and nor is a retry after a failed publish: saving a
+     published plan makes a new version, and its people would be offered an
+     update with nothing in it. */
+  const publish = async () => {
+    if (!state.id || !draft.name.trim()) return;
+    setBusy(true);
+    try {
+      const changed = JSON.stringify(draft) !== JSON.stringify(saved);
+      if (changed) {
+        if (!(await savePlan(state.id, draft))) return;
+        setSaved(draft);
+      }
+      if (await publishPlan(state.id)) onSaved();
     } finally {
       setBusy(false);
     }
@@ -403,13 +428,8 @@ function PlanEditor({
         {state.id && (
           <Button
             className="shrink-0"
-            disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              await publishPlan(state.id!);
-              setBusy(false);
-              onSaved();
-            }}
+            disabled={busy || !draft.name.trim()}
+            onClick={() => void publish()}
           >
             {tr.t('coach.publish')}
           </Button>

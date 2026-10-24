@@ -709,16 +709,17 @@ export async function shareAPlanWith(
  */
 export async function planOwnedBy(
   trainerId: string,
-  opts: { name?: string; slotDays?: readonly number[] } = {},
+  opts: { name?: string; slotDays?: readonly number[]; published?: boolean } = {},
 ): Promise<{ planId: string }> {
   const planId = randomUUID();
   const slotDays = opts.slotDays ?? [0, 1, 2];
   const days = new Set(slotDays).size;
 
+  // Published unless asked otherwise: a draft is shared with nobody.
   await db().query(
     `INSERT INTO plans (id, owner_id, name, description, days, "where", version, published_at)
-     VALUES ($1,$2,$3,'',$4,'gym',1,now())`,
-    [planId, trainerId, opts.name ?? 'My block', days],
+     VALUES ($1,$2,$3,'',$4,'gym',1,CASE WHEN $5 THEN now() END)`,
+    [planId, trainerId, opts.name ?? 'My block', days, opts.published ?? true],
   );
 
   const seen = new Map<number, number>();
@@ -734,6 +735,17 @@ export async function planOwnedBy(
   }
 
   return { planId };
+}
+
+/** A plan as the server holds it: its name, its version and whether it is published. */
+export async function planRow(
+  planId: string,
+): Promise<{ name: string; version: number; published: boolean }> {
+  const r = await db().query(`SELECT name, version, published_at FROM plans WHERE id = $1`, [
+    planId,
+  ]);
+  const row = r.rows[0] as { name: string; version: number; published_at: Date | null };
+  return { name: row.name, version: row.version, published: row.published_at !== null };
 }
 
 /** Publishes a new edition, which is what an athlete is then offered. */
@@ -759,6 +771,21 @@ export async function planInEffect(
 export async function profileLang(userId: string): Promise<string | null> {
   const r = await db().query('SELECT lang FROM profiles WHERE user_id = $1 LIMIT 1', [userId]);
   return (r.rows[0] as { lang: string } | undefined)?.lang ?? null;
+}
+
+/** Whether the server holds the profile as set up. */
+export async function profileOnboarded(userId: string): Promise<boolean | null> {
+  const r = await db().query('SELECT onboarded FROM profiles WHERE user_id = $1 LIMIT 1', [userId]);
+  return (r.rows[0] as { onboarded: boolean } | undefined)?.onboarded ?? null;
+}
+
+/**
+ * Gives the server's profile a new change number, unchanged otherwise, as
+ * another device's write would: the next sync from any phone then brings the
+ * server's copy down again.
+ */
+export async function touchProfile(userId: string): Promise<void> {
+  await db().query(`UPDATE profiles SET seq = nextval('change_seq') WHERE user_id = $1`, [userId]);
 }
 
 /** The height the server holds, in centimetres. */

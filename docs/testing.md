@@ -82,6 +82,11 @@ Two ways the suite lies to you if you skip that:
 - **The sign-in throttle is shared.** It buckets by `x-forwarded-for`, which no
   test sends, so the whole suite shares one bucket. Any test asserting on an
   un-throttled response must call `resetSignInThrottle()` first.
+- **Run the browser suite on Playwright's headless shell**, the kind of browser
+  CI uses, which is Playwright's default. Pointed at a full Chromium build, as
+  a machine without Playwright's own browsers may need, the suite fails
+  `navigation.spec.ts:785`: the full browser goes Back by itself on a sideways
+  drag that the page does not cancel (GYM-168).
 - **Tab-bar locators must be `exact: true`.** A card whose description mentions
   "week" will otherwise match `link named "Week"`.
 - **Charts need two sessions** before they render anything, so a test that

@@ -1,6 +1,7 @@
 import {
   planInEffect,
   planOwnedBy,
+  planRow,
   publishNewVersion,
   serverSets,
   shareAPlanWith,
@@ -272,6 +273,131 @@ test.describe('The plans a trainer writes', () => {
     await expect(page.getByText('No plans yet.')).toHaveCount(0);
 
     await context.setOffline(false);
+  });
+
+  test('publishes what is on the screen, not what was last saved', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* Publish sent the plan as it was last saved and closed the editor, so an
+       edit made since Save was thrown away without a word, and the people it
+       is shared with got the older version (GYM-117). */
+    const trainer = await signInAs(page, context, baseURL!, { onboarded: true, role: 'trainer' });
+    const { planId } = await planOwnedBy(trainer.id, { name: 'Winter block', published: false });
+
+    await page.goto('/coach');
+    await page.getByText('Winter block').click();
+    const sheet = page.getByRole('dialog');
+    await sheet.getByLabel('Name').fill('Winter block, week 2');
+    await sheet.getByRole('button', { name: 'Publish' }).click();
+    /* Closing, not yet gone: `getByRole` stops finding a sheet as its exit
+       starts. Its title is the new name too, so the list is read with a role
+       locator, which cannot see a closing sheet; `getByText` still could. */
+    await expect(sheet).toHaveCount(0);
+
+    // The list is read back from the server once the editor closes.
+    await expect(page.getByRole('button', { name: /^Winter block, week 2/ })).toBeVisible();
+    expect(await planRow(planId)).toEqual({
+      name: 'Winter block, week 2',
+      version: 1,
+      published: true,
+    });
+  });
+
+  test('publishing a plan nobody changed offers nobody an update', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* Saving a published plan raises its version, and a higher version is what
+       offers its people an update. So Publish saves first only when something
+       changed: tapped on an unchanged plan, it leaves the version alone. */
+    const trainer = await signInAs(page, context, baseURL!, { onboarded: true, role: 'trainer' });
+    const { planId } = await planOwnedBy(trainer.id, { name: 'Summer block' });
+
+    await page.goto('/coach');
+    await page.getByText('Summer block').click();
+    const sheet = page.getByRole('dialog');
+    await sheet.getByRole('button', { name: 'Publish' }).click();
+    await expect(sheet).toHaveCount(0);
+
+    expect(await planRow(planId)).toEqual({ name: 'Summer block', version: 1, published: true });
+  });
+
+  test('keeps the editor open, and publishes nothing, when the save fails, and saves the retry first', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* Publish saves first, and publishes only once that save has worked. If it
+       went on anyway, a save that failed would publish the older plan and
+       close the editor without a word: the edits lost, and the people it is
+       shared with given the older version, which is GYM-117 again. */
+    const trainer = await signInAs(page, context, baseURL!, { onboarded: true, role: 'trainer' });
+    const { planId } = await planOwnedBy(trainer.id, { name: 'Winter block', published: false });
+
+    await page.goto('/coach');
+    await page.getByText('Winter block').click();
+    const sheet = page.getByRole('dialog');
+    await sheet.getByLabel('Name').fill('Winter block, week 2');
+    await context.route(`**/api/plans/${planId}`, (route) =>
+      route.request().method() === 'PUT' ? route.abort() : route.continue(),
+    );
+    const save = page.waitForRequest((r) => r.method() === 'PUT' && r.url().includes(planId));
+    await sheet.getByRole('button', { name: 'Publish' }).click();
+    await save;
+
+    // The edits are still there to try again, and the older plan did not go out.
+    await expect(sheet.getByRole('button', { name: 'Publish' })).toBeEnabled();
+    await expect(sheet.getByLabel('Name')).toHaveValue('Winter block, week 2');
+    expect(await planRow(planId)).toEqual({ name: 'Winter block', version: 1, published: false });
+
+    // Once the save can go through, Publish saves the edits, then publishes them.
+    await context.unroute(`**/api/plans/${planId}`);
+    await sheet.getByRole('button', { name: 'Publish' }).click();
+    await expect(sheet).toHaveCount(0);
+    expect(await planRow(planId)).toEqual({
+      name: 'Winter block, week 2',
+      version: 1,
+      published: true,
+    });
+  });
+
+  test('keeps the editor open when the publish fails, and a retry only publishes', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* The other half: the save works and the publish does not. The editor
+       stays open, and Publish again must not save a second time: saving a
+       published plan raises its version, so anybody who took the first update
+       would be offered another with nothing in it (GYM-117). So this plan is
+       published already; a draft's version never moves on a save. */
+    const trainer = await signInAs(page, context, baseURL!, { onboarded: true, role: 'trainer' });
+    const { planId } = await planOwnedBy(trainer.id, { name: 'Spring block' });
+
+    await page.goto('/coach');
+    await page.getByText('Spring block').click();
+    const sheet = page.getByRole('dialog');
+    await sheet.getByLabel('Name').fill('Spring block, week 2');
+    const publishUrl = `**/api/plans/${planId}/publish`;
+    await context.route(publishUrl, (route) => route.abort());
+    const publishing = page.waitForRequest((r) => r.url().endsWith(`/${planId}/publish`));
+    await sheet.getByRole('button', { name: 'Publish' }).click();
+    await publishing;
+
+    // Still open with the edits, and saved under the new name: one new version.
+    await expect(sheet.getByRole('button', { name: 'Publish' })).toBeEnabled();
+    await expect(sheet.getByLabel('Name')).toHaveValue('Spring block, week 2');
+    const savedOnce = { name: 'Spring block, week 2', version: 2, published: true };
+    expect(await planRow(planId)).toEqual(savedOnce);
+
+    // Let it through: the retry publishes, and the version stays where the save left it.
+    await context.unroute(publishUrl);
+    await sheet.getByRole('button', { name: 'Publish' }).click();
+    await expect(sheet).toHaveCount(0);
+    expect(await planRow(planId)).toEqual(savedOnce);
   });
 
   test('labels a plan by the days the athlete will get, not the numbers stored', async ({

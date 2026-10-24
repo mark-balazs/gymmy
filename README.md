@@ -153,7 +153,9 @@ Two details that are easy to get wrong:
   they drift.
 - **Server changes are applied before the outbox is re-applied on top.**
   Otherwise a pull could overwrite a set logged while the request was in flight,
-  and to the user the app would simply have lost their work.
+  and to the user the app would simply have lost their work. Both land in one
+  transaction, so no screen sees the server's copy before the put-back covers
+  it (GYM-176).
 
 Conflicts resolve last-write-wins per record. That is a deliberate choice, not a
 shortcut: the dominant write is a set log — an immutable fact, appended once,

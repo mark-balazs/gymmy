@@ -8,7 +8,14 @@ import { index } from '../../packages/domain/src/model';
 import { SEED_PATTERNS } from '../../packages/domain/src/seed';
 import { buildSlots, findSplit } from '../../packages/domain/src/splits';
 import type { Snapshot } from '../../packages/domain/src/types';
-import { createUser, installedWeek, sessionCookie, thisMonday } from '../fixtures/auth';
+import {
+  createUser,
+  installedWeek,
+  profileOnboarded,
+  sessionCookie,
+  thisMonday,
+  touchProfile,
+} from '../fixtures/auth';
 import { completeOnboarding, expect, logSet, recordedSet, test } from '../fixtures/test';
 
 /**
@@ -210,6 +217,60 @@ test.describe('First run', () => {
 
     await expect.poll(() => installedWeek(user.id), { timeout: 30_000 }).toEqual(expected);
     expect(await installedWeek(user.id)).not.toEqual(weekFor(id, 0));
+  });
+
+  test('stays on Train when a sync that left during setup comes back after it', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    /* A sync that leaves before setup's last step can come back after it with
+       the server's older profile, still not set up. Its rows used to land one
+       table at a time, and the phone's own answer was put back only
+       afterwards, so for a moment the profile read as not set up and the app
+       sent the person back to setup's first step (GYM-176). */
+    const user = await createUser();
+    await context.addCookies([sessionCookie(user, baseURL!)]);
+    const firstSync = page.waitForResponse('**/api/sync');
+    await page.goto('/onboarding');
+    await firstSync;
+
+    await page.getByRole('button').filter({ hasText: 'Seven movement patterns' }).first().click();
+    await page.getByRole('button', { name: /3 days/ }).click();
+    await page.getByRole('button', { name: /A gym/ }).click();
+    await page.getByRole('button', { name: /Nothing in particular/ }).click();
+    await page.getByRole('button', { name: 'Skip for now' }).click();
+    await expect(page.getByRole('heading', { name: 'Here is your week' })).toBeVisible();
+
+    // The server's copy moves on, as another device's write would, so the next
+    // sync's answer carries it: not set up.
+    await touchProfile(user.id);
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    await context.route('**/api/sync', async (route) => {
+      const response = await route.fetch();
+      await held;
+      await route.fulfill({ response });
+    });
+    const leaving = page.waitForRequest('**/api/sync');
+    await page.evaluate(() => window.dispatchEvent(new Event('online')));
+    await leaving;
+
+    await page.getByRole('button', { name: 'Start training' }).click();
+    await page.waitForURL('**/train');
+    const visited: string[] = [];
+    page.on('framenavigated', (frame) => {
+      if (frame === page.mainFrame()) visited.push(new URL(frame.url()).pathname);
+    });
+    const answered = page.waitForResponse('**/api/sync');
+    release();
+    await answered;
+    await context.unroute('**/api/sync');
+
+    // The phone's own answer reaches the server, and the screen never left Train.
+    await expect.poll(() => profileOnboarded(user.id), { timeout: 15_000 }).toBe(true);
+    expect(visited).not.toContain('/onboarding');
+    await expect(page.getByRole('heading', { name: 'Train', exact: true })).toBeVisible();
   });
 
   test('does not ask again on a later visit', async ({ app }) => {
