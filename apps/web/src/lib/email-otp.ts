@@ -48,7 +48,7 @@ export function codeEmail(code: string): { subject: string; text: string; html: 
 
   // Ten digits in a row look like a phone number, so the email asks mail apps
   // not to make the code a call link. Whether Apple Mail and Gmail do as asked
-  // is checked on real phones before it goes live (GYM-169).
+  // has not been tried on a real phone yet (GYM-169).
   const html = `<!doctype html><html><head><meta name="format-detection" content="telephone=no"></head><body style="margin:0;padding:24px;background:#f4f6f9;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#0e1620">
 <div style="max-width:420px;margin:0 auto;background:#fff;border-radius:16px;padding:28px">
 <h1 style="margin:0 0 8px;font-size:19px">Your sign-in code</h1>

@@ -1,7 +1,7 @@
 ---
 id: sign-in
 status: current
-decided: "Confluence 934576149; 5736c24; GYM-124; per address and connection, so nobody elsewhere can lock an owner out: asked for by the owner on 2026-10-11; ten-digit codes chosen by the owner on 2026-10-12, who asked for existing mechanisms to be checked (GYM-154)"
+decided: "Confluence 934576149; 5736c24; GYM-124; per address and connection, so nobody elsewhere can lock an owner out: asked for by the owner on 2026-10-11; ten-digit codes chosen by the owner on 2026-10-12, who asked for existing mechanisms to be checked (GYM-154); put live without trying them on a phone, the owner's answer on 2026-10-24: 'Ten digits now' (GYM-180)"
 appears:
   repo: ["docs/architecture.md#the-system-and-what-it-talks-to", "e2e/flows/08-a-full-journey.md#preconditions", "e2e/flows/08-a-full-journey.md#notes", "docs/testing.md#fragilities-worth-knowing", "docs/openapi.yaml#/paths/~1api~1auth~1email-code", "docs/openapi.yaml#/paths/~1api~1auth~1callback~1resend", "README.md#known-gaps"]
   copy: ["app.signIn"]
