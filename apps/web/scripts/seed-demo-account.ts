@@ -5,7 +5,7 @@
  * signs in, Auth.js creates the user, and the `createUser` event seeds it. That
  * is the right design — an account cannot exist until somebody authenticates —
  * but it makes "put the demo back" a manual errand involving a throwaway inbox
- * and a six-digit code, which is a poor way to maintain a fixture that gets
+ * and an emailed code, which is a poor way to maintain a fixture that gets
  * deleted and recreated on purpose.
  *
  * So this does the same two steps directly: insert the user row, then run the

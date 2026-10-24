@@ -79,8 +79,8 @@ test.describe('Not getting stuck', () => {
    * A session that has ended is not a bad connection, and must not read like
    * one.
    *
-   * Sessions last 90 days, and they also end when somebody signs out on
-   * another device or deletes the account. Before this, the API redirected a
+   * Sessions last 90 days, and they also end when somebody signs out in
+   * another tab of the same browser or deletes the account. Before this, the API redirected a
    * cookieless request to the sign-in page: the sync followed the redirect,
    * got HTML back as a `200`, failed to parse it, and showed a red "could not
    * sync" dot on full signal — so the phone retried for ever and the person

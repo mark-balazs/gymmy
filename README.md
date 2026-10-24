@@ -258,8 +258,9 @@ first sync onto an empty device, the sign-out wipe.
   row is scoped to its account (`userId` on every row and index), and a person
   can delete their own account (Settings → Delete your account). But nothing is
   billed yet, and a trainer is made by a manual database change.
-- **Only sign-in codes are rate limited**, per address and per client
-  (`sign-in-throttle.ts`). Sync and the plans API have no limit.
+- **Only sign-in codes are rate limited** — asking for one per address and per
+  client, trying one per address and client and per client — in
+  `sign-in-throttle.ts`. Sync and the plans API have no limit.
 - `middleware.ts` triggers a Next 16 deprecation warning in favour of `proxy.ts`.
   It still works; the rename is untested against the live OAuth flow, so it is
   deliberately not done blind.
