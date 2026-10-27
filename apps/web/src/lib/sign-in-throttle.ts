@@ -39,7 +39,9 @@ import { normaliseEmail } from '@/lib/email-otp';
  *   code reaches its owner as an email only while sending works (GYM-166).
  * - A stranger can replace the owner's code every 2½ minutes, and each replaced
  *   code the owner then types costs the owner's connection a try.
- * - People on one connection, an office network say, share its budgets.
+ * - People on one connection share its budgets: an office or a household, and
+ *   also a mobile network that puts many phones behind one address or one
+ *   IPv6 /48 block.
  * - An IPv6 connection counts as its /48 block, and a /32 holds 65,536 of
  *   them: if the host takes IPv6, connections are far cheaper to come by.
  */
