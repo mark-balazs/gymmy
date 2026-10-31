@@ -159,8 +159,8 @@ paths:
             sign-in's own (`/api/auth/*`) returns this body rather than a
             redirect to the sign-in page — a redirect reaches `fetch` as a
             `200` full of HTML, which the client can only report as a broken
-            connection. On `401` the client stops syncing,
-            keeps everything queued, and asks the person to sign in.
+            connection. On `401` the client stops syncing, keeps everything
+            queued, and asks the person to sign in.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -269,7 +269,9 @@ paths:
         checks in a rolling 15 minutes and 10 in 24 hours from each client; a
         client gets 30 in 15 minutes over all addresses, keyed like the code
         request. A wrong check counts; a right one is given back, and a refused
-        one is not counted. Past a limit the check is refused where Auth.js
+        one is not counted. A right code typed after it expired is given back
+        only while it is still stored; once an ask or check has deleted it, it
+        counts as wrong. Past a limit the check is refused where Auth.js
         looks the code up, so it fails exactly as a wrong code does, whatever
         the method or query, and the stored code is left alone. Nothing in the
         answer tells a refused check from a wrong code, or a known address from

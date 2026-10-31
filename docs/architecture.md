@@ -76,7 +76,7 @@ second implementation to disagree with the first.
 | `apps/web/src/lib/sync/` | The wire contract and per-table row validation |
 | `apps/web/src/lib/db/plans.ts` | Plans, groups, shares, and who can see what. **Not** a replicated table |
 | `apps/web/src/lib/api/plans.ts` | The session/trainer guard and the wire schema for the plan endpoints |
-| `apps/web/src/lib/auth.ts` `sign-in-codes.ts` `sign-in-throttle.ts` `email-otp.ts` | Sign-in: Auth.js with Google and the emailed code; its adapter, where only the newest code works and tries on one are limited; the limits on asking for and trying a code, and what counts as one connection; the code and its email |
+| `apps/web/src/lib/auth.ts` `sign-in-codes.ts` `sign-in-throttle.ts` `email-otp.ts` | Sign-in: Auth.js with Google and the emailed code; its adapter, where only the newest code works, expired codes are deleted and tries on one are limited; the limits on asking for and trying a code, and what counts as one connection; the code and its email |
 | `apps/web/src/app/(app)/` | The five tabs |
 | `apps/web/src/components/` | The UI kit, the charts, the calendar, the sheets, the lightbox, the profile card, the recovery screens |
 | `apps/web/src/components/entry/` | Train's number controls — buttons, the ruler, the plate loader, gymmy's keypad — and the card's open/close. `rolling-number.tsx` rolls a changed digit in from the way the number moved |
@@ -278,9 +278,9 @@ cannot read the count at all (`SyncStatus.pending` is `null`, not `0`).
 `/api/*` with no session cookie, outside sign-in's own `/api/auth/*`, with `401`
 and JSON rather than redirecting to `/sign-in`, and so does each route for a
 session that has ended: `fetch` follows a redirect and gets HTML back as a
-`200`, which the sync could only report as a broken connection — so an expired session showed a red dot on full
-signal for ever. On `401` the sync stops, keeps the queue, and the header reads
-"Sign in to send 3 changes".
+`200`, which the sync could only report as a broken connection — so an expired
+session showed a red dot on full signal for ever. On `401` the sync stops, keeps
+the queue, and the header reads "Sign in to send 3 changes".
 
 ## One read for every screen
 

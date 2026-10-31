@@ -421,8 +421,8 @@ describe('sign-in codes in the adapter', () => {
     const live = addressOf();
     await db.insert(verificationTokens).values([
       { identifier: stale, token: 'expired', expires: minutesAgo(1) },
-      // A minute either side of the edge, so a delete that came early would show.
-      { identifier: soon, token: 'soon', expires: minutesAgo(-1) },
+      // Fifteen seconds left: a delete that came early by more would show.
+      { identifier: soon, token: 'soon', expires: minutesAgo(-0.25) },
       { identifier: live, token: 'live', expires: inTen() },
     ]);
     await adapter.createVerificationToken!({
@@ -471,6 +471,31 @@ describe('sign-in codes in the adapter', () => {
     } finally {
       warn.mockRestore();
     }
+  });
+
+  it('gives a late right code back while it is stored, and counts it once deleted', async () => {
+    /* A right code typed after it expired is refused either way. Still stored,
+       it is found and the try given back; deleted by anyone's ask or check
+       since, it is not found, and the try counts as a wrong one. */
+    const stored = addressOf();
+    await db
+      .insert(verificationTokens)
+      .values({ identifier: stored, token: 'right', expires: minutesAgo(1) });
+    const found = await adapter.useVerificationToken!({ identifier: stored, token: 'right' });
+    expect(found?.token).toBe('right');
+    expect(await checksBy(stored)).toBe(0);
+
+    const deleted = addressOf();
+    await db
+      .insert(verificationTokens)
+      .values({ identifier: deleted, token: 'right', expires: minutesAgo(1) });
+    await adapter.createVerificationToken!({
+      identifier: addressOf(),
+      token: 'other',
+      expires: inTen(),
+    });
+    expect(await adapter.useVerificationToken!({ identifier: deleted, token: 'right' })).toBeNull();
+    expect(await checksBy(deleted)).toBe(1);
   });
 
   it('never leaves no code when two asks at once interleave', async () => {
