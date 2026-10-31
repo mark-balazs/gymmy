@@ -9,4 +9,4 @@ appears:
   confluence: ["934543399", "934445118", "934477826", "934445138", "994574535", "934608935"]
 ---
 
-'Log something else' below Train's planned cards logs any catalogue exercise, stored as ordinary set logs under the reserved session label X. Those sets count for coverage, both strength numbers, goals, charts, 'last time' and the session count, but never tick a planned day; picking a lift the open day plans opens that day's own card.
+'Log something else' below Train's day cards logs any catalogue exercise, stored as ordinary set logs under the reserved session label X. Those sets count for coverage, both strength numbers, goals, charts, 'last time' and the session count, but never tick a training day; picking a lift the open day holds opens that day's own card.
