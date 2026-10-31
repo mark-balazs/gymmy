@@ -11,4 +11,4 @@ appears:
 
 The app always describes, judges only where the person asked it to (a goal), and never prescribes: no suggested weight or reps, no 'add a rep' or 'ready for more weight' card, and no warning that a set looked too easy. Only a human trainer prescribes, through a plan shared in gymmy.
 
-Rep ranges and set counts stay on plans, because they are the shape of the week, not advice to add weight.
+Rep ranges and set counts stay on the week, because they are its shape, not advice to add weight.

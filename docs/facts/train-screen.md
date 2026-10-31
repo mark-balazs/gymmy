@@ -9,4 +9,4 @@ appears:
   confluence: ["994639880", "934608935"]
 ---
 
-Train has a tab per plan day (Day A up to Day F) and opens on the day already started today, or else the first day not yet trained this week, after a reload too. One exercise card is open at a time and finishing it opens the next; a day is ticked once every planned set is done that week, on any date.
+Train has a tab per training day (Day A up to Day F) and opens on the day already started today, or else the first day not yet trained this week, after a reload too. One exercise card is open at a time and finishing it opens the next; a day is ticked once every set it holds is done that week, on any date.
