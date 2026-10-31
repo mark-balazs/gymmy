@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { eq, inArray, sql } from 'drizzle-orm';
+import type { NextRequest } from 'next/server';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { db } from '@/lib/db';
 import { seedId } from '@/lib/db/seed-user';
@@ -8,9 +9,18 @@ import { POST } from './route';
 
 /* Whoever the route believes is signed in. The session is the one thing
    stubbed — Auth.js cannot load outside Next — and everything behind it, the
-   validation, the upsert and the pull, runs against the real database. */
+   validation, the upsert and the pull, runs against the real database. The
+   route is Auth.js's wrapper around its handler, so the stub wraps too, and
+   hands the handler the session as the wrapper does, on `req.auth`. Whether
+   the wrapper's renewed cookie reaches the phone is the browser suite's to
+   hold (e2e/tests/staying-signed-in.spec.ts). */
 const who = vi.hoisted(() => ({ id: '' }));
-vi.mock('@/lib/auth', () => ({ auth: async () => ({ user: { id: who.id } }) }));
+vi.mock('@/lib/auth', () => ({
+  auth: (handler: (req: unknown, ctx: unknown) => unknown) => (req: Request, ctx: unknown) =>
+    handler(Object.assign(req, { auth: { user: { id: who.id } } }), ctx),
+}));
+const callRoute = async (req: Request) =>
+  (await POST(req as NextRequest, { params: Promise.resolve({}) })) as Response;
 
 type LogRow = { id: string; weight: number | null; deletedAt: string | null; updatedAt: string };
 
@@ -56,7 +66,7 @@ describe('POST /api/sync', () => {
     accountId?: string | null,
   ) => {
     who.id = as;
-    return POST(
+    return callRoute(
       new Request('http://localhost/api/sync', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -273,7 +283,7 @@ describe('POST /api/sync', () => {
     const since = Number((seen.rows[0] as { n: string | number }).n);
 
     who.id = c;
-    const res = await POST(
+    const res = await callRoute(
       new Request('http://localhost/api/sync', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },

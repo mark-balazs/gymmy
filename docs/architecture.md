@@ -630,6 +630,13 @@ single rep", the onboarding weight's unit). Everything read once went behind an
   checks a code on a GET or a POST, from whatever query it is handed, and
   every one ends in `useVerificationToken`, so every route and method counts.
   A refused try answers `null`, which Auth.js shows exactly as a wrong code.
+- **Plain `auth()` drops the renewed sign-in cookie.** Reading a session moves
+  its row's end 90 days on, and Auth.js answers with a cookie carrying the new
+  end, but `auth()` keeps only the session. So the phone's cookie ran out 90
+  days after signing in, however often it synced (GYM-143). `/api/sync` is
+  wrapped in `auth(handler)`, which adds Auth.js's cookies to whatever the
+  handler returns; a cookie naming a session that has ended comes back
+  cleared. A route that has to keep a phone signed in needs the same wrapper.
 - **Auth.js's own `POST /api/auth/signin/resend` answers 404.** It would email
   a code to any address for anyone holding a CSRF token, beside the limits on
   asking. The app asks through `/api/auth/email-code`, which calls next-auth's

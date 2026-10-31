@@ -63,6 +63,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       authorization: { params: { scope: 'openid email profile', prompt: 'select_account' } },
     }),
   ],
+  /* Ninety days from the last sync. Reading a session moves the row's end on,
+     at most once a day, and the sync route is wrapped in `auth()` so that its
+     answer carries the renewed cookie back to the phone (GYM-143). */
   session: { strategy: 'database', maxAge: 60 * 60 * 24 * 90 },
   pages: { signIn: '/sign-in' },
   callbacks: {
