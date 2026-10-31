@@ -587,7 +587,7 @@ export async function setSessionEnd(user: TestUser, at: Date): Promise<void> {
   ]);
 }
 
-/** Ends a sign-in on the server, as signing out elsewhere or a deletion would. */
+/** Ends a sign-in on the server, as deleting the account on another phone would. */
 export async function endSession(user: TestUser): Promise<void> {
   await db().query('DELETE FROM session WHERE "sessionToken" = $1', [user.sessionToken]);
 }

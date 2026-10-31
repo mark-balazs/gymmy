@@ -17,9 +17,9 @@ async function cookieEnd(
  *
  * A sign-in ends twice: the session row on the server and the cookie on the
  * phone. Reading the session moved the row's end on, but the sync dropped the
- * cookie Auth.js sends with it, so the cookie ran out 90 days after signing
- * in, however often the phone synced, and the phone was signed out with its
- * newest sets still on it. The cookie is the phone's to keep, so only a
+ * cookie Auth.js sends with it, so the cookie would have run out 90 days after
+ * signing in, however often the phone synced, and signed the phone out with
+ * its newest sets still on it. The cookie is the phone's to keep, so only a
  * browser can show whether it moved.
  */
 test.describe('Staying signed in', () => {
@@ -50,13 +50,14 @@ test.describe('Staying signed in', () => {
   });
 
   /**
-   * The other side of the same answer: a cookie naming a sign-in that has
-   * ended (signed out elsewhere, the account deleted on another phone) comes
-   * back cleared, as it does from Auth.js's own session route. The phone must
-   * still say what to do and keep what it holds, exactly as when the cookie
-   * itself ran out.
+   * The other side of the same answer: a sign-in that has ended on the server
+   * (the account deleted on another phone, or the session removed). Auth.js
+   * would clear its cookie, and the sync keeps it: it is what still lets the
+   * phone open the app, show what is waiting and sign out there, which empties
+   * it. Without it, the only way to empty that phone would be to sign in again,
+   * which makes a new account.
    */
-  test('a sync after the sign-in has ended still says to sign in, and keeps the change', async ({
+  test('a sync after the sign-in has ended says to sign in, and the phone can still sign out', async ({
     page,
     context,
     baseURL,
@@ -70,6 +71,11 @@ test.describe('Staying signed in', () => {
     await expect(page.getByText('Sign in to send 1 change')).toBeVisible({ timeout: 15_000 });
     expect(await queuedChanges(page)).toBe(1);
     expect(await serverSets(user.id)).toEqual([]);
-    await expect.poll(() => cookieEnd(context)).toBeNull();
+    // The cookie stays, so opening the app again opens the app, not the
+    // sign-in screen, and Settings still offers to sign out.
+    expect(await cookieEnd(context)).not.toBeNull();
+    await page.goto('/settings');
+    await expect(page).toHaveURL(/\/settings/);
+    await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeVisible();
   });
 });

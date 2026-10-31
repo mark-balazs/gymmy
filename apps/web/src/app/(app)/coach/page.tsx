@@ -10,8 +10,9 @@ import { CoachScreen } from '@/components/coach-screen';
  * the URL should get the same answer as somebody who never saw the link.
  *
  * The check here is a *rendering* decision only. Every write still re-reads the
- * role in the API, because a database session lasts ninety days and a role that
- * was taken away should not keep working for the rest of them.
+ * role in the API, because a database session lasts until the phone goes 90
+ * days without syncing, and a role that was taken away should not keep working
+ * until then.
  *
  * Not a tab. Five tabs are the week as it is lived, and coaching is not part of
  * anybody's week — it is reached from Settings, by the few accounts that have

@@ -25,15 +25,28 @@ const nextSeq = sql<number>`nextval('change_seq')`;
  * Every sync keeps the phone signed in (GYM-143).
  *
  * A sign-in ends twice: the session row on the server, and the cookie on the
- * phone. Reading the session moves the row's end 90 days on, and Auth.js sends
- * a cookie with the same new end, but only a caller that keeps the answer's
- * cookies passes it on. Plain `auth()` keeps the session and drops them, so
- * the phone's cookie ran out 90 days after signing in, however often it
- * synced. Auth.js's wrapper hands the handler the session as `req.auth` and
- * adds its cookies to whatever the handler returns. A cookie naming a session
- * that has ended comes back cleared, as Auth.js's own session route does.
+ * phone. Reading the session moves the row's end 90 days on, at most once a
+ * day, and Auth.js answers with a cookie ending 90 days from now, every time;
+ * but only a caller that keeps the answer's cookies passes it on. Plain
+ * `auth()` keeps the session and drops them, so the phone's cookie ran out 90
+ * days after signing in however often it synced, unless Settings was opened.
+ * Auth.js's wrapper hands the handler the session as `req.auth` and adds its
+ * cookies to whatever the handler returns.
+ *
+ * Except a 401. There Auth.js would also clear the cookie of a sign-in that
+ * has ended, and that cookie is what still lets the phone open the app: to
+ * show what is waiting, and to sign out there, which empties it. A phone whose
+ * account was deleted on another phone could otherwise only be emptied by
+ * signing in again, which makes a new account. So a 401 goes back without
+ * Auth.js's cookies, as it did before this route was wrapped.
  */
-export const POST = auth(sync);
+const withSession = auth(sync);
+
+export const POST: typeof withSession = async (req, ctx) => {
+  const res = await withSession(req, ctx);
+  if (res?.status === 401) res.headers.delete('set-cookie');
+  return res;
+};
 
 async function sync(req: NextAuthRequest): Promise<NextResponse> {
   const userId = req.auth?.user?.id;

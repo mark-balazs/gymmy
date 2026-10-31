@@ -5,8 +5,8 @@ import type { DefaultSession } from 'next-auth';
  *
  * A hint for rendering and nothing more: it decides whether the coach area is
  * offered, while every write that depends on the role re-reads the user row.
- * A database session lasts ninety days, and a role that was taken away should
- * not keep working for the rest of them.
+ * A database session lasts until the phone goes 90 days without syncing, and a
+ * role that was taken away should not keep working until then.
  */
 declare module 'next-auth' {
   interface Session {
