@@ -6,7 +6,7 @@ appears:
   repo: ["docs/architecture.md#the-system-and-what-it-talks-to", "e2e/flows/08-a-full-journey.md#preconditions", "e2e/flows/08-a-full-journey.md#notes", "docs/testing.md#fragilities-worth-knowing", "docs/openapi.yaml#/paths/~1api~1auth~1email-code", "docs/openapi.yaml#/paths/~1api~1auth~1callback~1resend", "README.md#known-gaps"]
   copy: ["app.signIn"]
   tests: ["e2e/tests/email-signin.spec.ts", "apps/web/src/lib/email-otp.test.ts", "apps/web/src/lib/sign-in-throttle.test.ts", "e2e/tests/journey.spec.ts"]
-  confluence: ["934379522", "934576149", "934445078", "934379542", "994672734"]
+  confluence: ["934379522", "934576149", "934445078", "934379542", "994672734", "1050476563"]
 ---
 
 Sign-in has no password: Continue with Google, or a ten-digit email code (valid 10 minutes, once) shown only when RESEND_API_KEY is set. Only the newest code works, though two codes asked for at the same moment can rarely both work. Trying codes is limited per address and connection (five tries in 15 minutes, ten a day) and per connection (30 in 15 minutes), never per address alone, so nobody elsewhere can spend the owner's tries, though a stranger who keeps asking can replace the owner's code every 2½ minutes, and a replaced code typed in counts as a wrong try. People who share a connection (an office, a household, or a mobile network's shared address) share its limits. Asking for codes is limited per address (two in five minutes) and per connection (20 in 15 minutes). Every outcome looks the same, so nobody can find out who has an account.
