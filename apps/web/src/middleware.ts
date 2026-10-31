@@ -24,8 +24,8 @@ export function middleware(req: NextRequest) {
      *
      * A redirect is a sensible thing to do to a person and a terrible thing to
      * do to `fetch`. The sync follows it, gets the sign-in page back as `200`
-     * with a body of HTML, and reports a parse error — so a session that ended
-     * ninety days ago looked exactly like a bad connection, on full signal,
+     * with a body of HTML, and reports a parse error — so a session that had
+     * ended looked exactly like a bad connection, on full signal,
      * and the phone went on retrying for ever while the queue grew. Answering
      * `401` is what lets it stop and say "Sign in to send 3 changes".
      *

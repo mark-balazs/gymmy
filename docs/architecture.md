@@ -634,7 +634,7 @@ single rep", the onboarding weight's unit). Everything read once went behind an
   its row's end 90 days on, at most once a day, and Auth.js answers with a
   cookie ending 90 days from now every time, but `auth()` keeps only the
   session. So the phone's cookie would have run out 90 days after signing in,
-  however often it synced (GYM-143). `/api/sync` is wrapped in `auth(handler)`,
+  however often it synced, unless Settings was opened (GYM-143). `/api/sync` is wrapped in `auth(handler)`,
   which adds Auth.js's cookies to whatever the handler returns, except on a
   `401`: there Auth.js would also clear the cookie of a sign-in that has ended,
   and that cookie is what lets the phone still open the app and sign out. A

@@ -57,7 +57,7 @@ test.describe('Staying signed in', () => {
    * it. Without it, the only way to empty that phone would be to sign in again,
    * which makes a new account.
    */
-  test('a sync after the sign-in has ended says to sign in, and the phone can still sign out', async ({
+  test('a sync after the sign-in has ended says to sign in, and Settings still offers Sign out', async ({
     page,
     context,
     baseURL,
