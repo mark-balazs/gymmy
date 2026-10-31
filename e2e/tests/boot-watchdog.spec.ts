@@ -107,11 +107,23 @@ test.describe('When the app cannot start at all', () => {
 
     await page.getByRole('button', { name: 'Reset and reload' }).click();
 
-    // The app's copy went; the training did not.
+    // The app's copy went; the training did not. The reset reloads the page,
+    // and a question that lands on the reload is asked again (GYM-192).
     await expect
-      .poll(() => page.evaluate(() => caches.keys()), { timeout: 30_000 })
+      .poll(
+        () =>
+          unlessReloading(
+            page.evaluate(() => caches.keys()),
+            ['athletic-old'],
+          ),
+        {
+          timeout: 30_000,
+        },
+      )
       .not.toContain('athletic-old');
-    await expect.poll(() => queuedChanges(page), { timeout: 30_000 }).toBeGreaterThan(0);
+    await expect
+      .poll(() => unlessReloading(queuedChanges(page), 0), { timeout: 30_000 })
+      .toBeGreaterThan(0);
 
     // And with a working network and a working bundle, the set goes up.
     await releaseBoot(page);
@@ -166,3 +178,20 @@ test.describe('When the app cannot start at all', () => {
     await expect(app.getByRole('heading', { name: /Train|Edzés/ })).toBeVisible();
   });
 });
+
+/**
+ * What a question asked of the page answers, or `notYet` when it landed on a
+ * reload. `page.evaluate` throws then, and `expect.poll` stops at a throw
+ * instead of asking again, so a check that happened to land on the reset's
+ * reload failed a test that had nothing wrong (GYM-192). Any other error still
+ * fails it.
+ */
+async function unlessReloading<T>(answer: Promise<T>, notYet: T): Promise<T> {
+  try {
+    return await answer;
+  } catch (error) {
+    if (/Execution context was destroyed|Cannot find context with specified id/.test(String(error)))
+      return notYet;
+    throw error;
+  }
+}
