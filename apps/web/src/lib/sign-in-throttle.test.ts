@@ -413,6 +413,36 @@ describe('sign-in codes in the adapter', () => {
     expect(await codesFor(email)).toEqual(['new']);
   });
 
+  it('deletes every expired code at an ask, whoever it was for, and keeps live ones', async () => {
+    /* Auth.js deletes a code only when it is used, so one never used would
+       keep the address it was sent to for good (GYM-175). */
+    const stale = addressOf();
+    const live = addressOf();
+    await db.insert(verificationTokens).values([
+      { identifier: stale, token: 'expired', expires: minutesAgo(1) },
+      { identifier: live, token: 'live', expires: inTen() },
+    ]);
+    await adapter.createVerificationToken!({
+      identifier: addressOf(),
+      token: 'asked',
+      expires: inTen(),
+    });
+    expect(await codesFor(stale)).toEqual([]);
+    expect(await codesFor(live)).toEqual(['live']);
+  });
+
+  it('deletes every expired code at a check too', async () => {
+    // Stored by hand, since an ask would delete it before the check could.
+    const stale = addressOf();
+    await db
+      .insert(verificationTokens)
+      .values({ identifier: stale, token: 'expired', expires: minutesAgo(1) });
+    expect(
+      await adapter.useVerificationToken!({ identifier: addressOf(), token: 'any' }),
+    ).toBeNull();
+    expect(await codesFor(stale)).toEqual([]);
+  });
+
   it('never leaves no code when two asks at once interleave', async () => {
     /* Storing a code is an insert and then a delete, two calls, so two asks at
        once can both insert before either deletes. Deleting every *other* code

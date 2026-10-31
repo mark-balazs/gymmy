@@ -368,6 +368,12 @@ behind it. They are cleared **first**, so the irreversible step is last — if t
 cascade then fails, the account is intact and the worst that happened is a reset
 throttle.
 
+Without an account to delete, neither keeps an address for long. A code that
+expires unused goes at the next ask or check for a code, by anyone
+(`deleteExpiredCodes` in `sign-in-codes.ts`), and attempts older than a day go
+the same way. Before that, the address of everyone who asked for a code and never
+signed in stayed for good (GYM-175).
+
 There is no wrapping transaction. Production runs on Neon's HTTP driver, which
 has no interactive transactions; the ordering above is what makes that safe
 rather than merely tolerable.
