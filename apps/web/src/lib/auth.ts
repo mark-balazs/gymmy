@@ -35,7 +35,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      * offered, which is a better failure than a sign-in route that always
      * errors. Auth.js stores the code in `verificationToken` and deletes it on
      * use, so it is single-use and expiring; `withCodeLimits` keeps only the
-     * newest code and limits how often one can be tried.
+     * newest code, deletes expired ones and limits how often one can be tried.
      */
     ...(env.RESEND_API_KEY
       ? [

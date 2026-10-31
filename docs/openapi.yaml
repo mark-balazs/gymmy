@@ -157,9 +157,9 @@ paths:
 
             **Answered, never redirected.** Every `/api/*` path outside
             sign-in's own (`/api/auth/*`) returns this body rather than a
-            redirect to the sign-in page — a redirect
-            reaches `fetch` as a `200` full of HTML, which the client can only
-            report as a broken connection. On `401` the client stops syncing,
+            redirect to the sign-in page — a redirect reaches `fetch` as a
+            `200` full of HTML, which the client can only report as a broken
+            connection. On `401` the client stops syncing,
             keeps everything queued, and asks the person to sign in.
           content:
             application/json:

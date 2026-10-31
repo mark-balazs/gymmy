@@ -26,8 +26,10 @@ import { admitCodeCheck, clientKey, giveBack } from '@/lib/sign-in-throttle';
  *   code they just asked for.
  * - **A right try is given back** (`giveBack`), so signing in never spends
  *   anyone's tries.
- * - **An expired code goes at the next ask or check** (`deleteExpiredCodes`),
- *   whoever makes it.
+ * - **An expired code goes at the next ask, or check that reaches Auth.js's
+ *   lookup** (`deleteExpiredCodes`), whoever makes it. A right code typed after
+ *   it expired is refused either way, but if it has been deleted by then, the
+ *   try counts as a wrong one too.
  */
 export function withCodeLimits(
   adapter: Adapter,
@@ -105,9 +107,9 @@ export async function deleteCodesBefore(token: VerificationToken): Promise<void>
  * code goes at the next one, by anyone. A failure costs nothing but the
  * delay, so it never fails the sign-in.
  */
-export async function deleteExpiredCodes(now: Date = new Date()): Promise<void> {
+export async function deleteExpiredCodes(): Promise<void> {
   try {
-    await db.delete(verificationTokens).where(lt(verificationTokens.expires, now));
+    await db.delete(verificationTokens).where(lt(verificationTokens.expires, new Date()));
   } catch (error) {
     console.warn('[sign-in] could not delete expired codes', error);
   }

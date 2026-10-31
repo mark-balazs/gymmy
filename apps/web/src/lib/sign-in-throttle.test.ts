@@ -2,11 +2,11 @@ import { randomUUID } from 'node:crypto';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import { and, eq, like, sql, type SQL } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it, vi } from 'vitest';
 import { db, type schema } from '@/lib/db';
 import { accounts, sessions, signInAttempts, users, verificationTokens } from '@/lib/db/schema';
 import { MAX_ADDRESS_LENGTH } from './email-otp';
-import { deleteCodesBefore, withCodeLimits } from './sign-in-codes';
+import { deleteCodesBefore, deleteExpiredCodes, withCodeLimits } from './sign-in-codes';
 import {
   admitCodeCheck,
   askLock,
@@ -417,9 +417,12 @@ describe('sign-in codes in the adapter', () => {
     /* Auth.js deletes a code only when it is used, so one never used would
        keep the address it was sent to for good (GYM-175). */
     const stale = addressOf();
+    const soon = addressOf();
     const live = addressOf();
     await db.insert(verificationTokens).values([
       { identifier: stale, token: 'expired', expires: minutesAgo(1) },
+      // A minute either side of the edge, so a delete that came early would show.
+      { identifier: soon, token: 'soon', expires: minutesAgo(-1) },
       { identifier: live, token: 'live', expires: inTen() },
     ]);
     await adapter.createVerificationToken!({
@@ -428,6 +431,7 @@ describe('sign-in codes in the adapter', () => {
       expires: inTen(),
     });
     expect(await codesFor(stale)).toEqual([]);
+    expect(await codesFor(soon)).toEqual(['soon']);
     expect(await codesFor(live)).toEqual(['live']);
   });
 
@@ -441,6 +445,32 @@ describe('sign-in codes in the adapter', () => {
       await adapter.useVerificationToken!({ identifier: addressOf(), token: 'any' }),
     ).toBeNull();
     expect(await codesFor(stale)).toEqual([]);
+  });
+
+  it('never fails a sign-in when expired codes cannot be deleted', async () => {
+    /* A failed delete only waits for the next ask or check; it must never reach
+       Auth.js as an error. Both ways a delete can fail: at once, or when the
+       database answers. */
+    const failures = [
+      () => {
+        throw new Error('database down');
+      },
+      () => ({ where: () => Promise.reject(new Error('database down')) }),
+    ];
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      for (const failure of failures) {
+        const down = vi.spyOn(db, 'delete').mockImplementationOnce(failure as never);
+        try {
+          await expect(deleteExpiredCodes()).resolves.toBeUndefined();
+        } finally {
+          down.mockRestore();
+        }
+      }
+      expect(warn).toHaveBeenCalledTimes(2);
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it('never leaves no code when two asks at once interleave', async () => {

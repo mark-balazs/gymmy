@@ -275,10 +275,10 @@ person asked for it — so it counts what is queued first, and says so when it
 cannot read the count at all (`SyncStatus.pending` is `null`, not `0`).
 
 **A session that ended is not a bad connection.** `middleware.ts` answers
-`/api/*`, outside sign-in's own `/api/auth/*`, with `401` and JSON rather than
-redirecting to `/sign-in`: `fetch`
-follows a redirect and gets HTML back as a `200`, which the sync could only
-report as a broken connection — so an expired session showed a red dot on full
+`/api/*` with no session cookie, outside sign-in's own `/api/auth/*`, with `401`
+and JSON rather than redirecting to `/sign-in`, and so does each route for a
+session that has ended: `fetch` follows a redirect and gets HTML back as a
+`200`, which the sync could only report as a broken connection — so an expired session showed a red dot on full
 signal for ever. On `401` the sync stops, keeps the queue, and the header reads
 "Sign in to send 3 changes".
 
