@@ -32,6 +32,8 @@ version only offered, and Coaching's plan editor), `profile` (the profile card,
 and the year of birth in the strength score), `progress` (charts over all of a
 lift's history, the movements trained, and the two strength numbers),
 `train-accordion` (Train opens one exercise at a time and ticks a finished day),
+`staying-signed-in` (a sync renews the phone's sign-in by 90 days, and after a
+sign-in has ended the phone keeps its cookie, so it can still open and sign out),
 `motion` (the motion tokens and reduced motion as the browser applies them) and
 `info-tip` (the ⓘ that holds explanations: opens where it can be read, closes on
 a second tap, a tap elsewhere or Escape, one at a time, and moves nothing).

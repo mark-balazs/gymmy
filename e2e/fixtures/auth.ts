@@ -571,6 +571,27 @@ export const sessionCookie = (user: TestUser, origin: string) => ({
   expires: Math.floor(Date.now() / 1000) + 7 * 24 * 3600,
 });
 
+/** When a sign-in ends on the server, or `null` once its row is gone. */
+export async function sessionEnd(user: TestUser): Promise<Date | null> {
+  const r = await db().query('SELECT expires FROM session WHERE "sessionToken" = $1', [
+    user.sessionToken,
+  ]);
+  return (r.rows[0] as { expires: Date } | undefined)?.expires ?? null;
+}
+
+/** Moves a sign-in's end on the server, as if it had begun at another time. */
+export async function setSessionEnd(user: TestUser, at: Date): Promise<void> {
+  await db().query('UPDATE session SET expires = $2 WHERE "sessionToken" = $1', [
+    user.sessionToken,
+    at,
+  ]);
+}
+
+/** Ends a sign-in on the server, as deleting the account on another phone would. */
+export async function endSession(user: TestUser): Promise<void> {
+  await db().query('DELETE FROM session WHERE "sessionToken" = $1', [user.sessionToken]);
+}
+
 /**
  * How many rows a table still holds for an account.
  *

@@ -79,7 +79,7 @@ test.describe('Not getting stuck', () => {
    * A session that has ended is not a bad connection, and must not read like
    * one.
    *
-   * Sessions last 90 days, and they also end when somebody signs out in
+   * Sessions end after 90 days without a sync, and also when somebody signs out in
    * another tab of the same browser or deletes the account. Before this, the API redirected a
    * cookieless request to the sign-in page: the sync followed the redirect,
    * got HTML back as a `200`, failed to parse it, and showed a red "could not
@@ -95,8 +95,8 @@ test.describe('Not getting stuck', () => {
     const user = await signInAs(page, context, baseURL!, { onboarded: true });
     await expect(page.getByText('All saved')).toBeVisible();
 
-    // The session ends while the app is open — signed out elsewhere, or simply
-    // ninety days later.
+    // The session ends while the app is open: signed out in another tab of the
+    // same browser, or ninety days without a sync.
     await context.clearCookies();
     await logSet(page, 60, 8);
 

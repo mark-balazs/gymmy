@@ -7,6 +7,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import type { NextAuthRequest } from 'next-auth';
 import { and, asc, eq, getTableColumns, gt, sql } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -20,9 +21,35 @@ export const dynamic = 'force-dynamic';
 
 const nextSeq = sql<number>`nextval('change_seq')`;
 
-export async function POST(req: Request): Promise<NextResponse> {
-  const session = await auth();
-  const userId = session?.user?.id;
+/**
+ * Every sync keeps the phone signed in (GYM-143).
+ *
+ * A sign-in ends twice: the session row on the server, and the cookie on the
+ * phone. Reading the session moves the row's end 90 days on, at most once a
+ * day, and Auth.js answers with a cookie ending 90 days from now, every time;
+ * but only a caller that keeps the answer's cookies passes it on. Plain
+ * `auth()` keeps the session and drops them, so the phone's cookie ran out 90
+ * days after signing in however often it synced, unless Settings was opened.
+ * Auth.js's wrapper hands the handler the session as `req.auth` and adds its
+ * cookies to whatever the handler returns.
+ *
+ * Except a 401. There Auth.js would also clear the cookie of a sign-in that
+ * has ended, and that cookie is what still lets the phone open the app: to
+ * show what is waiting, and to sign out there, which empties it. A phone whose
+ * account was deleted on another phone could otherwise only be emptied by
+ * signing in again, which makes a new account. So a 401 goes back without
+ * Auth.js's cookies, as it did before this route was wrapped.
+ */
+const withSession = auth(sync);
+
+export const POST: typeof withSession = async (req, ctx) => {
+  const res = await withSession(req, ctx);
+  if (res?.status === 401) res.headers.delete('set-cookie');
+  return res;
+};
+
+async function sync(req: NextAuthRequest): Promise<NextResponse> {
+  const userId = req.auth?.user?.id;
   if (!userId) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
   let body: unknown;
@@ -163,7 +190,7 @@ export async function POST(req: Request): Promise<NextResponse> {
    */
   if (!payload.changes.profile?.length && !(await hasProfile(userId))) {
     console.warn(`[sync] account ${userId} has no profile; seeding now`);
-    await seedNewUser(userId, session.user?.email);
+    await seedNewUser(userId, req.auth?.user?.email);
     payload = await pull(userId, since);
   }
 

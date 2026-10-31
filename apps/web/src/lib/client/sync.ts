@@ -21,7 +21,8 @@ import type { TableName } from '@athletic/domain';
  * has not reached the server yet — annoying, and it resolves itself.
  *
  * `signedOut` is the one state that does not resolve itself by waiting. The
- * session ended — 90 days, a sign-out in another tab, a deleted account — and
+ * session ended — 90 days without a sync, a sign-out in another tab, a deleted
+ * account — and
  * the server answers 401. Nothing queued will move until somebody signs in, so
  * it must not look like `offline`, which it did: an amber dot on full signal,
  * and a person who waits for the signal to come back waits forever.

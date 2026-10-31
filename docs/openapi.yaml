@@ -131,6 +131,15 @@ paths:
       responses:
         '200':
           description: Accepted, and here is everything newer than your cursor.
+          headers:
+            Set-Cookie:
+              description: |
+                The session cookie again, ending 90 days after this sync, so a
+                phone that syncs stays signed in. The session row's end moves
+                with it, at most once a day, so it can fall up to a day short.
+                The first answer after a browser restart may also set Auth.js's
+                CSRF and callback cookies; the app does not use them.
+              schema: { type: string }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PullResponse' }
@@ -153,7 +162,9 @@ paths:
                         message: Number must be greater than or equal to 20
         '401':
           description: |
-            No session cookie, or a session that has ended.
+            No session cookie, or a session that has ended. A cookie for a
+            session that has ended is left as it is, so the app still opens on
+            the phone and can sign out there, which empties it.
 
             **Answered, never redirected.** Every `/api/*` path outside
             sign-in's own (`/api/auth/*`) returns this body rather than a
@@ -371,8 +382,8 @@ paths:
       operationId: createPlan
       description: |
         Trainers only, and the role is re-read from the database rather than
-        taken from the session — a session lasts ninety days and a role that was
-        taken away should not outlive it.
+        taken from the session — a session lasts for as long as the phone keeps
+        syncing, and a role that was taken away should not outlive it.
       requestBody:
         required: true
         content:
@@ -763,7 +774,8 @@ components:
         A database-backed session, set by the sign-in flow. `__Secure-` prefixed
         in production. Sessions are rows rather than JWTs, so revoking one is
         immediate everywhere — which is what makes account deletion and
-        sign-out mean what they say.
+        sign-out mean what they say. It lasts until the phone goes 90 days
+        without syncing: every `POST /api/sync` sets it again, 90 days on.
 
   schemas:
     Ok:

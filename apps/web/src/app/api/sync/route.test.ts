@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { eq, inArray, sql } from 'drizzle-orm';
+import type { NextRequest } from 'next/server';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { db } from '@/lib/db';
 import { seedId } from '@/lib/db/seed-user';
@@ -8,9 +9,29 @@ import { POST } from './route';
 
 /* Whoever the route believes is signed in. The session is the one thing
    stubbed — Auth.js cannot load outside Next — and everything behind it, the
-   validation, the upsert and the pull, runs against the real database. */
+   validation, the upsert and the pull, runs against the real database. The
+   route is Auth.js's wrapper around its handler, so the stub wraps too: it
+   hands the handler the session on `req.auth`, or none when `who.id` is empty,
+   and adds a cookie to the answer as Auth.js does, renewed for a session and
+   cleared for one that has ended. That the renewed cookie reaches the phone
+   is the browser suite's to hold (e2e/tests/staying-signed-in.spec.ts). */
 const who = vi.hoisted(() => ({ id: '' }));
-vi.mock('@/lib/auth', () => ({ auth: async () => ({ user: { id: who.id } }) }));
+vi.mock('@/lib/auth', () => ({
+  auth:
+    (handler: (req: unknown, ctx: unknown) => Promise<Response>) =>
+    async (req: Request, ctx: unknown) => {
+      const session = who.id ? { user: { id: who.id } } : null;
+      const answer = await handler(Object.assign(req, { auth: session }), ctx);
+      const withCookie = new Response(answer.body, answer);
+      withCookie.headers.append(
+        'set-cookie',
+        session ? 'authjs.session-token=renewed; Path=/' : 'authjs.session-token=; Max-Age=0',
+      );
+      return withCookie;
+    },
+}));
+const callRoute = async (req: Request) =>
+  (await POST(req as NextRequest, { params: Promise.resolve({}) })) as Response;
 
 type LogRow = { id: string; weight: number | null; deletedAt: string | null; updatedAt: string };
 
@@ -56,7 +77,7 @@ describe('POST /api/sync', () => {
     accountId?: string | null,
   ) => {
     who.id = as;
-    return POST(
+    return callRoute(
       new Request('http://localhost/api/sync', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -98,6 +119,19 @@ describe('POST /api/sync', () => {
   afterAll(async () => {
     // Cascades to every row pushed above.
     await db.delete(users).where(inArray(users.id, [a, b, c]));
+  });
+
+  it("renews the phone's sign-in with every answer, and leaves an ended one's cookie alone", async () => {
+    /* A phone whose sign-in has ended (the account deleted on another phone)
+       keeps its cookie, so the app still opens there and can sign out, which
+       empties it. Auth.js would clear the cookie; the route takes that back. */
+    const signedIn = await post(a, []);
+    expect(signedIn.status).toBe(200);
+    expect(signedIn.headers.get('set-cookie')).toContain('renewed');
+
+    const ended = await post('', []);
+    expect(ended.status).toBe(401);
+    expect(ended.headers.get('set-cookie')).toBeNull();
   });
 
   it('does not let an older edit arriving late clobber a newer one', async () => {
@@ -273,7 +307,7 @@ describe('POST /api/sync', () => {
     const since = Number((seen.rows[0] as { n: string | number }).n);
 
     who.id = c;
-    const res = await POST(
+    const res = await callRoute(
       new Request('http://localhost/api/sync', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },

@@ -63,6 +63,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       authorization: { params: { scope: 'openid email profile', prompt: 'select_account' } },
     }),
   ],
+  /* Ninety days from the last sync. Reading a session moves the row's end on,
+     at most once a day, and the sync route is wrapped in `auth()` so that its
+     answer carries the renewed cookie back to the phone (GYM-143). */
   session: { strategy: 'database', maxAge: 60 * 60 * 24 * 90 },
   pages: { signIn: '/sign-in' },
   callbacks: {
@@ -88,7 +91,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
              coach area exists for this person without a second query. It is
              only ever a hint for rendering: every write that depends on it
              re-reads the row, because a role is the kind of thing that gets
-             revoked and a session can outlive that by three months. */
+             revoked and a session can outlive that for as long as the phone
+             keeps syncing. */
           role: (user as { role?: string }).role === 'trainer' ? 'trainer' : 'athlete',
         },
         expires: session.expires,
