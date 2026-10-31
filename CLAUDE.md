@@ -113,8 +113,8 @@ process included. The skills `gymmy-product-discovery`,
 `gymmy-release-documentation` in `.claude/skills/` load each DI playbook with
 gymmy's extension instead; dextra's own skills stop on a gymmy key. Discovery and non-tech refinement wait for the product docs migration
 ([GYM-97](https://dextra.atlassian.net/browse/GYM-97)), tech refinement for the
-architecture docs ([GYM-106](https://dextra.atlassian.net/browse/GYM-106)); in
-between, one pass ranks every open idea
+architecture docs ([GYM-106](https://dextra.atlassian.net/browse/GYM-106)). Every
+open idea was ranked with Mark on 31/10/2026
 ([GYM-107](https://dextra.atlassian.net/browse/GYM-107)). Topics and their order
 live in the Jira Product Discovery space **gymmy-roadmap**
 ([GR](https://dextra.atlassian.net/jira/polaris/projects/GR/ideas)), ranked top
