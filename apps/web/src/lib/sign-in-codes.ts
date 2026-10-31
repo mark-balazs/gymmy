@@ -26,6 +26,10 @@ import { admitCodeCheck, clientKey, giveBack } from '@/lib/sign-in-throttle';
  *   code they just asked for.
  * - **A right try is given back** (`giveBack`), so signing in never spends
  *   anyone's tries.
+ * - **An expired code goes at the next ask, or check that reaches Auth.js's
+ *   lookup** (`deleteExpiredCodes`), whoever makes it. A right code typed after
+ *   it expired is refused either way, but if it has been deleted by then, the
+ *   try counts as a wrong one too.
  */
 export function withCodeLimits(
   adapter: Adapter,
@@ -39,6 +43,7 @@ export function withCodeLimits(
     async createVerificationToken(token) {
       const created = await create(token);
       await deleteCodesBefore(token);
+      await deleteExpiredCodes();
       return created;
     },
     async useVerificationToken(params) {
@@ -56,6 +61,7 @@ export function withCodeLimits(
       }
       const used = await consume(params);
       if (used && gate.attempt) await giveBack(gate.attempt);
+      await deleteExpiredCodes();
       return used;
     },
   };
@@ -87,6 +93,26 @@ export async function deleteCodesBefore(token: VerificationToken): Promise<void>
         ),
       ),
     );
+}
+
+/**
+ * Deletes every code that has expired, whoever it was for.
+ *
+ * A code holds the address it was sent to, and one never used would otherwise
+ * stay for good: Auth.js deletes a code only when it is used, and
+ * `deleteCodesBefore` only when the same address asks again. So a mistyped
+ * address, or somebody who asked once and never came back, would be kept for
+ * no purpose (GYM-175). There is no schedule to run this on, by design, so it
+ * runs on every ask and every check that reaches Auth.js's lookup: an expired
+ * code goes at the next one, by anyone. A failure costs nothing but the
+ * delay, so it never fails the sign-in.
+ */
+export async function deleteExpiredCodes(): Promise<void> {
+  try {
+    await db.delete(verificationTokens).where(lt(verificationTokens.expires, new Date()));
+  } catch (error) {
+    console.warn('[sign-in] could not delete expired codes', error);
+  }
 }
 
 /** The client behind the request being handled; outside one, nobody in particular. */

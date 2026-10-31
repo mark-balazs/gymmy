@@ -372,6 +372,13 @@ There is no wrapping transaction. Production runs on Neon's HTTP driver, which
 has no interactive transactions; the ordering above is what makes that safe
 rather than merely tolerable.
 
+Without an account to delete, neither keeps an address for good. A code that
+expires unused goes at the next ask or check for a code that the limits let
+through, by anyone (`deleteExpiredCodes` in `sign-in-codes.ts`); an attempt goes
+at the next ask or check once it is a day old (`sweep` in `sign-in-throttle.ts`).
+Nothing runs on a schedule (fact `hosting`), so through a spell with no sign-ins
+both wait for the next one.
+
 The client deliberately does **not** sync first: pushing local changes up to an
 account about to be erased is work done to destroy it a moment later. But it
 wipes IndexedDB only **after** the server has confirmed, and refuses to run at

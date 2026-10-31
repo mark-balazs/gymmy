@@ -2,11 +2,11 @@ import { randomUUID } from 'node:crypto';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import { and, eq, like, sql, type SQL } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it, vi } from 'vitest';
 import { db, type schema } from '@/lib/db';
 import { accounts, sessions, signInAttempts, users, verificationTokens } from '@/lib/db/schema';
 import { MAX_ADDRESS_LENGTH } from './email-otp';
-import { deleteCodesBefore, withCodeLimits } from './sign-in-codes';
+import { deleteCodesBefore, deleteExpiredCodes, withCodeLimits } from './sign-in-codes';
 import {
   admitCodeCheck,
   askLock,
@@ -411,6 +411,91 @@ describe('sign-in codes in the adapter', () => {
     await adapter.createVerificationToken!({ identifier: email, token: 'old', expires: inTen() });
     await adapter.createVerificationToken!({ identifier: email, token: 'new', expires: inTen(1) });
     expect(await codesFor(email)).toEqual(['new']);
+  });
+
+  it('deletes every expired code at an ask, whoever it was for, and keeps live ones', async () => {
+    /* Auth.js deletes a code only when it is used, so one never used would
+       keep the address it was sent to for good (GYM-175). */
+    const stale = addressOf();
+    const soon = addressOf();
+    const live = addressOf();
+    await db.insert(verificationTokens).values([
+      { identifier: stale, token: 'expired', expires: minutesAgo(1) },
+      // Fifteen seconds left: a delete that came early by more would show.
+      { identifier: soon, token: 'soon', expires: minutesAgo(-0.25) },
+      { identifier: live, token: 'live', expires: inTen() },
+    ]);
+    await adapter.createVerificationToken!({
+      identifier: addressOf(),
+      token: 'asked',
+      expires: inTen(),
+    });
+    expect(await codesFor(stale)).toEqual([]);
+    expect(await codesFor(soon)).toEqual(['soon']);
+    expect(await codesFor(live)).toEqual(['live']);
+  });
+
+  it('deletes every expired code at a check too', async () => {
+    // Stored by hand, since an ask would delete it before the check could.
+    const stale = addressOf();
+    await db
+      .insert(verificationTokens)
+      .values({ identifier: stale, token: 'expired', expires: minutesAgo(1) });
+    expect(
+      await adapter.useVerificationToken!({ identifier: addressOf(), token: 'any' }),
+    ).toBeNull();
+    expect(await codesFor(stale)).toEqual([]);
+  });
+
+  it('never fails a sign-in when expired codes cannot be deleted', async () => {
+    /* A failed delete only waits for the next ask or check; it must never reach
+       Auth.js as an error. Both ways a delete can fail: at once, or when the
+       database answers. */
+    const failures = [
+      () => {
+        throw new Error('database down');
+      },
+      () => ({ where: () => Promise.reject(new Error('database down')) }),
+    ];
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      for (const failure of failures) {
+        const down = vi.spyOn(db, 'delete').mockImplementationOnce(failure as never);
+        try {
+          await expect(deleteExpiredCodes()).resolves.toBeUndefined();
+        } finally {
+          down.mockRestore();
+        }
+      }
+      expect(warn).toHaveBeenCalledTimes(2);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('gives a late right code back while it is stored, and counts it once deleted', async () => {
+    /* A right code typed after it expired is refused either way. Still stored,
+       it is found and the try given back; deleted by anyone's ask or check
+       since, it is not found, and the try counts as a wrong one. */
+    const stored = addressOf();
+    await db
+      .insert(verificationTokens)
+      .values({ identifier: stored, token: 'right', expires: minutesAgo(1) });
+    const found = await adapter.useVerificationToken!({ identifier: stored, token: 'right' });
+    expect(found?.token).toBe('right');
+    expect(await checksBy(stored)).toBe(0);
+
+    const deleted = addressOf();
+    await db
+      .insert(verificationTokens)
+      .values({ identifier: deleted, token: 'right', expires: minutesAgo(1) });
+    await adapter.createVerificationToken!({
+      identifier: addressOf(),
+      token: 'other',
+      expires: inTen(),
+    });
+    expect(await adapter.useVerificationToken!({ identifier: deleted, token: 'right' })).toBeNull();
+    expect(await checksBy(deleted)).toBe(1);
   });
 
   it('never leaves no code when two asks at once interleave', async () => {
