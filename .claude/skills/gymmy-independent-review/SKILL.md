@@ -1,6 +1,6 @@
 ---
 name: gymmy-independent-review
-description: The independent review everything made for gymmy passes before it reaches Mark — a fresh agent that did not do the work scores it from 1 to 10 against the rules that govern it, the work is revised and re-scored until it reaches 8, and it reaches him with its score at the end. Also how decisions reach him — one at a time, from a queue. Use before presenting Mark any idea, proposal, mockup, epic or story, implementation hints, documentation pass, migration, fix, retro, report, decision or other deliverable or recommendation.
+description: The independent review everything made for gymmy passes before it reaches Mark — a fresh agent that did not do the work scores it from 1 to 10 against the rules that govern it, the work is revised and re-scored until it reaches 8, and it reaches him with its score at the end. Also how decisions reach him — one at a time, from a queue. Use before presenting Mark any idea, proposal, mockup, epic or story, test cases, implementation hints, technical check briefing, documentation pass, migration, fix, retro, report, decision or other deliverable or recommendation.
 ---
 
 # Independent review — gymmy
@@ -16,7 +16,12 @@ Before Mark sees any of these:
 
 - an idea or a proposal and its mockups (product discovery);
 - an epic and its stories (non-tech refinement);
+- a story's test cases (test design);
 - implementation hints (tech refinement);
+- a technical check's briefing, which he reads as technical lead (technical
+  check);
+- a build's plan, and its whole change, which is not merged until it scores 8
+  (implementation);
 - a release documentation pass or a migration: its pages and its record;
 - a fix, a retro or a report on work done;
 - every decision put to him (see *Decisions, one at a time*);

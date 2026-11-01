@@ -97,29 +97,31 @@ happens on the way in; that is what `e2e/flows/08` exists for.
 **The queue lives in Jira, not in anyone's memory.** Open work is project
 **GYM** ([board](https://dextra.atlassian.net/jira/software/projects/GYM/boards/647)).
 Look there before starting. File what you find instead of carrying it in a
-session: a bug as a bug, a question only the owner can settle as
-"Decide: …", an action only the owner can take as "For Mark: …". Move an issue
-as its work lands, and comment the commit hash.
+session, written to *Write a ticket — gymmy*: a bug as a bug, a question only
+the owner can settle as "Decide: …", an action only the owner can take as
+"For Mark: …". Move an issue as its work lands, and comment the commit hash.
 
 **Work moves through dextra's Requirement Lifecycle** (D-023 to D-025).
 [gymmy — how we work](https://dextra.atlassian.net/wiki/spaces/~712020296b34b54b84454489d16860c808e925/pages/980549636)
-says who holds each role, where each step's output lives and the order of work:
-a story is written to the DI and gymmy product writing guides, any other ticket
-to *Write a ticket — gymmy*, implementation hints to *Write implementation hints
-— gymmy*. gymmy is the owner's private project, so it is in no DI registry and
-**nothing about it is ever written on dextra's DI pages**, learnings about a
-process included. The skills `gymmy-product-discovery`,
-`gymmy-nontech-refinement`, `gymmy-tech-refinement` and
-`gymmy-release-documentation` in `.claude/skills/` load each DI playbook with
-gymmy's extension instead; dextra's own skills stop on a gymmy key. Discovery and non-tech refinement wait for the product docs migration
-([GYM-97](https://dextra.atlassian.net/browse/GYM-97)), tech refinement for the
-architecture docs ([GYM-106](https://dextra.atlassian.net/browse/GYM-106)). Every
-open idea was ranked with Mark on 31/10/2026
-([GYM-107](https://dextra.atlassian.net/browse/GYM-107)). Topics and their order
-live in the Jira Product Discovery space **gymmy-roadmap**
+says who holds each role, where each step's output lives and the order of work.
+gymmy is the owner's private project, so it is in no DI registry and **nothing
+about it is ever written on dextra's DI pages**, learnings about a process
+included. Seven skills in `.claude/skills/` run the steps, in lifecycle order:
+`gymmy-product-discovery`, `gymmy-nontech-refinement`, `gymmy-test-design`,
+`gymmy-tech-refinement`, `gymmy-technical-check`, `gymmy-implementation` and
+`gymmy-release-documentation`. Each loads its DI playbook with gymmy's extension
+(test design has no playbook yet, so its skill holds the process); dextra's own
+skills stop on a gymmy key. Tech refinement and the technical check wait for the
+architecture docs ([GYM-106](https://dextra.atlassian.net/browse/GYM-106)), so
+until then a story goes from test design straight to `To Do`. A ticket moves as
+its step changes (Mark, 01/11/2026). A story goes `Non-tech refinement` →
+`Test Design` → `Tech refinement` → `Tech check` → `To Do` → `In Progress` →
+`IN REVIEW` (its pull request open) → `Done`; a bug or task starts at `To Do`.
+Topics are ideas in the Jira Product Discovery space **gymmy-roadmap**
 ([GR](https://dextra.atlassian.net/jira/polaris/projects/GR/ideas)), ranked top
-first; each GYM epic implements its GR idea. GYM's statuses are the lifecycle's
-steps, so a ticket moves as its step changes.
+first as Mark ranked them on 31/10/2026
+([GYM-107](https://dextra.atlassian.net/browse/GYM-107)); each GYM epic
+implements its GR idea.
 
 **Sweep between features.** The owner asked for housekeeping without being
 prompted: between landed features, look through the tree for bugs, stale docs,
@@ -212,47 +214,69 @@ giving its number.
 
 ### Diagrams in Confluence
 
+**A page that holds a diagram is read and changed in ADF only, by node edits
+that leave the diagram alone** (Mark, 01/11/2026, GYM-102), as dextra's shared
+rules say (section 5.7). Never send such a page whole: not in markdown, and not
+in HTML with the diagram pasted back.
+
+- **Read it as nodes.** ADF (Atlassian Document Format) is the page as a tree of
+  nodes. The Atlassian connector reads no ADF as such, but its HTML read shows
+  each node with its local ID (`data-local-id`): use it to find nodes, never to
+  write the page back. An extension node (`data-type="extension"`) means the
+  page holds a diagram or another macro, and the same rule applies.
+- **Edit only the nodes that change**, by local ID, after a dry run; a
+  diagram's own node only when the diagram changes.
+- **Read the page back:** every diagram node still there, unchanged.
+
 **The entity relationship diagrams are generated — never hand-drawn.**
 `npm run er:diagram -w @athletic/web -- --macro` rewrites `docs/data-model.mmd`
-from `schema.ts` and prints the macro HTML for each of the three diagrams, ready
-to paste onto **Architecture → Data model**. `er-diagram.test.ts` fails when the
-committed diagram and the schema disagree, so a schema change cannot ship with a
-stale picture — but the test cannot paste it, so that last step is yours. Do not
-edit those diagrams in Confluence: the next regeneration throws the edit away.
+from `schema.ts` and prints, for each of the three diagrams, its ADF node, ready
+to replace the diagram node under its heading on **Architecture → Data model**.
+`er-diagram.test.ts` fails when the committed diagram and the schema disagree,
+so a schema change cannot ship with a stale picture — but the test cannot
+publish it, so that last step is yours. Do not edit those diagrams in
+Confluence: the next regeneration throws the edit away.
 
 Everything below is for diagrams that are genuinely hand-authored.
 
 Mermaid renders through **Macro Pack**, which is a Forge extension rather than a
 classic macro — so searching the macro browser for "mermaid" finds nothing and
-looks like the app is missing. It is not. Author it as HTML:
+looks like the app is missing. It is not. A diagram is this ADF node, which
+`adfFor` in `apps/web/src/lib/db/er-diagram.ts` builds from any mermaid source:
 
-```html
-<div data-type="extension"
-     data-extension-key="1ef074bf-c90d-4af8-9ea9-32d2e6ae9a90/2256cafd-362d-4b27-a796-139875a465b5/static/macro-pack"
-     data-extension-type="com.atlassian.ecosystem"
-     data-layout="default"
-     data-parameters="…">Macro Pack</div>
+```json
+{
+  "type": "extension",
+  "attrs": {
+    "extensionType": "com.atlassian.ecosystem",
+    "extensionKey": "1ef074bf-c90d-4af8-9ea9-32d2e6ae9a90/2256cafd-362d-4b27-a796-139875a465b5/static/macro-pack",
+    "parameters": {
+      "layout": "extension",
+      "guestParams": { "input": "mermaid", "source": { "text": "…", "type": "text" }, "version": 1 },
+      "forgeEnvironment": "PRODUCTION",
+      "extensionId": "ari:cloud:ecosystem::extension/<the key above>",
+      "extensionTitle": "Macro Pack"
+    },
+    "layout": "default",
+    "text": "Macro Pack"
+  }
+}
 ```
-
-`data-parameters` is
-`{"layout":"extension","guestParams":{"input":"mermaid","source":{"text":"…","type":"text"},"version":1},"forgeEnvironment":"PRODUCTION","extensionId":"ari:cloud:ecosystem::extension/<the key above>","extensionTitle":"Macro Pack"}`,
-JSON-stringified and then HTML-escaped whole.
 
 Four traps, all silent:
 
-- **Escape it programmatically.** A bare `"` inside the mermaid source ends the
-  JSON string, Confluence drops the whole attribute, and the macro saves as an
-  empty box with no error. Build the JSON, escape it, and assert it decodes back
-  to the same source before publishing.
+- **Build the node in code, never by hand.** The mermaid source sits in the node
+  as a JSON string, so every quote, backslash and line break in it must be
+  escaped exactly: a label's `\n` typed into the JSON by hand becomes a real
+  line break, for one. Build it with `JSON.stringify`, as `adfFor` does, and
+  check it reads back to the same source before publishing.
 - **Line breaks in node labels are `\n`, not `<br/>`.** The renderer may have
   HTML labels disabled, in which case `<br/>` appears literally.
-- **Never update a page that has a diagram with `contentFormat: "markdown"`.**
-  The conversion drops extension nodes without a word, so a markdown update to a
-  page with two diagrams saves it with none. Read the page as `adf` first: if
-  its body contains an `extension` node, update in `html` and paste the macro
-  back in. Markdown is fine for a page that has no macros.
+- **Markdown drops the diagram.** A markdown update converts the whole page and
+  drops extension nodes without a word, so a page with two diagrams saves with
+  none. Markdown is fine for a page that has no macros.
 - **The native <code>language-mermaid</code> fence is not an alternative.** It
-  is a documented Confluence HTML pattern and it does save, but it renders as a
+  is a documented Confluence pattern and it does save, but it renders as a
   *collapsed block of mermaid source* labelled "Diagram" — not a diagram. It was
   tried and reverted.
 
@@ -260,8 +284,8 @@ If a published diagram stops appearing, check for a purple banner at the top of
 Confluence: Macro Pack periodically needs a **site admin** to accept a
 permissions update under Manage apps → Macro Pack, and until somebody does,
 every diagram in the space renders as nothing. The page content is intact — it
-is a rendering failure, and reading the page as `adf` will show the extension
-node still there.
+is a rendering failure, and reading the page shows the extension node still
+there.
 
 Mermaid has no syntax check in CI on either side, so render the source before
 publishing — serve a page that loads mermaid from cdnjs and call `mermaid.parse`
@@ -283,11 +307,14 @@ reached the wrong server, not that the app broke.
 And the part no command checks: **is the documentation current?** Both sets.
 
 **Done means pushed.** Commit, then push, once per landed piece of work — not
-batched at the end of a session. The owner follows the work from GitHub and
-other devices. Work pushed before its independent review says so in the commit,
-and the review's score goes on the next one (a working default, see *Score before
-you show*). You may merge a pull request yourself once all of it has scored 8 or
-more and all its checks are green (Mark, 11/10/2026). If you cannot see CI, say
-what you verified locally rather than calling it green.
+batched at the end of a session. Every commit subject starts with its ticket key
+and a colon, as dextra's commit standard says:
+`GYM-196: Bring test design, the technical check and implementation into gymmy's process`.
+The owner follows the work from GitHub and other devices. Work pushed before its
+independent review says so in the commit, and the review's score goes on the
+next one (a working default, see *Score before you show*). You may merge a pull
+request yourself once all of it has scored 8 or more and all its checks are
+green (Mark, 11/10/2026). If you cannot see CI, say what you verified locally
+rather than calling it green.
 
 @AGENTS.md

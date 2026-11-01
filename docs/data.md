@@ -43,15 +43,16 @@ bump it does not.
 
 The entity relationship diagrams on Confluence are **generated from the schema
 rather than drawn**. `npm run er:diagram -w @athletic/web` rewrites
-[`data-model.mmd`](./data-model.mmd) and, with `-- --macro`, prints the Macro
-Pack HTML to paste onto **Architecture → Data model**.
+[`data-model.mmd`](./data-model.mmd) and, with `-- --macro`, prints each
+diagram as the ADF node that replaces it on **Architecture → Data model**, a
+page changed only by node edits (CLAUDE.md, *Diagrams in Confluence*).
 `apps/web/src/lib/db/er-diagram.test.ts` holds the committed file against
 `schema.ts`, so **a new table or a renamed column fails `npm test`** until the
 diagram catches up — and a table with no home in one of the three groups fails
-it too, which is what makes one impossible to forget. The macro escaping is
-done in code and asserted to round-trip, because a bare quote in the mermaid
-source makes Confluence drop the whole attribute and save an empty box with no
-error anywhere.
+it too, which is what makes one impossible to forget. The node is built in code
+and a test reads its mermaid source back, quotes, backslashes and line breaks
+included, because a node written by hand can quietly change the diagram; the
+test also holds the node to the shape of the ones Confluence has.
 
 Two things in there are still written by hand, and the test only checks that
 they stay *valid*: which group a table belongs to, and the relationships the
@@ -236,7 +237,7 @@ So a table is retired in two steps:
    generated.
 2. **Next deploy: drop it.** Count its rows in production first. Then delete the
    declaration, run `npm run db:generate` for the `DROP TABLE`, regenerate the
-   ER diagram and paste it onto Confluence.
+   ER diagrams and put their nodes on Confluence.
 
 `ref_sets` was retired this way: every use removed in one deploy, the table dropped in the next, after production showed it had never held a row.
 

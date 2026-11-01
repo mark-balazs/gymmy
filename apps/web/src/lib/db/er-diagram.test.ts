@@ -5,11 +5,11 @@ import { getTableConfig } from 'drizzle-orm/pg-core';
 import {
   GROUPS,
   LINKS,
+  adfFor,
   allDiagrams,
   allTables,
-  macroFor,
   renderFile,
-  sourceFromMacro,
+  sourceFromAdf,
 } from './er-diagram';
 
 /**
@@ -188,41 +188,55 @@ describe('the generated mermaid', () => {
   });
 });
 
-describe('the Confluence macro', () => {
-  /* CLAUDE.md: a bare quote inside the mermaid source ends the JSON string,
-     Confluence drops the whole attribute, and the macro saves as an empty box
-     with no error anywhere. That failure is invisible, so it is tested. */
-  it('survives quotes, angle brackets and ampersands', () => {
-    const nasty = 'erDiagram\n  a ||--o{ b : "he said \\"hi\\" & <left>"';
-    expect(sourceFromMacro(macroFor(nasty))).toBe(nasty);
+describe('the Confluence node', () => {
+  /* CLAUDE.md, "Diagrams in Confluence": a page that holds a diagram is changed
+     in ADF only, so each diagram is published as an ADF extension node. The
+     mermaid source rides inside it as a JSON string, where a quote, a backslash
+     or a line break handled wrongly breaks the node or quietly changes the
+     diagram, so the source has to come back out exactly as it went in. */
+  it('gives back a source full of quotes, backslashes, &<> and line breaks', () => {
+    const nasty =
+      'erDiagram\n  a ||--o{ b : "he said \\"hi\\" & <left>"\n' +
+      '  %% C:\\new\\table, a \\n typed by hand, a tab\there, </div>\r\n';
+    expect(sourceFromAdf(adfFor(nasty))).toBe(nasty);
   });
 
   it('round-trips every diagram we actually publish', () => {
     for (const { mermaid } of allDiagrams()) {
-      expect(sourceFromMacro(macroFor(mermaid))).toBe(mermaid);
+      expect(sourceFromAdf(adfFor(mermaid))).toBe(mermaid);
     }
   });
 
-  it('leaves no raw quote inside the attribute', () => {
-    /* The specific failure: an unescaped " terminates data-parameters early and
-       Confluence silently discards everything after it. Stated over the whole
-       element — the first quote after the attribute opens has to be the one
-       that closes it, right before the element ends. Capturing the attribute
-       with [^"]* first and then looking inside it for a quote could never
-       fail: the capture stops at the first quote by construction. */
+  it('is the node Confluence holds, apart from the source', () => {
+    /* Copied from the three diagrams on Architecture → Data model (page
+       934445138, version 18), read on 01/11/2026 through the Atlassian
+       connector, whose HTML gives each ADF attribute one for one:
+       data-extension-type is extensionType, data-parameters is parameters, and
+       the label "Macro Pack" is text. All three have this shape. Only localId
+       is left out, because Confluence gives every placed node its own. The
+       whole key matters: one wrong character saves a node for an app that is
+       not installed, and it renders nothing. */
+    const KEY =
+      '1ef074bf-c90d-4af8-9ea9-32d2e6ae9a90/2256cafd-362d-4b27-a796-139875a465b5/static/macro-pack';
+    const published = (text: string) => ({
+      type: 'extension',
+      attrs: {
+        extensionType: 'com.atlassian.ecosystem',
+        extensionKey: KEY,
+        parameters: {
+          layout: 'extension',
+          guestParams: { input: 'mermaid', source: { text, type: 'text' }, version: 1 },
+          forgeEnvironment: 'PRODUCTION',
+          extensionId: `ari:cloud:ecosystem::extension/${KEY}`,
+          extensionTitle: 'Macro Pack',
+        },
+        layout: 'default',
+        text: 'Macro Pack',
+      },
+    });
+
     for (const { mermaid } of allDiagrams()) {
-      expect(macroFor(mermaid)).toMatch(/ data-parameters="[^"]*">Macro Pack<\/div>$/);
+      expect(JSON.parse(adfFor(mermaid))).toStrictEqual(published(mermaid));
     }
-  });
-
-  it('carries the Macro Pack extension key, not a classic macro', () => {
-    // Searching the macro browser for "mermaid" finds nothing; it is a Forge
-    // extension, and authoring it any other way saves a collapsed code block.
-    // The whole key, as CLAUDE.md records it: one wrong digit in the app id
-    // saves a macro for an app that is not installed, and renders nothing.
-    expect(macroFor('erDiagram')).toContain('data-extension-type="com.atlassian.ecosystem"');
-    expect(macroFor('erDiagram')).toContain(
-      'data-extension-key="1ef074bf-c90d-4af8-9ea9-32d2e6ae9a90/2256cafd-362d-4b27-a796-139875a465b5/static/macro-pack"',
-    );
   });
 });
