@@ -2,7 +2,7 @@
  * Regenerates `docs/data-model.mmd`, and prints the Confluence macro for it.
  *
  *   npm run er:diagram -w @athletic/web            # rewrite the committed file
- *   npm run er:diagram -w @athletic/web -- --macro # also print the macro HTML
+ *   npm run er:diagram -w @athletic/web -- --macro # also print each diagram's node
  *
  * The `--macro` output is what goes on **Architecture → Data model**. The
  * escaping is done in `lib/db/er-diagram.ts` and asserted to round-trip, for
@@ -46,11 +46,11 @@ for (const { group, mermaid } of diagrams) {
 }
 
 if (process.argv.includes('--macro')) {
-  console.log('\n--- Confluence macros; paste each under its heading ---');
+  console.log('\n--- Confluence diagram nodes; each replaces the one under its heading ---');
   for (const { group, mermaid } of diagrams) {
     console.log(`\n### ${group.title}\n`);
     console.log(macroFor(mermaid));
   }
 } else {
-  console.log('\nRun again with --macro to print the Confluence macro HTML.');
+  console.log('\nRun again with --macro to print each diagram as its Confluence node.');
 }
