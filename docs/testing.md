@@ -17,6 +17,11 @@ one instead. The seeding tests are there because the thing being tested *is* the
 SQL — idempotence is a property of the ids and the conflict clauses, and a mock
 would prove nothing about either.
 
+A story's numbered test cases each name a layer: Domain, Web and Browser are the
+three above, each case becoming a test there that names its number, and By hand
+cases are checked in the running app (`.claude/skills/gymmy-test-design`; when
+each is checked: `gymmy-implementation`, item 10).
+
 ## The e2e suite has two layers of its own
 
 **Most specs bypass authentication**, inserting a user and a session row directly

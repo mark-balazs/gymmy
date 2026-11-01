@@ -24,7 +24,11 @@ never from memory:
    (section 5) and the retro (sections 7.1 and 7.2).
 3. **gymmy's extension:** [Non-tech refinement — gymmy extension](https://dextra.atlassian.net/wiki/spaces/~712020296b34b54b84454489d16860c808e925/pages/994410530/Non-tech+refinement+gymmy+extension),
    page `994410530`, for where the story drafts and the RE learnings queue are
-   (E4).
+   (E4), and its render check (E3).
+4. **The writing guides:** the DI [Product writing guide](https://dextra.atlassian.net/wiki/spaces/DI/pages/980975794),
+   page `980975794`, for what a testable AC looks like (3.4) and the lines
+   step 2 writes (3.6 and 3.7), and the [gymmy product writing guide](https://dextra.atlassian.net/wiki/spaces/~712020296b34b54b84454489d16860c808e925/pages/994574394),
+   page `994574394`, which adds to it.
 
 ## Where gymmy differs from the playbook
 
@@ -50,10 +54,11 @@ never from memory:
    or a recommendation is scored the same way before he sees it (D-027).
 5. **Stories only.** Bugs and tasks get no test design: a bug keeps "a test
    that fails without the fix" (`CLAUDE.md`).
-6. **Writes and moves.** Claude Code is QA and owns this step (Mark,
-   31/10/2026), so writing the *Test cases* section and moving the story
-   follow `CLAUDE.md`'s standing Jira rule, with no yes on each write. The
-   test cases reach Mark scored (item 4).
+6. **Writes and moves.** Claude Code writes the test cases as QA (Mark,
+   31/10/2026). gymmy reads that as covering the Jira writes too (a reading,
+   not his words): the *Test cases* section is written and the story moved by
+   `CLAUDE.md`'s standing Jira rule, with no yes on each write. The test cases
+   still reach Mark scored (item 4).
 
 ## The process
 
@@ -74,7 +79,10 @@ never from memory:
      *Clarification entries*).
 3. **Write the test cases** in the ticket's `## Test cases` section, below the
    ACs and the closing lines, by the shared rules' write mechanics: re-read the
-   description first, and leave the rest of it as it is. Their shape:
+   description first, and leave the rest of it as it is. Then check it as it
+   renders at `https://dextra.atlassian.net/browse/{KEY}` in Mark's browser,
+   since the connector's read-back is not how an issue renders (E3). Their
+   shape:
    - one line saying which version of the ticket they were written against:
      "Written against {KEY} as updated on DD/MM/YYYY at HH:MM.";
    - the assumptions every test shares;
@@ -96,8 +104,8 @@ never from memory:
    The first three become tests at their layer, each naming its number, and
    pass before the merge. Claude Code checks every By hand case it can on a
    local copy of the change before the merge as well, and the rest on the live
-   app after it, with Mark signing in; a failure there is a bug (Mark,
-   01/11/2026; `gymmy-implementation`, item 10).
+   app after it, with Mark signing in, once the account they need exists; a
+   failure there is a bug (Mark, 01/11/2026; `gymmy-implementation`, item 10).
 5. **Numbers never change.** A dropped test is struck through and keeps its
    number. A new test takes the next number.
 6. **Too long for the ticket?** A Jira description holds 32,767 characters.

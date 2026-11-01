@@ -52,9 +52,9 @@ rules win (Mark, 31/10/2026). The points below are where they do; the rest of
 6. **Jira:** `CLAUDE.md`'s standing rules hold without a yes on each write
    (Mark, 31/10/2026): move the ticket as its work lands, comment the commit
    hash, and file what you find. The ticket walks `To Do` → `In Progress` →
-   `IN REVIEW` → `Done` (Mark, 01/11/2026). It is `In Progress` while it is
-   built, `IN REVIEW` while its pull request is open and in review, and `Done`
-   once merged.
+   `IN REVIEW` → `Done` (Mark, 01/11/2026). gymmy reads `In Progress` as being
+   built, `IN REVIEW` as its pull request open and in review, and `Done` as
+   merged.
 7. **Docs in the same change:** the repo docs, the facts and the Confluence
    pages `CLAUDE.md`'s table names change with the code, although the shared
    rules say settled pages are never edited during a session (Mark,
@@ -69,13 +69,14 @@ rules win (Mark, 31/10/2026). The points below are where they do; the rest of
    - A plan with more than one defensible direction is grilled with Mark
      before any code (`CLAUDE.md`, "Grill me").
    - Mark's OK on the plan before any code is written stays, as the playbook
-     says (Phase 2, step 1): it is not one of these exceptions.
+     says (Phase 2, step 1): gymmy reads it as outside these exceptions.
    - Work in progress may be pushed before its review if the commit says the
      review is still to come (`CLAUDE.md`; a working default awaiting
      [GYM-162](https://dextra.atlassian.net/browse/GYM-162)).
 9. **Done:** the session merges the pull request once all of it has scored 8
-   or more and every check is green (Mark, 11/10/2026). That merge, not Mark's
-   word, ends the build and starts the retro, Phase 3 (Mark, 31/10/2026).
+   or more and every check is green (Mark, 11/10/2026). gymmy reads that
+   merge, not Mark's word, as what ends the build and starts the retro,
+   Phase 3.
 10. **Test cases.** A story's Domain, Web and Browser test cases become tests
     at their layer, each naming its number, and pass before the merge. The
     session also checks every By hand case it can on a local copy of the
