@@ -101,7 +101,7 @@ session, written to *Write a ticket — gymmy*: a bug as a bug, a question only
 the owner can settle as "Decide: …", an action only the owner can take as
 "For Mark: …". Move an issue as its work lands, and comment the commit hash.
 
-**Work moves through dextra's Requirement Lifecycle** (D-023 to D-025).
+**Work moves through dextra's Requirement Lifecycle** (D-023 to D-025, D-029).
 [gymmy — how we work](https://dextra.atlassian.net/wiki/spaces/~712020296b34b54b84454489d16860c808e925/pages/980549636)
 says who holds each role, where each step's output lives and the order of work.
 gymmy is the owner's private project, so it is in no DI registry and **nothing
@@ -114,9 +114,10 @@ included. Seven skills in `.claude/skills/` run the steps, in lifecycle order:
 skills stop on a gymmy key. Tech refinement and the technical check wait for the
 architecture docs ([GYM-106](https://dextra.atlassian.net/browse/GYM-106)), so
 until then a story goes from test design straight to `To Do`. A ticket moves as
-its step changes (Mark, 01/11/2026). A story goes `Non-tech refinement` →
-`Test Design` → `Tech refinement` → `Tech check` → `To Do` → `In Progress` →
-`IN REVIEW` (its pull request open) → `Done`; a bug or task starts at `To Do`.
+its step changes (D-023); the statuses it walks are Mark's (01/11/2026, D-029):
+a story goes `Non-tech refinement` → `Test Design` → `Tech refinement` →
+`Tech check` → `To Do` → `In Progress` → `IN REVIEW` → `Done`, and a bug or
+task starts at `To Do`. A ticket is `IN REVIEW` while its pull request is open.
 Topics are ideas in the Jira Product Discovery space **gymmy-roadmap**
 ([GR](https://dextra.atlassian.net/jira/polaris/projects/GR/ideas)), ranked top
 first as Mark ranked them on 31/10/2026

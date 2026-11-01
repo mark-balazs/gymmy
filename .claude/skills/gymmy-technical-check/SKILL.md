@@ -25,8 +25,10 @@ never from memory:
 
 ## Where gymmy differs from the playbook
 
-1. **The chat is never renamed:** skip the shared rules' step 1, *Name the
-   chat*, and its line in their verification list (Mark, 31/10/2026).
+1. **The chat is never renamed** (Mark, 31/10/2026: "Dont rename this
+   thread"): skip the shared rules' step 1, *Name the chat*, and the chat half
+   of the first line of their verification list; the loading half still
+   applies.
 2. **Resolving the project.** Skip the registry (section 2; Phase 0, step 2): a
    GYM key is gymmy, and its extension is the page above. Check its required
    slots as the playbook says.
@@ -39,10 +41,10 @@ never from memory:
    ([GYM-106](https://dextra.atlassian.net/browse/GYM-106) is Done), no
    component page has the *Technical direction* the check reads: say so and
    stop. Until then a story goes from `Test Design` straight to `To Do`.
-5. **Mark is the reviewer**, as technical lead (E5), in one sitting where he
-   can (Mark, 31/10/2026). The verdict is his, recorded with his name and the
-   date. Then suggest the move it implies: `To Do` when the hints passed as
-   they are, `Tech refinement` when they must change first.
+5. **Mark is the reviewer**, as technical lead (E5), and reviews each check
+   in one sitting (Mark, 31/10/2026). The verdict is his, recorded with his
+   name and the date. Then suggest the move it implies: `To Do` when the hints
+   passed as they are, `Tech refinement` when they must change first.
 6. **Scored before Mark sees it.** Before Mark reads the briefing, run the
    `gymmy-independent-review` skill: a fresh agent scores it from 1 to 10, and
    it is fixed until it scores 8, then reaches Mark with its score at the end

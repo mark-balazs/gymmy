@@ -24,8 +24,10 @@ never from memory:
 
 ## Where gymmy differs from the playbook
 
-1. **The chat is never renamed:** skip the shared rules' step 1, *Name the
-   chat*, and its line in their verification list (Mark, 31/10/2026).
+1. **The chat is never renamed** (Mark, 31/10/2026: "Dont rename this
+   thread"): skip the shared rules' step 1, *Name the chat*, and the chat half
+   of the first line of their verification list; the loading half still
+   applies.
 2. **Resolving the project.** Skip the registry (section 2; Phase 0, step 2): a
    GYM key is gymmy, and its extension is the page above. Check its required
    slots as the playbook says.

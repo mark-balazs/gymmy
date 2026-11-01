@@ -1,6 +1,6 @@
 ---
 name: gymmy-release-documentation
-description: Release documentation on gymmy (Requirement Lifecycle step 14) — keeps gymmy's current-state product pages and Product direction's "Where we are" true to what shipped, by dextra's Release documentation playbook with gymmy's extension; its migration mode moves the product docs onto DI's Product documentation standard. Use for a request to document what shipped, run a release documentation pass, apply `current state` queue entries, or migrate gymmy's product docs. gymmy is private and in no DI registry, so the dextra-release-docs skill stops on it; this skill is the way in.
+description: Release documentation on gymmy (Requirement Lifecycle step 14) — keeps gymmy's current-state product pages and Product direction's "Where we are" true to what shipped, by dextra's Release documentation playbook with gymmy's extension, including the playbook's migration mode, already run for gymmy (GYM-97). Use for a request to document what shipped, run a release documentation pass or apply `current state` queue entries. gymmy is private and in no DI registry, so the dextra-release-docs skill stops on it; this skill is the way in.
 ---
 
 # Release documentation — gymmy
@@ -24,8 +24,10 @@ never from memory:
 
 ## Where gymmy differs from the playbook
 
-1. **The chat is never renamed:** skip the shared rules' step 1, *Name the
-   chat*, and its line in their verification list (Mark, 31/10/2026).
+1. **The chat is never renamed** (Mark, 31/10/2026: "Dont rename this
+   thread"): skip the shared rules' step 1, *Name the chat*, and the chat half
+   of the first line of their verification list; the loading half still
+   applies.
 2. **Resolving the project.** Skip the registry (section 2; Phase 0, step 2): a
    GYM key, a gymmy pass or a gymmy migration is gymmy, and its extension is
    the page above. Check its required slots as the playbook says.

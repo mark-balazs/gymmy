@@ -27,12 +27,16 @@ never from memory:
 
 ## Where gymmy differs from the playbook
 
-1. **No playbook yet.** dextra has no test design playbook on Confluence; at
-   123datei it is a skill in GitHub `dextra-software/common-agent-resources`,
-   which gymmy sessions cannot open. So the process below stands in for one,
-   modelled on 123datei's test design pages, until a playbook is published.
-   Then this skill loads it, as the others do.
-2. **The chat is never renamed** (Mark, 31/10/2026).
+1. **No playbook yet.** dextra has no test design playbook on Confluence.
+   123datei's test design is a skill, `skills/123datei-test-design.md` in
+   GitHub `dextra-software/common-agent-resources`, which gymmy sessions cannot
+   open. So the process below stands in, modelled on 123datei's `TD - {KEY}`
+   pages until a session can read that skill (Mark, 31/10/2026), then on the
+   skill itself. TD - DATEIN-643 (page `1046642753`) is such a page.
+   Once dextra publishes a test design playbook, this skill loads it instead,
+   as the others do.
+2. **The chat is never renamed** (Mark, 31/10/2026: "Dont rename this
+   thread").
 3. **DI pages are read, never written.** A retro candidate meant for a DI page
    goes into gymmy's RE learnings queue instead, its destination kept in the
    status line, for Mark to carry over to DI by hand, without gymmy's details,
@@ -49,13 +53,20 @@ never from memory:
 ## The process
 
 1. **Read** the story with every layer: its context, its acceptance criteria
-   (ACs), and its *Feature pages* and *Facts* lines. Read its epic, its story
-   draft `NR - {KEY}` (under the drafts parent, E4), and `docs/testing.md` for
-   the layers.
+   (ACs), and its *Feature pages* and *Facts* lines. Read its epic, the epic
+   draft's *Cross-story decisions*, its story draft `NR - {KEY}` (under the
+   drafts parent, E4), and `docs/testing.md` for the layers.
 2. **Check it can be tested.** An AC that no test can check sends the story
    back, as the step page says, in one question to Mark: to non-tech
    refinement (the RE) when the refinement is the problem, to discovery (the
    PM) when the proposal is. Write no test cases until he answers.
+   - The story stays in `Test Design` while an AC is clarified: a change to
+     the ACs is a non-tech refinement clarification
+     (`gymmy-nontech-refinement`, Phase 4).
+   - When test design applies an RE answer to the ACs itself, it records the
+     answer as one *Clarifications after hand-off* line and one *Decision log*
+     line on the story draft (DI Product writing guide, page `980975794`, 3.7
+     *Clarification entries*).
 3. **Write the test cases** in the ticket's `## Test cases` section, below the
    ACs and the closing lines, by the shared rules' write mechanics: re-read the
    description first, and leave the rest of it as it is. Their shape:
@@ -75,8 +86,6 @@ never from memory:
      start from a fixture's session row (flow 08);
    - `By hand`: a behaviour check on production or the local copy, for what the
      suites can't reach, such as Google sign-in or the code email.
-
-   No browser test checks only a label or a language: test what the app does.
 5. **Numbers never change.** A dropped test is struck through and keeps its
    number. A new test takes the next number.
 6. **Too long for the ticket?** A Jira description holds 32,767 characters.
