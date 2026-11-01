@@ -309,75 +309,53 @@ export { SHARED };
 
 /* ------------------------------------------------------------ publishing */
 
-/** Macro Pack is a Forge app, not a classic macro: this is its app, environment and module. */
 const MACRO_PACK =
   '1ef074bf-c90d-4af8-9ea9-32d2e6ae9a90/2256cafd-362d-4b27-a796-139875a465b5/static/macro-pack';
 
-/**
- * A Macro Pack mermaid diagram as Confluence stores it: an ADF `extension` node.
- *
- * A page that holds a diagram is changed in ADF only, by node edits that leave
- * the diagram alone (CLAUDE.md, "Diagrams in Confluence"), so this node is what
- * is published. It has no `localId`: Confluence gives each placed node its own.
- */
-export interface MacroPackNode {
-  type: 'extension';
-  attrs: {
-    extensionType: 'com.atlassian.ecosystem';
-    extensionKey: string;
-    parameters: {
-      layout: 'extension';
-      guestParams: { input: 'mermaid'; source: { text: string; type: 'text' }; version: 1 };
-      forgeEnvironment: 'PRODUCTION';
-      extensionId: string;
-      extensionTitle: 'Macro Pack';
-    };
-    layout: 'default';
-    text: 'Macro Pack';
-  };
-}
+const escapeHtml = (s: string): string =>
+  s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+const unescapeHtml = (s: string): string =>
+  s
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
 
 /**
- * One Macro Pack mermaid diagram as the ADF node to insert, in JSON.
+ * One Macro Pack mermaid node as Confluence HTML.
  *
- * Built here, never by hand and never by a shell heredoc. The mermaid source
- * rides inside the node as a JSON string, so a quote, a backslash or a line
- * break typed by hand breaks the JSON or quietly changes the diagram — a `\n`
- * typed into a label becomes a real line break, for one. So the round trip is
- * asserted before the text is returned, and `er-diagram.test.ts` asserts it
- * again against a source full of them.
+ * Built here, never by hand, and never by a shell heredoc. A bare quote inside
+ * the mermaid source ends the JSON string, Confluence drops the whole attribute
+ * and the macro saves as an empty box **with no error anywhere** — so the
+ * round trip is asserted before the string is returned, and `er-diagram.test.ts`
+ * asserts it again against a source full of quotes and angle brackets.
  */
-export function adfFor(source: string): string {
-  const node: MacroPackNode = {
-    type: 'extension',
-    attrs: {
-      extensionType: 'com.atlassian.ecosystem',
-      extensionKey: MACRO_PACK,
-      parameters: {
-        layout: 'extension',
-        guestParams: { input: 'mermaid', source: { text: source, type: 'text' }, version: 1 },
-        forgeEnvironment: 'PRODUCTION',
-        extensionId: `ari:cloud:ecosystem::extension/${MACRO_PACK}`,
-        extensionTitle: 'Macro Pack',
-      },
-      layout: 'default',
-      text: 'Macro Pack',
-    },
+export function macroFor(source: string): string {
+  const parameters = {
+    layout: 'extension',
+    guestParams: { input: 'mermaid', source: { text: source, type: 'text' }, version: 1 },
+    forgeEnvironment: 'PRODUCTION',
+    extensionId: `ari:cloud:ecosystem::extension/${MACRO_PACK}`,
+    extensionTitle: 'Macro Pack',
   };
-  const json = JSON.stringify(node, null, 2);
+  const attr = escapeHtml(JSON.stringify(parameters));
 
-  if (sourceFromAdf(json) !== source) {
-    throw new Error('the ADF node does not read back to the same mermaid source');
+  const back = JSON.parse(unescapeHtml(attr)) as typeof parameters;
+  if (back.guestParams.source.text !== source) {
+    throw new Error('the escaped macro does not decode back to the same mermaid source');
   }
-  return json;
+
+  return (
+    `<div data-type="extension" data-extension-key="${MACRO_PACK}" ` +
+    `data-extension-type="com.atlassian.ecosystem" data-layout="default" ` +
+    `data-parameters="${attr}">Macro Pack</div>`
+  );
 }
 
-/** Reads the mermaid source back out of an ADF node's JSON, for a test to check. */
-export function sourceFromAdf(json: string): string {
-  const node = JSON.parse(json) as {
-    attrs?: { parameters?: { guestParams?: { source?: { text?: unknown } } } };
-  };
-  const text = node.attrs?.parameters?.guestParams?.source?.text;
-  if (typeof text !== 'string') throw new Error('no mermaid source on that node');
-  return text;
+/** Reads the mermaid source back out of a macro node, for a test to check. */
+export function sourceFromMacro(html: string): string {
+  const attr = html.match(/data-parameters="([^"]*)"/)?.[1];
+  if (!attr) throw new Error('no data-parameters on that macro');
+  return JSON.parse(unescapeHtml(attr)).guestParams.source.text as string;
 }

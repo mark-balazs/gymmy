@@ -220,18 +220,19 @@ rules say (section 5.7). Never send such a page whole: not in markdown, and not
 in HTML with the diagram pasted back.
 
 - **Read it as nodes.** ADF (Atlassian Document Format) is the page as a tree of
-  nodes. The Atlassian connector reads no ADF as such, but its HTML read shows
-  each node with its local ID (`data-local-id`): use it to find nodes, never to
-  write the page back. An extension node (`data-type="extension"`) means the
-  page holds a diagram or another macro, and the same rule applies.
+  nodes. The Atlassian connector has no raw ADF: it reads and writes each node in
+  its own HTML form, which it stores as that node, with the node's local ID
+  (`data-local-id`). An extension node (`data-type="extension"`) is a diagram or
+  another macro.
 - **Edit only the nodes that change**, by local ID, after a dry run; a
   diagram's own node only when the diagram changes.
 - **Read the page back:** every diagram node still there, unchanged.
 
 **The entity relationship diagrams are generated — never hand-drawn.**
 `npm run er:diagram -w @athletic/web -- --macro` rewrites `docs/data-model.mmd`
-from `schema.ts` and prints, for each of the three diagrams, its ADF node, ready
-to replace the diagram node under its heading on **Architecture → Data model**.
+from `schema.ts` and prints, for each of the three diagrams, its node in the
+connector's HTML form, ready to replace the diagram node under its heading on
+**Architecture → Data model**.
 `er-diagram.test.ts` fails when the committed diagram and the schema disagree,
 so a schema change cannot ship with a stale picture — but the test cannot
 publish it, so that last step is yours. Do not edit those diagrams in
@@ -241,35 +242,28 @@ Everything below is for diagrams that are genuinely hand-authored.
 
 Mermaid renders through **Macro Pack**, which is a Forge extension rather than a
 classic macro — so searching the macro browser for "mermaid" finds nothing and
-looks like the app is missing. It is not. A diagram is this ADF node, which
-`adfFor` in `apps/web/src/lib/db/er-diagram.ts` builds from any mermaid source:
+looks like the app is missing. It is not. A diagram is this node, in the
+connector's HTML form; `macroFor` in `apps/web/src/lib/db/er-diagram.ts` builds
+it from any mermaid source:
 
-```json
-{
-  "type": "extension",
-  "attrs": {
-    "extensionType": "com.atlassian.ecosystem",
-    "extensionKey": "1ef074bf-c90d-4af8-9ea9-32d2e6ae9a90/2256cafd-362d-4b27-a796-139875a465b5/static/macro-pack",
-    "parameters": {
-      "layout": "extension",
-      "guestParams": { "input": "mermaid", "source": { "text": "…", "type": "text" }, "version": 1 },
-      "forgeEnvironment": "PRODUCTION",
-      "extensionId": "ari:cloud:ecosystem::extension/<the key above>",
-      "extensionTitle": "Macro Pack"
-    },
-    "layout": "default",
-    "text": "Macro Pack"
-  }
-}
+```html
+<div data-type="extension"
+     data-extension-key="1ef074bf-c90d-4af8-9ea9-32d2e6ae9a90/2256cafd-362d-4b27-a796-139875a465b5/static/macro-pack"
+     data-extension-type="com.atlassian.ecosystem"
+     data-layout="default"
+     data-parameters="…">Macro Pack</div>
 ```
+
+`data-parameters` is
+`{"layout":"extension","guestParams":{"input":"mermaid","source":{"text":"…","type":"text"},"version":1},"forgeEnvironment":"PRODUCTION","extensionId":"ari:cloud:ecosystem::extension/<the key above>","extensionTitle":"Macro Pack"}`,
+JSON-stringified and then HTML-escaped whole.
 
 Four traps, all silent:
 
-- **Build the node in code, never by hand.** The mermaid source sits in the node
-  as a JSON string, so every quote, backslash and line break in it must be
-  escaped exactly: a label's `\n` typed into the JSON by hand becomes a real
-  line break, for one. Build it with `JSON.stringify`, as `adfFor` does, and
-  check it reads back to the same source before publishing.
+- **Escape it programmatically.** A bare `"` inside the mermaid source ends the
+  JSON string, Confluence drops the whole attribute, and the macro saves as an
+  empty box with no error. Build the JSON, escape it, and assert it decodes back
+  to the same source before publishing.
 - **Line breaks in node labels are `\n`, not `<br/>`.** The renderer may have
   HTML labels disabled, in which case `<br/>` appears literally.
 - **Markdown drops the diagram.** A markdown update converts the whole page and

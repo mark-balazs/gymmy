@@ -1,21 +1,20 @@
 /**
- * Regenerates `docs/data-model.mmd`, and prints each diagram's Confluence node.
+ * Regenerates `docs/data-model.mmd`, and prints the Confluence macro for it.
  *
  *   npm run er:diagram -w @athletic/web            # rewrite the committed file
- *   npm run er:diagram -w @athletic/web -- --macro # also print the ADF nodes
+ *   npm run er:diagram -w @athletic/web -- --macro # also print the macro HTML
  *
- * The `--macro` output is what goes on **Architecture → Data model**: one ADF
- * extension node per diagram, each taking the place of the diagram under its
- * heading by a node edit, never by rewriting the page (CLAUDE.md, "Diagrams in
- * Confluence"). The node is built in `lib/db/er-diagram.ts` and asserted to
- * read back to the same mermaid source, because a quote, a backslash or a line
- * break handled by hand breaks the JSON or quietly changes the diagram.
+ * The `--macro` output is what goes on **Architecture → Data model**. The
+ * escaping is done in `lib/db/er-diagram.ts` and asserted to round-trip, for
+ * the reason CLAUDE.md gives: a bare quote inside the mermaid source ends the
+ * JSON string, Confluence drops the attribute, and the macro saves as an empty
+ * box with no error at all.
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { adfFor, allDiagrams, renderFile } from '../src/lib/db/er-diagram';
+import { allDiagrams, macroFor, renderFile } from '../src/lib/db/er-diagram';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const DIAGRAM_FILE = join(here, '..', '..', '..', 'docs', 'data-model.mmd');
@@ -47,11 +46,11 @@ for (const { group, mermaid } of diagrams) {
 }
 
 if (process.argv.includes('--macro')) {
-  console.log('\n--- ADF nodes; each replaces the diagram node under its heading ---');
+  console.log('\n--- Confluence macros; paste each under its heading ---');
   for (const { group, mermaid } of diagrams) {
     console.log(`\n### ${group.title}\n`);
-    console.log(adfFor(mermaid));
+    console.log(macroFor(mermaid));
   }
 } else {
-  console.log('\nRun again with --macro to print each diagram as its Confluence ADF node.');
+  console.log('\nRun again with --macro to print the Confluence macro HTML.');
 }
