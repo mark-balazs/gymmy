@@ -49,6 +49,10 @@ never from memory:
    or a recommendation is scored the same way before he sees it (D-027).
 5. **Stories only.** Bugs and tasks get no test design: a bug keeps "a test
    that fails without the fix" (`CLAUDE.md`).
+6. **Writes and moves.** Claude Code is QA and owns this step (Mark,
+   31/10/2026), so writing the *Test cases* section and moving the story
+   follow `CLAUDE.md`'s standing Jira rule, with no yes on each write. The
+   test cases reach Mark scored (item 4).
 
 ## The process
 
@@ -74,9 +78,10 @@ never from memory:
      "Written against {KEY} as updated on DD/MM/YYYY at HH:MM.";
    - the assumptions every test shares;
    - a *Test data* table: `ID | Dataset`;
-   - the tests, as tables `# | Layer | Data | Flow | Expected`, each citing the
-     AC it checks. A test that goes on from another's end state starts its
-     flow with "After #N".
+   - the tests, as tables `# | Layer | Data | Flow | Expected`, each naming
+     the AC it checks in its Flow or Expected cell (for example "AC 3"). A
+     test that goes on from another's end state starts its flow with
+     "After #N".
 4. **Give each test its layer** (`docs/testing.md`):
    - `Domain`: logic, in `packages/domain`, with no IO;
    - `Web`: anything that touches the database, in `apps/web`, on real
@@ -103,7 +108,15 @@ never from memory:
    check, or one that had to change), and did this process fail? Most sessions
    have nothing. A kept candidate goes into the RE learnings queue,
    [Non-tech refinement learnings — gymmy](https://dextra.atlassian.net/wiki/spaces/~712020296b34b54b84454489d16860c808e925/pages/994574373)
-   (E4).
+   (E4), with one of these destinations:
+   - `playbook`: how test design runs, which this skill holds until dextra
+     publishes a playbook;
+   - `project guide`: an AC rule the gymmy product writing guide should hold;
+   - `guide`: an AC rule the DI Product writing guide should hold;
+   - `shared`: a rule for every step, which would change the shared rules.
+
+   Mark reviews each, as the RE-level owner, and an entry is ready for review
+   at its second sighting.
 
 ## Stop and tell Mark when
 

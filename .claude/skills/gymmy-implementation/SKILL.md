@@ -68,6 +68,8 @@ rules win (Mark, 31/10/2026). The points below are where they do; the rest of
    sees it (D-027).
    - A plan with more than one defensible direction is grilled with Mark
      before any code (`CLAUDE.md`, "Grill me").
+   - Mark's OK on the plan before any code is written stays, as the playbook
+     says (Phase 2, step 1): it is not one of these exceptions.
    - Work in progress may be pushed before its review if the commit says the
      review is still to come (`CLAUDE.md`; a working default awaiting
      [GYM-162](https://dextra.atlassian.net/browse/GYM-162)).

@@ -53,8 +53,9 @@ never from memory:
 7. **The record holds a diagram.** The record `TC - {KEY}` sits under the
    ticket's `TR - {KEY}` draft (E4), and its change map is a Macro Pack
    diagram. So the record is read and changed in ADF only, by node edits that
-   leave the diagram alone (Mark, 01/11/2026, GYM-102; `CLAUDE.md`, "Diagrams
-   in Confluence").
+   leave the diagram alone, as the playbook (section 7) and Mark's answer
+   (01/11/2026, GYM-102) both say. `CLAUDE.md`, "Diagrams in Confluence",
+   says how.
 
 ## Stop and tell Mark when
 
