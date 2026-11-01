@@ -117,7 +117,7 @@ until then a story goes from test design straight to `To Do`. A ticket moves as
 its step changes (D-023); the statuses it walks are Mark's (01/11/2026, D-029):
 a story goes `Non-tech refinement` → `Test Design` → `Tech refinement` →
 `Tech check` → `To Do` → `In Progress` → `IN REVIEW` → `Done`, and a bug or
-task starts at `To Do`. A ticket is `IN REVIEW` while its pull request is open.
+task starts at `To Do`. gymmy reads `IN REVIEW` as its pull request being open.
 Topics are ideas in the Jira Product Discovery space **gymmy-roadmap**
 ([GR](https://dextra.atlassian.net/jira/polaris/projects/GR/ideas)), ranked top
 first as Mark ranked them on 31/10/2026
