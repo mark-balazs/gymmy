@@ -76,6 +76,15 @@ rules win (Mark, 31/10/2026). The points below are where they do; the rest of
 9. **Done:** the session merges the pull request once all of it has scored 8
    or more and every check is green (Mark, 11/10/2026). That merge, not Mark's
    word, ends the build and starts the retro, Phase 3 (Mark, 31/10/2026).
+10. **Test cases.** A story's Domain, Web and Browser test cases become tests
+    at their layer, each naming its number, and pass before the merge. The
+    session also checks every By hand case it can on a local copy of the
+    change before the merge, so those failures never go live. The rest, such
+    as Google sign-in, are checked on the live app after the merge, with Mark
+    signing in, once the account they need exists (the demo account is
+    [GYM-38](https://dextra.atlassian.net/browse/GYM-38)); a failure there is
+    filed as a bug (Mark, 01/11/2026). Each result is commented on the ticket
+    with the version it ran on.
 
 ## Stop and tell Mark when
 

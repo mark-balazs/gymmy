@@ -16,8 +16,9 @@ Through the Atlassian connector, cloudId `5d8c32ca-6cbf-4ac3-b09b-7717b64295cf`,
 never from memory:
 
 1. **The step:** [5. Test Design](https://dextra.atlassian.net/wiki/spaces/DI/pages/938147841),
-   page `938147841`: check that the story can be tested, and write the test
-   cases that step 13, Testing, runs.
+   page `938147841`: check that the story can be tested, and write its test
+   cases. gymmy has no Testing status (step 13), so step 4 below says when
+   each kind is checked.
 2. **The shared rules:** [Agent playbooks — shared rules](https://dextra.atlassian.net/wiki/spaces/DI/pages/1000177672/Agent+playbooks+shared+rules),
    page `1000177672`, for how to ask (section 3), how to write to the ticket
    (section 5) and the retro (sections 7.1 and 7.2).
@@ -89,8 +90,14 @@ never from memory:
    - `Browser`: what a person does, in `e2e`, with Playwright on a production
      build. A step that only happens on the way in, such as signing up, cannot
      start from a fixture's session row (flow 08);
-   - `By hand`: a behaviour check on production or the local copy, for what the
-     suites can't reach, such as Google sign-in or the code email.
+   - `By hand`: checked in the running app, for what the suites can't reach,
+     such as Google sign-in or the code email.
+
+   The first three become tests at their layer, each naming its number, and
+   pass before the merge. Claude Code checks every By hand case it can on a
+   local copy of the change before the merge as well, and the rest on the live
+   app after it, with Mark signing in; a failure there is a bug (Mark,
+   01/11/2026; `gymmy-implementation`, item 10).
 5. **Numbers never change.** A dropped test is struck through and keeps its
    number. A new test takes the next number.
 6. **Too long for the ticket?** A Jira description holds 32,767 characters.
