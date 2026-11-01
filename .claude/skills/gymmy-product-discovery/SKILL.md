@@ -30,7 +30,7 @@ never from memory:
    GR key or a gymmy topic is gymmy, and its extension is the page above. Check
    its required slots as the playbook says.
 3. **DI pages are read, never written.** A retro candidate whose destination is
-   `playbook`, `guide` or `standard` goes into gymmy's PM learnings queue (E4)
+   `playbook`, `guide`, `standard` or `shared` goes into gymmy's PM learnings queue (E4)
    instead, its destination kept in the status line, for Mark to carry over to
    DI by hand, without gymmy's details, if he wants.
 4. **Scored before Mark sees it.** Before Mark sees an idea's options, a

@@ -30,7 +30,7 @@ never from memory:
    GYM key is gymmy, and its extension is the page above. Check its required
    slots as the playbook says.
 3. **DI pages are read, never written.** A retro candidate whose destination is
-   `playbook` goes into gymmy's learnings queue (E4) instead, its destination
+   `playbook` or `shared` goes into gymmy's learnings queue (E4) instead, its destination
    kept in the status line, for Mark to carry over to DI by hand, without
    gymmy's details, if he wants.
 4. **Not before the technical direction is written.** Until gymmy's

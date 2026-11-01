@@ -30,7 +30,7 @@ never from memory:
    GYM key, a gymmy pass or a gymmy migration is gymmy, and its extension is
    the page above. Check its required slots as the playbook says.
 3. **DI pages are read, never written.** A retro candidate whose destination is
-   `playbook`, `standard` or `guide` goes into gymmy's RE learnings queue (E4)
+   `playbook`, `standard`, `guide` or `shared` goes into gymmy's RE learnings queue (E4)
    instead, its destination kept in the status line, for Mark to carry over to
    DI by hand, without gymmy's details, if he wants.
 4. **No fix versions.** Every merge to main deploys, so a pass's scope is the GYM
