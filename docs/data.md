@@ -43,8 +43,10 @@ bump it does not.
 
 The entity relationship diagrams on Confluence are **generated from the schema
 rather than drawn**. `npm run er:diagram -w @athletic/web` rewrites
-[`data-model.mmd`](./data-model.mmd) and, with `-- --macro`, prints the Macro
-Pack HTML to paste onto **Architecture → Data model**.
+[`data-model.mmd`](./data-model.mmd) and, with `-- --macro`, prints each
+diagram in the form the Atlassian connector stores as its node on
+**Architecture → Data model**, a page changed only by node edits (CLAUDE.md,
+*Diagrams in Confluence*).
 `apps/web/src/lib/db/er-diagram.test.ts` holds the committed file against
 `schema.ts`, so **a new table or a renamed column fails `npm test`** until the
 diagram catches up — and a table with no home in one of the three groups fails
@@ -236,7 +238,7 @@ So a table is retired in two steps:
    generated.
 2. **Next deploy: drop it.** Count its rows in production first. Then delete the
    declaration, run `npm run db:generate` for the `DROP TABLE`, regenerate the
-   ER diagram and paste it onto Confluence.
+   ER diagrams and replace their nodes on Confluence.
 
 `ref_sets` was retired this way: every use removed in one deploy, the table dropped in the next, after production showed it had never held a row.
 

@@ -3,7 +3,7 @@ id: one-decision-at-a-time
 status: current
 decided: "D-027; owner 2026-10-11 (context, the same day); the question tool: our answer to his \"You still havent presented any decisions to me\", the same day; the order is a working default awaiting Mark's answer (GYM-162)"
 appears:
-  repo: ["CLAUDE.md#how-to-work-here", ".claude/skills/gymmy-independent-review/SKILL.md#decisions-one-at-a-time", ".claude/skills/gymmy-product-discovery/SKILL.md#where-gymmy-differs-from-the-playbook", ".claude/skills/gymmy-nontech-refinement/SKILL.md#where-gymmy-differs-from-the-playbook", ".claude/skills/gymmy-tech-refinement/SKILL.md#where-gymmy-differs-from-the-playbook", ".claude/skills/gymmy-release-documentation/SKILL.md#where-gymmy-differs-from-the-playbook"]
+  repo: ["CLAUDE.md#how-to-work-here", ".claude/skills/gymmy-independent-review/SKILL.md#decisions-one-at-a-time", ".claude/skills/gymmy-product-discovery/SKILL.md#where-gymmy-differs-from-the-playbook", ".claude/skills/gymmy-nontech-refinement/SKILL.md#where-gymmy-differs-from-the-playbook", ".claude/skills/gymmy-test-design/SKILL.md#where-gymmy-differs-from-the-playbook", ".claude/skills/gymmy-tech-refinement/SKILL.md#where-gymmy-differs-from-the-playbook", ".claude/skills/gymmy-technical-check/SKILL.md#where-gymmy-differs-from-the-playbook", ".claude/skills/gymmy-implementation/SKILL.md#where-gymmy-differs-from-the-playbook", ".claude/skills/gymmy-release-documentation/SKILL.md#where-gymmy-differs-from-the-playbook"]
   copy: []
   tests: []
   confluence: ["980549636", "934543399", "980713505"]

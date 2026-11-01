@@ -3,7 +3,7 @@ id: independent-review
 status: current
 decided: "D-026, D-027; owner 2026-10-11; merging: owner 2026-10-11 (\"Feel free to merge prs if they have been reviewed and are green\"); the exemptions and the work-in-progress rule are working defaults awaiting Mark's answer (GYM-162)"
 appears:
-  repo: ["CLAUDE.md#how-to-work-here", "CLAUDE.md#before-you-say-it-works", ".claude/skills/gymmy-independent-review/SKILL.md#when-it-applies", ".claude/skills/gymmy-independent-review/SKILL.md#how", ".claude/skills/gymmy-product-discovery/SKILL.md#where-gymmy-differs-from-the-playbook", ".claude/skills/gymmy-nontech-refinement/SKILL.md#where-gymmy-differs-from-the-playbook", ".claude/skills/gymmy-tech-refinement/SKILL.md#where-gymmy-differs-from-the-playbook", ".claude/skills/gymmy-release-documentation/SKILL.md#where-gymmy-differs-from-the-playbook"]
+  repo: ["CLAUDE.md#how-to-work-here", "CLAUDE.md#before-you-say-it-works", ".claude/skills/gymmy-independent-review/SKILL.md#when-it-applies", ".claude/skills/gymmy-independent-review/SKILL.md#how", ".claude/skills/gymmy-product-discovery/SKILL.md#where-gymmy-differs-from-the-playbook", ".claude/skills/gymmy-nontech-refinement/SKILL.md#where-gymmy-differs-from-the-playbook", ".claude/skills/gymmy-test-design/SKILL.md#where-gymmy-differs-from-the-playbook", ".claude/skills/gymmy-tech-refinement/SKILL.md#where-gymmy-differs-from-the-playbook", ".claude/skills/gymmy-technical-check/SKILL.md#where-gymmy-differs-from-the-playbook", ".claude/skills/gymmy-implementation/SKILL.md#where-gymmy-differs-from-the-playbook", ".claude/skills/gymmy-release-documentation/SKILL.md#where-gymmy-differs-from-the-playbook"]
   copy: []
   tests: []
   confluence: ["980549636", "934543399"]

@@ -21,7 +21,10 @@ turns each disagreement into one GYM issue.
 - Confluence (cloudId `5d8c32ca-6cbf-4ac3-b09b-7717b64295cf`): every page
   under the root `934445059`, plus the strategy and spec pages outside it
   (`934838274` and its children, `934379628`, `949354507`, `949551107`,
-  `949649424`, and the BGF pages). Read them as markdown; never write.
+  `949649424`, and the BGF pages). Read them as markdown, except a page that
+  holds a diagram, which is read in the connector's HTML form so the
+  diagram's source is checked too (`CLAUDE.md`, *Diagrams in Confluence*);
+  never write.
 - The code, for facts about behaviour: the files and tests a fact points at.
 - Jira project **GYM**, epic **Knowledge base**.
 

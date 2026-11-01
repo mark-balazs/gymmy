@@ -16,7 +16,7 @@ Through the Atlassian connector, cloudId `5d8c32ca-6cbf-4ac3-b09b-7717b64295cf`,
 never from memory:
 
 1. **The playbook:** [Tech refinement — agent playbook](https://dextra.atlassian.net/wiki/spaces/DI/pages/960823309/Tech+refinement+agent+playbook),
-   page `960823309`. It is the process: follow it exactly, except for the four
+   page `960823309`. It is the process: follow it exactly, except for the
    points below.
 2. **gymmy's extension:** [Tech refinement — gymmy extension](https://dextra.atlassian.net/wiki/spaces/~712020296b34b54b84454489d16860c808e925/pages/980975618/Tech+refinement+gymmy+extension),
    page `980975618`. It fills the playbook's slots, as the extension the
@@ -24,18 +24,22 @@ never from memory:
 
 ## Where gymmy differs from the playbook
 
-1. **Resolving the project.** Skip the registry (section 2; Phase 0, step 2): a
+1. **The chat is never renamed** (Mark, 31/10/2026: "Dont rename this
+   thread"): skip the shared rules' step 1, *Name the chat*, and the chat half
+   of the first line of their verification list; the loading half still
+   applies.
+2. **Resolving the project.** Skip the registry (section 2; Phase 0, step 2): a
    GYM key is gymmy, and its extension is the page above. Check its required
    slots as the playbook says.
-2. **DI pages are read, never written.** A retro candidate whose destination is
-   `playbook` goes into gymmy's learnings queue (E4) instead, its destination
+3. **DI pages are read, never written.** A retro candidate whose destination is
+   `playbook` or `shared` goes into gymmy's learnings queue (E4) instead, its destination
    kept in the status line, for Mark to carry over to DI by hand, without
    gymmy's details, if he wants.
-3. **Not before the technical direction is written.** Until gymmy's
+4. **Not before the technical direction is written.** Until gymmy's
    architecture docs are on DI's Architecture documentation standard
    ([GYM-106](https://dextra.atlassian.net/browse/GYM-106) is Done), hints
    would rest on no agreed technical direction: say so and stop.
-4. **Scored before Mark sees it.** Before Mark sees implementation hints or a
+5. **Scored before Mark sees it.** Before Mark sees implementation hints or a
    draft of them, run the `gymmy-independent-review` skill: a fresh agent scores
    the work from 1 to 10, and it is fixed until it scores 8, then reaches Mark
    with its score at the end (Decision log D-026 and D-027). The playbook's
