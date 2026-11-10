@@ -124,8 +124,8 @@ a story goes `Non-tech refinement` → `Test Design` → `Tech refinement` →
 task starts at `To Do`. gymmy reads `IN REVIEW` as its pull request being open.
 Topics are ideas in the Jira Product Discovery space **gymmy-roadmap**
 ([GR](https://dextra.atlassian.net/jira/polaris/projects/GR/ideas)), ranked top
-first as Mark ranked them on 31/10/2026
-([GYM-107](https://dextra.atlassian.net/browse/GYM-107)); each GYM epic
+first, as Mark ranks them (first pass 31/10/2026,
+[GYM-107](https://dextra.atlassian.net/browse/GYM-107)); each GYM epic
 implements its GR idea.
 
 **Sweep between features.** The owner asked for housekeeping without being
