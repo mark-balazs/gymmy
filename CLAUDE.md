@@ -71,14 +71,14 @@ first; then what blocks the work in hand; then what blocks the most other work;
 then the oldest. The next comes only once he has answered the one before;
 meanwhile, carry on with whatever the answer does not block. A new ticket holds
 one decision; one that already holds several is asked one decision at a time,
-each reviewed on its own. Ask each short: a few lines he can read at a glance
-(Mark, 09/11/2026: "these are too long, shorter questions please."), saying
-what to decide, what it is about in a sentence or two, the options with your
-recommendation first, what the answer unblocks, how many wait behind it, and
-its review score at the end. Quotes, dates and each option's full case go in
-the review report sent with it, not in the question. A ticket or decision
-number never stands in for what it is. Ask it with the question tool,
-not as text in a reply, where it gets missed: everything in the question, each
+each reviewed on its own. Keep each short and plain: a few lines he can read
+at a glance (Mark, 09/11/2026: "these are too long, shorter questions
+please."), saying what to decide, what it is about in a sentence or two, the
+options with your recommendation first, what the answer unblocks, how many
+wait behind it, and its review score at the end. Quoted sources, dates and
+each option's full case go in the review report sent with it. A ticket or
+decision number never stands in for what it is. Ask it with the question tool,
+not as text in a reply, where it gets missed: the whole question in the tool, each
 option a label of five words at most with a one-line description, the review
 report sent as a file just before it, and whatever work does not wait on the
 answer started in the background first. A question asked and answered in the

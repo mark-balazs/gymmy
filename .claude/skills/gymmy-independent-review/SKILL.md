@@ -100,20 +100,20 @@ can do.
   1. what to decide, in one sentence;
   2. what it is about, in one or two plain sentences;
   3. the options, two to four, your recommendation first, a line each with its
-     main gain or cost;
+     main gain and its main cost;
   4. what the answer unblocks, in a few words;
   5. how many wait behind it, then the review score, then the ticket as a
      reference.
 
-  Quotes, dates, every clash and each option's full case for and against go in
-  the review report sent with it, never in the question.
+  Quoted sources, dates, every other clash and each option's full case for and
+  against go in the review report sent with it, not in the question.
 - **No bare numbers.** A ticket, page or decision number never stands in for
   what it is: say what it is, and give the number only after, as a reference.
 - **Reviewed first,** like any work, with the *Decision* dimension below. Below
   8, fix it and start a new reviewer. At 8 or more it goes to him with its
   overall score at the end.
 - **Asked with the question tool,** never as text in a reply, where one was
-  missed. Everything goes in the question text, in the order above; the options
+  missed. The five parts go in the question text, in that order; the options
   are short labels, five words at most, each with a one-line description. The
   tool cannot attach files, so send the review report as a file just before the
   question, and say "report sent above" in it. Before asking, start in the
@@ -145,9 +145,9 @@ Pick the dimensions that fit the work, and name them in the brief.
 - **Readiness** (for stories and hints). The acceptance criteria are numbered and
   testable; the story's Feature pages line names the pages it changes; the hints
   follow the architecture docs and the technical direction.
-- **Decision** (for a decision put to Mark). It is short, a few lines he reads
-  at a glance, and a question that runs to a page cannot score 8. It is one
-  decision; it carries just enough context to answer without opening anything,
-  and no number stands in for what it is; the options are real, fair and few; the recommendation
+- **Decision** (for a decision put to Mark). It is short and plain, a few
+  lines he reads at a glance, and a question he cannot read at a glance cannot
+  score 8. It is one decision; it carries just enough context to answer without
+  opening anything, and no number stands in for what it is; the options are real, fair and few; the recommendation
   follows from the evidence; the words are short and plain; it names what it
   unblocks and, as a reference, its ticket.
