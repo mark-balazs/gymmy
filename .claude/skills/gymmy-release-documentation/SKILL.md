@@ -45,6 +45,15 @@ never from memory:
    reaches Mark with its score at the end (Decision log D-026 and D-027). The
    playbook's questions to Mark come one at a time, and one with options or a
    recommendation is scored the same way before he sees it (D-027).
+6. **What a session finds is filed, as building files it** (Mark,
+   10/11/2026, GYM-203). A session files what it finds in Jira, new tickets
+   and comments on open ones, by *Write a ticket — gymmy*, with no yes on each
+   write, as building does. This step's own open points stay where its
+   playbook keeps them (an item's *Unclear*, a story draft's open questions),
+   and only what a session finds outside them is filed. What the step writes
+   as its own work (an item's entries and status moves, the tracker comments
+   that go with an entry, an epic and its stories, a page) keeps the approvals
+   its playbook gives it.
 
 ## Stop and tell Mark when
 

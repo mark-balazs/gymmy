@@ -56,6 +56,15 @@ never from memory:
    leave the diagram alone, as the playbook (section 7) and Mark's answer
    (01/11/2026, GYM-102) both say. `CLAUDE.md`, "Diagrams in Confluence",
    says how.
+8. **What a session finds is filed, as building files it** (Mark,
+   10/11/2026, GYM-203). A session files what it finds in Jira, new tickets
+   and comments on open ones, by *Write a ticket — gymmy*, with no yes on each
+   write, as building does. This step's own open points stay where its
+   playbook keeps them (an item's *Unclear*, a story draft's open questions),
+   and only what a session finds outside them is filed. What the step writes
+   as its own work (an item's entries and status moves, the tracker comments
+   that go with an entry, an epic and its stories, a page) keeps the approvals
+   its playbook gives it.
 
 ## Stop and tell Mark when
 

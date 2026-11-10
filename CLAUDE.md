@@ -101,7 +101,9 @@ happens on the way in; that is what `e2e/flows/08` exists for.
 Look there before starting. File what you find instead of carrying it in a
 session, written to *Write a ticket — gymmy*: a bug as a bug, a question only
 the owner can settle as "Decide: …", an action only the owner can take as
-"For Mark: …". Move an issue as its work lands, and comment the commit hash.
+"For Mark: …". Every step files this way, with no yes on each ticket, and keeps
+its own open points where its playbook keeps them (Mark, 10/11/2026, GYM-203).
+Move an issue as its work lands, and comment the commit hash.
 
 **Work moves through dextra's Requirement Lifecycle** (D-023 to D-025, D-029).
 [gymmy — how we work](https://dextra.atlassian.net/wiki/spaces/~712020296b34b54b84454489d16860c808e925/pages/980549636)
